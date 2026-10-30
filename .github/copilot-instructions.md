@@ -1,53 +1,94 @@
-# Copilot Instructions
+# My Garage – Copilot Instructions
 
-The project constitution at `.specify/memory/constitution.md` is authoritative and takes precedence over these instructions.
+My Garage (`my-garage`) tracks vehicles owned by each user. Each user has a private list
+of vehicles, can add details about each vehicle, and can maintain a list of service
+records for each vehicle. The project constitution at
+`.specify/memory/constitution.md` is authoritative; if anything here conflicts with it, the constitution wins.
 
-## Architecture
+## Application Domain
 
-Preserve existing architecture, project boundaries, and dependency direction. Follow established patterns before introducing new abstractions, dependencies, frameworks, or architectural approaches. Align new features with adjacent implementations unless a documented reason exists to diverge. Keep API, HTTP, authentication, authorization, and orchestration concerns in the application layer; persistence, migrations, and data access in the data layer; presentation and UI behavior in the UI layer.
+- Each vehicle belongs to one user; users can access and manage only their own vehicles.
+- Vehicle details and service records are scoped to the vehicle's owner.
+- Each service record belongs to one vehicle. Verify ownership of that vehicle server-side
+  before allowing any service-record operation, including access by service-record ID.
 
-## Solution Structure
+## Non-Negotiable Rules
 
-Organize source projects under `src/`, test projects under `tests/`, and infrastructure assets under `infra/`. Prefer feature-based organization over technical-layer organization. Keep related endpoints, DTOs, validators, services, repositories, components, tests, and supporting assets together. Test projects should mirror the structure of the project under test.
+- Preserve the existing multi-project architecture and dependency direction.
+- Follow existing project patterns before introducing new abstractions, dependencies, or architectural approaches.
+- When implementing a feature, follow patterns used by adjacent or similar features unless there is a documented reason to do otherwise.
+- Keep endpoint handlers thin and move business or persistence logic into focused services.
+- Derive user identity and ownership from validated authentication claims; never trust user or owner identifiers supplied in request data for authorization.
+- Enforce authorization server-side and scope owner-specific queries by owner ID in SQL.
+- Use parameterized Dapper queries exclusively.
+- Preserve nullable-reference-type safety.
+- Use async APIs and propagate `CancellationToken` through all layers.
+- Never expose database entities as API contracts.
+- Never commit secrets or log sensitive data.
 
-## Security & Authorization
+## Stack
 
-Derive identity, ownership, and permissions from validated authentication claims. Never trust client-provided ownership, identity, or authorization data. Enforce authorization server-side and apply least-privilege principles. Validate all untrusted input at system boundaries before database or external-service operations. Never commit secrets, credentials, keys, or connection strings, and never log secrets or sensitive data.
+- Target C# 14 and .NET 10.
+- UI: Blazor Web App (Interactive Server), Bootstrap 5.3.x only.
+- API: ASP.NET Core minimal APIs, FluentValidation, OpenAPI, RFC 9457 `ProblemDetails`.
+- Data: PostgreSQL via Npgsql + Dapper (no other ORM), plain `.sql` files, custom migration runner.
+- Auth: Microsoft Entra ID (OIDC for web, JWT bearer for API).
+- Keep HTTP, authentication, authorization, and orchestration concerns in the application's API layer.
+- Keep persistence, migrations, and database access in the data-access layer.
+- Keep UI behavior and presentation concerns in the UI layer.
+- Tests: xUnit, Testcontainers PostgreSQL (no mocked database).
+- Logging/telemetry: `ILogger`/Serilog + OpenTelemetry.
 
-## API & Application Design
+## Solution layout and dependencies
+- Source projects will be organized within a src folder, tests projects within a tests folder. Infrastructure will be organized within an infra folder.
+- `MyGarage.Web` -> references only `MyGarage.Shared`; reaches data only via HTTP to `MyGarage.Api`.
+- `MyGarage.Api` -> references `MyGarage.Shared` and `MyGarage.Database`; never runs SQL directly.
+- `MyGarage.Database` -> references no other MyGarage project; holds repositories, SQL scripts, migrations.
+- `MyGarage.Shared` -> DTOs and contracts only.
+- Test projects mirror the feature folders of the project under test.
 
-Keep endpoints, controllers, handlers, and UI entry points thin. Place business logic in focused services and persistence logic in repositories or data-access components. Use dependency injection and avoid static mutable state. Never expose persistence entities as external contracts; use DTOs or public models and map explicitly between layers. Define clear request and response contracts, validate requests, and return standardized error responses. Preserve nullable-reference-type safety and prefer asynchronous APIs with `CancellationToken` propagation throughout applicable layers.
+## Coding rules
 
-## Data Access
-
-Use parameterized queries exclusively. Never concatenate or interpolate values into SQL. Store SQL in dedicated script files where applicable rather than embedding queries in application code. Keep data-access operations asynchronous and accept `CancellationToken`. Apply schema changes through numbered, forward-only migration scripts; never modify an applied migration.
-
-## Date & Time
-
-Store absolute instants in UTC using `DateTimeOffset`. Use date-only types for date-only values. When local user times are required, persist sufficient information to reconstruct the original local time and time zone accurately.
+- Organize every project by feature folder (e.g. `Vehicles/`, `ServiceRecords/`), not by technical layer. Keep a
+  feature's endpoints, DTOs, validators, components, repository, and SQL together. Cross-feature
+  code goes in `Common/`.
+- Never expose data models across the API boundary. Endpoints accept and return DTOs from
+  `MyGarage.Shared` only; map explicitly between data models and DTOs.
+- Every endpoint: validated with a FluentValidation validator, grouped per feature with
+  `MapGroup`, declares request/response types and status codes, requires authorization unless the spec justifies otherwise, and returns `ProblemDetails` for errors.
+- Use dependency injection and small focused services over static mutable state.
+- Validate untrusted input at system boundaries before database or external-service operations.
+- Store system timestamps and absolute instants as UTC using DateTimeOffset and PostgreSQL timestamptz. For user-entered zoned times, persist the local wall-clock value, the IANA time-zone ID, and the derived UTC instant. Use DateOnly and PostgreSQL date for date-only values.
+- SQL lives in individual `.sql` files in `MyGarage.Database/Scripts/<Feature>/` (one subfolder per feature,
+  migrations in `Scripts/Migrations/`), loaded and
+  cached at runtime and executed through Dapper. Always parameterize; never concatenate or
+  interpolate values into SQL. No SQL string literals in C#.
+- Schema changes only via new numbered, forward-only migration scripts recorded in the migration
+  ledger with checksums. Never edit an applied migration.
+- All data access is async and takes a `CancellationToken`.
+- Do not log secrets or sensitive user, vehicle, or service-record data. Do not commit secrets.
+- Do not add packages, an alternative ORM, or another CSS/UI framework without justification in
+  the plan and a constitution amendment where required.
 
 ## UI Standards
 
-Prefer approved platform components and built-in framework capabilities over custom solutions. Use semantic HTML, accessible design patterns, keyboard navigation, appropriate focus management, and accessible names for icon-only controls. Keep JavaScript modular and narrowly scoped. Dispose of event handlers and subscriptions correctly. Avoid manipulating framework-owned DOM unless explicitly required. Safely render user-generated content and respect accessibility preferences such as reduced motion.
-
-Provide meaningful `alt` text for informative images and empty `alt=""` attributes for decorative images, and use associated labels or appropriate ARIA attributes to give controls accessible names. Use `title` attributes only for supplemental information, never as the sole source of a label, instruction, or essential content.
-
-## Testing
-
-Follow a test-first approach when practical. Ensure features include automated tests covering success, validation, authorization, error, and business-rule scenarios. Keep tests deterministic, isolated, and repeatable. Avoid shared mutable state and use real infrastructure dependencies when required by project standards.
+- Prefer Bootstrap 5.3 utilities and components over custom CSS or JavaScript.
+- Do not introduce jQuery or another UI framework.
+- Use semantic HTML and maintain accessibility, keyboard navigation, and focus behavior.
+- Provide accessible names for icon-only controls.
+- Keep JavaScript modular and narrowly scoped.
+- Use module-based Blazor interop and dispose modules and event handlers.
+- Do not manipulate Blazor-owned DOM unless interop requires it.
+- Safely render user-provided content and respect `prefers-reduced-motion`.
 
 ## Workflow
 
-Use specification-driven development with the repository's approved workflow. Work from documented requirements, specifications, or user stories. Keep changes focused and traceable to a single work item. Do not commit directly to protected branches; use pull requests for review and integration. Before completing work, ensure the solution builds cleanly, static analysis passes, tests pass, and migrations apply successfully where applicable.
+- Work is spec-driven with Spec Kit: `/speckit-specify` -> `/speckit-plan` -> `/speckit-tasks` -> `/speckit-implement`.
+- Each spec is built on its own sequentially numbered branch (e.g. `001-vehicle-records`).
+  Never commit directly to `main`; merge via pull request only.
+- Write tests first and confirm they fail before implementing. Every endpoint needs success, validation-failure, and not-found/error tests.
+- Before finishing: solution builds with zero warnings, all tests pass, and migrations apply cleanly to an empty database.
 
-## Documentation
+## Commit Messages
 
-Keep README, onboarding material, architecture documentation, and specifications current. Document significant design decisions, deviations from established patterns, and changes affecting future development.
-
-## Quality Gates
-
-Do not introduce new packages, frameworks, ORMs, CSS frameworks, or major architectural patterns without documented justification. Prefer consistency with existing project conventions over personal preference.
-
-## Commits
-
-Use Conventional Commits: `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `build`, `ci`, and `chore`. Use concise imperative subjects without trailing punctuation.
+Use Conventional Commits (`feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `build`, `ci`, `chore`) with concise imperative subjects and no trailing period.

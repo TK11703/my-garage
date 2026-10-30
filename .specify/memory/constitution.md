@@ -1,50 +1,143 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report (temporary review note; remove before committing)
+Version change: 1.0.1 -> 1.1.0
+Modified principles:
+- II. Feature-Folder Organization: vehicle and service-record examples
+- III. Solution Structure and Dependency Direction: MyGarage project names
+- IV. DTO Boundary (NON-NEGOTIABLE): MyGarage project names
+- VI. Dapper, PostgreSQL, and Plain SQL Scripts: MyGarage paths and vehicle examples
+- VII. Versioned Schema Migrations: MyGarage project name
+Other changes: My Garage purpose, owner-scoped data protection, logging guidance,
+authentication project names, and branch example.
+Added sections: none
+Removed sections: none
+Follow-up TODOs: none
+-->
+# My Garage Constitution
+
+My Garage (`my-garage`) tracks vehicles owned by each user. Each user has a private list of
+vehicles, can add details about each vehicle, and can maintain a list of service records for
+each vehicle.
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. .NET 10 and C# Only
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+All application projects MUST target .NET 10 and be written in C#. Nullable reference types MUST
+be enabled and compiler warnings MUST be treated as errors in every project. Data access and
+I/O-bound code MUST be async and MUST accept and forward a `CancellationToken`.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Feature-Folder Organization
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+Every project MUST be organized by feature (for example `Vehicles/`, `ServiceRecords/`),
+not by technical layer. Code, DTOs, validators, endpoints, components, repositories, and SQL
+scripts for a feature MUST live together in that feature's folder within each project. Shared
+cross-feature code MUST live in an explicitly named `Common/` (or equivalent) folder.
+In `MyGarage.Database` the SQL scripts of every feature are tracked together under `Scripts/`, in that
+feature's subfolder (see VI).
+Rationale: a feature can be understood, changed, and removed in one place.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Solution Structure and Dependency Direction
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+The solution MUST contain these projects, with the following dependency rules:
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- `MyGarage.Web` — Blazor user interface. MAY reference only `MyGarage.Shared`.
+- `MyGarage.Api` — minimal APIs. MAY reference `MyGarage.Shared` and `MyGarage.Database`.
+- `MyGarage.Database` — repositories, SQL scripts, and schema migrations. MUST NOT reference
+  `MyGarage.Api`, `MyGarage.Web`, or `MyGarage.Shared`.
+- `MyGarage.Shared` — request/response DTOs and contracts only. MUST contain no persistence logic.
+- Test projects (for example `MyGarage.Api.Tests`, `MyGarage.Database.Tests`) MUST mirror the feature
+  folders of the project under test.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+`MyGarage.Web` MUST reach data only through HTTP calls to `MyGarage.Api`; it MUST NOT access the database.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### IV. DTO Boundary (NON-NEGOTIABLE)
+
+Data models (persistence/entity types) MUST NOT cross the API boundary. Every endpoint MUST accept
+and return DTOs only, and data models MUST remain internal to `MyGarage.Database` and the API
+mapping layer. DTOs MUST live in `MyGarage.Shared` and MUST be the only types `MyGarage.Web` consumes.
+Mapping between data models and DTOs MUST be explicit and covered by tests.
+
+### V. Validated Minimal APIs
+
+The backend MUST be built with ASP.NET Core minimal APIs. Every endpoint MUST validate its input
+DTO with FluentValidation before any business or data-access logic runs. Invalid input MUST
+produce an RFC 9457 `ProblemDetails` response (validation problems with HTTP 400/422 as
+appropriate). All error responses MUST use `ProblemDetails`. Every endpoint MUST declare its
+request/response types and status codes and be documented through OpenAPI. Endpoints MUST be
+grouped per feature (for example `MapGroup` + one registration extension per feature).
+
+### VI. Dapper, PostgreSQL, and Plain SQL Scripts
+
+Persistence MUST use PostgreSQL accessed through Npgsql and Dapper; no other ORM is permitted.
+All SQL MUST be written as individual `.sql` files stored in the feature's subfolder of
+`MyGarage.Database/Scripts/` (for example `Scripts/Vehicles/`); SQL MUST NOT be embedded as string
+literals in C# code. Queries and commands
+MUST be loaded and cached at runtime and executed with Dapper. All SQL MUST be parameterized;
+string concatenation or interpolation of values into SQL is prohibited. Each feature MUST expose
+its data access through a repository in `MyGarage.Database` (repository pattern); `MyGarage.Api` MUST
+call repositories and MUST NOT run SQL directly.
+
+### VII. Versioned Schema Migrations
+
+Schema changes MUST be made only through numbered, forward-only migration scripts stored in
+`MyGarage.Database`. A custom migration runner MUST apply pending scripts in order and record each
+applied script in a migration ledger table (script identifier, checksum, applied timestamp). The
+runner MUST fail if an already-applied script's checksum has changed. Applied migration scripts
+MUST NOT be edited; corrections MUST be made with a new migration.
+
+### VIII. Test-First with Real Dependencies (NON-NEGOTIABLE)
+
+Development MUST follow test-first practice: tests are written and observed to fail before the
+implementation, then made to pass (Red-Green-Refactor). Tests MUST use xUnit. Repository and
+migration tests MUST run against a real PostgreSQL instance provisioned with Testcontainers;
+mocking the database is not an acceptable substitute. Every endpoint MUST have tests covering
+success, validation failure, and not-found/error paths. UI components with logic MUST have tests.
+
+## Technology & Architecture Constraints
+
+- **UI**: Blazor Web App using the Interactive Server render mode, styled with Bootstrap 5.3.x.
+  Bootstrap MUST be pinned to a 5.3.x version; other CSS frameworks MUST NOT be introduced.
+- **Authentication/Authorization**: Microsoft Entra ID via OpenID Connect for `MyGarage.Web` and JWT
+  bearer validation for `MyGarage.Api`. Every endpoint MUST require authorization unless the spec
+  explicitly justifies an anonymous endpoint. Secrets MUST NOT be committed to source control.
+- **Observability**: Structured logging (`ILogger`/Serilog) and OpenTelemetry tracing and metrics
+  MUST be enabled in `MyGarage.Api` and `MyGarage.Web`. Logs MUST NOT contain sensitive user,
+  vehicle, or service-record data or credentials.
+- **Data protection**: Each vehicle MUST belong to one user, and each service record MUST
+  belong to one vehicle. Users MUST access and manage only their own vehicles, vehicle details,
+  and service records. User identity and ownership MUST be derived from validated authentication
+  claims, never trusted from request-supplied user or owner identifiers. Authorization MUST be
+  enforced server-side, with owner-specific SQL queries scoped by the authenticated owner ID.
+  Every service-record operation, including access by service-record ID, MUST verify ownership
+  through its parent vehicle. Changes MUST be attributable to an authenticated user.
+- **Dependencies**: New third-party packages MUST be justified in the feature plan. An ORM other
+  than Dapper, or a UI framework other than Blazor/Bootstrap, is prohibited without a
+  constitution amendment.
+
+## Development Workflow & Quality Gates
+
+- **Spec-driven**: Every change MUST originate from a Spec Kit spec (`/speckit-specify`) followed
+  by plan and tasks before implementation.
+- **Branch per spec**: Each spec MUST be built in its own branch using Spec Kit sequential
+  naming (for example `001-vehicle-records`). Work MUST NOT be committed directly to `main`.
+  Branches MUST be merged to `main` through a pull request only.
+- **Merge gates**: A pull request MUST NOT be merged unless the solution builds with zero
+  warnings, all tests pass, migrations apply cleanly to an empty database, and a reviewer has
+  verified compliance with this constitution.
+- **Complexity**: Any deviation from these principles MUST be documented and justified in the
+  feature's plan (Complexity Tracking) and approved in review.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other practices and guidance for this repository. Amendments
+MUST be proposed via a pull request that updates this file, states the rationale, and includes a
+migration plan for any existing code that becomes non-compliant. Amendments require reviewer
+approval before merge.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Versioning follows semantic versioning: MAJOR for backward-incompatible principle removals or
+redefinitions, MINOR for added principles/sections or materially expanded guidance, PATCH for
+clarifications and wording fixes. Every pull request and review MUST verify compliance with this
+constitution, and Spec Kit plans MUST pass a Constitution Check against it before design begins.
+
+**Version**: 1.1.0 | **Ratified**: 2026-10-23 | **Last Amended**: 2026-10-30
