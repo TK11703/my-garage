@@ -1,0 +1,103 @@
+openapi: 3.1.0
+info:
+  title: My Garage API
+  version: 1.0.0
+servers:
+  - url: https+http://api
+security:
+  - bearer: [access_as_user]
+paths:
+  /api/users/me:
+    get:
+      operationId: getCurrentUser
+      summary: Identity of the caller, derived from the validated access token.
+      tags: [Users]
+      responses:
+        "200":
+          description: Current user.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CurrentUserDto" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+  /api/sample-data:
+    get:
+      operationId: getSampleData
+      summary: Fixed sample data used to prove the API is reachable.
+      tags: [SampleData]
+      parameters:
+        - name: count
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 10, default: 3 }
+      responses:
+        "200":
+          description: Sample items.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SampleItemDto" }
+        "400":
+          description: Validation failure.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ValidationProblemDetails" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+  /health:
+    get:
+      operationId: health
+      summary: Aspire health check (Development only). Anonymous, no user data.
+      security: []
+      responses:
+        "200": { description: Healthy. }
+        "503": { description: Unhealthy. }
+components:
+  securitySchemes:
+    bearer:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/authorize
+          tokenUrl: https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token
+          scopes:
+            access_as_user: Access My Garage API as the signed-in user
+  responses:
+    Problem:
+      description: RFC 9457 problem details.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ProblemDetails" }
+  schemas:
+    CurrentUserDto:
+      type: object
+      required: [userId, displayName]
+      properties:
+        userId: { type: string }
+        displayName: { type: string }
+        email: { type: [string, "null"] }
+    SampleItemDto:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+    ProblemDetails:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+    ValidationProblemDetails:
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetails"
+        - type: object
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items: { type: string }
