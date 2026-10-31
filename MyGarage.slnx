@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MyGarage.Api/MyGarage.Api.csproj" />
+    <Project Path="src/MyGarage.AppHost/MyGarage.AppHost.csproj" />
+    <Project Path="src/MyGarage.ServiceDefaults/MyGarage.ServiceDefaults.csproj" />
+    <Project Path="src/MyGarage.Shared/MyGarage.Shared.csproj" />
+    <Project Path="src/MyGarage.Web/MyGarage.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MyGarage.Api.Tests/MyGarage.Api.Tests.csproj" />
+    <Project Path="tests/MyGarage.AppHost.Tests/MyGarage.AppHost.Tests.csproj" />
+    <Project Path="tests/MyGarage.Web.Tests/MyGarage.Web.Tests.csproj" />
+  </Folder>
+</Solution>

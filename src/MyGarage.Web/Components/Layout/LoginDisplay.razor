@@ -1,0 +1,28 @@
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@if (isAuthenticated)
+{
+    <div class="d-flex align-items-center gap-3">
+        <span class="navbar-text">@displayName</span>
+        <form method="post" action="/authentication/logout">
+            <AntiforgeryToken />
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Sign out</button>
+        </form>
+    </div>
+}
+else
+{
+    <a class="btn btn-outline-primary btn-sm" href="/authentication/login">Sign in</a>
+}
+
+@code {
+    private bool isAuthenticated;
+    private string displayName = ClaimsPrincipalExtensions.NeutralName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        isAuthenticated = state.User.Identity?.IsAuthenticated ?? false;
+        displayName = state.User.GetDisplayName();
+    }
+}

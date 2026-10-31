@@ -1,0 +1,20 @@
+@page "/"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>My Garage</PageTitle>
+
+<h1 class="h2 mb-3">Welcome, @displayName</h1>
+
+<p class="lead">You are signed in to My Garage.</p>
+
+@code {
+    private string displayName = ClaimsPrincipalExtensions.NeutralName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        displayName = state.User.GetDisplayName();
+    }
+}

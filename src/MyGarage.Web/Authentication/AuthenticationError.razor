@@ -1,0 +1,15 @@
+@page "/authentication/error"
+@attribute [AllowAnonymous]
+
+<PageTitle>Sign-in problem</PageTitle>
+
+<h1 class="h3 mb-3">Sign-in problem</h1>
+
+<div class="alert alert-warning" role="alert">@AuthFailureMessages.For(Reason)</div>
+
+<a class="btn btn-primary" href="/authentication/login">Try again</a>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Reason { get; set; }
+}

@@ -1,0 +1,19 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.0">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AspireUseCliBundle>true</AspireUseCliBundle>
+    <UserSecretsId>b71ac8fb-da14-49c2-8082-1ff4e67686e6</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- MessagePack 2.5.x arrives transitively via Aspire.Hosting (dev-time orchestrator only, never deployed). -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-qhrr-8q5h-9q3h" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MyGarage.Api\MyGarage.Api.csproj" />
+    <ProjectReference Include="..\MyGarage.Web\MyGarage.Web.csproj" />
+  </ItemGroup>
+
+</Project>
