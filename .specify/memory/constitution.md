@@ -1,18 +1,3 @@
-<!--
-Sync Impact Report (temporary review note; remove before committing)
-Version change: 1.0.1 -> 1.1.0
-Modified principles:
-- II. Feature-Folder Organization: vehicle and service-record examples
-- III. Solution Structure and Dependency Direction: MyGarage project names
-- IV. DTO Boundary (NON-NEGOTIABLE): MyGarage project names
-- VI. Dapper, PostgreSQL, and Plain SQL Scripts: MyGarage paths and vehicle examples
-- VII. Versioned Schema Migrations: MyGarage project name
-Other changes: My Garage purpose, owner-scoped data protection, logging guidance,
-authentication project names, and branch example.
-Added sections: none
-Removed sections: none
-Follow-up TODOs: none
--->
 # My Garage Constitution
 
 My Garage (`my-garage`) tracks vehicles owned by each user. Each user has a private list of
@@ -41,11 +26,19 @@ Rationale: a feature can be understood, changed, and removed in one place.
 
 The solution MUST contain these projects, with the following dependency rules:
 
-- `MyGarage.Web` — Blazor user interface. MAY reference only `MyGarage.Shared`.
-- `MyGarage.Api` — minimal APIs. MAY reference `MyGarage.Shared` and `MyGarage.Database`.
+- `MyGarage.Web` — Blazor user interface. MAY reference only `MyGarage.Shared` and
+  `MyGarage.ServiceDefaults`.
+- `MyGarage.Api` — minimal APIs. MAY reference `MyGarage.Shared`, `MyGarage.ServiceDefaults`, and
+  `MyGarage.Database`.
 - `MyGarage.Database` — repositories, SQL scripts, and schema migrations. MUST NOT reference
-  `MyGarage.Api`, `MyGarage.Web`, or `MyGarage.Shared`.
+  `MyGarage.Api`, `MyGarage.Web`, or `MyGarage.Shared`. It MUST be added by the first feature that
+  needs persistence and MUST NOT exist as an empty project before then.
 - `MyGarage.Shared` — request/response DTOs and contracts only. MUST contain no persistence logic.
+- `MyGarage.ServiceDefaults` — Aspire cross-cutting defaults only (OpenTelemetry, health checks,
+  service discovery, resilience, logging setup). MUST contain no feature or business logic.
+- `MyGarage.AppHost` — Aspire orchestration of the services and their configuration. MAY reference
+  the `MyGarage.Web` and `MyGarage.Api` projects; no other project MAY reference it except its
+  test project `MyGarage.AppHost.Tests`.
 - Test projects (for example `MyGarage.Api.Tests`, `MyGarage.Database.Tests`) MUST mirror the feature
   folders of the project under test.
 
@@ -140,4 +133,4 @@ redefinitions, MINOR for added principles/sections or materially expanded guidan
 clarifications and wording fixes. Every pull request and review MUST verify compliance with this
 constitution, and Spec Kit plans MUST pass a Constitution Check against it before design begins.
 
-**Version**: 1.1.0 | **Ratified**: 2026-10-23 | **Last Amended**: 2026-10-30
+**Version**: 1.1.2 | **Ratified**: 2026-10-23 | **Last Amended**: 2026-10-31
