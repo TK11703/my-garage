@@ -1,6 +1,16 @@
 # dotnet-template
 A skeleton template for bootstrapping new .NET repositories with a standardized project structure, development workflows, CI/CD foundations, and essential engineering practices already in place.
 
+## Getting started (My Garage)
+
+Prerequisites: .NET 10 SDK, [Aspire CLI](https://aspire.dev), Azure CLI, PowerShell 7+, and a trusted dev certificate (`dotnet dev-certs https --trust`).
+
+1. Register the apps in your Entra tenant: see [infra/entra/README.md](infra/entra/README.md).
+2. Start everything with `aspire run`, then browse to `https://localhost:7080`.
+3. Run the tests with `dotnet test MyGarage.slnx`.
+
+Full validation steps: [specs/001-app-foundation-auth/quickstart.md](specs/001-app-foundation-auth/quickstart.md).
+
 ## SpecKit
 
 This template was set up with [SpecKit](https://github.com/github/spec-kit) for specification-driven development. Its configuration, templates, scripts, and workflows live in [`.specify/`](.specify/), with Copilot skills in `.github/skills/speckit-*`.
