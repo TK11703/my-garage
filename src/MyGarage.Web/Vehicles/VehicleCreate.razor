@@ -1,0 +1,54 @@
+@page "/vehicles/new"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject VehiclesApiClient Api
+@inject NavigationManager Navigation
+
+<PageTitle>Add vehicle</PageTitle>
+
+<h1 class="h3 mb-3">Add vehicle</h1>
+
+@if (failure is not null)
+{
+    <div class="alert alert-warning" role="alert">
+        @(failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable)
+    </div>
+
+    @if (failure == GarageApiFailure.NotAccepted)
+    {
+        <a class="btn btn-primary mb-3" href="/authentication/login?returnUrl=%2Fvehicles%2Fnew">Sign in again</a>
+    }
+}
+
+<VehicleForm Model="Model" FormName="create-vehicle" SubmitText="Add vehicle" CancelHref="/vehicles"
+             Errors="errors" OnSubmit="SubmitAsync" />
+
+@code {
+    private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
+    private GarageApiFailure? failure;
+
+    [SupplyParameterFromForm(FormName = "create-vehicle")]
+    private VehicleFormModel? Model { get; set; }
+
+    protected override void OnInitialized() => Model ??= new VehicleFormModel();
+
+    private async Task SubmitAsync()
+    {
+        failure = null;
+        try
+        {
+            var result = await Api.CreateAsync(Model!.ToRequest());
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo($"/vehicles/{result.Value!.Id}");
+                return;
+            }
+
+            errors = result.Errors;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+}

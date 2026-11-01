@@ -1,6 +1,7 @@
 using MyGarage.Web.Authentication;
 using MyGarage.Web.Common;
 using MyGarage.Web.Components;
+using MyGarage.Web.Vehicles;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,8 @@ builder.Services.AddScoped<IApiTokenProvider, MsalApiTokenProvider>();
 builder.Services.AddTransient<ApiAccessTokenHandler>();
 // "https+http://api" is resolved by service discovery to the API resource started by the AppHost.
 builder.Services.AddHttpClient<GarageApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
+    .AddHttpMessageHandler<ApiAccessTokenHandler>();
+builder.Services.AddHttpClient<VehiclesApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
     .AddHttpMessageHandler<ApiAccessTokenHandler>();
 
 var app = builder.Build();
@@ -36,6 +39,7 @@ app.UseAntiforgery();
 // Static assets carry no user data and must load on the anonymous sign-in, error and signed-out pages.
 app.MapStaticAssets().AllowAnonymous();
 app.MapAuthenticationEndpoints();
+app.MapVehicleImageEndpoints();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

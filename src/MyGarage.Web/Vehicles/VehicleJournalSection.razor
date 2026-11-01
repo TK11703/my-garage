@@ -1,0 +1,120 @@
+@inject VehiclesApiClient Api
+@inject NavigationManager Navigation
+
+<section class="mt-4" aria-labelledby="journal-heading">
+    <h2 id="journal-heading" class="h5">Journal</h2>
+
+    <EditForm EditContext="addContext" FormName="add-note" OnValidSubmit="AddAsync" data-testid="add-note" class="vstack gap-2 mb-4">
+        <div>
+            <label for="note-body" class="form-label">New note</label>
+            <InputTextArea id="note-body" class="form-control" rows="3" maxlength="4000" @bind-Value="AddModel!.Body" />
+            <ValidationMessage For="@(() => AddModel.Body)" id="note-body-error" class="invalid-feedback d-block" />
+        </div>
+        <div class="col-sm-8 col-md-6">
+            <label for="note-category" class="form-label">Category (optional)</label>
+            <InputText id="note-category" class="form-control" maxlength="40" @bind-Value="AddModel.Category" />
+            <ValidationMessage For="@(() => AddModel.Category)" id="note-category-error" class="invalid-feedback d-block" />
+        </div>
+        <div>
+            <button type="submit" class="btn btn-outline-primary">Add note</button>
+        </div>
+    </EditForm>
+
+    @if (failure is not null)
+    {
+        <div class="alert alert-warning" role="alert">
+            @(failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable)
+        </div>
+    }
+    else if (notes is not null)
+    {
+        @if (notes.TotalCount == 0)
+        {
+            <p class="text-body-secondary">No notes yet. Write the first entry in this vehicle's journal.</p>
+        }
+        else
+        {
+            <ul class="list-unstyled vstack gap-3">
+                @foreach (var note in notes.Items)
+                {
+                    <JournalNoteItem @key="note.Id" VehicleId="VehicleId" Note="note" ReturnHref="@ReturnHref(notes.Page)" />
+                }
+            </ul>
+
+            <Pager Page="notes.Page" TotalPages="notes.TotalPages" HrefFor="@(p => ReturnHref(p))" />
+        }
+    }
+</section>
+
+@code {
+    private PagedResultDto<JournalNoteDto>? notes;
+    private GarageApiFailure? failure;
+    private EditContext addContext = default!;
+    private ValidationMessageStore addMessages = default!;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    // The page of notes to show (1-based).
+    [Parameter]
+    public int NotesPage { get; set; } = 1;
+
+    [SupplyParameterFromForm(FormName = "add-note")]
+    private NoteFormModel? AddModel { get; set; }
+
+    protected override void OnInitialized()
+    {
+        AddModel ??= new NoteFormModel();
+        addContext = new EditContext(AddModel);
+        addMessages = new ValidationMessageStore(addContext);
+        addContext.OnValidationRequested += (_, _) => addMessages.Clear();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            var result = await Api.ListNotesAsync(VehicleId, Math.Max(1, NotesPage));
+            notes = result.Value;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    // Page 1 has no query string so the address stays tidy.
+    private string ReturnHref(int page) => page <= 1 ? $"/vehicles/{VehicleId}" : $"/vehicles/{VehicleId}?notesPage={page}";
+
+    private async Task AddAsync()
+    {
+        try
+        {
+            var result = await Api.CreateNoteAsync(VehicleId, new JournalNoteRequest { Body = AddModel!.Body, Category = AddModel.Category });
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo(ReturnHref(1));
+                return;
+            }
+
+            foreach (var (field, errors) in result.Errors)
+            {
+                var property = field.Equals(nameof(NoteFormModel.Category), StringComparison.OrdinalIgnoreCase)
+                    ? nameof(NoteFormModel.Category)
+                    : nameof(NoteFormModel.Body);
+                addMessages.Add(addContext.Field(property), errors);
+            }
+
+            if (result.IsNotFound)
+            {
+                addMessages.Add(addContext.Field(nameof(NoteFormModel.Body)), VehicleMessages.NotFound);
+            }
+
+            addContext.NotifyValidationStateChanged();
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+}

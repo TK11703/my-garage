@@ -37,6 +37,10 @@ public class AppHostSmokeTests
         await using var app = await appHost.BuildAsync(cts.Token);
         await app.StartAsync(cts.Token);
 
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("postgres", cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("garagedb", cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("storage", cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("blobs", cts.Token);
         await app.ResourceNotifications.WaitForResourceHealthyAsync("api", cts.Token);
         await app.ResourceNotifications.WaitForResourceHealthyAsync("web", cts.Token);
     }
