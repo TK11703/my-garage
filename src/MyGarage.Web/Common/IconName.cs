@@ -6,4 +6,13 @@ public enum IconName
     Bell,
     QuestionCircle,
     PersonCircle,
+    Speedometer,
+    Pencil,
+    Trash,
+    Plus,
+    ArrowLeft,
+    InfoCircle,
+    Sliders,
+    Image,
+    FileText,
 }

@@ -1,0 +1,18 @@
+<div class="card border-0 shadow-sm mb-3 mg-search-card">
+    <div class="card-body">
+        <form id="vehicle-search" method="get" action="/vehicles" role="search" aria-label="Search vehicles">
+            <label for="q" class="form-label small fw-medium">Search</label>
+            <div class="input-group">
+                <span class="input-group-text bg-body border-end-0 text-body-secondary"><Icon Name="IconName.Search" /></span>
+                <input id="q" name="q" type="search" class="form-control border-start-0" value="@Criteria.Query" maxlength="100"
+                       placeholder="Search nickname, make, model, trim, color, or tag" />
+            </div>
+            <button type="submit" class="visually-hidden">Search</button>
+        </form>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public VehicleListCriteria Criteria { get; set; } = VehicleListCriteria.None;
+}

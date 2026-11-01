@@ -1,0 +1,27 @@
+<section aria-labelledby="tags-heading">
+    <h2 id="tags-heading" class="h5">Features and tags</h2>
+
+    @if (Tags.Count == 0)
+    {
+        <p class="text-body-secondary">No tags yet. <a href="/vehicles/@VehicleId/edit?tab=description">Add tags</a></p>
+    }
+    else
+    {
+        <ul class="list-unstyled d-flex flex-wrap gap-2 mb-0">
+            @foreach (var tag in Tags)
+            {
+                <li @key="tag.Id" data-testid="tag">
+                    <span class="badge text-bg-secondary fs-6 fw-normal">@tag.Name</span>
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<VehicleTagDto> Tags { get; set; } = [];
+}

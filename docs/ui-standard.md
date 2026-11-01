@@ -22,6 +22,7 @@ How every page in `MyGarage.Web` looks and behaves. New pages follow this docume
 | Garage Blue (`--bs-primary`) | `#0B4F8A` | Primary buttons, links, focus ring |
 | Garage Blue hover | `#083A66` | Hover and link hover |
 | Night (`--mg-navbar-bg`) | `#0F2A43` | Navigation bar background |
+| Page background (`--mg-page-bg`) | `#EEF4FB` | Very light blue behind every page; cards and form controls stay white |
 | Amber (`--mg-accent`) | `#F5A623` | Logo accent and avatar; never body text on white |
 | Slate (`--mg-secondary`) | `#5C6773` | Secondary (outline) buttons |
 | Success, warning, danger, info | Bootstrap defaults | Feedback |
@@ -75,7 +76,10 @@ The search box submits `GET /vehicles?q=` (the existing owner-scoped vehicle sea
 | Row-level buttons | `btn-sm`; page-level buttons regular size |
 | Destructive confirmation | Inline `<details>` with a danger alert, a POST form, and buttons "Yes, delete this {vehicle, note, picture}" and "Keep {vehicle, note, picture}". Tag removal is immediately reversible, so it is a one-click remove button with the accessible name "Remove tag {name}" |
 | Forms | `form-label` above each control; required fields marked with a visible `*` (`aria-hidden`) and a "* Required" note; field errors use `invalid-feedback d-block`; forms limited to `col-lg-8` |
-| Cards | Bootstrap card with image or placeholder, title link, secondary details; long text uses `text-break` |
+| Cards | Bootstrap card (`border-0 shadow-sm`) with a 16:9 image or placeholder, bold title link, make and model, and a detail line with an icon; long text uses `text-break`. Vehicle cards are `mg-vehicle-card` and lift slightly on hover (not with reduced motion) |
+| View page | Page header with an Edit action, then the same four tabs read-only: Basic Info and Specifications as definition lists, Media as a picture grid, Description as feature-tag badges followed by the journal. Empty sections link to the matching edit tab. Delete vehicle stays below the card |
+| Edit page | Page header with a "Back to vehicle" action, then a card with tabs: Basic Info (nickname, make, model, trim) and Specifications (color, mileage, doors) share one form with Save changes and Cancel; Media holds the picture gallery; Description holds feature tags followed by the journal. `?tab=` opens a tab, and a rejected save opens the tab with the first error |
+| Listing page | A search card holding only the search field, then a results card: result count in the header, the card grid (1, 2, 3, then 4 columns), and a footer with "Showing x to y of z entries" and the pager at the right |
 | Empty and no-match states | `EmptyState` (full block with an action, or `Compact` inside a section) |
 | API failures | `ApiFailureAlert` (warning alert, "Sign in again" when the session is not accepted) |
 | Feedback | `alert-success` (`role="status"`), `alert-info`, `alert-warning`, `alert-danger` (`role="alert"`); every alert has a role |

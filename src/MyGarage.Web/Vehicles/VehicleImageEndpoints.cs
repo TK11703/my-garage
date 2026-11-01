@@ -72,11 +72,12 @@ public static class VehicleImageEndpoints
         IFormFile? file,
         [FromForm] string? caption,
         VehiclesApiClient api,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        [FromForm] string? returnTo = null)
     {
         if (file is null || file.Length == 0)
         {
-            return Redirect(vehicleId, Status.Invalid);
+            return Redirect(vehicleId, Status.Invalid, returnTo);
         }
 
         try
@@ -91,14 +92,17 @@ public static class VehicleImageEndpoints
                 ImageUploadOutcome.LimitReached => Status.Limit,
                 ImageUploadOutcome.NotFound => Status.NotFound,
                 _ => Status.Unavailable,
-            });
+            }, returnTo);
         }
         catch (GarageApiException ex)
         {
-            return Redirect(vehicleId, ex.Failure == GarageApiFailure.NotAccepted ? Status.SignIn : Status.Unavailable);
+            return Redirect(vehicleId, ex.Failure == GarageApiFailure.NotAccepted ? Status.SignIn : Status.Unavailable, returnTo);
         }
     }
 
-    private static IResult Redirect(Guid vehicleId, string status) =>
-        Results.LocalRedirect($"/vehicles/{vehicleId}?imageStatus={status}");
+    // Only the fixed value "edit" is honored; anything else returns to the vehicle page.
+    private static IResult Redirect(Guid vehicleId, string status, string? returnTo) =>
+        returnTo == "edit"
+            ? Results.LocalRedirect($"/vehicles/{vehicleId}/edit?tab=media&imageStatus={status}")
+            : Results.LocalRedirect($"/vehicles/{vehicleId}?imageStatus={status}");
 }

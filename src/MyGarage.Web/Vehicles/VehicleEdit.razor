@@ -21,10 +21,25 @@ else if (notFound)
 else if (Model is not null)
 {
     <PageHeader Title="@($"Edit {storedNickname}")"
-                Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(storedNickname, $"/vehicles/{VehicleId}"), new Crumb("Edit") })" />
+                Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(storedNickname, $"/vehicles/{VehicleId}"), new Crumb("Edit") })">
+        <Actions>
+            <a class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" href="/vehicles/@VehicleId" title="Back to the vehicle details">
+                <Icon Name="IconName.ArrowLeft" /> Back to vehicle
+            </a>
+        </Actions>
+    </PageHeader>
 
-    <VehicleForm Model="Model" FormName="update-vehicle" SubmitText="Save changes" CancelHref="@($"/vehicles/{VehicleId}")"
-                 Errors="errors" OnSubmit="SubmitAsync" />
+    <VehicleForm Tabbed="true" ActiveTab="@Tab" Model="Model" FormName="update-vehicle" SubmitText="Save changes" CancelHref="@($"/vehicles/{VehicleId}")"
+                 Errors="errors" OnSubmit="SubmitAsync">
+        <MediaContent>
+            <VehicleGallerySection VehicleId="VehicleId" VehicleNickname="@storedNickname" Images="images" Status="@ImageStatus"
+                                   ReturnPath="@EditPath("media")" />
+        </MediaContent>
+        <DescriptionContent>
+            <VehicleTagsSection VehicleId="VehicleId" Tags="tags" ReturnPath="@EditPath("description")" />
+            <VehicleJournalSection VehicleId="VehicleId" NotesPage="journalPage" ReturnPath="@EditPath("description")" />
+        </DescriptionContent>
+    </VehicleForm>
 }
 
 @code {
@@ -32,10 +47,28 @@ else if (Model is not null)
     private GarageApiFailure? failure;
     // The saved nickname, not any unsaved value posted with the form.
     private string storedNickname = string.Empty;
+    private IReadOnlyList<VehicleImageDto> images = [];
+    private IReadOnlyList<VehicleTagDto> tags = [];
     private bool notFound;
 
     [Parameter]
     public Guid VehicleId { get; set; }
+
+    // Which tab to open: basic, specifications, media, or description.
+    [Parameter, SupplyParameterFromQuery(Name = "tab")]
+    public string? Tab { get; set; }
+
+    // Result of the last picture upload, passed back by the upload endpoint.
+    [Parameter, SupplyParameterFromQuery(Name = "imageStatus")]
+    public string? ImageStatus { get; set; }
+
+    // Read as text: a bad query value must mean the first page of notes, not a binding error.
+    [Parameter, SupplyParameterFromQuery(Name = "notesPage")]
+    public string? NotesPage { get; set; }
+
+    private int journalPage => int.TryParse(NotesPage, out var parsed) ? Math.Max(1, parsed) : 1;
+
+    private string EditPath(string tab) => $"/vehicles/{VehicleId}/edit?tab={tab}";
 
     [SupplyParameterFromForm(FormName = "update-vehicle")]
     private VehicleFormModel? Model { get; set; }
@@ -57,6 +90,8 @@ else if (Model is not null)
 
             Model ??= VehicleFormModel.From(result.Value!);
             storedNickname = result.Value!.Nickname;
+            images = result.Value.Images;
+            tags = result.Value.Tags;
         }
         catch (GarageApiException ex)
         {

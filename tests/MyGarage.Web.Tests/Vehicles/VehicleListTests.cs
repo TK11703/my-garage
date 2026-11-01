@@ -28,6 +28,21 @@ public class VehicleListTests : VehicleTestContext
     }
 
     [Fact]
+    public void AddVehicleHasAnIconAndATitle()
+    {
+        RegisterApi(_ => Json(Page([Summary("Alpha")])));
+
+        var cut = Render<VehicleList>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var add = cut.Find("a[data-testid='add-vehicle']");
+            Assert.Equal("Add a new vehicle", add.GetAttribute("title"));
+            Assert.Equal("true", add.QuerySelector("svg.bi")!.GetAttribute("aria-hidden"));
+        });
+    }
+
+    [Fact]
     public void EmptyGarage_ShowsFriendlyStateWithAddLink()
     {
         RegisterApi(_ => Json(Page([])));
@@ -50,7 +65,7 @@ public class VehicleListTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            Assert.Equal(3, cut.FindAll(".card").Count);
+            Assert.Equal(3, cut.FindAll(".mg-vehicle-card").Count);
             Assert.DoesNotContain("<table", cut.Markup);
         });
     }
@@ -155,7 +170,7 @@ public class VehicleListTests : VehicleTestContext
         {
             var action = cut.Find("a[data-testid='no-match-clear']");
             Assert.Contains("btn-outline-primary", action.ClassName);
-            Assert.Equal("Clear search and filters", action.TextContent);
+            Assert.Equal("Clear search", action.TextContent);
         });
     }
 

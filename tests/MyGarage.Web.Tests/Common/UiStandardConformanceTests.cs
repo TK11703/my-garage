@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 namespace MyGarage.Web.Tests.Common;
@@ -7,9 +8,10 @@ public class UiStandardConformanceTests
 {
     private static readonly string[] Sources = FindSources();
 
-    private static string[] FindSources()
+    private static string[] FindSources([CallerFilePath] string? sourceFile = null)
     {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        // Start from this source file so the scan works wherever the build output goes.
+        var directory = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);
         while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "MyGarage.slnx")))
         {
             directory = directory.Parent;

@@ -54,6 +54,12 @@
     [Parameter, EditorRequired]
     public IReadOnlyList<VehicleTagDto> Tags { get; set; } = [];
 
+    // Where to go after a change; defaults to the vehicle page.
+    [Parameter]
+    public string? ReturnPath { get; set; }
+
+    private string Back => ReturnPath ?? $"/vehicles/{VehicleId}";
+
     [SupplyParameterFromForm(FormName = "add-tag")]
     private AddTagModel? Model { get; set; }
 
@@ -82,7 +88,7 @@
             switch (result.Outcome)
             {
                 case ApiOutcome.Success:
-                    Navigation.NavigateTo($"/vehicles/{VehicleId}");
+                    Navigation.NavigateTo(Back);
                     break;
                 case ApiOutcome.Conflict:
                     Fail(result.Title ?? "The tag could not be added.");
@@ -107,7 +113,7 @@
         try
         {
             await Api.RemoveTagAsync(VehicleId, tagId);
-            Navigation.NavigateTo($"/vehicles/{VehicleId}");
+            Navigation.NavigateTo(Back);
         }
         catch (GarageApiException ex)
         {

@@ -10,6 +10,15 @@ public class IconTests : BunitContext
     [InlineData(IconName.Bell)]
     [InlineData(IconName.QuestionCircle)]
     [InlineData(IconName.PersonCircle)]
+    [InlineData(IconName.Speedometer)]
+    [InlineData(IconName.Pencil)]
+    [InlineData(IconName.Trash)]
+    [InlineData(IconName.Plus)]
+    [InlineData(IconName.ArrowLeft)]
+    [InlineData(IconName.InfoCircle)]
+    [InlineData(IconName.Sliders)]
+    [InlineData(IconName.Image)]
+    [InlineData(IconName.FileText)]
     public void RendersDecorativeInlineSvg(IconName name)
     {
         var cut = Render<Icon>(ps => ps.Add(p => p.Name, name));

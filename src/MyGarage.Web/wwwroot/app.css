@@ -16,6 +16,7 @@ h1:focus {
     --mg-accent: #F5A623;
     --mg-focus-on-dark: #FFFFFF;
     --mg-navbar-height: 3.75rem;
+    --mg-page-bg: #EEF4FB;
 }
 
 .btn-primary {
@@ -99,6 +100,7 @@ h1:focus {
 /* Fixed navigation bar */
 body {
     padding-top: var(--mg-navbar-height);
+    background-color: var(--mg-page-bg);
 }
 
 html {
@@ -221,4 +223,82 @@ main:focus {
     .mg-navbar .btn {
         transition: none;
     }
+}
+
+/* Vehicle listing */
+.mg-vehicle-card {
+    transition: box-shadow 0.15s ease-in-out, transform 0.15s ease-in-out;
+}
+
+.mg-vehicle-card:hover,
+.mg-vehicle-card:focus-within {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    transform: translateY(-2px);
+}
+
+.mg-vehicle-card .card-title a:hover {
+    color: var(--bs-primary) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mg-vehicle-card {
+        transition: none;
+    }
+
+    .mg-vehicle-card:hover,
+    .mg-vehicle-card:focus-within {
+        transform: none;
+    }
+}
+
+.mg-vehicle-card .ratio {
+    border-top-left-radius: var(--bs-card-inner-border-radius);
+    border-top-right-radius: var(--bs-card-inner-border-radius);
+    overflow: hidden;
+}
+
+.mg-image-frame {
+    border-top-left-radius: var(--bs-card-inner-border-radius);
+    border-top-right-radius: var(--bs-card-inner-border-radius);
+    overflow: hidden;
+}
+
+.mg-confirm-panel {
+    position: absolute;
+    right: 0;
+    z-index: 1020;
+    width: 22rem;
+    max-width: calc(100vw - 1.5rem);
+    margin-top: 0.5rem;
+}
+
+/* Underlined tab strip that sits above the content card */
+.mg-tabs {
+    flex-wrap: nowrap;
+    gap: 1.5rem;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.mg-tabs .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 0.25rem;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--bs-secondary-color);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.mg-tabs .nav-link:hover {
+    color: var(--bs-body-color);
+}
+
+.mg-tabs .nav-link.active {
+    color: var(--bs-primary);
+    border-bottom-color: var(--bs-primary);
 }

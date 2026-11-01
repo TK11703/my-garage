@@ -1,0 +1,36 @@
+<div>
+    <label for="nickname" class="form-label">Nickname<span class="text-danger" aria-hidden="true"> *</span></label>
+    <InputText id="nickname" class="form-control" @bind-Value="Model.Nickname" maxlength="100"
+               aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "Nickname")" />
+    <ValidationMessage For="@(() => Model.Nickname)" id="nickname-error" class="invalid-feedback d-block" />
+</div>
+<div class="row g-3">
+    <div class="col-sm-6">
+        <label for="make" class="form-label">Make<span class="text-danger" aria-hidden="true"> *</span></label>
+        <InputText id="make" class="form-control" @bind-Value="Model.Make" maxlength="50"
+                   aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "Make")" />
+        <ValidationMessage For="@(() => Model.Make)" id="make-error" class="invalid-feedback d-block" />
+    </div>
+    <div class="col-sm-6">
+        <label for="model" class="form-label">Model<span class="text-danger" aria-hidden="true"> *</span></label>
+        <InputText id="model" class="form-control" @bind-Value="Model.Model" maxlength="50"
+                   aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "Model")" />
+        <ValidationMessage For="@(() => Model.Model)" id="model-error" class="invalid-feedback d-block" />
+    </div>
+</div>
+<div class="row g-3">
+    <div class="col-sm-6">
+        <label for="trim" class="form-label">Trim</label>
+        <InputText id="trim" class="form-control" @bind-Value="Model.Trim" maxlength="50"
+                   aria-describedby="@VehicleFormFields.Described(Errors, "Trim")" />
+        <ValidationMessage For="@(() => Model.Trim)" id="trim-error" class="invalid-feedback d-block" />
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public VehicleFormModel Model { get; set; } = default!;
+
+    [Parameter]
+    public IReadOnlyDictionary<string, string[]> Errors { get; set; } = new Dictionary<string, string[]>();
+}

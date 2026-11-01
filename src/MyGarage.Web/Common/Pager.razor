@@ -1,7 +1,7 @@
 @if (TotalPages > 1)
 {
-    <nav aria-label="Pagination" class="mt-4">
-        <ul class="pagination justify-content-center">
+    <nav aria-label="Pagination" class="@(JustifyEnd ? null : "mt-4")">
+        <ul class="pagination @(JustifyEnd ? "justify-content-end mb-0" : "justify-content-center")">
             <li class="page-item @(Page <= 1 ? "disabled" : null)" data-testid="pager-previous">
                 @if (Page <= 1)
                 {
@@ -39,4 +39,8 @@
     // Builds the link for a page so each list can keep its own query string.
     [Parameter, EditorRequired]
     public Func<int, string> HrefFor { get; set; } = _ => "#";
+
+    // Right-aligned and flush, for use in a card footer.
+    [Parameter]
+    public bool JustifyEnd { get; set; }
 }

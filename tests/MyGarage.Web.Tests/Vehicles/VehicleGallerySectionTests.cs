@@ -48,6 +48,33 @@ public class VehicleGallerySectionTests : VehicleTestContext
     }
 
     [Fact]
+    public void OnTheEditPage_UploadAsksTheEndpointToReturnThere_AndChangesStayOnTheTab()
+    {
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+        var returnPath = $"/vehicles/{vehicleId}/edit?tab=media";
+        var cut = Render<VehicleGallerySection>(parameters => parameters
+            .Add(gallery => gallery.VehicleId, vehicleId)
+            .Add(gallery => gallery.VehicleNickname, "Daily")
+            .Add(gallery => gallery.Images, new[] { Image(isMain: true), Image() })
+            .Add(gallery => gallery.ReturnPath, returnPath));
+
+        Assert.Equal("edit", cut.Find("form[data-testid='upload-image'] input[name='returnTo']").GetAttribute("value"));
+
+        cut.Find("[data-testid='image']:nth-child(2) form").Submit();
+        cut.WaitForAssertion(() => Assert.EndsWith(returnPath, CurrentUri));
+    }
+
+    [Fact]
+    public void OnTheVehiclePage_UploadSendsNoReturnTarget()
+    {
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderGallery([]);
+
+        Assert.Empty(cut.FindAll("input[name='returnTo']"));
+    }
+
+    [Fact]
     public void UploadForm_PostsMultipartToTheVehicleImageRoute()
     {
         RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));

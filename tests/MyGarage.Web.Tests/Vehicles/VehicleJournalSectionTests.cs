@@ -130,6 +130,29 @@ public class VehicleJournalSectionTests : VehicleTestContext
     }
 
     [Fact]
+    public void ReturnPath_IsKeptByThePagerAndAfterAdding()
+    {
+        Notes = NotesPage([Note("n")], page: 2, totalCount: 25);
+        RegisterApi(_ => Json(Note("saved"), HttpStatusCode.Created));
+        var returnPath = $"/vehicles/{vehicleId}/edit?tab=description";
+        var cut = Render<VehicleJournalSection>(parameters => parameters
+            .Add(section => section.VehicleId, vehicleId)
+            .Add(section => section.NotesPage, 2)
+            .Add(section => section.ReturnPath, returnPath));
+
+        cut.WaitForAssertion(() =>
+        {
+            var links = cut.FindAll("nav[aria-label='Pagination'] a").Select(a => a.GetAttribute("href")).ToList();
+            Assert.Contains(returnPath, links);
+            Assert.Contains($"{returnPath}&notesPage=3", links);
+        });
+
+        cut.Find("textarea#note-body").Change("Hello");
+        cut.Find("form[data-testid='add-note']").Submit();
+        cut.WaitForAssertion(() => Assert.EndsWith(returnPath, CurrentUri));
+    }
+
+    [Fact]
     public void Add_PostsBodyAndCategoryThenReturnsToTheFirstPage()
     {
         RegisterApi(_ => Json(Note("saved", "Oil change"), HttpStatusCode.Created));

@@ -5,7 +5,9 @@
 
 <PageHeader Title="My Vehicles" Trail="@(new[] { new Crumb("Vehicles") })">
     <Actions>
-        <a class="btn btn-primary" href="/vehicles/new" data-testid="add-vehicle">Add vehicle</a>
+        <a class="btn btn-primary d-inline-flex align-items-center gap-2" href="/vehicles/new" data-testid="add-vehicle" title="Add a new vehicle">
+            <Icon Name="IconName.Plus" /> Add vehicle
+        </a>
     </Actions>
 </PageHeader>
 
@@ -14,7 +16,7 @@
     <ApiFailureAlert Failure="failure.Value" ReturnUrl="/vehicles"
                      NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
 }
-else if (vehicles is not null && options is not null)
+else if (vehicles is not null)
 {
     @if (vehicles.TotalCount == 0 && !criteria.HasAny && errors.Count == 0)
     {
@@ -22,34 +24,57 @@ else if (vehicles is not null && options is not null)
     }
     else
     {
-        <VehicleFilters Criteria="criteria" Options="options" Errors="errors" />
+        <VehicleSearchCard Criteria="criteria" />
 
-        <p class="text-body-secondary" aria-live="polite" data-testid="result-summary">@Summary</p>
-
-        @if (vehicles.TotalCount == 0)
-        {
-            <EmptyState Variant="EmptyStateVariant.NoMatch" Message="No vehicles match your search or filters."
-                        ActionText="Clear search and filters" ActionHref="/vehicles" data-testid="no-match-clear" />
-        }
-        else
-        {
-            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
-                @foreach (var vehicle in vehicles.Items)
-                {
-                    <div class="col" @key="vehicle.Id">
-                        <VehicleCard Vehicle="vehicle" />
-                    </div>
-                }
+        <section class="card border-0 shadow-sm mg-results" aria-label="Vehicles">
+            <div class="card-header bg-transparent py-3">
+                <p class="mb-0 text-body-secondary" aria-live="polite" data-testid="result-summary">@Summary</p>
             </div>
 
-            <Pager Page="vehicles.Page" TotalPages="vehicles.TotalPages" HrefFor="@(p => $"/vehicles?{criteria.ToQueryString(p)}")" />
-        }
+            @if (errors.Count > 0)
+            {
+                <div class="alert alert-danger m-3 mb-0" role="alert">
+                    <ul class="mb-0">
+                        @foreach (var message in errors.Values.SelectMany(messages => messages))
+                        {
+                            <li>@message</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @if (vehicles.TotalCount == 0)
+            {
+                <div class="card-body">
+                    <EmptyState Variant="EmptyStateVariant.NoMatch" Message="No vehicles match your search."
+                                ActionText="Clear search" ActionHref="/vehicles" data-testid="no-match-clear" />
+                </div>
+            }
+            else
+            {
+                <div class="card-body">
+                    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-3">
+                        @foreach (var vehicle in vehicles.Items)
+                        {
+                            <div class="col" @key="vehicle.Id">
+                                <VehicleCard Vehicle="vehicle" />
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="card-footer bg-transparent d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
+                    <p class="mb-0 text-body-secondary small" data-testid="showing-range">@ShowingRange</p>
+                    <Pager Page="vehicles.Page" TotalPages="vehicles.TotalPages" JustifyEnd="true"
+                           HrefFor="@(p => $"/vehicles?{criteria.ToQueryString(p)}")" />
+                </div>
+            }
+        </section>
     }
 }
 
 @code {
     private PagedResultDto<VehicleSummaryDto>? vehicles;
-    private VehicleFilterOptionsDto? options;
     private VehicleListCriteria criteria = VehicleListCriteria.None;
     private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
     private GarageApiFailure? failure;
@@ -61,35 +86,21 @@ else if (vehicles is not null && options is not null)
     [Parameter, SupplyParameterFromQuery(Name = "q")]
     public string? Q { get; set; }
 
-    [Parameter, SupplyParameterFromQuery(Name = "make")]
-    public string? Make { get; set; }
+    private string Summary => vehicles!.TotalCount == 1 ? "1 vehicle found" : $"{vehicles.TotalCount} vehicles found";
 
-    [Parameter, SupplyParameterFromQuery(Name = "color")]
-    public string? Color { get; set; }
-
-    [Parameter, SupplyParameterFromQuery(Name = "doors")]
-    public string? Doors { get; set; }
-
-    [Parameter, SupplyParameterFromQuery(Name = "tag")]
-    public string? Tag { get; set; }
-
-    [Parameter, SupplyParameterFromQuery(Name = "minMileage")]
-    public string? MinMileage { get; set; }
-
-    [Parameter, SupplyParameterFromQuery(Name = "maxMileage")]
-    public string? MaxMileage { get; set; }
-
-    private string Summary => (vehicles!.TotalCount, criteria.HasAny) switch
+    private string ShowingRange
     {
-        (1, false) => "1 vehicle",
-        (var count, false) => $"{count} vehicles",
-        (1, true) => "1 vehicle matches",
-        (var count, true) => $"{count} vehicles match",
-    };
+        get
+        {
+            var from = (vehicles!.Page - 1) * vehicles.PageSize + 1;
+            var to = Math.Min(vehicles.Page * vehicles.PageSize, vehicles.TotalCount);
+            return $"Showing {from} to {to} of {vehicles.TotalCount} entries";
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {
-        criteria = VehicleListCriteria.FromQuery(Q, Make, Color, Doors, Tag, MinMileage, MaxMileage);
+        criteria = VehicleListCriteria.FromQuery(Q, null, null, null, null, null, null);
         var requestedPage = int.TryParse(Page, out var parsed) ? Math.Max(1, parsed) : 1;
         errors = new Dictionary<string, string[]>();
 
@@ -105,7 +116,6 @@ else if (vehicles is not null && options is not null)
             }
 
             vehicles = result.Value;
-            options = (await Api.GetFilterOptionsAsync()).Value;
         }
         catch (GarageApiException ex)
         {

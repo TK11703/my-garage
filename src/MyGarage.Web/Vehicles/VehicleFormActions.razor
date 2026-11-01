@@ -1,0 +1,13 @@
+<p class="form-text mb-0">* Required</p>
+<div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary">@SubmitText</button>
+    <a class="btn btn-outline-secondary" href="@CancelHref">Cancel</a>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string SubmitText { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string CancelHref { get; set; } = default!;
+}

@@ -171,6 +171,43 @@ public class VehicleImageEndpointsTests
     }
 
     [Fact]
+    public async Task Upload_FromTheEditPage_RedirectsBackToTheMediaTab()
+    {
+        var (client, _) = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.Created));
+
+        var result = await VehicleImageEndpoints.UploadAsync(VehicleId, File(), null, client, CancellationToken.None, "edit");
+        var (_, _, context) = await ExecuteAsync(result);
+
+        Assert.Equal($"/vehicles/{VehicleId}/edit?tab=media&imageStatus=uploaded", context.Response.Headers.Location);
+    }
+
+    [Theory]
+    [InlineData("https://evil.example/")]
+    [InlineData("//evil.example")]
+    [InlineData("vehicle")]
+    [InlineData("")]
+    public async Task Upload_UnknownReturnTarget_FallsBackToTheVehiclePage(string returnTo)
+    {
+        var (client, _) = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.Created));
+
+        var result = await VehicleImageEndpoints.UploadAsync(VehicleId, File(), null, client, CancellationToken.None, returnTo);
+        var (_, _, context) = await ExecuteAsync(result);
+
+        Assert.Equal($"/vehicles/{VehicleId}?imageStatus=uploaded", context.Response.Headers.Location);
+    }
+
+    [Fact]
+    public async Task Upload_FromTheEditPage_ErrorsAlsoReturnToTheMediaTab()
+    {
+        var (client, _) = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.RequestEntityTooLarge));
+
+        var result = await VehicleImageEndpoints.UploadAsync(VehicleId, File(), null, client, CancellationToken.None, "edit");
+        var (_, _, context) = await ExecuteAsync(result);
+
+        Assert.Equal($"/vehicles/{VehicleId}/edit?tab=media&imageStatus=toolarge", context.Response.Headers.Location);
+    }
+
+    [Fact]
     public async Task Upload_TheClientSuppliedFileNameIsReducedToItsLastSegment()
     {
         var (client, handler) = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.Created));

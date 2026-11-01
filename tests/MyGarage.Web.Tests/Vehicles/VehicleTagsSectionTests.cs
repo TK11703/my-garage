@@ -149,6 +149,23 @@ public class VehicleTagsSectionTests : VehicleTestContext
     }
 
     [Fact]
+    public void ReturnPath_IsWhereAddAndRemoveReturn()
+    {
+        var sunroof = Tag("sunroof");
+        RegisterApi(_ => Json(Tag("x"), HttpStatusCode.Created));
+        var returnPath = $"/vehicles/{vehicleId}/edit?tab=description";
+        var cut = Render<VehicleTagsSection>(parameters => parameters
+            .Add(section => section.VehicleId, vehicleId)
+            .Add(section => section.Tags, new[] { sunroof })
+            .Add(section => section.ReturnPath, returnPath));
+        cut.Find("input#tag-name").Change("x");
+
+        cut.Find("form[data-testid='add-tag']").Submit();
+
+        cut.WaitForAssertion(() => Assert.EndsWith(returnPath, Services.GetRequiredService<NavigationManager>().Uri));
+    }
+
+    [Fact]
     public void Remove_SendsDeleteForThatTagAndReturnsToTheVehicle()
     {
         var sunroof = Tag("sunroof");

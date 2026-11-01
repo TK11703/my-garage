@@ -9,6 +9,10 @@
 **Input**: User description: "We are going to implement some UI enrichment and identity. We'll work on a site logo and incorporate some UI standardization."
 
 **Refinement (2026-11-01)**: "We're going to need to create a site logo to start the branding. The site should feature a 100% width fixed top navbar that includes the site logo, name, then a search bar, a notification icon (which we will include now but not yet implement), a ? icon that will provide links to a FAQ and About page, and a user profile dropdown menu. The main content area of the site will be under the navbar, and the content area will have bootstrap's normal narrow margins on the left and right. In the content area, each page should include a page header, which will include something like "Home / Vehicles" with a page title of "My Vehicles" or "Home / Vehicles / Item" and the page title of "Vehicle Name". All pages will follow this layout, unless specified."
+
+**Refinement 2 (2026-11-01)**: "Alter the vehicle listing to mimic the attached example: put the vehicle search bar in a top search card with no other items in it, and focus on the vehicle display." (Refinement 3: the make, color, doors, tag, and mileage filters are removed from the page; only search remains.)
+
+**Refinement 4 (2026-11-01)**: "Update the vehicle edit form with Basic Info, Specifications, Media, and Description tabs (feature tags, then the journal, in Description). No new data fields." This is a presentation change only. Refinement 5: the vehicle detail page gets the same four tabs, read-only; all editing happens on the edit page.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -156,7 +160,9 @@ The home page does more than greet the user: it presents the brand, a short stat
 - **FR-034**: Page titles and trails MUST follow these rules: list pages use a plural section crumb and a "My ..." title (for example "Home / Vehicles" with "My Vehicles"); an item page adds the item's name as the last crumb and uses it as the title; create and edit pages add "New vehicle" or "Edit" as the last crumb under the item or section; utility pages (FAQ, About, sign-in outcome, error, not found) use "Home / [page name]".
 - **FR-035**: A page's primary action (for example "Add vehicle") MUST appear in the page header area at the right of the title.
 - **FR-036**: The page header MUST also provide the browser tab title in the form "[page title] – My Garage" (see FR-003).
-- **FR-037**: The existing separate top navigation links (Home, My garage, API check) MUST be removed from the header; the home page, breadcrumbs, search, and the profile menu shortcut provide routes to the main areas. The API check diagnostic page remains reachable by its address.
+- **FR-037**: The existing separate top navigation links (Home, My garage, API check) MUST be removed from the header; the home page, breadcrumbs, search, and the profile menu shortcut provide routes to the main areas. The API check diagnostic page remains reachable by its address.
+- **FR-038**: The vehicle list MUST show the search field alone in a top search card, followed by a results card containing the result count, the vehicle cards, and a footer with the range being shown and the pager.
+- **FR-039**: Vehicle cards MUST be image-forward (widescreen picture, then name, make and model, and mileage with an icon) and be laid out in up to four columns on wide screens.
 - **FR-021**: A written UI standard MUST be added to the project documentation describing the logo usage (minimum size, clear space, approved color variations), brand palette, typography, spacing, and the component patterns in FR-010 through FR-015, so new pages can conform without inspecting existing ones.
 - **FR-022**: This feature MUST NOT change what data is stored, what the API returns, or who can access which data; it changes presentation and identity only.
 - **FR-023**: Existing user-visible behavior (adding, editing, removing, searching, paging, and uploading) MUST continue to work unchanged after standardization.

@@ -22,40 +22,67 @@ else if (vehicle is not null)
 {
     <PageHeader Title="@vehicle.Nickname" Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(vehicle.Nickname) })">
         <Actions>
-            <a class="btn btn-outline-primary" href="/vehicles/@VehicleId/edit" data-testid="edit-vehicle">Edit</a>
+            <div class="d-flex flex-wrap align-items-start gap-2">
+                <a class="btn btn-outline-primary d-inline-flex align-items-center gap-2" href="/vehicles/@VehicleId/edit" data-testid="edit-vehicle" title="Edit this vehicle">
+                    <Icon Name="IconName.Pencil" /> Edit
+                </a>
+                <details class="position-relative" data-testid="delete-vehicle">
+                    <summary class="btn btn-outline-danger d-inline-flex align-items-center gap-2" title="Delete this vehicle">
+                        <Icon Name="IconName.Trash" /> Delete
+                    </summary>
+                    <div class="alert alert-danger mg-confirm-panel shadow" role="alert">
+                        <p>Delete @vehicle.Nickname? This also removes its tags, journal notes, and pictures and cannot be undone.</p>
+                        <form method="post" @formname="delete-vehicle" @onsubmit="DeleteAsync" class="d-flex flex-wrap gap-2">
+                            <AntiforgeryToken />
+                            <button type="submit" class="btn btn-danger">Yes, delete this vehicle</button>
+                            <a class="btn btn-outline-secondary" href="/vehicles/@VehicleId">Keep vehicle</a>
+                        </form>
+                    </div>
+                </details>
+            </div>
         </Actions>
     </PageHeader>
 
-    <p class="text-body-secondary">@vehicle.Make @vehicle.Model</p>
+    var current = VehicleTabs.Normalize(Tab);
 
-    <dl class="row" aria-label="Vehicle details">
-        <dt class="col-sm-3">Trim</dt>
-        <dd class="col-sm-9">@(vehicle.Trim ?? "Not set")</dd>
-        <dt class="col-sm-3">Color</dt>
-        <dd class="col-sm-9">@(vehicle.Color ?? "Not set")</dd>
-        <dt class="col-sm-3">Mileage</dt>
-        <dd class="col-sm-9">@VehicleFormat.Mileage(vehicle.Mileage)</dd>
-        <dt class="col-sm-3">Doors</dt>
-        <dd class="col-sm-9">@(vehicle.Doors?.ToString() ?? "Not set")</dd>
-    </dl>
+    <VehicleTabNav Current="@current" />
 
-    <VehicleGallerySection VehicleId="VehicleId" VehicleNickname="@vehicle.Nickname" Images="vehicle.Images" Status="ImageStatus" />
-
-    <VehicleTagsSection VehicleId="VehicleId" Tags="vehicle.Tags" />
-
-    <VehicleJournalSection VehicleId="VehicleId" NotesPage="journalPage" />
-
-    <details class="mt-4" data-testid="delete-vehicle">
-        <summary class="btn btn-outline-danger btn-sm">Delete vehicle</summary>
-        <div class="alert alert-danger mt-2" role="alert">
-            <p>Delete @vehicle.Nickname? This also removes its tags, journal notes, and pictures and cannot be undone.</p>
-            <form method="post" @formname="delete-vehicle" @onsubmit="DeleteAsync" class="d-flex gap-2">
-                <AntiforgeryToken />
-                <button type="submit" class="btn btn-danger">Yes, delete this vehicle</button>
-                <a class="btn btn-outline-secondary" href="/vehicles/@VehicleId">Keep vehicle</a>
-            </form>
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <div class="tab-content">
+                <div id="tab-basic" class="tab-pane @PaneState("basic", current)" role="tabpanel" aria-labelledby="tab-basic-tab" tabindex="0">
+                    <dl class="row mb-0" aria-label="Basic information">
+                        <dt class="col-sm-3">Nickname</dt>
+                        <dd class="col-sm-9">@vehicle.Nickname</dd>
+                        <dt class="col-sm-3">Make</dt>
+                        <dd class="col-sm-9">@vehicle.Make</dd>
+                        <dt class="col-sm-3">Model</dt>
+                        <dd class="col-sm-9">@vehicle.Model</dd>
+                        <dt class="col-sm-3">Trim</dt>
+                        <dd class="col-sm-9">@(vehicle.Trim ?? "Not set")</dd>
+                    </dl>
+                </div>
+                <div id="tab-specifications" class="tab-pane @PaneState("specifications", current)" role="tabpanel" aria-labelledby="tab-specifications-tab" tabindex="0">
+                    <dl class="row mb-0" aria-label="Specifications">
+                        <dt class="col-sm-3">Color</dt>
+                        <dd class="col-sm-9">@(vehicle.Color ?? "Not set")</dd>
+                        <dt class="col-sm-3">Mileage</dt>
+                        <dd class="col-sm-9">@VehicleFormat.Mileage(vehicle.Mileage)</dd>
+                        <dt class="col-sm-3">Doors</dt>
+                        <dd class="col-sm-9">@(vehicle.Doors?.ToString() ?? "Not set")</dd>
+                    </dl>
+                </div>
+                <div id="tab-media" class="tab-pane @PaneState("media", current)" role="tabpanel" aria-labelledby="tab-media-tab" tabindex="0">
+                    <VehicleGalleryView VehicleId="VehicleId" VehicleNickname="@vehicle.Nickname" Images="vehicle.Images" />
+                </div>
+                <div id="tab-description" class="tab-pane @PaneState("description", current)" role="tabpanel" aria-labelledby="tab-description-tab" tabindex="0">
+                    <VehicleTagsView VehicleId="VehicleId" Tags="vehicle.Tags" />
+                    <VehicleJournalView VehicleId="VehicleId" NotesPage="journalPage" />
+                </div>
+            </div>
         </div>
-    </details>
+    </div>
+
 }
 
 @code {
@@ -66,14 +93,17 @@ else if (vehicle is not null)
     [Parameter]
     public Guid VehicleId { get; set; }
 
-    [Parameter, SupplyParameterFromQuery(Name = "imageStatus")]
-    public string? ImageStatus { get; set; }
+    // Which tab to open: basic, specifications, media, or description.
+    [Parameter, SupplyParameterFromQuery(Name = "tab")]
+    public string? Tab { get; set; }
 
     // Read as text: a bad query value must mean the first page of notes, not a binding error.
     [Parameter, SupplyParameterFromQuery(Name = "notesPage")]
     public string? NotesPage { get; set; }
 
     private int journalPage => int.TryParse(NotesPage, out var parsed) ? Math.Max(1, parsed) : 1;
+
+    private static string PaneState(string id, string current) => id == current ? "show active" : string.Empty;
 
     [CascadingParameter]
     private HttpContext? HttpContext { get; set; }

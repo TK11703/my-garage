@@ -1,62 +1,59 @@
-<div class="row">
-<div class="col-lg-8">
-<EditForm EditContext="editContext" FormName="@FormName" OnValidSubmit="OnSubmit" class="vstack gap-3">
-    <div>
-        <label for="nickname" class="form-label">Nickname<span class="text-danger" aria-hidden="true"> *</span></label>
-        <InputText id="nickname" class="form-control" @bind-Value="Model.Nickname" maxlength="100"
-                   aria-required="true" aria-describedby="@Described("Nickname")" />
-        <ValidationMessage For="@(() => Model.Nickname)" id="nickname-error" class="invalid-feedback d-block" />
-    </div>
-    <div class="row g-3">
-        <div class="col-sm-6">
-            <label for="make" class="form-label">Make<span class="text-danger" aria-hidden="true"> *</span></label>
-            <InputText id="make" class="form-control" @bind-Value="Model.Make" maxlength="50"
-                       aria-required="true" aria-describedby="@Described("Make")" />
-            <ValidationMessage For="@(() => Model.Make)" id="make-error" class="invalid-feedback d-block" />
-        </div>
-        <div class="col-sm-6">
-            <label for="model" class="form-label">Model<span class="text-danger" aria-hidden="true"> *</span></label>
-            <InputText id="model" class="form-control" @bind-Value="Model.Model" maxlength="50"
-                       aria-required="true" aria-describedby="@Described("Model")" />
-            <ValidationMessage For="@(() => Model.Model)" id="model-error" class="invalid-feedback d-block" />
+@if (!Tabbed)
+{
+    <div class="row">
+        <div class="col-lg-8">
+            <EditForm EditContext="editContext" FormName="@FormName" OnValidSubmit="OnSubmit" class="vstack gap-3">
+                <VehicleBasicFields Model="Model" Errors="Errors" />
+                <VehicleSpecificationFields Model="Model" Errors="Errors" />
+                <VehicleFormActions SubmitText="@SubmitText" CancelHref="@CancelHref" />
+            </EditForm>
         </div>
     </div>
-    <div class="row g-3">
-        <div class="col-sm-6">
-            <label for="trim" class="form-label">Trim</label>
-            <InputText id="trim" class="form-control" @bind-Value="Model.Trim" maxlength="50"
-                       aria-describedby="@Described("Trim")" />
-            <ValidationMessage For="@(() => Model.Trim)" id="trim-error" class="invalid-feedback d-block" />
-        </div>
-        <div class="col-sm-6">
-            <label for="color" class="form-label">Color</label>
-            <InputText id="color" class="form-control" @bind-Value="Model.Color" maxlength="30"
-                       aria-describedby="@Described("Color")" />
-            <ValidationMessage For="@(() => Model.Color)" id="color-error" class="invalid-feedback d-block" />
+}
+else
+{
+    var current = CurrentTab();
+
+    <VehicleTabNav Current="@current" />
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <EditForm EditContext="editContext" FormName="@FormName" OnValidSubmit="OnSubmit">
+                <div class="tab-content">
+                    <div id="tab-basic" class="tab-pane @PaneState("basic", current)" role="tabpanel" aria-labelledby="tab-basic-tab" tabindex="0">
+                        <div class="row">
+                            <div class="col-lg-8 vstack gap-3">
+                                <VehicleBasicFields Model="Model" Errors="Errors" />
+                                <VehicleFormActions SubmitText="@SubmitText" CancelHref="@CancelHref" />
+                            </div>
+                        </div>
+                    </div>
+                    <div id="tab-specifications" class="tab-pane @PaneState("specifications", current)" role="tabpanel" aria-labelledby="tab-specifications-tab" tabindex="0">
+                        <div class="row">
+                            <div class="col-lg-8 vstack gap-3">
+                                <VehicleSpecificationFields Model="Model" Errors="Errors" />
+                                <VehicleFormActions SubmitText="@SubmitText" CancelHref="@CancelHref" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </EditForm>
+
+            <div class="tab-content">
+                <div id="tab-media" class="tab-pane @PaneState("media", current)" role="tabpanel" aria-labelledby="tab-media-tab" tabindex="0">
+                    @MediaContent
+                </div>
+                <div id="tab-description" class="tab-pane @PaneState("description", current)" role="tabpanel" aria-labelledby="tab-description-tab" tabindex="0">
+                    <div class="row">
+                        <div class="col-lg-8">
+                            @DescriptionContent
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="row g-3">
-        <div class="col-sm-6">
-            <label for="mileage" class="form-label">Mileage (mi)</label>
-            <InputNumber id="mileage" TValue="int?" class="form-control" @bind-Value="Model.Mileage" min="0" max="9999999" step="1" inputmode="numeric"
-                         aria-describedby="@Described("Mileage")" />
-            <ValidationMessage For="@(() => Model.Mileage)" id="mileage-error" class="invalid-feedback d-block" />
-        </div>
-        <div class="col-sm-6">
-            <label for="doors" class="form-label">Doors</label>
-            <InputNumber id="doors" TValue="int?" class="form-control" @bind-Value="Model.Doors" min="1" max="6" step="1" inputmode="numeric"
-                         aria-describedby="@Described("Doors")" />
-            <ValidationMessage For="@(() => Model.Doors)" id="doors-error" class="invalid-feedback d-block" />
-        </div>
-    </div>
-    <p class="form-text mb-0">* Required</p>
-    <div class="d-flex gap-2">
-        <button type="submit" class="btn btn-primary">@SubmitText</button>
-        <a class="btn btn-outline-secondary" href="@CancelHref">Cancel</a>
-    </div>
-</EditForm>
-</div>
-</div>
+}
 
 @code {
     private static readonly string[] Fields = [nameof(VehicleFormModel.Nickname), nameof(VehicleFormModel.Make), nameof(VehicleFormModel.Model),
@@ -85,6 +82,20 @@
     [Parameter, EditorRequired]
     public EventCallback OnSubmit { get; set; }
 
+    // Edit layout: Basic Info and Specifications share this form; Media and Description hold their own forms.
+    [Parameter]
+    public bool Tabbed { get; set; }
+
+    // basic, specifications, media, or description; anything else means basic.
+    [Parameter]
+    public string? ActiveTab { get; set; }
+
+    [Parameter]
+    public RenderFragment? MediaContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? DescriptionContent { get; set; }
+
     protected override void OnParametersSet()
     {
         if (!ReferenceEquals(contextModel, Model))
@@ -107,6 +118,21 @@
         editContext.NotifyValidationStateChanged();
     }
 
-    private string? Described(string field) =>
-        Errors.Keys.Any(key => string.Equals(key, field, StringComparison.OrdinalIgnoreCase)) ? $"{field.ToLowerInvariant()}-error" : null;
+    // A rejected save opens the tab that holds the first error so the message is not hidden.
+    private string CurrentTab()
+    {
+        if (VehicleFormFields.HasError(Errors, VehicleFormFields.BasicFields))
+        {
+            return "basic";
+        }
+
+        if (VehicleFormFields.HasError(Errors, VehicleFormFields.SpecificationFields))
+        {
+            return "specifications";
+        }
+
+        return VehicleTabs.Normalize(ActiveTab);
+    }
+
+    private static string PaneState(string id, string current) => id == current ? "show active" : string.Empty;
 }
