@@ -24,6 +24,20 @@ public class ApiCheckPageTests : BunitContext
     }
 
     [Fact]
+    public void ShowsStandardPageHeader()
+    {
+        RegisterClient(_ => throw new HttpRequestException("connection refused"));
+
+        var cut = Render<MyGarage.Web.ApiCheck.ApiCheck>();
+
+        Assert.Single(cut.FindAll("h1"));
+        Assert.Equal("API Check", cut.Find("h1").TextContent);
+        var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
+        Assert.Equal(["Home", "API check"], items.Select(item => item.TextContent.Trim()));
+        Assert.Equal("page", items[1].GetAttribute("aria-current"));
+    }
+
+    [Fact]
     public void Success_ShowsIdentityAndSampleItems()
     {
         RegisterClient(request => request.RequestUri!.AbsolutePath switch

@@ -1,0 +1,23 @@
+<div class="alert alert-warning" role="alert">
+    @(Failure == GarageApiFailure.NotAccepted ? NotAcceptedMessage : UnavailableMessage)
+</div>
+
+@if (Failure == GarageApiFailure.NotAccepted)
+{
+    <a class="btn btn-primary mb-3" href="/authentication/login?returnUrl=@Uri.EscapeDataString(ReturnUrl)">Sign in again</a>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public GarageApiFailure Failure { get; set; }
+
+    // App-relative page to come back to after signing in.
+    [Parameter, EditorRequired]
+    public string ReturnUrl { get; set; } = "/";
+
+    [Parameter, EditorRequired]
+    public string NotAcceptedMessage { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string UnavailableMessage { get; set; } = string.Empty;
+}

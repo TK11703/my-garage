@@ -36,6 +36,22 @@ public class VehicleJournalSectionTests : VehicleTestContext
     }
 
     [Fact]
+    public void DeleteConfirmation_UsesTheStandardWording()
+    {
+        Notes = NotesPage([Note("A note")]);
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderSection();
+
+        cut.WaitForAssertion(() =>
+        {
+            var confirmation = cut.Find("details[data-testid='delete-note']");
+            Assert.Equal("Yes, delete this note", confirmation.QuerySelector("button")!.TextContent.Trim());
+            Assert.Equal("Keep note", confirmation.QuerySelector("a.btn")!.TextContent.Trim());
+        });
+    }
+
+    [Fact]
     public void NoNotes_ShowsAnEmptyState()
     {
         RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
@@ -111,6 +127,29 @@ public class VehicleJournalSectionTests : VehicleTestContext
             Assert.Contains($"/vehicles/{vehicleId}?notesPage=3", links);
         });
         Assert.Contains("page=2", Requests.First().RequestUri!.Query);
+    }
+
+    [Fact]
+    public void ReturnPath_IsKeptByThePagerAndAfterAdding()
+    {
+        Notes = NotesPage([Note("n")], page: 2, totalCount: 25);
+        RegisterApi(_ => Json(Note("saved"), HttpStatusCode.Created));
+        var returnPath = $"/vehicles/{vehicleId}/edit?tab=description";
+        var cut = Render<VehicleJournalSection>(parameters => parameters
+            .Add(section => section.VehicleId, vehicleId)
+            .Add(section => section.NotesPage, 2)
+            .Add(section => section.ReturnPath, returnPath));
+
+        cut.WaitForAssertion(() =>
+        {
+            var links = cut.FindAll("nav[aria-label='Pagination'] a").Select(a => a.GetAttribute("href")).ToList();
+            Assert.Contains(returnPath, links);
+            Assert.Contains($"{returnPath}&notesPage=3", links);
+        });
+
+        cut.Find("textarea#note-body").Change("Hello");
+        cut.Find("form[data-testid='add-note']").Submit();
+        cut.WaitForAssertion(() => Assert.EndsWith(returnPath, CurrentUri));
     }
 
     [Fact]

@@ -1,0 +1,19 @@
+<ul class="nav mg-tabs mb-3" role="tablist">
+    @foreach (var (id, label, icon) in VehicleTabs.All)
+    {
+        <li class="nav-item" role="presentation">
+            <button type="button" id="@($"tab-{id}-tab")" class="nav-link @(id == Current ? "active" : null)" role="tab"
+                    data-bs-toggle="tab" data-bs-target="@($"#tab-{id}")" aria-controls="@($"tab-{id}")"
+                    aria-selected="@(id == Current ? "true" : "false")">
+                <Icon Name="icon" />
+                <span>@label</span>
+            </button>
+        </li>
+    }
+</ul>
+
+@code {
+    // The id of the tab that is open.
+    [Parameter, EditorRequired]
+    public string Current { get; set; } = "basic";
+}

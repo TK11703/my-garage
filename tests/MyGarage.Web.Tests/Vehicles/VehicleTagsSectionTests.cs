@@ -119,6 +119,53 @@ public class VehicleTagsSectionTests : VehicleTestContext
     }
 
     [Fact]
+    public void Add_InvalidName_UsesTheStandardFieldErrorMarkup()
+    {
+        RegisterApi(_ => ValidationProblem(("Name", "Tag is required.")));
+        var cut = RenderSection();
+
+        cut.Find("form[data-testid='add-tag']").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            var error = cut.Find("#tag-error");
+            Assert.Contains("invalid-feedback", error.ClassName);
+            Assert.Contains("d-block", error.ClassName);
+            Assert.Equal("alert", error.GetAttribute("role"));
+            Assert.DoesNotContain("text-danger", error.ClassName);
+            Assert.Equal("tag-error", cut.Find("input#tag-name").GetAttribute("aria-describedby"));
+        });
+    }
+
+    [Fact]
+    public void NoTags_UsesTheCompactEmptyState()
+    {
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderSection();
+
+        Assert.Contains("text-body-secondary", cut.Find("section p").ClassName);
+        Assert.Contains("No tags yet", cut.Find("section p").TextContent);
+    }
+
+    [Fact]
+    public void ReturnPath_IsWhereAddAndRemoveReturn()
+    {
+        var sunroof = Tag("sunroof");
+        RegisterApi(_ => Json(Tag("x"), HttpStatusCode.Created));
+        var returnPath = $"/vehicles/{vehicleId}/edit?tab=description";
+        var cut = Render<VehicleTagsSection>(parameters => parameters
+            .Add(section => section.VehicleId, vehicleId)
+            .Add(section => section.Tags, new[] { sunroof })
+            .Add(section => section.ReturnPath, returnPath));
+        cut.Find("input#tag-name").Change("x");
+
+        cut.Find("form[data-testid='add-tag']").Submit();
+
+        cut.WaitForAssertion(() => Assert.EndsWith(returnPath, Services.GetRequiredService<NavigationManager>().Uri));
+    }
+
+    [Fact]
     public void Remove_SendsDeleteForThatTagAndReturnsToTheVehicle()
     {
         var sunroof = Tag("sunroof");

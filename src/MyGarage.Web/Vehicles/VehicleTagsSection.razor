@@ -6,7 +6,7 @@
 
     @if (Tags.Count == 0)
     {
-        <p class="text-body-secondary">No tags yet. Add a few words that describe this vehicle's features.</p>
+        <EmptyState Compact="true" Message="No tags yet. Add a few words that describe this vehicle's features." />
     }
     else
     {
@@ -39,7 +39,7 @@
 
     @if (error is not null)
     {
-        <div id="tag-error" class="text-danger small mt-1" role="alert">@error</div>
+        <div id="tag-error" class="invalid-feedback d-block" role="alert">@error</div>
     }
 </section>
 
@@ -53,6 +53,12 @@
 
     [Parameter, EditorRequired]
     public IReadOnlyList<VehicleTagDto> Tags { get; set; } = [];
+
+    // Where to go after a change; defaults to the vehicle page.
+    [Parameter]
+    public string? ReturnPath { get; set; }
+
+    private string Back => ReturnPath ?? $"/vehicles/{VehicleId}";
 
     [SupplyParameterFromForm(FormName = "add-tag")]
     private AddTagModel? Model { get; set; }
@@ -82,7 +88,7 @@
             switch (result.Outcome)
             {
                 case ApiOutcome.Success:
-                    Navigation.NavigateTo($"/vehicles/{VehicleId}");
+                    Navigation.NavigateTo(Back);
                     break;
                 case ApiOutcome.Conflict:
                     Fail(result.Title ?? "The tag could not be added.");
@@ -107,7 +113,7 @@
         try
         {
             await Api.RemoveTagAsync(VehicleId, tagId);
-            Navigation.NavigateTo($"/vehicles/{VehicleId}");
+            Navigation.NavigateTo(Back);
         }
         catch (GarageApiException ex)
         {

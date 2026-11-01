@@ -4,20 +4,12 @@
 @inject VehiclesApiClient Api
 @inject NavigationManager Navigation
 
-<PageTitle>Add vehicle</PageTitle>
-
-<h1 class="h3 mb-3">Add vehicle</h1>
+<PageHeader Title="Add Vehicle" Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb("New vehicle") })" />
 
 @if (failure is not null)
 {
-    <div class="alert alert-warning" role="alert">
-        @(failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable)
-    </div>
-
-    @if (failure == GarageApiFailure.NotAccepted)
-    {
-        <a class="btn btn-primary mb-3" href="/authentication/login?returnUrl=%2Fvehicles%2Fnew">Sign in again</a>
-    }
+    <ApiFailureAlert Failure="failure.Value" ReturnUrl="/vehicles/new"
+                     NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
 }
 
 <VehicleForm Model="Model" FormName="create-vehicle" SubmitText="Add vehicle" CancelHref="/vehicles"

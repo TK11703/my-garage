@@ -60,4 +60,41 @@ public class VehicleCardTests : VehicleTestContext
 
     [Fact]
     public void DoesNotUseTableMarkup() => Assert.DoesNotContain("<table", RenderCard(Summary("Daily")).Markup);
+
+    [Fact]
+    public void IsAnImageForwardCardWithAWidescreenPicture()
+    {
+        var cut = RenderCard(Summary("Daily", mainImageId: Guid.NewGuid()));
+
+        Assert.Contains("mg-vehicle-card", cut.Find(".card").ClassList);
+        Assert.Contains("ratio-16x9", cut.Find(".ratio").ClassList);
+        Assert.Contains("card-img-top", cut.Find("img").ClassList);
+    }
+
+    [Fact]
+    public void PlaceholderUsesTheSameWidescreenFrame()
+    {
+        var cut = RenderCard(Summary("Daily"));
+
+        Assert.Contains("ratio-16x9", cut.Find(".ratio").ClassList);
+    }
+
+    [Fact]
+    public void MileageIsShownWithADecorativeIcon()
+    {
+        var cut = RenderCard(Summary("Daily", mileage: 5_000));
+
+        var line = cut.Find("[data-testid='vehicle-mileage']");
+        Assert.Equal("5,000 mi", line.TextContent.Trim());
+        Assert.Equal("true", line.QuerySelector("svg.bi")!.GetAttribute("aria-hidden"));
+    }
+
+    [Fact]
+    public void LongTextWrapsInsteadOfBreakingTheGrid()
+    {
+        var cut = RenderCard(Summary("A very long nickname", "Make", "A very long model name"));
+
+        Assert.Contains("text-break", cut.Find(".card-title a").ClassList);
+        Assert.Contains("text-break", cut.Find("[data-testid='vehicle-make-model']").ClassList);
+    }
 }

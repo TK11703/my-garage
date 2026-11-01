@@ -1,0 +1,30 @@
+<div class="row g-3">
+    <div class="col-sm-6">
+        <label for="color" class="form-label">Color</label>
+        <InputText id="color" class="form-control" @bind-Value="Model.Color" maxlength="30"
+                   aria-describedby="@VehicleFormFields.Described(Errors, "Color")" />
+        <ValidationMessage For="@(() => Model.Color)" id="color-error" class="invalid-feedback d-block" />
+    </div>
+</div>
+<div class="row g-3">
+    <div class="col-sm-6">
+        <label for="mileage" class="form-label">Mileage (mi)</label>
+        <InputNumber id="mileage" TValue="int?" class="form-control" @bind-Value="Model.Mileage" min="0" max="9999999" step="1" inputmode="numeric"
+                     aria-describedby="@VehicleFormFields.Described(Errors, "Mileage")" />
+        <ValidationMessage For="@(() => Model.Mileage)" id="mileage-error" class="invalid-feedback d-block" />
+    </div>
+    <div class="col-sm-6">
+        <label for="doors" class="form-label">Doors</label>
+        <InputNumber id="doors" TValue="int?" class="form-control" @bind-Value="Model.Doors" min="1" max="6" step="1" inputmode="numeric"
+                     aria-describedby="@VehicleFormFields.Described(Errors, "Doors")" />
+        <ValidationMessage For="@(() => Model.Doors)" id="doors-error" class="invalid-feedback d-block" />
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public VehicleFormModel Model { get; set; } = default!;
+
+    [Parameter]
+    public IReadOnlyDictionary<string, string[]> Errors { get; set; } = new Dictionary<string, string[]>();
+}

@@ -1,5 +1,5 @@
-<div class="card h-100 shadow-sm">
-    <div class="ratio ratio-4x3">
+<div class="card h-100 border-0 shadow-sm mg-vehicle-card">
+    <div class="ratio ratio-16x9">
         @if (Vehicle.MainImageId is { } imageId)
         {
             <img class="card-img-top object-fit-cover" src="/vehicles/@(Vehicle.Id)/images/@(imageId)" alt="@Vehicle.Nickname" loading="lazy" />
@@ -12,11 +12,14 @@
         }
     </div>
     <div class="card-body">
-        <h2 class="card-title h5 mb-1">
-            <a class="stretched-link text-decoration-none" href="/vehicles/@Vehicle.Id">@Vehicle.Nickname</a>
+        <h2 class="card-title h6 fw-semibold mb-1">
+            <a class="stretched-link text-decoration-none text-body text-break" href="/vehicles/@Vehicle.Id">@Vehicle.Nickname</a>
         </h2>
-        <p class="card-text mb-1">@Vehicle.Make @Vehicle.Model</p>
-        <p class="card-text text-body-secondary small mb-0">@VehicleFormat.Mileage(Vehicle.Mileage)</p>
+        <p class="card-text text-break mb-2" data-testid="vehicle-make-model">@Vehicle.Make @Vehicle.Model</p>
+        <p class="card-text text-body-secondary small mb-0 d-flex align-items-center gap-1" data-testid="vehicle-mileage">
+            <Icon Name="IconName.Speedometer" />
+            <span>@VehicleFormat.Mileage(Vehicle.Mileage)</span>
+        </p>
     </div>
 </div>
 

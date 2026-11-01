@@ -41,6 +41,17 @@ public class AuthenticationErrorPageTests : BunitContext
     }
 
     [Fact]
+    public void ShowsStandardPageHeader()
+    {
+        var cut = RenderWithReason(AuthFailureReason.Cancelled);
+
+        Assert.Single(cut.FindAll("h1"));
+        Assert.Equal("Sign-in problem", cut.Find("h1").TextContent);
+        var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
+        Assert.Equal(["Home", "Sign-in problem"], items.Select(item => item.TextContent.Trim()));
+    }
+
+    [Fact]
     public void TryAgainLinksToLogin()
     {
         var cut = RenderWithReason(AuthFailureReason.Cancelled);

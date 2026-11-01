@@ -11,7 +11,7 @@
 
     @if (Images.Count == 0)
     {
-        <p class="text-body-secondary">No pictures yet. Add one to show this vehicle in your garage.</p>
+        <EmptyState Compact="true" Message="No pictures yet. Add one to show this vehicle in your garage." />
     }
     else
     {
@@ -47,8 +47,8 @@
                                         <p class="small mb-2">Delete this picture?</p>
                                         <form method="post" @formname="@($"delete-image-{image.Id}")" @onsubmit="() => DeleteAsync(image.Id)" class="d-flex gap-2">
                                             <AntiforgeryToken />
-                                            <button type="submit" class="btn btn-danger btn-sm">Yes, delete</button>
-                                            <a class="btn btn-outline-secondary btn-sm" href="/vehicles/@VehicleId">Keep</a>
+                                            <button type="submit" class="btn btn-danger btn-sm">Yes, delete this picture</button>
+                                            <a class="btn btn-outline-secondary btn-sm" href="@Back">Keep picture</a>
                                         </form>
                                     </div>
                                 </details>
@@ -68,6 +68,10 @@
     {
         <form method="post" action="/vehicles/@VehicleId/images" enctype="multipart/form-data" data-testid="upload-image" class="vstack gap-2">
             <AntiforgeryToken />
+            @if (OnEditPage)
+            {
+                <input type="hidden" name="returnTo" value="edit" />
+            }
             <div>
                 <label for="image-file" class="form-label">Add a picture</label>
                 <input id="image-file" name="file" type="file" class="form-control" accept="image/jpeg,image/png,image/webp" required aria-describedby="image-help" />
@@ -102,6 +106,14 @@
     [Parameter]
     public string? Status { get; set; }
 
+    // Where to go after a change; defaults to the vehicle page.
+    [Parameter]
+    public string? ReturnPath { get; set; }
+
+    private string Back => ReturnPath ?? $"/vehicles/{VehicleId}";
+
+    private bool OnEditPage => ReturnPath is not null && ReturnPath.StartsWith($"/vehicles/{VehicleId}/edit", StringComparison.Ordinal);
+
     private (string Level, string Text)? Notice =>
         failureText is not null
             ? ("warning", failureText)
@@ -128,7 +140,7 @@
         try
         {
             await change();
-            Navigation.NavigateTo($"/vehicles/{VehicleId}");
+            Navigation.NavigateTo(Back);
         }
         catch (GarageApiException ex)
         {

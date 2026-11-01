@@ -1,0 +1,76 @@
+@using System.Globalization
+@inject VehiclesApiClient Api
+
+<section class="mt-4" aria-labelledby="journal-heading">
+    <h2 id="journal-heading" class="h5">Journal</h2>
+
+    @if (failure is not null)
+    {
+        <ApiFailureAlert Failure="failure.Value" ReturnUrl="@ReturnHref(NotesPage)"
+                         NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+    }
+    else if (notes is not null)
+    {
+        @if (notes.TotalCount == 0)
+        {
+            <p class="text-body-secondary">No notes yet. <a href="/vehicles/@VehicleId/edit?tab=description">Add a note</a></p>
+        }
+        else
+        {
+            <ul class="list-unstyled vstack gap-3">
+                @foreach (var note in notes.Items)
+                {
+                    <li @key="note.Id" data-testid="note" class="card">
+                        <div class="card-body">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                <div>
+                                    @if (note.Category is not null)
+                                    {
+                                        <span class="badge text-bg-info fw-normal" data-testid="note-category">@note.Category</span>
+                                    }
+                                </div>
+                                <time class="text-body-secondary small" datetime="@note.CreatedAt.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)">
+                                    @note.CreatedAt.UtcDateTime.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)@(Edited(note) ? " (edited)" : null)
+                                </time>
+                            </div>
+                            <p class="note-body text-break mb-0">@note.Body</p>
+                        </div>
+                    </li>
+                }
+            </ul>
+
+            <Pager Page="notes.Page" TotalPages="notes.TotalPages" HrefFor="@(p => ReturnHref(p))" />
+        }
+    }
+</section>
+
+@code {
+    private PagedResultDto<JournalNoteDto>? notes;
+    private GarageApiFailure? failure;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    // The page of notes to show (1-based).
+    [Parameter]
+    public int NotesPage { get; set; } = 1;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            var result = await Api.ListNotesAsync(VehicleId, Math.Max(1, NotesPage));
+            notes = result.Value;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private static bool Edited(JournalNoteDto note) => note.UpdatedAt - note.CreatedAt > TimeSpan.FromSeconds(1);
+
+    // Page 1 has no page number so the address stays tidy.
+    private string ReturnHref(int page) =>
+        page <= 1 ? $"/vehicles/{VehicleId}?tab=description" : $"/vehicles/{VehicleId}?tab=description&notesPage={page}";
+}

@@ -1,0 +1,38 @@
+@page "/faq"
+@attribute [AllowAnonymous]
+
+<PageHeader Title="Frequently Asked Questions" Trail="@(new[] { new Crumb("FAQ") })" />
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="accordion" id="faq-accordion">
+            @foreach (var (id, question, answer) in Items)
+            {
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#faq-@id" aria-expanded="false" aria-controls="faq-@id">
+                            @question
+                        </button>
+                    </h2>
+                    <div id="faq-@id" class="accordion-collapse collapse" data-bs-parent="#faq-accordion">
+                        <div class="accordion-body">@answer</div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private static readonly (string Id, string Question, string Answer)[] Items =
+    [
+        ("add", "How do I add a vehicle?", "Open My Vehicles and choose Add vehicle. Enter a nickname, make, and model; trim, color, mileage, and doors are optional."),
+        ("edit", "How do I change or delete a vehicle?", "Open the vehicle and choose Edit to update its details. To remove it, use Delete vehicle at the bottom of the page and confirm; this also removes its tags, notes, and pictures."),
+        ("tags", "What are tags?", "Tags are short free-text words that describe a vehicle's features, such as \"tow package\" or \"sunroof\". You can search and filter by tag."),
+        ("journal", "What is the journal?", "Each vehicle has a journal of notes. Give a note an optional category of your own choosing, such as \"Maintenance\" or \"Trips\"."),
+        ("pictures", "How many pictures can I add?", "Each vehicle holds up to 10 pictures of up to 5 MB each. Choose one as the main picture to show on its card."),
+        ("search", "How do I find a vehicle?", "Use the search box at the top of any page, or the search and filters on My Vehicles to narrow by make, color, doors, tag, or mileage."),
+        ("privacy", "Who can see my vehicles?", "Only you. Your vehicles, notes, and pictures are private to your account."),
+    ];
+}

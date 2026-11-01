@@ -8,6 +8,41 @@ namespace MyGarage.Web.Tests.Vehicles;
 public class VehicleListTests : VehicleTestContext
 {
     [Fact]
+    public void ShowsPageHeaderWithTrailTitleAndAddAction()
+    {
+        RegisterApi(_ => Json(Page([Summary("Alpha")])));
+
+        var cut = Render<VehicleList>();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Single(cut.FindAll("h1"));
+            Assert.Equal("My Vehicles", cut.Find("h1").TextContent);
+            var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
+            Assert.Equal(["Home", "Vehicles"], items.Select(item => item.TextContent.Trim()));
+            Assert.Equal("page", items[1].GetAttribute("aria-current"));
+            var add = cut.Find("h1").ParentElement!.QuerySelector("a[data-testid='add-vehicle']")!;
+            Assert.Equal("Add vehicle", add.TextContent.Trim());
+            Assert.Equal("/vehicles/new", add.GetAttribute("href"));
+        });
+    }
+
+    [Fact]
+    public void AddVehicleHasAnIconAndATitle()
+    {
+        RegisterApi(_ => Json(Page([Summary("Alpha")])));
+
+        var cut = Render<VehicleList>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var add = cut.Find("a[data-testid='add-vehicle']");
+            Assert.Equal("Add a new vehicle", add.GetAttribute("title"));
+            Assert.Equal("true", add.QuerySelector("svg.bi")!.GetAttribute("aria-hidden"));
+        });
+    }
+
+    [Fact]
     public void EmptyGarage_ShowsFriendlyStateWithAddLink()
     {
         RegisterApi(_ => Json(Page([])));
@@ -30,7 +65,7 @@ public class VehicleListTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            Assert.Equal(3, cut.FindAll(".card").Count);
+            Assert.Equal(3, cut.FindAll(".mg-vehicle-card").Count);
             Assert.DoesNotContain("<table", cut.Markup);
         });
     }
@@ -106,6 +141,39 @@ public class VehicleListTests : VehicleTestContext
         });
     }
 
+    [Fact]
+    public void EmptyGarage_UsesTheStandardEmptyState()
+    {
+        RegisterApi(_ => Json(Page([])));
+
+        var cut = Render<VehicleList>();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("You have no vehicles yet.", cut.Find("p.lead").TextContent);
+            var action = cut.Find(".text-center a.btn");
+            Assert.Contains("btn-primary", action.ClassName);
+            Assert.Equal("Add your first vehicle", action.TextContent);
+            Assert.Equal("/vehicles/new", action.GetAttribute("href"));
+        });
+    }
+
+    [Fact]
+    public void NoMatches_UsesTheStandardNoMatchState()
+    {
+        RegisterApi(_ => Json(Page([])));
+        NavigateTo("/vehicles?q=zzz");
+
+        var cut = Render<VehicleList>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var action = cut.Find("a[data-testid='no-match-clear']");
+            Assert.Contains("btn-outline-primary", action.ClassName);
+            Assert.Equal("Clear search", action.TextContent);
+        });
+    }
+
     [Theory]
     [InlineData(HttpStatusCode.Unauthorized)]
     [InlineData(HttpStatusCode.Forbidden)]
@@ -118,7 +186,8 @@ public class VehicleListTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             Assert.Contains(VehicleMessages.NotAccepted, cut.Markup);
-            Assert.Contains("/authentication/login", cut.Find("a[href^='/authentication/login']").GetAttribute("href"));
+            Assert.Equal("alert", cut.Find("div.alert.alert-warning").GetAttribute("role"));
+            Assert.Equal("/authentication/login?returnUrl=%2Fvehicles", cut.Find("a[href^='/authentication/login']").GetAttribute("href"));
         });
     }
 }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Identity.Web;
@@ -33,6 +34,13 @@ public static class AuthenticationExtensions
             options.Scope.Add(settings.ApiScope);
             options.SignedOutRedirectUri = "/authentication/signed-out";
 
+            var previousTokenValidated = options.Events.OnTokenValidated;
+            options.Events.OnTokenValidated = async context =>
+            {
+                await previousTokenValidated(context);
+                SessionValidation.StampInstance(context.Principal, SessionValidation.CurrentInstance);
+            };
+
             options.Events.OnRemoteFailure = context =>
             {
                 var reason = AuthFailureMapper.Map(context.Failure);
@@ -44,6 +52,21 @@ public static class AuthenticationExtensions
 
         builder.Services.AddAuthorization(options =>
             options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
+
+        builder.Services.PostConfigure<CookieAuthenticationOptions>(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+        {
+            var previous = options.Events.OnValidatePrincipal;
+            options.Events.OnValidatePrincipal = async context =>
+            {
+                await previous(context);
+                if (context.Principal is null || !SessionValidation.ShouldCheck(context.HttpContext.Request.Path))
+                {
+                    return;
+                }
+
+                await SessionValidation.RejectSessionFromAnotherInstanceAsync(context, SessionValidation.CurrentInstance);
+            };
+        });
 
         return builder;
     }

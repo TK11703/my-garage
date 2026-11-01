@@ -26,6 +26,16 @@ public class LoginRedirectTests(WebAppFactory factory) : IClassFixture<WebAppFac
     }
 
     [Fact]
+    public async Task AnonymousRequest_ForHome_ChallengesAndReturnsToHome()
+    {
+        var response = await CreateClient().GetAsync("/");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.StartsWith(WebAppFactory.FakeAuthority, response.Headers.Location!.ToString());
+        Assert.Equal("/", LastRedirectUri());
+    }
+
+    [Fact]
     public async Task Login_WithLocalReturnUrl_ReturnsToIt()
     {
         var response = await CreateClient().GetAsync("/authentication/login?returnUrl=%2Fapi-check");

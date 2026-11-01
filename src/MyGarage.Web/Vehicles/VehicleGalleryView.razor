@@ -1,0 +1,47 @@
+<section aria-labelledby="gallery-heading">
+    <h2 id="gallery-heading" class="h5">Pictures</h2>
+
+    @if (Images.Count == 0)
+    {
+        <p class="text-body-secondary">No pictures yet. <a href="/vehicles/@VehicleId/edit?tab=media">Add pictures</a></p>
+    }
+    else
+    {
+        <div class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-3">
+            @foreach (var image in Images)
+            {
+                <div class="col" @key="image.Id" data-testid="image">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="ratio ratio-4x3 mg-image-frame">
+                            <img class="card-img-top object-fit-cover" src="/vehicles/@(VehicleId)/images/@(image.Id)" alt="@(image.Caption ?? VehicleNickname)" loading="lazy" />
+                        </div>
+                        @if (image.IsMain || image.Caption is not null)
+                        {
+                            <div class="card-body p-2">
+                                @if (image.IsMain)
+                                {
+                                    <span class="badge text-bg-primary" data-testid="main-badge">Main picture</span>
+                                }
+                                @if (image.Caption is not null)
+                                {
+                                    <p class="small mb-0 text-break">@image.Caption</p>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    [Parameter, EditorRequired]
+    public string VehicleNickname { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<VehicleImageDto> Images { get; set; } = [];
+}

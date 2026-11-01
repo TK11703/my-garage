@@ -3,20 +3,12 @@
 @attribute [ExcludeFromInteractiveRouting]
 @inject GarageApiClient Api
 
-<PageTitle>API check</PageTitle>
-
-<h1 class="h3 mb-3">API check</h1>
+<PageHeader Title="API Check" Trail="@(new[] { new Crumb("API check") })" />
 
 @if (failure is not null)
 {
-    <div class="alert alert-warning" role="alert">
-        @(failure == GarageApiFailure.NotAccepted ? ApiCheckMessages.NotAccepted : ApiCheckMessages.Unavailable)
-    </div>
-
-    @if (failure == GarageApiFailure.NotAccepted)
-    {
-        <a class="btn btn-primary" href="/authentication/login?returnUrl=%2Fapi-check">Sign in again</a>
-    }
+    <ApiFailureAlert Failure="failure.Value" ReturnUrl="/api-check"
+                     NotAcceptedMessage="@ApiCheckMessages.NotAccepted" UnavailableMessage="@ApiCheckMessages.Unavailable" />
 }
 else if (user is not null && items is not null)
 {

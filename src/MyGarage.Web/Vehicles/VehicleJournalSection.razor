@@ -22,15 +22,14 @@
 
     @if (failure is not null)
     {
-        <div class="alert alert-warning" role="alert">
-            @(failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable)
-        </div>
+        <ApiFailureAlert Failure="failure.Value" ReturnUrl="@($"/vehicles/{VehicleId}")"
+                         NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
     }
     else if (notes is not null)
     {
         @if (notes.TotalCount == 0)
         {
-            <p class="text-body-secondary">No notes yet. Write the first entry in this vehicle's journal.</p>
+            <EmptyState Compact="true" Message="No notes yet. Write the first entry in this vehicle's journal." />
         }
         else
         {
@@ -59,6 +58,10 @@
     [Parameter]
     public int NotesPage { get; set; } = 1;
 
+    // The page the notes live on; defaults to the vehicle page.
+    [Parameter]
+    public string? ReturnPath { get; set; }
+
     [SupplyParameterFromForm(FormName = "add-note")]
     private NoteFormModel? AddModel { get; set; }
 
@@ -84,7 +87,11 @@
     }
 
     // Page 1 has no query string so the address stays tidy.
-    private string ReturnHref(int page) => page <= 1 ? $"/vehicles/{VehicleId}" : $"/vehicles/{VehicleId}?notesPage={page}";
+    private string ReturnHref(int page)
+    {
+        var path = ReturnPath ?? $"/vehicles/{VehicleId}";
+        return page <= 1 ? path : $"{path}{(path.Contains('?') ? '&' : '?')}notesPage={page}";
+    }
 
     private async Task AddAsync()
     {
