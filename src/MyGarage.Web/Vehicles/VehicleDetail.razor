@@ -1,0 +1,124 @@
+@page "/vehicles/{VehicleId:guid}"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject VehiclesApiClient Api
+@inject NavigationManager Navigation
+
+<PageTitle>@(vehicle?.Nickname ?? "Vehicle")</PageTitle>
+
+@if (failure is not null)
+{
+    <div class="alert alert-warning" role="alert">
+        @(failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable)
+    </div>
+
+    @if (failure == GarageApiFailure.NotAccepted)
+    {
+        <a class="btn btn-primary" href="/authentication/login?returnUrl=@Uri.EscapeDataString($"/vehicles/{VehicleId}")">Sign in again</a>
+    }
+}
+else if (notFound)
+{
+    <h1 class="h3 mb-3">Vehicle not found</h1>
+    <div class="alert alert-warning" role="alert">@VehicleMessages.NotFound</div>
+    <a href="/vehicles">Back to my garage</a>
+}
+else if (vehicle is not null)
+{
+    <nav aria-label="Breadcrumb" class="mb-2">
+        <a href="/vehicles">&larr; My garage</a>
+    </nav>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <div>
+            <h1 class="h3 mb-1">@vehicle.Nickname</h1>
+            <p class="text-body-secondary">@vehicle.Make @vehicle.Model</p>
+        </div>
+        <a class="btn btn-outline-primary" href="/vehicles/@VehicleId/edit" data-testid="edit-vehicle">Edit</a>
+    </div>
+
+    <dl class="row" aria-label="Vehicle details">
+        <dt class="col-sm-3">Trim</dt>
+        <dd class="col-sm-9">@(vehicle.Trim ?? "Not set")</dd>
+        <dt class="col-sm-3">Color</dt>
+        <dd class="col-sm-9">@(vehicle.Color ?? "Not set")</dd>
+        <dt class="col-sm-3">Mileage</dt>
+        <dd class="col-sm-9">@VehicleFormat.Mileage(vehicle.Mileage)</dd>
+        <dt class="col-sm-3">Doors</dt>
+        <dd class="col-sm-9">@(vehicle.Doors?.ToString() ?? "Not set")</dd>
+    </dl>
+
+    <VehicleGallerySection VehicleId="VehicleId" VehicleNickname="@vehicle.Nickname" Images="vehicle.Images" Status="ImageStatus" />
+
+    <VehicleTagsSection VehicleId="VehicleId" Tags="vehicle.Tags" />
+
+    <VehicleJournalSection VehicleId="VehicleId" NotesPage="journalPage" />
+
+    <details class="mt-4" data-testid="delete-vehicle">
+        <summary class="btn btn-outline-danger btn-sm">Delete vehicle</summary>
+        <div class="alert alert-danger mt-2" role="alert">
+            <p>Delete @vehicle.Nickname? This also removes its tags, journal notes, and pictures and cannot be undone.</p>
+            <form method="post" @formname="delete-vehicle" @onsubmit="DeleteAsync" class="d-flex gap-2">
+                <AntiforgeryToken />
+                <button type="submit" class="btn btn-danger">Yes, delete this vehicle</button>
+                <a class="btn btn-outline-secondary" href="/vehicles/@VehicleId">Keep vehicle</a>
+            </form>
+        </div>
+    </details>
+}
+
+@code {
+    private VehicleDetailDto? vehicle;
+    private bool notFound;
+    private GarageApiFailure? failure;
+
+    [Parameter]
+    public Guid VehicleId { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "imageStatus")]
+    public string? ImageStatus { get; set; }
+
+    // Read as text: a bad query value must mean the first page of notes, not a binding error.
+    [Parameter, SupplyParameterFromQuery(Name = "notesPage")]
+    public string? NotesPage { get; set; }
+
+    private int journalPage => int.TryParse(NotesPage, out var parsed) ? Math.Max(1, parsed) : 1;
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await Api.GetAsync(VehicleId);
+            vehicle = result.Value;
+            notFound = result.IsNotFound;
+
+            if (notFound && HttpContext is { Response.HasStarted: false })
+            {
+                HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        try
+        {
+            var result = await Api.DeleteAsync(VehicleId);
+            if (result.IsSuccess || result.IsNotFound)
+            {
+                Navigation.NavigateTo("/vehicles");
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+}

@@ -1,0 +1,139 @@
+@using System.Globalization
+@inject VehiclesApiClient Api
+@inject NavigationManager Navigation
+
+<li data-testid="note" class="card">
+    <FormMappingScope Name="@($"note-{Note.Id}")" Context="mappingContext">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                <div>
+                    @if (Note.Category is not null)
+                    {
+                        <span class="badge text-bg-info fw-normal" data-testid="note-category">@Note.Category</span>
+                    }
+                </div>
+                <time class="text-body-secondary small" datetime="@Note.CreatedAt.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)">
+                    @Note.CreatedAt.UtcDateTime.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)@(Edited ? " (edited)" : null)
+                </time>
+            </div>
+
+            <p class="note-body text-break mb-3">@Note.Body</p>
+
+            @if (message is not null)
+            {
+                <div class="alert alert-warning" role="alert">@message</div>
+            }
+
+            <div class="d-flex flex-wrap gap-2">
+                <details data-testid="edit-note">
+                    <summary class="btn btn-outline-secondary btn-sm">Edit</summary>
+                    <EditForm EditContext="editContext" FormName="edit" OnValidSubmit="SaveAsync" class="vstack gap-2 mt-2">
+                        <div>
+                            <label for="note-@Note.Id-body" class="form-label">Note</label>
+                            <InputTextArea id="@($"note-{Note.Id}-body")" class="form-control" rows="3" maxlength="4000" @bind-Value="EditModel!.Body" />
+                            <ValidationMessage For="@(() => EditModel.Body)" id="@($"note-{Note.Id}-body-error")" class="invalid-feedback d-block" />
+                        </div>
+                        <div>
+                            <label for="note-@Note.Id-category" class="form-label">Category (optional)</label>
+                            <InputText id="@($"note-{Note.Id}-category")" class="form-control" maxlength="40" @bind-Value="EditModel.Category" />
+                            <ValidationMessage For="@(() => EditModel.Category)" id="@($"note-{Note.Id}-category-error")" class="invalid-feedback d-block" />
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary btn-sm">Save note</button>
+                            <a class="btn btn-outline-secondary btn-sm" href="@ReturnHref">Cancel</a>
+                        </div>
+                    </EditForm>
+                </details>
+
+                <details data-testid="delete-note">
+                    <summary class="btn btn-outline-danger btn-sm">Delete</summary>
+                    <div class="alert alert-danger mt-2" role="alert">
+                        <p class="mb-2">Delete this note? This cannot be undone.</p>
+                        <form method="post" @formname="delete" @onsubmit="DeleteAsync" class="d-flex gap-2">
+                            <AntiforgeryToken />
+                            <button type="submit" class="btn btn-danger btn-sm">Yes, delete note</button>
+                            <a class="btn btn-outline-secondary btn-sm" href="@ReturnHref">Keep note</a>
+                        </form>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </FormMappingScope>
+</li>
+
+@code {
+    private string? message;
+    private EditContext editContext = default!;
+    private ValidationMessageStore messages = default!;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    [Parameter, EditorRequired]
+    public JournalNoteDto Note { get; set; } = default!;
+
+    // Where to go after a change: the vehicle page, on the same page of notes.
+    [Parameter, EditorRequired]
+    public string ReturnHref { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "edit")]
+    private NoteFormModel? EditModel { get; set; }
+
+    private bool Edited => Note.UpdatedAt - Note.CreatedAt > TimeSpan.FromSeconds(1);
+
+    protected override void OnInitialized()
+    {
+        EditModel ??= new NoteFormModel { Body = Note.Body, Category = Note.Category };
+        editContext = new EditContext(EditModel);
+        messages = new ValidationMessageStore(editContext);
+        editContext.OnValidationRequested += (_, _) => messages.Clear();
+    }
+
+    private async Task SaveAsync()
+    {
+        message = null;
+        try
+        {
+            var result = await Api.UpdateNoteAsync(VehicleId, Note.Id, new JournalNoteRequest { Body = EditModel!.Body, Category = EditModel.Category });
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo(ReturnHref);
+                return;
+            }
+
+            if (result.IsNotFound)
+            {
+                message = "This note could not be found. It may have been deleted.";
+                return;
+            }
+
+            foreach (var (field, errors) in result.Errors)
+            {
+                var property = field.Equals(nameof(NoteFormModel.Category), StringComparison.OrdinalIgnoreCase)
+                    ? nameof(NoteFormModel.Category)
+                    : nameof(NoteFormModel.Body);
+                messages.Add(editContext.Field(property), errors);
+            }
+
+            editContext.NotifyValidationStateChanged();
+        }
+        catch (GarageApiException ex)
+        {
+            message = ex.Failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        message = null;
+        try
+        {
+            await Api.DeleteNoteAsync(VehicleId, Note.Id);
+            Navigation.NavigateTo(ReturnHref);
+        }
+        catch (GarageApiException ex)
+        {
+            message = ex.Failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable;
+        }
+    }
+}

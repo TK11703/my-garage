@@ -12,6 +12,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.Azure.Storage" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\MyGarage.Api\MyGarage.Api.csproj" />
     <ProjectReference Include="..\MyGarage.Web\MyGarage.Web.csproj" />
   </ItemGroup>

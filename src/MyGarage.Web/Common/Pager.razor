@@ -1,0 +1,42 @@
+@if (TotalPages > 1)
+{
+    <nav aria-label="Pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(Page <= 1 ? "disabled" : null)" data-testid="pager-previous">
+                @if (Page <= 1)
+                {
+                    <span class="page-link" aria-disabled="true">Previous</span>
+                }
+                else
+                {
+                    <a class="page-link" href="@HrefFor(Page - 1)">Previous</a>
+                }
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link" aria-live="polite">Page @Page of @TotalPages</span>
+            </li>
+            <li class="page-item @(Page >= TotalPages ? "disabled" : null)" data-testid="pager-next">
+                @if (Page >= TotalPages)
+                {
+                    <span class="page-link" aria-disabled="true">Next</span>
+                }
+                else
+                {
+                    <a class="page-link" href="@HrefFor(Page + 1)">Next</a>
+                }
+            </li>
+        </ul>
+    </nav>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public int Page { get; set; }
+
+    [Parameter, EditorRequired]
+    public int TotalPages { get; set; }
+
+    // Builds the link for a page so each list can keep its own query string.
+    [Parameter, EditorRequired]
+    public Func<int, string> HrefFor { get; set; } = _ => "#";
+}

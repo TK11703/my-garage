@@ -1,0 +1,26 @@
+<div class="card h-100 shadow-sm">
+    <div class="ratio ratio-4x3">
+        @if (Vehicle.MainImageId is { } imageId)
+        {
+            <img class="card-img-top object-fit-cover" src="/vehicles/@(Vehicle.Id)/images/@(imageId)" alt="@Vehicle.Nickname" loading="lazy" />
+        }
+        else
+        {
+            <div class="card-img-top d-flex align-items-center justify-content-center bg-body-secondary text-secondary" data-testid="vehicle-placeholder" role="img" aria-label="No picture for @Vehicle.Nickname">
+                <span aria-hidden="true">No picture</span>
+            </div>
+        }
+    </div>
+    <div class="card-body">
+        <h2 class="card-title h5 mb-1">
+            <a class="stretched-link text-decoration-none" href="/vehicles/@Vehicle.Id">@Vehicle.Nickname</a>
+        </h2>
+        <p class="card-text mb-1">@Vehicle.Make @Vehicle.Model</p>
+        <p class="card-text text-body-secondary small mb-0">@VehicleFormat.Mileage(Vehicle.Mileage)</p>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public VehicleSummaryDto Vehicle { get; set; } = default!;
+}

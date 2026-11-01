@@ -1,0 +1,452 @@
+openapi: 3.1.0
+info:
+  title: My Garage API - Vehicles
+  version: 1.1.0
+  description: Vehicle tracking endpoints. Extends the foundation API (specs/001-app-foundation-auth/contracts/api.openapi.yaml). The owner is always derived from the validated access token; no request carries an owner or user id. A vehicle, tag, note, or image that does not exist or belongs to another user is reported as 404.
+servers:
+  - url: https+http://api
+security:
+  - bearer: [access_as_user]
+paths:
+  /api/vehicles:
+    get:
+      operationId: listVehicles
+      summary: Page of the caller's vehicles matching the optional search and filters, ordered by nickname then id.
+      tags: [Vehicles]
+      parameters:
+        - { name: q, in: query, required: false, description: "Case-insensitive contains match (literal text) over nickname, make, model, trim, color, and tag names. Whitespace-only is ignored.", schema: { type: string, maxLength: 100 } }
+        - { name: make, in: query, required: false, description: Case-insensitive exact match., schema: { type: string, maxLength: 50 } }
+        - { name: color, in: query, required: false, description: Case-insensitive exact match., schema: { type: string, maxLength: 30 } }
+        - { name: doors, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 6 } }
+        - { name: tag, in: query, required: false, description: The vehicle must carry this tag (case-insensitive)., schema: { type: string, maxLength: 30 } }
+        - { name: minMileage, in: query, required: false, description: Inclusive; must not exceed maxMileage., schema: { type: integer, minimum: 0, maximum: 9999999 } }
+        - { name: maxMileage, in: query, required: false, description: Inclusive., schema: { type: integer, minimum: 0, maximum: 9999999 } }
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PageSize12" }
+      responses:
+        "200":
+          description: A page of vehicle summaries. All supplied criteria are ANDed; totals reflect the matches. A page beyond the last is clamped to the last page (the returned `page` is the page actually served).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VehicleSummaryPage" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      operationId: createVehicle
+      summary: Add a vehicle to the caller's garage.
+      tags: [Vehicles]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VehicleRequest" }
+      responses:
+        "201":
+          description: Created. `Location` points at the new vehicle.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VehicleDetailDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/filter-options:
+    get:
+      operationId: getVehicleFilterOptions
+      summary: Distinct makes, colors, and tags present in the caller's garage, for the filter choices.
+      tags: [Vehicles]
+      responses:
+        "200":
+          description: Filter choices (sorted, case-insensitively de-duplicated).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VehicleFilterOptionsDto" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/{vehicleId}:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+    get:
+      operationId: getVehicle
+      summary: Vehicle details including tags and image metadata (not notes, not image bytes).
+      tags: [Vehicles]
+      responses:
+        "200":
+          description: Vehicle.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VehicleDetailDto" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      operationId: updateVehicle
+      summary: Replace the editable details of a vehicle.
+      tags: [Vehicles]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VehicleRequest" }
+      responses:
+        "200":
+          description: Updated vehicle.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VehicleDetailDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    delete:
+      operationId: deleteVehicle
+      summary: Delete a vehicle and all of its tags, notes, and images.
+      tags: [Vehicles]
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/{vehicleId}/tags:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+    post:
+      operationId: addVehicleTag
+      summary: Add a free-text tag (max 20 per vehicle, unique ignoring case).
+      tags: [Tags]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AddVehicleTagRequest" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VehicleTagDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409":
+          description: Duplicate tag or tag limit reached.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+  /api/vehicles/{vehicleId}/tags/{tagId}:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+      - { name: tagId, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      operationId: removeVehicleTag
+      summary: Remove a tag.
+      tags: [Tags]
+      responses:
+        "204": { description: Removed. }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/{vehicleId}/notes:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+    get:
+      operationId: listJournalNotes
+      summary: Page of the vehicle's journal notes, newest first.
+      tags: [JournalNotes]
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PageSize10" }
+      responses:
+        "200":
+          description: A page of notes (clamped to the last page when out of range).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JournalNotePage" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      operationId: createJournalNote
+      summary: Add a note with an optional free-text category.
+      tags: [JournalNotes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JournalNoteRequest" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JournalNoteDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/{vehicleId}/notes/{noteId}:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+      - { name: noteId, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      operationId: updateJournalNote
+      summary: Edit a note's text and category.
+      tags: [JournalNotes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JournalNoteRequest" }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JournalNoteDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    delete:
+      operationId: deleteJournalNote
+      summary: Delete a note.
+      tags: [JournalNotes]
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/{vehicleId}/images:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+    post:
+      operationId: uploadVehicleImage
+      summary: Upload a JPEG, PNG, or WebP picture (max 5 MB, max 10 per vehicle). The type is verified by file signature. The file is stored in a private blob container.
+      tags: [VehicleImages]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                caption: { type: string, maxLength: 200 }
+      responses:
+        "201":
+          description: Created. The first image of a vehicle becomes its main image.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VehicleImageDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409":
+          description: Image limit reached.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+        "413":
+          description: File larger than 5 MB.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+        "503":
+          description: Image storage is unavailable; nothing was stored.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+  /api/vehicles/{vehicleId}/images/{imageId}/content:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+      - { $ref: "#/components/parameters/ImageId" }
+    get:
+      operationId: getVehicleImageContent
+      summary: Image bytes streamed from private blob storage with the detected content type, `X-Content-Type-Options - nosniff`, and private caching.
+      tags: [VehicleImages]
+      responses:
+        "200":
+          description: Image bytes.
+          content:
+            image/jpeg: { schema: { type: string, format: binary } }
+            image/png: { schema: { type: string, format: binary } }
+            image/webp: { schema: { type: string, format: binary } }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "503":
+          description: Image storage is unavailable.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+  /api/vehicles/{vehicleId}/images/{imageId}/main:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+      - { $ref: "#/components/parameters/ImageId" }
+    put:
+      operationId: setMainVehicleImage
+      summary: Make this image the vehicle's main (card) image.
+      tags: [VehicleImages]
+      responses:
+        "204": { description: Updated. }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/{vehicleId}/images/{imageId}:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+      - { $ref: "#/components/parameters/ImageId" }
+    delete:
+      operationId: deleteVehicleImage
+      summary: Delete an image; if it was main, the oldest remaining image becomes main.
+      tags: [VehicleImages]
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+components:
+  securitySchemes:
+    bearer:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize
+          tokenUrl: https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token
+          scopes:
+            access_as_user: Access My Garage on behalf of the user
+  parameters:
+    VehicleId: { name: vehicleId, in: path, required: true, schema: { type: string, format: uuid } }
+    ImageId: { name: imageId, in: path, required: true, schema: { type: string, format: uuid } }
+    Page: { name: page, in: query, required: false, schema: { type: integer, minimum: 1, default: 1 } }
+    PageSize12: { name: pageSize, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 50, default: 12 } }
+    PageSize10: { name: pageSize, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 50, default: 10 } }
+  responses:
+    Problem:
+      description: RFC 9457 problem details.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ProblemDetails" }
+    ValidationProblem:
+      description: Validation failure.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ValidationProblemDetails" }
+  schemas:
+    ProblemDetails:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+    ValidationProblemDetails:
+      allOf:
+        - { $ref: "#/components/schemas/ProblemDetails" }
+        - type: object
+          properties:
+            errors:
+              type: object
+              additionalProperties: { type: array, items: { type: string } }
+    VehicleFilterOptionsDto:
+      type: object
+      required: [makes, colors, tags]
+      properties:
+        makes: { type: array, items: { type: string } }
+        colors: { type: array, items: { type: string } }
+        tags: { type: array, items: { type: string } }
+    VehicleSummaryDto:
+      type: object
+      required: [id, nickname, make, model]
+      properties:
+        id: { type: string, format: uuid }
+        nickname: { type: string }
+        make: { type: string }
+        model: { type: string }
+        mileage: { type: [integer, "null"] }
+        mainImageId: { type: [string, "null"], format: uuid }
+    VehicleSummaryPage:
+      type: object
+      required: [items, page, pageSize, totalCount, totalPages]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/VehicleSummaryDto" } }
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalCount: { type: integer }
+        totalPages: { type: integer }
+    VehicleRequest:
+      type: object
+      required: [nickname, make, model]
+      properties:
+        nickname: { type: string, minLength: 1, maxLength: 100 }
+        make: { type: string, minLength: 1, maxLength: 50 }
+        model: { type: string, minLength: 1, maxLength: 50 }
+        trim: { type: [string, "null"], maxLength: 50 }
+        color: { type: [string, "null"], maxLength: 30 }
+        mileage: { type: [integer, "null"], minimum: 0, maximum: 9999999 }
+        doors: { type: [integer, "null"], minimum: 1, maximum: 6 }
+    VehicleDetailDto:
+      type: object
+      required: [id, nickname, make, model, tags, images, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        nickname: { type: string }
+        make: { type: string }
+        model: { type: string }
+        trim: { type: [string, "null"] }
+        color: { type: [string, "null"] }
+        mileage: { type: [integer, "null"] }
+        doors: { type: [integer, "null"] }
+        tags: { type: array, items: { $ref: "#/components/schemas/VehicleTagDto" } }
+        images: { type: array, items: { $ref: "#/components/schemas/VehicleImageDto" } }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    VehicleTagDto:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+    AddVehicleTagRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 30 }
+    JournalNoteRequest:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 4000 }
+        category: { type: [string, "null"], maxLength: 40, description: "Free text chosen by the user; trimmed; blank means uncategorized." }
+    JournalNoteDto:
+      type: object
+      required: [id, body, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        category: { type: [string, "null"] }
+        body: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    JournalNotePage:
+      type: object
+      required: [items, page, pageSize, totalCount, totalPages]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/JournalNoteDto" } }
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalCount: { type: integer }
+        totalPages: { type: integer }
+    VehicleImageDto:
+      type: object
+      required: [id, isMain, contentType, sizeBytes, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        caption: { type: [string, "null"] }
+        isMain: { type: boolean }
+        contentType: { type: string, enum: [image/jpeg, image/png, image/webp] }
+        sizeBytes: { type: integer }
+        createdAt: { type: string, format: date-time }

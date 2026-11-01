@@ -1,0 +1,101 @@
+@page "/vehicles/{VehicleId:guid}/edit"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject VehiclesApiClient Api
+@inject NavigationManager Navigation
+
+<PageTitle>Edit vehicle</PageTitle>
+
+<h1 class="h3 mb-3">Edit vehicle</h1>
+
+@if (failure is not null)
+{
+    <div class="alert alert-warning" role="alert">
+        @(failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable)
+    </div>
+
+    @if (failure == GarageApiFailure.NotAccepted)
+    {
+        <a class="btn btn-primary" href="/authentication/login?returnUrl=@Uri.EscapeDataString($"/vehicles/{VehicleId}/edit")">Sign in again</a>
+    }
+}
+else if (notFound)
+{
+    <div class="alert alert-warning" role="alert">@VehicleMessages.NotFound</div>
+    <a href="/vehicles">Back to my garage</a>
+}
+else if (Model is not null)
+{
+    <VehicleForm Model="Model" FormName="update-vehicle" SubmitText="Save changes" CancelHref="@($"/vehicles/{VehicleId}")"
+                 Errors="errors" OnSubmit="SubmitAsync" />
+}
+
+@code {
+    private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
+    private GarageApiFailure? failure;
+    private bool notFound;
+
+    [Parameter]
+    public Guid VehicleId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "update-vehicle")]
+    private VehicleFormModel? Model { get; set; }
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    // The stored vehicle is loaded on every request; a posted form takes precedence over it.
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await Api.GetAsync(VehicleId);
+            if (result.IsNotFound)
+            {
+                MarkNotFound();
+                return;
+            }
+
+            Model ??= VehicleFormModel.From(result.Value!);
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        failure = null;
+        try
+        {
+            var result = await Api.UpdateAsync(VehicleId, Model!.ToRequest());
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo($"/vehicles/{VehicleId}");
+                return;
+            }
+
+            if (result.IsNotFound)
+            {
+                MarkNotFound();
+                return;
+            }
+
+            errors = result.Errors;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private void MarkNotFound()
+    {
+        notFound = true;
+        if (HttpContext is { Response.HasStarted: false })
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+        }
+    }
+}

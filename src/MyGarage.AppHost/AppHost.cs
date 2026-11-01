@@ -17,7 +17,18 @@ var apiScope = Required("AzureAd:Api:Scope");
 // The web redirect URI registered in Entra includes this port, so it must stay fixed (see infra/entra/README.md).
 var webHttpsPort = builder.Configuration.GetValue("Web:HttpsPort", 7080);
 
+var postgres = builder.AddPostgres("postgres").WithDataVolume();
+var garageDb = postgres.AddDatabase("garagedb");
+
+// Vehicle pictures live in private blob storage; the emulator keeps them in a volume between runs.
+var storage = builder.AddAzureStorage("storage").RunAsEmulator(emulator => emulator.WithDataVolume());
+var blobs = storage.AddBlobs("blobs");
+
 var api = builder.AddProject<Projects.MyGarage_Api>("api")
+    .WithReference(garageDb)
+    .WaitFor(garageDb)
+    .WithReference(blobs)
+    .WaitFor(blobs)
     .WithEnvironment("AzureAd__TenantId", tenantId)
     .WithEnvironment("AzureAd__Api__ClientId", apiClientId)
     .WithEnvironment("AzureAd__Api__Scope", apiScope)

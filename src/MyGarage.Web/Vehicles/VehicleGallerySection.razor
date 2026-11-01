@@ -1,0 +1,138 @@
+@inject VehiclesApiClient Api
+@inject NavigationManager Navigation
+
+<section class="mt-4" aria-labelledby="gallery-heading">
+    <h2 id="gallery-heading" class="h5">Pictures</h2>
+
+    @if (Notice is { } notice)
+    {
+        <div class="alert alert-@notice.Level" role="@(notice.Level == "success" ? "status" : "alert")" data-testid="image-notice">@notice.Text</div>
+    }
+
+    @if (Images.Count == 0)
+    {
+        <p class="text-body-secondary">No pictures yet. Add one to show this vehicle in your garage.</p>
+    }
+    else
+    {
+        <div class="row row-cols-2 row-cols-md-3 g-3 mb-3">
+            @foreach (var image in Images)
+            {
+                var label = image.Caption ?? VehicleNickname;
+                <div class="col" @key="image.Id" data-testid="image">
+                    <div class="card h-100">
+                        <div class="ratio ratio-4x3">
+                            <img class="card-img-top object-fit-cover" src="/vehicles/@(VehicleId)/images/@(image.Id)" alt="@label" loading="lazy" />
+                        </div>
+                        <div class="card-body p-2">
+                            @if (image.IsMain)
+                            {
+                                <span class="badge text-bg-primary" data-testid="main-badge">Main picture</span>
+                            }
+                            @if (image.Caption is not null)
+                            {
+                                <p class="small mb-1 text-break">@image.Caption</p>
+                            }
+                            <div class="d-flex flex-wrap gap-2 mt-1">
+                                @if (!image.IsMain)
+                                {
+                                    <form method="post" @formname="@($"set-main-{image.Id}")" @onsubmit="() => SetMainAsync(image.Id)">
+                                        <AntiforgeryToken />
+                                        <button type="submit" class="btn btn-outline-secondary btn-sm" aria-label="Make @label the main picture">Make main</button>
+                                    </form>
+                                }
+                                <details data-testid="delete-image">
+                                    <summary class="btn btn-outline-danger btn-sm" aria-label="Delete picture @label">Delete</summary>
+                                    <div class="alert alert-danger mt-2 p-2" role="alert">
+                                        <p class="small mb-2">Delete this picture?</p>
+                                        <form method="post" @formname="@($"delete-image-{image.Id}")" @onsubmit="() => DeleteAsync(image.Id)" class="d-flex gap-2">
+                                            <AntiforgeryToken />
+                                            <button type="submit" class="btn btn-danger btn-sm">Yes, delete</button>
+                                            <a class="btn btn-outline-secondary btn-sm" href="/vehicles/@VehicleId">Keep</a>
+                                        </form>
+                                    </div>
+                                </details>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (Images.Count >= MaxImages)
+    {
+        <p class="text-body-secondary" data-testid="image-limit">This vehicle has the maximum of @MaxImages pictures. Delete one to add another.</p>
+    }
+    else
+    {
+        <form method="post" action="/vehicles/@VehicleId/images" enctype="multipart/form-data" data-testid="upload-image" class="vstack gap-2">
+            <AntiforgeryToken />
+            <div>
+                <label for="image-file" class="form-label">Add a picture</label>
+                <input id="image-file" name="file" type="file" class="form-control" accept="image/jpeg,image/png,image/webp" required aria-describedby="image-help" />
+                <div id="image-help" class="form-text">JPEG, PNG, or WebP, up to 5 MB, at most @MaxImages pictures per vehicle.</div>
+            </div>
+            <div class="col-md-8">
+                <label for="image-caption" class="form-label">Caption (optional)</label>
+                <input id="image-caption" name="caption" type="text" class="form-control" maxlength="200" />
+            </div>
+            <div>
+                <button type="submit" class="btn btn-outline-primary">Upload picture</button>
+            </div>
+        </form>
+    }
+</section>
+
+@code {
+    public const int MaxImages = 10;
+
+    private string? failureText;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    [Parameter, EditorRequired]
+    public string VehicleNickname { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<VehicleImageDto> Images { get; set; } = [];
+
+    // Result of the last upload, passed back from the upload endpoint as a short code.
+    [Parameter]
+    public string? Status { get; set; }
+
+    private (string Level, string Text)? Notice =>
+        failureText is not null
+            ? ("warning", failureText)
+            : Status switch
+            {
+                VehicleImageEndpoints.Status.Uploaded => ("success", "Picture added."),
+                VehicleImageEndpoints.Status.Invalid => ("danger", "That file is not a valid JPEG, PNG, or WebP picture."),
+                VehicleImageEndpoints.Status.TooLarge => ("danger", "That picture is larger than 5 MB."),
+                VehicleImageEndpoints.Status.Limit => ("danger", $"This vehicle already has {MaxImages} pictures. Delete one to add another."),
+                VehicleImageEndpoints.Status.NotFound => ("warning", VehicleMessages.NotFound),
+                VehicleImageEndpoints.Status.Unavailable => ("warning", "Picture storage is unavailable right now. Nothing was saved. Please try again shortly."),
+                VehicleImageEndpoints.Status.SignIn => ("warning", VehicleMessages.NotAccepted),
+                _ => null,
+            };
+
+    private async Task SetMainAsync(Guid imageId) =>
+        await ChangeAsync(() => Api.SetMainImageAsync(VehicleId, imageId));
+
+    private async Task DeleteAsync(Guid imageId) =>
+        await ChangeAsync(() => Api.DeleteImageAsync(VehicleId, imageId));
+
+    private async Task ChangeAsync(Func<Task<ApiResult<bool>>> change)
+    {
+        try
+        {
+            await change();
+            Navigation.NavigateTo($"/vehicles/{VehicleId}");
+        }
+        catch (GarageApiException ex)
+        {
+            failureText = ex.Failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable;
+        }
+    }
+}

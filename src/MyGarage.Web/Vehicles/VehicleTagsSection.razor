@@ -1,0 +1,125 @@
+@inject VehiclesApiClient Api
+@inject NavigationManager Navigation
+
+<section class="mt-4" aria-labelledby="tags-heading">
+    <h2 id="tags-heading" class="h5">Features and tags</h2>
+
+    @if (Tags.Count == 0)
+    {
+        <p class="text-body-secondary">No tags yet. Add a few words that describe this vehicle's features.</p>
+    }
+    else
+    {
+        <ul class="list-unstyled d-flex flex-wrap gap-2">
+            @foreach (var tag in Tags)
+            {
+                <li @key="tag.Id" data-testid="tag">
+                    <form method="post" @formname="@($"remove-tag-{tag.Id}")" @onsubmit="() => RemoveAsync(tag.Id)">
+                        <AntiforgeryToken />
+                        <span class="badge text-bg-secondary fs-6 fw-normal d-inline-flex align-items-center gap-2">
+                            @tag.Name
+                            <button type="submit" class="btn-close btn-close-white" aria-label="Remove tag @tag.Name"></button>
+                        </span>
+                    </form>
+                </li>
+            }
+        </ul>
+    }
+
+    <EditForm EditContext="editContext" FormName="add-tag" OnValidSubmit="AddAsync" data-testid="add-tag" class="row g-2 align-items-end">
+        <div class="col-sm-8 col-md-6">
+            <label for="tag-name" class="form-label">Add a tag</label>
+            <InputText id="tag-name" class="form-control" @bind-Value="Model!.Name" maxlength="30"
+                       aria-describedby="@(error is null ? null : "tag-error")" />
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-outline-primary">Add tag</button>
+        </div>
+    </EditForm>
+
+    @if (error is not null)
+    {
+        <div id="tag-error" class="text-danger small mt-1" role="alert">@error</div>
+    }
+</section>
+
+@code {
+    private string? error;
+    private EditContext editContext = default!;
+    private ValidationMessageStore messages = default!;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<VehicleTagDto> Tags { get; set; } = [];
+
+    [SupplyParameterFromForm(FormName = "add-tag")]
+    private AddTagModel? Model { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Model ??= new AddTagModel();
+        editContext = new EditContext(Model);
+        messages = new ValidationMessageStore(editContext);
+        editContext.OnValidationRequested += (_, _) => messages.Clear();
+    }
+
+    // Shows the message under the field and marks the input invalid for assistive technology.
+    private void Fail(string message)
+    {
+        error = message;
+        messages.Add(editContext.Field(nameof(AddTagModel.Name)), message);
+        editContext.NotifyValidationStateChanged();
+    }
+
+    private async Task AddAsync()
+    {
+        error = null;
+        try
+        {
+            var result = await Api.AddTagAsync(VehicleId, Model!.Name);
+            switch (result.Outcome)
+            {
+                case ApiOutcome.Success:
+                    Navigation.NavigateTo($"/vehicles/{VehicleId}");
+                    break;
+                case ApiOutcome.Conflict:
+                    Fail(result.Title ?? "The tag could not be added.");
+                    break;
+                case ApiOutcome.Invalid:
+                    Fail(result.Errors.Values.SelectMany(messages => messages).FirstOrDefault() ?? "The tag is not valid.");
+                    break;
+                default:
+                    Fail(VehicleMessages.NotFound);
+                    break;
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            Fail(Describe(ex));
+        }
+    }
+
+    private async Task RemoveAsync(Guid tagId)
+    {
+        error = null;
+        try
+        {
+            await Api.RemoveTagAsync(VehicleId, tagId);
+            Navigation.NavigateTo($"/vehicles/{VehicleId}");
+        }
+        catch (GarageApiException ex)
+        {
+            error = Describe(ex);
+        }
+    }
+
+    private static string Describe(GarageApiException ex) =>
+        ex.Failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable;
+
+    public sealed class AddTagModel
+    {
+        public string? Name { get; set; }
+    }
+}
