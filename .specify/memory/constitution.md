@@ -30,7 +30,8 @@ The solution MUST contain these projects, with the following dependency rules:
   `MyGarage.ServiceDefaults`.
 - `MyGarage.Api` — minimal APIs. MAY reference `MyGarage.Shared`, `MyGarage.ServiceDefaults`, and
   `MyGarage.Database`.
-- `MyGarage.Database` — repositories, SQL scripts, and schema migrations. MUST NOT reference
+- `MyGarage.Database` — repositories, SQL scripts, schema migrations, and blob-backed persistence stores
+  (for example vehicle image files). MUST NOT reference
   `MyGarage.Api`, `MyGarage.Web`, or `MyGarage.Shared`. It MUST be added by the first feature that
   needs persistence and MUST NOT exist as an empty project before then.
 - `MyGarage.Shared` — request/response DTOs and contracts only. MUST contain no persistence logic.
@@ -62,7 +63,11 @@ grouped per feature (for example `MapGroup` + one registration extension per fea
 
 ### VI. Dapper, PostgreSQL, and Plain SQL Scripts
 
-Persistence MUST use PostgreSQL accessed through Npgsql and Dapper; no other ORM is permitted.
+Structured persistence MUST use PostgreSQL accessed through Npgsql and Dapper; no other ORM is permitted.
+Binary files (for example vehicle images) MAY be kept in a private Azure Blob Storage container, accessed
+only through a repository in `MyGarage.Database` that checks ownership in SQL before any blob is read,
+written, or deleted and that keeps the PostgreSQL metadata row and the blob consistent; blobs MUST NOT be
+exposed by public address or shared-access URL.
 All SQL MUST be written as individual `.sql` files stored in the feature's subfolder of
 `MyGarage.Database/Scripts/` (for example `Scripts/Vehicles/`); SQL MUST NOT be embedded as string
 literals in C# code. Queries and commands
@@ -133,4 +138,4 @@ redefinitions, MINOR for added principles/sections or materially expanded guidan
 clarifications and wording fixes. Every pull request and review MUST verify compliance with this
 constitution, and Spec Kit plans MUST pass a Constitution Check against it before design begins.
 
-**Version**: 1.1.2 | **Ratified**: 2026-10-23 | **Last Amended**: 2026-10-31
+**Version**: 1.2.0 | **Ratified**: 2026-10-23 | **Last Amended**: 2026-11-01
