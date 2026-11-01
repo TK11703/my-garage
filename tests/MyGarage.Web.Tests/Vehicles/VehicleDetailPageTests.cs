@@ -84,7 +84,70 @@ public class VehicleDetailPageTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             Assert.Equal($"/vehicles/{vehicleId}/edit", cut.Find("a[data-testid='edit-vehicle']").GetAttribute("href"));
-            Assert.Equal("/vehicles", cut.Find("nav[aria-label='Breadcrumb'] a").GetAttribute("href"));
+            Assert.Equal("/vehicles", cut.Find("nav[aria-label='Breadcrumb'] a[href='/vehicles']").GetAttribute("href"));
+        });
+    }
+
+    [Fact]
+    public void ShowsTrailWithTheVehicleNameAndEditActionInTheHeader()
+    {
+        RegisterApi(_ => Json(Detail(vehicleId, "Daily")));
+
+        var cut = RenderDetail();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Single(cut.FindAll("h1"));
+            var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
+            Assert.Equal(["Home", "Vehicles", "Daily"], items.Select(item => item.TextContent.Trim()));
+            Assert.Equal("/vehicles", items[1].QuerySelector("a")!.GetAttribute("href"));
+            Assert.Equal("page", items[2].GetAttribute("aria-current"));
+            Assert.NotNull(cut.Find("h1").ParentElement!.QuerySelector("a[data-testid='edit-vehicle']"));
+            Assert.DoesNotContain("My garage", cut.Markup);
+        });
+    }
+
+    [Fact]
+    public void UnknownVehicle_ShowsStandardNotFoundHeader()
+    {
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
+
+        var cut = RenderDetail();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("Vehicle not found", cut.Find("h1").TextContent);
+            var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
+            Assert.Equal(["Home", "Vehicles"], items.Select(item => item.TextContent.Trim()));
+        });
+    }
+
+    [Fact]
+    public void ApiFailure_ShowsGenericVehicleTitle()
+    {
+        RegisterApi(_ => throw new HttpRequestException("boom"));
+
+        var cut = RenderDetail();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("Vehicle", cut.Find("h1").TextContent);
+            Assert.Equal("Vehicles", cut.FindAll("nav[aria-label='Breadcrumb'] li").Last().TextContent.Trim());
+        });
+    }
+
+    [Fact]
+    public void DeleteConfirmation_UsesTheStandardWording()
+    {
+        RegisterApi(_ => Json(Detail(vehicleId)));
+
+        var cut = RenderDetail();
+
+        cut.WaitForAssertion(() =>
+        {
+            var confirmation = cut.Find("details[data-testid='delete-vehicle']");
+            Assert.Equal("Yes, delete this vehicle", confirmation.QuerySelector("button")!.TextContent.Trim());
+            Assert.Equal("Keep vehicle", confirmation.QuerySelector("a.btn")!.TextContent.Trim());
         });
     }
 

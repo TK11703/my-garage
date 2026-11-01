@@ -31,6 +31,21 @@ public class VehicleFiltersTests : VehicleTestContext
     }
 
     [Fact]
+    public void ApplyFilters_IsAnOutlinePrimaryButton()
+    {
+        RegisterApi(_ => Json(Page([Summary("Alpha")])));
+
+        var cut = RenderList();
+
+        cut.WaitForAssertion(() =>
+        {
+            var apply = cut.FindAll("button").Single(button => button.TextContent.Trim() == "Apply filters");
+            Assert.Contains("btn-outline-primary", apply.ClassName);
+            Assert.DoesNotContain("btn-secondary", apply.ClassName);
+        });
+    }
+
+    [Fact]
     public void FilterPanel_IsClosedWithoutFiltersAndOpenWithThem()
     {
         RegisterApi(_ => Json(Page([Summary("Alpha")])));

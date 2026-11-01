@@ -4,38 +4,29 @@
 @inject VehiclesApiClient Api
 @inject NavigationManager Navigation
 
-<PageTitle>@(vehicle?.Nickname ?? "Vehicle")</PageTitle>
-
 @if (failure is not null)
 {
-    <div class="alert alert-warning" role="alert">
-        @(failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable)
-    </div>
+    <PageHeader Title="Vehicle" Trail="@(new[] { new Crumb("Vehicles") })" />
 
-    @if (failure == GarageApiFailure.NotAccepted)
-    {
-        <a class="btn btn-primary" href="/authentication/login?returnUrl=@Uri.EscapeDataString($"/vehicles/{VehicleId}")">Sign in again</a>
-    }
+    <ApiFailureAlert Failure="failure.Value" ReturnUrl="@($"/vehicles/{VehicleId}")"
+                     NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
 }
 else if (notFound)
 {
-    <h1 class="h3 mb-3">Vehicle not found</h1>
-    <div class="alert alert-warning" role="alert">@VehicleMessages.NotFound</div>
-    <a href="/vehicles">Back to my garage</a>
+    <PageHeader Title="Vehicle not found" Trail="@(new[] { new Crumb("Vehicles") })" />
+
+    <EmptyState Variant="EmptyStateVariant.NoMatch" Message="@VehicleMessages.NotFound"
+                ActionText="Back to my vehicles" ActionHref="/vehicles" />
 }
 else if (vehicle is not null)
 {
-    <nav aria-label="Breadcrumb" class="mb-2">
-        <a href="/vehicles">&larr; My garage</a>
-    </nav>
+    <PageHeader Title="@vehicle.Nickname" Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(vehicle.Nickname) })">
+        <Actions>
+            <a class="btn btn-outline-primary" href="/vehicles/@VehicleId/edit" data-testid="edit-vehicle">Edit</a>
+        </Actions>
+    </PageHeader>
 
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
-        <div>
-            <h1 class="h3 mb-1">@vehicle.Nickname</h1>
-            <p class="text-body-secondary">@vehicle.Make @vehicle.Model</p>
-        </div>
-        <a class="btn btn-outline-primary" href="/vehicles/@VehicleId/edit" data-testid="edit-vehicle">Edit</a>
-    </div>
+    <p class="text-body-secondary">@vehicle.Make @vehicle.Model</p>
 
     <dl class="row" aria-label="Vehicle details">
         <dt class="col-sm-3">Trim</dt>

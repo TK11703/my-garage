@@ -1,22 +1,43 @@
 @page "/"
-@rendermode InteractiveServer
 @attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject VehiclesApiClient Api
 
-<PageTitle>My Garage</PageTitle>
+<PageHeader Title="@($"Welcome, {displayName}")" />
 
-<h1 class="h2 mb-3">Welcome, @displayName</h1>
+<p class="lead">My Garage keeps a private list of your vehicles, their details, tags, journal notes, and pictures.</p>
 
-<p class="lead">You are signed in to My Garage.</p>
-
-<a class="btn btn-primary" href="/vehicles">Go to my garage</a>
+<div class="d-flex flex-wrap gap-2">
+    @if (hasNoVehicles)
+    {
+        <a class="btn btn-primary" href="/vehicles/new">Add your first vehicle</a>
+        <a class="btn btn-outline-secondary" href="/vehicles">My vehicles</a>
+    }
+    else
+    {
+        <a class="btn btn-primary" href="/vehicles">My vehicles</a>
+        <a class="btn btn-outline-primary" href="/vehicles/new">Add vehicle</a>
+    }
+</div>
 
 @code {
     private string displayName = ClaimsPrincipalExtensions.NeutralName;
+    private bool hasNoVehicles;
 
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         displayName = state.User.GetDisplayName();
+
+        try
+        {
+            var result = await Api.ListAsync(VehicleListCriteria.None, 1);
+            hasNoVehicles = result.Value?.TotalCount == 0;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // The count only decides which button is emphasized; whatever goes wrong, the page still works.
+        }
     }
 }

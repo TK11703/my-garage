@@ -33,6 +33,39 @@ public class VehicleEditPageTests : VehicleTestContext
     }
 
     [Fact]
+    public void ShowsTrailAndTitleWithTheStoredNickname()
+    {
+        RegisterApi(_ => Json(Detail(vehicleId, "Daily")));
+
+        var cut = RenderEdit();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Single(cut.FindAll("h1"));
+            Assert.Equal("Edit Daily", cut.Find("h1").TextContent);
+            var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
+            Assert.Equal(["Home", "Vehicles", "Daily", "Edit"], items.Select(item => item.TextContent.Trim()));
+            Assert.Equal($"/vehicles/{vehicleId}", items[2].QuerySelector("a")!.GetAttribute("href"));
+            Assert.Equal("page", items[3].GetAttribute("aria-current"));
+        });
+    }
+
+    [Fact]
+    public void UnknownVehicle_ShowsStandardNotFoundHeader()
+    {
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
+
+        var cut = RenderEdit();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("Vehicle not found", cut.Find("h1").TextContent);
+            var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
+            Assert.Equal(["Home", "Vehicles"], items.Select(item => item.TextContent.Trim()));
+        });
+    }
+
+    [Fact]
     public void CancelLink_ReturnsToTheVehicle()
     {
         RegisterApi(_ => Json(Detail(vehicleId)));

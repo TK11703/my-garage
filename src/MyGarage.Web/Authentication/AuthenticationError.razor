@@ -1,9 +1,7 @@
 @page "/authentication/error"
 @attribute [AllowAnonymous]
 
-<PageTitle>Sign-in problem</PageTitle>
-
-<h1 class="h3 mb-3">Sign-in problem</h1>
+<PageHeader Title="Sign-in problem" Trail="@(new[] { new Crumb("Sign-in problem") })" />
 
 <div class="alert alert-warning" role="alert">@AuthFailureMessages.For(Reason)</div>
 

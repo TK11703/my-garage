@@ -4,28 +4,25 @@
 @inject VehiclesApiClient Api
 @inject NavigationManager Navigation
 
-<PageTitle>Edit vehicle</PageTitle>
-
-<h1 class="h3 mb-3">Edit vehicle</h1>
-
 @if (failure is not null)
 {
-    <div class="alert alert-warning" role="alert">
-        @(failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable)
-    </div>
+    <PageHeader Title="Edit Vehicle" Trail="@(new[] { new Crumb("Vehicles") })" />
 
-    @if (failure == GarageApiFailure.NotAccepted)
-    {
-        <a class="btn btn-primary" href="/authentication/login?returnUrl=@Uri.EscapeDataString($"/vehicles/{VehicleId}/edit")">Sign in again</a>
-    }
+    <ApiFailureAlert Failure="failure.Value" ReturnUrl="@($"/vehicles/{VehicleId}/edit")"
+                     NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
 }
 else if (notFound)
 {
-    <div class="alert alert-warning" role="alert">@VehicleMessages.NotFound</div>
-    <a href="/vehicles">Back to my garage</a>
+    <PageHeader Title="Vehicle not found" Trail="@(new[] { new Crumb("Vehicles") })" />
+
+    <EmptyState Variant="EmptyStateVariant.NoMatch" Message="@VehicleMessages.NotFound"
+                ActionText="Back to my vehicles" ActionHref="/vehicles" />
 }
 else if (Model is not null)
 {
+    <PageHeader Title="@($"Edit {storedNickname}")"
+                Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(storedNickname, $"/vehicles/{VehicleId}"), new Crumb("Edit") })" />
+
     <VehicleForm Model="Model" FormName="update-vehicle" SubmitText="Save changes" CancelHref="@($"/vehicles/{VehicleId}")"
                  Errors="errors" OnSubmit="SubmitAsync" />
 }
@@ -33,6 +30,8 @@ else if (Model is not null)
 @code {
     private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
     private GarageApiFailure? failure;
+    // The saved nickname, not any unsaved value posted with the form.
+    private string storedNickname = string.Empty;
     private bool notFound;
 
     [Parameter]
@@ -57,6 +56,7 @@ else if (Model is not null)
             }
 
             Model ??= VehicleFormModel.From(result.Value!);
+            storedNickname = result.Value!.Nickname;
         }
         catch (GarageApiException ex)
         {

@@ -1,10 +1,9 @@
 ﻿@page "/Error"
 @using System.Diagnostics
 
-<PageTitle>Error</PageTitle>
+<PageHeader Title="Something went wrong" Trail="@(new[] { new Crumb("Error") })" />
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+<p class="text-danger">An error occurred while processing your request.</p>
 
 @if (ShowRequestId)
 {
@@ -13,7 +12,7 @@
     </p>
 }
 
-<h3>Development Mode</h3>
+<h2 class="h5">Development Mode</h2>
 <p>
     Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
 </p>

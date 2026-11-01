@@ -22,15 +22,14 @@
 
     @if (failure is not null)
     {
-        <div class="alert alert-warning" role="alert">
-            @(failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable)
-        </div>
+        <ApiFailureAlert Failure="failure.Value" ReturnUrl="@($"/vehicles/{VehicleId}")"
+                         NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
     }
     else if (notes is not null)
     {
         @if (notes.TotalCount == 0)
         {
-            <p class="text-body-secondary">No notes yet. Write the first entry in this vehicle's journal.</p>
+            <EmptyState Compact="true" Message="No notes yet. Write the first entry in this vehicle's journal." />
         }
         else
         {

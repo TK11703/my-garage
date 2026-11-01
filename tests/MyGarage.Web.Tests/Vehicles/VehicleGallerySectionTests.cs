@@ -36,6 +36,18 @@ public class VehicleGallerySectionTests : VehicleTestContext
     }
 
     [Fact]
+    public void DeleteConfirmation_UsesTheStandardWording()
+    {
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderGallery([Image(isMain: true)]);
+
+        var confirmation = cut.Find("details[data-testid='delete-image']");
+        Assert.Equal("Yes, delete this picture", confirmation.QuerySelector("button")!.TextContent.Trim());
+        Assert.Equal("Keep picture", confirmation.QuerySelector("a.btn")!.TextContent.Trim());
+    }
+
+    [Fact]
     public void UploadForm_PostsMultipartToTheVehicleImageRoute()
     {
         RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));

@@ -51,7 +51,7 @@
                         <p class="mb-2">Delete this note? This cannot be undone.</p>
                         <form method="post" @formname="delete" @onsubmit="DeleteAsync" class="d-flex gap-2">
                             <AntiforgeryToken />
-                            <button type="submit" class="btn btn-danger btn-sm">Yes, delete note</button>
+                            <button type="submit" class="btn btn-danger btn-sm">Yes, delete this note</button>
                             <a class="btn btn-outline-secondary btn-sm" href="@ReturnHref">Keep note</a>
                         </form>
                     </div>

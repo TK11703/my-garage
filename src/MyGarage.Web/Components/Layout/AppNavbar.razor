@@ -1,0 +1,106 @@
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<header>
+    <nav class="navbar navbar-dark fixed-top mg-navbar" aria-label="Main">
+        <div class="container-fluid gap-2">
+            <BrandLink />
+
+            @if (isSignedIn)
+            {
+                <div class="collapse d-md-block mg-search" id="navbar-search">
+                    <form method="get" action="/vehicles" role="search">
+                        <div class="input-group input-group-sm">
+                            <input type="search" name="q" class="form-control" maxlength="100"
+                                   placeholder="Search vehicles" aria-label="Search vehicles" />
+                            <button type="submit" class="btn btn-outline-light" aria-label="Search">
+                                <Icon Name="IconName.Search" />
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            }
+
+            <div class="d-flex align-items-center gap-1 ms-auto">
+                @if (isSignedIn)
+                {
+                    <button type="button" class="btn mg-nav-btn d-md-none" aria-label="Toggle search"
+                            data-bs-toggle="collapse" data-bs-target="#navbar-search"
+                            aria-controls="navbar-search" aria-expanded="false">
+                        <Icon Name="IconName.Search" Size="20" />
+                    </button>
+
+                    <div class="dropdown">
+                        <button type="button" class="btn mg-nav-btn" aria-label="Notifications"
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                            <Icon Name="IconName.Bell" Size="20" />
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end p-3 mg-menu">
+                            <p class="mb-0 text-body-secondary">You have no notifications.</p>
+                        </div>
+                    </div>
+                }
+
+                <div class="dropdown">
+                    <button type="button" class="btn mg-nav-btn" aria-label="Help"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        <Icon Name="IconName.QuestionCircle" Size="20" />
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end mg-menu">
+                        <li><a class="dropdown-item" href="/faq">FAQ</a></li>
+                        <li><a class="dropdown-item" href="/about">About</a></li>
+                    </ul>
+                </div>
+
+                @if (isSignedIn)
+                {
+                    <div class="dropdown">
+                        <button type="button" class="btn mg-nav-btn d-flex align-items-center gap-2"
+                                aria-label="Account menu for @displayName"
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="mg-avatar" aria-hidden="true">
+                                @if (initials.Length > 0)
+                                {
+                                    @initials
+                                }
+                                else
+                                {
+                                    <Icon Name="IconName.PersonCircle" />
+                                }
+                            </span>
+                            <span class="d-none d-sm-inline text-truncate mg-profile-name">@displayName</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end mg-menu">
+                            <li><span class="dropdown-item-text fw-semibold text-break">@displayName</span></li>
+                            <li><a class="dropdown-item" href="/vehicles">My vehicles</a></li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                                <form method="post" action="/authentication/logout">
+                                    <AntiforgeryToken />
+                                    <button type="submit" class="dropdown-item">Sign out</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                }
+                else
+                {
+                    <a class="btn btn-outline-light btn-sm ms-1" href="/authentication/login">Sign in</a>
+                }
+            </div>
+        </div>
+    </nav>
+</header>
+
+@code {
+    private bool isSignedIn;
+    private string displayName = ClaimsPrincipalExtensions.NeutralName;
+    private string initials = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        isSignedIn = state.User.Identity?.IsAuthenticated ?? false;
+        displayName = state.User.GetDisplayName();
+        initials = state.User.GetInitials();
+    }
+}

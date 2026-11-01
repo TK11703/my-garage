@@ -1,19 +1,21 @@
+<div class="row">
+<div class="col-lg-8">
 <EditForm EditContext="editContext" FormName="@FormName" OnValidSubmit="OnSubmit" class="vstack gap-3">
     <div>
-        <label for="nickname" class="form-label">Nickname</label>
+        <label for="nickname" class="form-label">Nickname<span class="text-danger" aria-hidden="true"> *</span></label>
         <InputText id="nickname" class="form-control" @bind-Value="Model.Nickname" maxlength="100"
                    aria-required="true" aria-describedby="@Described("Nickname")" />
         <ValidationMessage For="@(() => Model.Nickname)" id="nickname-error" class="invalid-feedback d-block" />
     </div>
     <div class="row g-3">
         <div class="col-sm-6">
-            <label for="make" class="form-label">Make</label>
+            <label for="make" class="form-label">Make<span class="text-danger" aria-hidden="true"> *</span></label>
             <InputText id="make" class="form-control" @bind-Value="Model.Make" maxlength="50"
                        aria-required="true" aria-describedby="@Described("Make")" />
             <ValidationMessage For="@(() => Model.Make)" id="make-error" class="invalid-feedback d-block" />
         </div>
         <div class="col-sm-6">
-            <label for="model" class="form-label">Model</label>
+            <label for="model" class="form-label">Model<span class="text-danger" aria-hidden="true"> *</span></label>
             <InputText id="model" class="form-control" @bind-Value="Model.Model" maxlength="50"
                        aria-required="true" aria-describedby="@Described("Model")" />
             <ValidationMessage For="@(() => Model.Model)" id="model-error" class="invalid-feedback d-block" />
@@ -47,11 +49,14 @@
             <ValidationMessage For="@(() => Model.Doors)" id="doors-error" class="invalid-feedback d-block" />
         </div>
     </div>
+    <p class="form-text mb-0">* Required</p>
     <div class="d-flex gap-2">
         <button type="submit" class="btn btn-primary">@SubmitText</button>
         <a class="btn btn-outline-secondary" href="@CancelHref">Cancel</a>
     </div>
 </EditForm>
+</div>
+</div>
 
 @code {
     private static readonly string[] Fields = [nameof(VehicleFormModel.Nickname), nameof(VehicleFormModel.Make), nameof(VehicleFormModel.Model),

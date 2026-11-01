@@ -1,9 +1,7 @@
 @page "/authentication/signed-out"
 @attribute [AllowAnonymous]
 
-<PageTitle>Signed out</PageTitle>
-
-<h1 class="h3 mb-3">You have been signed out</h1>
+<PageHeader Title="You have been signed out" Trail="@(new[] { new Crumb("Signed out") })" />
 
 <p>Your session has ended. Sign in again to continue.</p>
 

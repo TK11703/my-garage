@@ -8,6 +8,21 @@ namespace MyGarage.Web.Tests.Vehicles;
 public class VehicleCreatePageTests : VehicleTestContext
 {
     [Fact]
+    public void ShowsTrailAndTitle()
+    {
+        RegisterApi(_ => Json(Detail()));
+
+        var cut = Render<VehicleCreate>();
+
+        Assert.Single(cut.FindAll("h1"));
+        Assert.Equal("Add Vehicle", cut.Find("h1").TextContent);
+        var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
+        Assert.Equal(["Home", "Vehicles", "New vehicle"], items.Select(item => item.TextContent.Trim()));
+        Assert.Equal("/vehicles", items[1].QuerySelector("a")!.GetAttribute("href"));
+        Assert.Equal("page", items[2].GetAttribute("aria-current"));
+    }
+
+    [Fact]
     public void Form_HasLabeledInputsForEveryField()
     {
         RegisterApi(_ => Json(Detail()));

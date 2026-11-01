@@ -1,0 +1,38 @@
+@if (Compact)
+{
+    <p class="text-body-secondary">@Message</p>
+}
+else
+{
+    <div class="text-center py-5">
+        <p class="lead">@Message</p>
+        @if (ActionText is not null && ActionHref is not null)
+        {
+            <a class="@ActionClass" href="@ActionHref" @attributes="AdditionalAttributes">@ActionText</a>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public string Message { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? ActionText { get; set; }
+
+    [Parameter]
+    public string? ActionHref { get; set; }
+
+    [Parameter]
+    public EmptyStateVariant Variant { get; set; } = EmptyStateVariant.Empty;
+
+    // A single quiet line for use inside a page section.
+    [Parameter]
+    public bool Compact { get; set; }
+
+    // Applied to the action link (for example data-testid).
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string ActionClass => Variant == EmptyStateVariant.NoMatch ? "btn btn-outline-primary" : "btn btn-primary";
+}

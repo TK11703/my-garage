@@ -36,6 +36,22 @@ public class VehicleJournalSectionTests : VehicleTestContext
     }
 
     [Fact]
+    public void DeleteConfirmation_UsesTheStandardWording()
+    {
+        Notes = NotesPage([Note("A note")]);
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderSection();
+
+        cut.WaitForAssertion(() =>
+        {
+            var confirmation = cut.Find("details[data-testid='delete-note']");
+            Assert.Equal("Yes, delete this note", confirmation.QuerySelector("button")!.TextContent.Trim());
+            Assert.Equal("Keep note", confirmation.QuerySelector("a.btn")!.TextContent.Trim());
+        });
+    }
+
+    [Fact]
     public void NoNotes_ShowsAnEmptyState()
     {
         RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));

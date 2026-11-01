@@ -11,7 +11,7 @@
 
     @if (Images.Count == 0)
     {
-        <p class="text-body-secondary">No pictures yet. Add one to show this vehicle in your garage.</p>
+        <EmptyState Compact="true" Message="No pictures yet. Add one to show this vehicle in your garage." />
     }
     else
     {
@@ -47,8 +47,8 @@
                                         <p class="small mb-2">Delete this picture?</p>
                                         <form method="post" @formname="@($"delete-image-{image.Id}")" @onsubmit="() => DeleteAsync(image.Id)" class="d-flex gap-2">
                                             <AntiforgeryToken />
-                                            <button type="submit" class="btn btn-danger btn-sm">Yes, delete</button>
-                                            <a class="btn btn-outline-secondary btn-sm" href="/vehicles/@VehicleId">Keep</a>
+                                            <button type="submit" class="btn btn-danger btn-sm">Yes, delete this picture</button>
+                                            <a class="btn btn-outline-secondary btn-sm" href="/vehicles/@VehicleId">Keep picture</a>
                                         </form>
                                     </div>
                                 </details>
