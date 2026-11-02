@@ -41,12 +41,34 @@ public sealed class VehicleTagRepository(NpgsqlDataSource dataSource, SqlScriptS
             return new AddTagResult(AddTagStatus.LimitReached);
         }
 
+        // Reuse the shared feature when another vehicle already has it; otherwise this creates it.
+        var feature = await connection.QuerySingleAsync<FeatureRow>(new CommandDefinition(
+            scripts.Get("Tags/UpsertFeature"),
+            new { Id = Guid.CreateVersion7(), Name = name, CreatedAt = createdAt, OwnerId = ownerId },
+            transaction,
+            cancellationToken: cancellationToken));
+
         await connection.ExecuteAsync(new CommandDefinition(
-            scripts.Get("Tags/Insert"), new { Id = tagId, VehicleId = vehicleId, Name = name, CreatedAt = createdAt }, transaction, cancellationToken: cancellationToken));
+            scripts.Get("Tags/Insert"), new { Id = tagId, VehicleId = vehicleId, FeatureId = feature.Id, CreatedAt = createdAt }, transaction, cancellationToken: cancellationToken));
         await transaction.CommitAsync(cancellationToken);
 
-        return new AddTagResult(AddTagStatus.Added, new VehicleTagRecord { Id = tagId, Name = name, CreatedAt = createdAt });
+        return new AddTagResult(AddTagStatus.Added, new VehicleTagRecord { Id = tagId, Name = feature.Name, CreatedAt = createdAt });
     }
+
+    // Names of shared features that at least one vehicle uses, most used first.
+    public async Task<IReadOnlyList<string>> SuggestAsync(string? text, int limit, CancellationToken cancellationToken)
+    {
+        if (LikePattern.Contains(text) is not { } pattern)
+        {
+            return [];
+        }
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        return (await connection.QueryAsync<string>(new CommandDefinition(
+            scripts.Get("Tags/SuggestFeatures"), new { Pattern = pattern, Limit = limit }, cancellationToken: cancellationToken))).ToList();
+    }
+
+    private sealed record FeatureRow(Guid Id, string Name);
 
     public async Task<bool> RemoveAsync(string ownerId, Guid vehicleId, Guid tagId, CancellationToken cancellationToken)
     {

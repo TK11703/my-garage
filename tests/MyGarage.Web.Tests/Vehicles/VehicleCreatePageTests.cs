@@ -31,13 +31,15 @@ public class VehicleCreatePageTests : VehicleTestContext
 
         foreach (var field in new[]
                  {
-                     "nickname", "vin", "make", "model", "trim", "year", "vehicle-type", "ownership", "purchased-on", "lease-ends-on",
-                     "engine", "horsepower", "fuel-type", "transmission", "mileage", "color", "seats", "doors", "drivetrain", "wheel-size", "tire-size",
+                     "year", "make", "model", "trim", "vin", "vehicle-type", "ownership", "purchased-on", "lease-ends-on",
+                     "engine", "horsepower", "drivetrain", "color", "fuel-type", "transmission", "seats", "doors", "wheel-size", "tire-size", "mileage",
                  })
         {
             Assert.NotNull(cut.Find($"#{field}"));
             Assert.NotNull(cut.Find($"label[for='{field}']"));
         }
+
+        Assert.Empty(cut.FindAll("#nickname, label[for='nickname']"));
     }
 
     [Fact]
@@ -54,10 +56,10 @@ public class VehicleCreatePageTests : VehicleTestContext
             Assert.Equal(["tab-basic"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
             Assert.Empty(cut.FindAll("#tab-media, #tab-description"));
             Assert.Equal(
-                ["nickname", "vin", "make", "model", "trim", "year", "vehicle-type", "ownership", "purchased-on", "lease-ends-on"],
+                ["year", "make", "model", "trim", "vin", "vehicle-type", "ownership", "purchased-on", "lease-ends-on", "mileage"],
                 cut.Find("#tab-basic").QuerySelectorAll("input[id], select[id]").Select(field => field.Id));
             Assert.Equal(
-                ["engine", "horsepower", "fuel-type", "transmission", "mileage", "color", "seats", "doors", "drivetrain", "wheel-size", "tire-size"],
+                ["engine", "horsepower", "drivetrain", "color", "fuel-type", "transmission", "seats", "doors", "wheel-size", "tire-size"],
                 cut.Find("#tab-specifications").QuerySelectorAll("input[id], select[id]").Select(field => field.Id));
         });
     }
@@ -75,6 +77,21 @@ public class VehicleCreatePageTests : VehicleTestContext
         {
             Assert.Contains("Horsepower must be between", cut.Find("#horsepower-error").TextContent);
             Assert.Equal(["tab-specifications"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
+        });
+    }
+
+    [Fact]
+    public void ARejectedMileageOpensTheBasicInfoTab()
+    {
+        RegisterApi(_ => ValidationProblem(("Mileage", "Mileage must be between 0 and 9,999,999.")));
+        var cut = Render<VehicleCreate>();
+
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("Mileage must be between", cut.Find("#tab-basic #mileage-error").TextContent);
+            Assert.Equal(["tab-basic"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
         });
     }
 
@@ -114,7 +131,7 @@ public class VehicleCreatePageTests : VehicleTestContext
     [Fact]
     public void ApiValidationErrors_AreShownPerFieldAndInputsKeepTheirValues()
     {
-        RegisterApi(_ => ValidationProblem(("Nickname", "Nickname is required."), ("Mileage", "Mileage must be between 0 and 9,999,999.")));
+        RegisterApi(_ => ValidationProblem(("Year", "Year is required."), ("Mileage", "Mileage must be between 0 and 9,999,999.")));
         var cut = Render<VehicleCreate>();
         cut.Find("input#make").Change("Ford");
         cut.Find("input#model").Change("F-150");
@@ -123,20 +140,19 @@ public class VehicleCreatePageTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            Assert.Contains("Nickname is required.", cut.Find("#nickname-error").TextContent);
+            Assert.Contains("Year is required.", cut.Find("#year-error").TextContent);
             Assert.Contains("Mileage must be between", cut.Find("#mileage-error").TextContent);
         });
         Assert.Equal("Ford", cut.Find("input#make").GetAttribute("value"));
-        Assert.Equal("true", cut.Find("input#nickname").GetAttribute("aria-invalid"));
+        Assert.Equal("true", cut.Find("input#year").GetAttribute("aria-invalid"));
     }
 
     [Fact]
     public void Success_PostsTrimmedValuesAndRedirectsToTheNewVehicle()
     {
-        var created = Detail(nickname: "Daily");
+        var created = Detail();
         RegisterApi(_ => Json(created, System.Net.HttpStatusCode.Created));
         var cut = Render<VehicleCreate>();
-        cut.Find("input#nickname").Change("Daily");
         cut.Find("input#make").Change("Ford");
         cut.Find("input#model").Change("F-150");
         cut.Find("input#year").Change("2019");

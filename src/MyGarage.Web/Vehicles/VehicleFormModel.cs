@@ -5,8 +5,6 @@ namespace MyGarage.Web.Vehicles;
 // Form state shared by the add and edit pages; the API validates and trims, so text is sent as entered.
 public sealed class VehicleFormModel
 {
-    public string? Nickname { get; set; }
-
     public string? Vin { get; set; }
 
     public string? Make { get; set; }
@@ -50,7 +48,6 @@ public sealed class VehicleFormModel
     public VehicleRequest ToRequest() =>
         new()
         {
-            Nickname = Nickname,
             Vin = Vin,
             Make = Make,
             Model = Model,
@@ -59,7 +56,8 @@ public sealed class VehicleFormModel
             VehicleTypeId = VehicleTypeId,
             Ownership = Ownership,
             PurchasedOn = PurchasedOn,
-            LeaseEndsOn = LeaseEndsOn,
+            // A lease end only applies to leased vehicles, so one left in a hidden field is not sent.
+            LeaseEndsOn = Ownership == OwnershipType.Leased ? LeaseEndsOn : null,
             Engine = Engine,
             Horsepower = Horsepower,
             FuelTypeId = FuelTypeId,
@@ -76,7 +74,6 @@ public sealed class VehicleFormModel
     public static VehicleFormModel From(VehicleDetailDto vehicle) =>
         new()
         {
-            Nickname = vehicle.Nickname,
             Vin = vehicle.Vin,
             Make = vehicle.Make,
             Model = vehicle.Model,

@@ -11,7 +11,6 @@ public sealed partial class VehicleRequestValidator : AbstractValidator<VehicleR
     {
         DateOnly Today() => DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
 
-        RuleFor(request => request.Nickname).TrimmedText("Nickname", 100, required: true);
         RuleFor(request => request.Vin)
             .Must(vin => string.IsNullOrWhiteSpace(vin) || VinPattern().IsMatch(vin.Trim().ToUpperInvariant()))
             .WithMessage("VIN must be 17 letters and digits and cannot contain I, O, or Q.");

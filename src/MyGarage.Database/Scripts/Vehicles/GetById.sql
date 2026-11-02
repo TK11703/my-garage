@@ -1,4 +1,4 @@
-SELECT v.id, v.owner_id, v.nickname, v.vin, v.make, v.model, v.trim, v.year,
+SELECT v.id, v.owner_id, v.vin, v.make, v.model, v.trim, v.year,
        v.vehicle_type_id, vt.name AS vehicle_type_name,
        v.ownership, v.purchased_on, v.lease_ends_on, v.engine, v.horsepower,
        v.fuel_type_id, ft.name AS fuel_type_name,

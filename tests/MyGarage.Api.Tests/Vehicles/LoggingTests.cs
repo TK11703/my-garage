@@ -15,7 +15,7 @@ public class LoggingTests(ApiFactory factory) : IClassFixture<ApiFactory>, IAsyn
 {
     private static readonly string[] Markers =
     [
-        "QZNICK", "QZMAKE", "QZMODEL", "QZTRIM", "QZCOLOR", "QZSEARCH", "QZTAG", "QZNOTE", "QZCAT", "QZCAPTION", "QZFILE", "QZBYTES",
+        "QZMAKE", "QZMODEL", "QZTRIM", "QZCOLOR", "QZSEARCH", "QZTAG", "QZNOTE", "QZCAT", "QZCAPTION", "QZFILE", "QZBYTES",
         "WZW9WZW9WZW9WZW9W", "QZENGINE", "QZTIRE", "QZITEM",
     ];
 
@@ -63,16 +63,16 @@ public class LoggingTests(ApiFactory factory) : IClassFixture<ApiFactory>, IAsyn
 
         var created = await (await client.PostAsJsonAsync("/api/vehicles", new VehicleRequest
         {
-            Nickname = "QZNICK", Make = "QZMAKE", Model = "QZMODEL", Trim = "QZTRIM", Color = "QZCOLOR", Mileage = 1, Doors = 4, Year = 2020,
+            Make = "QZMAKE", Model = "QZMODEL", Trim = "QZTRIM", Color = "QZCOLOR", Mileage = 1, Doors = 4, Year = 2020,
             Vin = "WZW9WZW9WZW9WZW9W", Engine = "QZENGINE", TireSize = "QZTIRE",
         })).Content.ReadFromJsonAsync<VehicleDetailDto>();
-        await client.PostAsJsonAsync("/api/vehicles", new VehicleRequest { Nickname = "QZNICK", Make = "QZMAKE", Model = "QZMODEL", Mileage = -1, Year = 2020, Vin = "WZW9WZW9WZW9WZW9W", Horsepower = 0 });
+        await client.PostAsJsonAsync("/api/vehicles", new VehicleRequest { Make = "QZMAKE", Model = "QZMODEL", Mileage = -1, Year = 2020, Vin = "WZW9WZW9WZW9WZW9W", Horsepower = 0 });
         await client.GetAsync("/api/vehicles?q=QZSEARCH&make=QZMAKE&color=QZCOLOR&tag=QZTAG");
         await client.GetAsync("/api/vehicles?q=WZW9WZW9WZW9WZW9W");
         await client.GetAsync("/api/vehicles/filter-options");
         await client.PutAsJsonAsync($"/api/vehicles/{created!.Id}", new VehicleRequest
         {
-            Nickname = "QZNICK", Make = "QZMAKE", Model = "QZMODEL", Year = 2020, Vin = "WZW9WZW9WZW9WZW9W", Engine = "QZENGINE", TireSize = "QZTIRE",
+            Make = "QZMAKE", Model = "QZMODEL", Year = 2020, Vin = "WZW9WZW9WZW9WZW9W", Engine = "QZENGINE", TireSize = "QZTIRE",
         });
 
         var item = await (await client.PostAsJsonAsync("/api/lookups/fuel-types", new AddLookupItemRequest { Name = "QZITEM" })).Content.ReadFromJsonAsync<LookupItemDto>();
@@ -82,6 +82,7 @@ public class LoggingTests(ApiFactory factory) : IClassFixture<ApiFactory>, IAsyn
 
         await client.PostAsJsonAsync($"/api/vehicles/{created.Id}/tags", new AddVehicleTagRequest { Name = "QZTAG" });
         await client.PostAsJsonAsync($"/api/vehicles/{created.Id}/tags", new AddVehicleTagRequest { Name = "QZTAG" });
+        await client.GetAsync("/api/features?query=QZTAG");
 
         var note = await (await client.PostAsJsonAsync($"/api/vehicles/{created.Id}/notes", new JournalNoteRequest { Body = "QZNOTE", Category = "QZCAT" }))
             .Content.ReadFromJsonAsync<JournalNoteDto>();

@@ -16,7 +16,7 @@ public class VehicleDetailsEndpointsTests(ApiFactory factory) : IClassFixture<Ap
 
     public Task DisposeAsync() => Task.CompletedTask;
 
-    private static VehicleRequest Minimal() => new() { Nickname = "Daily", Make = "Ford", Model = "F-150", Year = 2020 };
+    private static VehicleRequest Minimal() => new() { Make = "Ford", Model = "F-150", Year = 2020 };
 
     private static async Task<LookupsDto> LookupsAsync(HttpClient client, bool includeHidden = false) =>
         (await client.GetFromJsonAsync<LookupsDto>($"/api/lookups?includeHidden={includeHidden.ToString().ToLowerInvariant()}"))!;
@@ -37,7 +37,6 @@ public class VehicleDetailsEndpointsTests(ApiFactory factory) : IClassFixture<Ap
         var lookups = await LookupsAsync(client);
         var request = new VehicleRequest
         {
-            Nickname = "Blue Streak",
             Make = "Subaru",
             Model = "Outback",
             Trim = "Limited",
@@ -68,6 +67,7 @@ public class VehicleDetailsEndpointsTests(ApiFactory factory) : IClassFixture<Ap
         foreach (var dto in new[] { created, read })
         {
             Assert.Equal(2019, dto.Year);
+            Assert.Equal("2019 Subaru Outback", dto.Name);
             Assert.Equal("1HGCM82633A004352", dto.Vin);
             Assert.Equal("Wagon", dto.VehicleType!.Name);
             Assert.Equal(request.VehicleTypeId, dto.VehicleType.Id);
@@ -110,17 +110,84 @@ public class VehicleDetailsEndpointsTests(ApiFactory factory) : IClassFixture<Ap
         Assert.Null(created.TireSize);
     }
 
+    [Fact]
+    public async Task List_ItemsCarryFuelTypeTransmissionOwnershipAndPurchasedYear()
+    {
+        var client = factory.CreateClientForUser(Alice);
+        var lookups = await LookupsAsync(client);
+        var request = Minimal() with
+        {
+            FuelTypeId = IdOf(lookups.FuelTypes, "Diesel"),
+            TransmissionId = IdOf(lookups.Transmissions, "Manual"),
+            Ownership = OwnershipType.Leased,
+            PurchasedOn = new DateOnly(2022, 6, 30),
+            LeaseEndsOn = new DateOnly(2025, 6, 29),
+        };
+        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/vehicles", request)).StatusCode);
+
+        using var document = System.Text.Json.JsonDocument.Parse(await client.GetStringAsync("/api/vehicles"));
+
+        var item = document.RootElement.GetProperty("items").EnumerateArray().Single();
+        Assert.Equal("Diesel", item.GetProperty("fuelType").GetString());
+        Assert.Equal("Manual", item.GetProperty("transmission").GetString());
+        Assert.Equal("Leased", item.GetProperty("ownership").GetString());
+        Assert.Equal(2022, item.GetProperty("purchasedYear").GetInt32());
+    }
+
+    [Fact]
+    public async Task List_PurchasedVehicle_ReportsPurchasedOwnership()
+    {
+        var client = factory.CreateClientForUser(Alice);
+        var request = Minimal() with { Ownership = OwnershipType.Purchased, PurchasedOn = new DateOnly(2019, 1, 15) };
+        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/vehicles", request)).StatusCode);
+
+        var item = Assert.Single((await client.GetFromJsonAsync<PagedResultDto<VehicleSummaryDto>>("/api/vehicles"))!.Items);
+
+        Assert.Equal(OwnershipType.Purchased, item.Ownership);
+        Assert.Equal(2019, item.PurchasedYear);
+        Assert.Null(item.FuelType);
+        Assert.Null(item.Transmission);
+    }
+
+    [Fact]
+    public async Task List_VehicleWithoutTheseDetails_ReturnsNulls()
+    {
+        var client = factory.CreateClientForUser(Alice);
+        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/vehicles", Minimal())).StatusCode);
+
+        using var document = System.Text.Json.JsonDocument.Parse(await client.GetStringAsync("/api/vehicles"));
+
+        var item = document.RootElement.GetProperty("items").EnumerateArray().Single();
+        foreach (var name in new[] { "fuelType", "transmission", "ownership", "purchasedYear" })
+        {
+            Assert.True(!item.TryGetProperty(name, out var value) || value.ValueKind == System.Text.Json.JsonValueKind.Null, name);
+        }
+    }
+
+    [Fact]
+    public async Task List_DoesNotShowAnotherUsersFuelOrOwnershipDetails()
+    {
+        var alice = factory.CreateClientForUser(Alice);
+        var lookups = await LookupsAsync(alice);
+        var request = Minimal() with { FuelTypeId = IdOf(lookups.FuelTypes, "Electric"), Ownership = OwnershipType.Purchased, PurchasedOn = new DateOnly(2021, 5, 5) };
+        Assert.Equal(HttpStatusCode.Created, (await alice.PostAsJsonAsync("/api/vehicles", request)).StatusCode);
+
+        var bobItems = (await factory.CreateClientForUser(Bob).GetFromJsonAsync<PagedResultDto<VehicleSummaryDto>>("/api/vehicles"))!.Items;
+
+        Assert.Empty(bobItems);
+    }
+
     public static TheoryData<string, string> InvalidBodies => new()
     {
-        { """{"nickname":"n","make":"m","model":"x"}""", "Year" },
-        { """{"nickname":"n","make":"m","model":"x","year":1850}""", "Year" },
-        { """{"nickname":"n","make":"m","model":"x","year":2020,"vin":"SHORT"}""", "Vin" },
-        { """{"nickname":"n","make":"m","model":"x","year":2020,"horsepower":0}""", "Horsepower" },
-        { """{"nickname":"n","make":"m","model":"x","year":2020,"seats":25}""", "Seats" },
-        { """{"nickname":"n","make":"m","model":"x","year":2020,"wheelSize":5}""", "WheelSize" },
-        { """{"nickname":"n","make":"m","model":"x","year":2020,"purchasedOn":"2999-01-01"}""", "PurchasedOn" },
-        { """{"nickname":"n","make":"m","model":"x","year":2020,"ownership":"Purchased","leaseEndsOn":"2030-01-01"}""", "LeaseEndsOn" },
-        { """{"nickname":"n","make":"m","model":"x","year":2020,"ownership":"Leased","purchasedOn":"2025-05-01","leaseEndsOn":"2025-04-30"}""", "LeaseEndsOn" },
+        { """{"make":"m","model":"x"}""", "Year" },
+        { """{"make":"m","model":"x","year":1850}""", "Year" },
+        { """{"make":"m","model":"x","year":2020,"vin":"SHORT"}""", "Vin" },
+        { """{"make":"m","model":"x","year":2020,"horsepower":0}""", "Horsepower" },
+        { """{"make":"m","model":"x","year":2020,"seats":25}""", "Seats" },
+        { """{"make":"m","model":"x","year":2020,"wheelSize":5}""", "WheelSize" },
+        { """{"make":"m","model":"x","year":2020,"purchasedOn":"2999-01-01"}""", "PurchasedOn" },
+        { """{"make":"m","model":"x","year":2020,"ownership":"Purchased","leaseEndsOn":"2030-01-01"}""", "LeaseEndsOn" },
+        { """{"make":"m","model":"x","year":2020,"ownership":"Leased","purchasedOn":"2025-05-01","leaseEndsOn":"2025-04-30"}""", "LeaseEndsOn" },
     };
 
     [Theory]

@@ -1,5 +1,5 @@
-using Dapper;
 using MyGarage.Database.Common;
+using MyGarage.Database.Tags;
 using MyGarage.Database.Tests.Common;
 using MyGarage.Database.Vehicles;
 using Npgsql;
@@ -19,60 +19,52 @@ public class VehicleSearchTests(PostgresFixture postgres)
         VehicleRecord Silver,
         VehicleRecord Mystery);
 
-    // A: Blue Streak (Subaru, 42k, 4 doors, tags sunroof + tow package), B: Red Rocket (Ford, 120k, tow package),
-    // C: Garage Queen (Porsche, 5k, 2 doors, convertible), D: Mystery (Ford, no color/mileage/doors).
+    // A: Outback (Subaru, 42k, 4 doors, features sunroof + tow package), B: F-150 (Ford, 120k, tow package),
+    // C: 911 (Porsche, 5k, 2 doors, convertible), D: Mustang (ford, no color/mileage/doors).
     private async Task<Garage> CreateGarageAsync()
     {
         var dataSource = await postgres.CreateMigratedDatabaseAsync();
         var repository = new VehicleRepository(dataSource, new SqlScriptStore());
 
-        var blue = TestData.Vehicle(Owner, "Blue Streak", "Subaru", "Outback", "Limited", "Blue", 42_000, 4);
-        var red = TestData.Vehicle(Owner, "Red Rocket", "Ford", "F-150", "XLT", "Red", 120_000, 4);
-        var silver = TestData.Vehicle(Owner, "Garage Queen", "Porsche", "911", "Carrera", "Silver", 5_000, 2);
-        var mystery = TestData.Vehicle(Owner, "Mystery", "ford", "Mustang");
+        var blue = TestData.Vehicle(Owner, "Outback", "Subaru", "Limited", "Blue", 42_000, 4);
+        var red = TestData.Vehicle(Owner, "F-150", "Ford", "XLT", "Red", 120_000, 4);
+        var silver = TestData.Vehicle(Owner, "911", "Porsche", "Carrera", "Silver", 5_000, 2);
+        var mystery = TestData.Vehicle(Owner, "Mustang", "ford");
         foreach (var vehicle in new[] { blue, red, silver, mystery })
         {
             await repository.InsertAsync(vehicle, CancellationToken.None);
         }
 
-        await AddTagAsync(dataSource, blue.Id, "Sunroof");
-        await AddTagAsync(dataSource, blue.Id, "Tow package");
-        await AddTagAsync(dataSource, red.Id, "tow package");
-        await AddTagAsync(dataSource, silver.Id, "Convertible");
+        await TestData.LinkFeatureAsync(dataSource, blue.Id, "Sunroof");
+        await TestData.LinkFeatureAsync(dataSource, blue.Id, "Tow package");
+        await TestData.LinkFeatureAsync(dataSource, red.Id, "tow package");
+        await TestData.LinkFeatureAsync(dataSource, silver.Id, "Convertible");
 
         return new Garage(dataSource, repository, blue, red, silver, mystery);
     }
 
-    private static async Task AddTagAsync(NpgsqlDataSource dataSource, Guid vehicleId, string name)
-    {
-        await using var connection = await dataSource.OpenConnectionAsync();
-        await connection.ExecuteAsync(
-            "INSERT INTO vehicle_tags (id, vehicle_id, name, created_at) VALUES (gen_random_uuid(), @vehicleId, @name, now())",
-            new { vehicleId, name });
-    }
-
-    private static async Task<List<string>> NicknamesAsync(Garage garage, VehicleSearchCriteria criteria, string ownerId = Owner)
+    private static async Task<List<string>> ModelsAsync(Garage garage, VehicleSearchCriteria criteria, string ownerId = Owner)
     {
         var page = await garage.Repository.ListPageAsync(ownerId, criteria, 1, 50, CancellationToken.None);
-        return page.Items.Select(item => item.Nickname).ToList();
+        return page.Items.Select(item => item.Model).ToList();
     }
 
     [Theory]
-    [InlineData("streak", new[] { "Blue Streak" })]
-    [InlineData("OUTBACK", new[] { "Blue Streak" })]
-    [InlineData("xlt", new[] { "Red Rocket" })]
-    [InlineData("carrera", new[] { "Garage Queen" })]
-    [InlineData("silver", new[] { "Garage Queen" })]
-    [InlineData("ford", new[] { "Mystery", "Red Rocket" })]
-    [InlineData("convert", new[] { "Garage Queen" })]
-    [InlineData("TOW", new[] { "Blue Streak", "Red Rocket" })]
-    [InlineData("  streak  ", new[] { "Blue Streak" })]
+    [InlineData("limited", new[] { "Outback" })]
+    [InlineData("OUTBACK", new[] { "Outback" })]
+    [InlineData("xlt", new[] { "F-150" })]
+    [InlineData("carrera", new[] { "911" })]
+    [InlineData("silver", new[] { "911" })]
+    [InlineData("ford", new[] { "F-150", "Mustang" })]
+    [InlineData("convert", new[] { "911" })]
+    [InlineData("TOW", new[] { "F-150", "Outback" })]
+    [InlineData("  outback  ", new[] { "Outback" })]
     [InlineData("nothing matches this", new string[0])]
-    public async Task Query_MatchesTextFieldsAndTagsIgnoringCase(string query, string[] expected)
+    public async Task Query_MatchesTextFieldsAndFeaturesIgnoringCase(string query, string[] expected)
     {
         var garage = await CreateGarageAsync();
 
-        var result = await NicknamesAsync(garage, new VehicleSearchCriteria { Query = query });
+        var result = await ModelsAsync(garage, new VehicleSearchCriteria { Query = query });
 
         Assert.Equal(expected, result);
     }
@@ -84,12 +76,12 @@ public class VehicleSearchTests(PostgresFixture postgres)
     public async Task Query_MetacharactersAreMatchedLiterally(string query, string expected)
     {
         var garage = await CreateGarageAsync();
-        foreach (var nickname in new[] { "100% Legit", "snake_case", "back\\slash" })
+        foreach (var model in new[] { "100% Legit", "snake_case", "back\\slash" })
         {
-            await garage.Repository.InsertAsync(TestData.Vehicle(Owner, nickname), CancellationToken.None);
+            await garage.Repository.InsertAsync(TestData.Vehicle(Owner, model), CancellationToken.None);
         }
 
-        var result = await NicknamesAsync(garage, new VehicleSearchCriteria { Query = query });
+        var result = await ModelsAsync(garage, new VehicleSearchCriteria { Query = query });
 
         Assert.Equal([expected], result);
     }
@@ -99,7 +91,7 @@ public class VehicleSearchTests(PostgresFixture postgres)
     {
         var garage = await CreateGarageAsync();
 
-        Assert.Equal(4, (await NicknamesAsync(garage, new VehicleSearchCriteria { Query = "   " })).Count);
+        Assert.Equal(4, (await ModelsAsync(garage, new VehicleSearchCriteria { Query = "   " })).Count);
     }
 
     [Fact]
@@ -107,9 +99,9 @@ public class VehicleSearchTests(PostgresFixture postgres)
     {
         var garage = await CreateGarageAsync();
 
-        Assert.Equal(["Mystery", "Red Rocket"], await NicknamesAsync(garage, new VehicleSearchCriteria { Make = "FORD" }));
-        Assert.Empty(await NicknamesAsync(garage, new VehicleSearchCriteria { Make = "For" }));
-        Assert.Equal(["Red Rocket"], await NicknamesAsync(garage, new VehicleSearchCriteria { Color = "red" }));
+        Assert.Equal(["F-150", "Mustang"], await ModelsAsync(garage, new VehicleSearchCriteria { Make = "FORD" }));
+        Assert.Empty(await ModelsAsync(garage, new VehicleSearchCriteria { Make = "For" }));
+        Assert.Equal(["F-150"], await ModelsAsync(garage, new VehicleSearchCriteria { Color = "red" }));
     }
 
     [Fact]
@@ -117,8 +109,8 @@ public class VehicleSearchTests(PostgresFixture postgres)
     {
         var garage = await CreateGarageAsync();
 
-        Assert.Equal(["Garage Queen"], await NicknamesAsync(garage, new VehicleSearchCriteria { Doors = 2 }));
-        Assert.Equal(["Blue Streak", "Red Rocket"], await NicknamesAsync(garage, new VehicleSearchCriteria { Doors = 4 }));
+        Assert.Equal(["911"], await ModelsAsync(garage, new VehicleSearchCriteria { Doors = 2 }));
+        Assert.Equal(["F-150", "Outback"], await ModelsAsync(garage, new VehicleSearchCriteria { Doors = 4 }));
     }
 
     [Fact]
@@ -126,8 +118,8 @@ public class VehicleSearchTests(PostgresFixture postgres)
     {
         var garage = await CreateGarageAsync();
 
-        Assert.Equal(["Blue Streak", "Red Rocket"], await NicknamesAsync(garage, new VehicleSearchCriteria { Tag = "TOW PACKAGE" }));
-        Assert.Empty(await NicknamesAsync(garage, new VehicleSearchCriteria { Tag = "tow" }));
+        Assert.Equal(["F-150", "Outback"], await ModelsAsync(garage, new VehicleSearchCriteria { Tag = "TOW PACKAGE" }));
+        Assert.Empty(await ModelsAsync(garage, new VehicleSearchCriteria { Tag = "tow" }));
     }
 
     [Fact]
@@ -135,9 +127,9 @@ public class VehicleSearchTests(PostgresFixture postgres)
     {
         var garage = await CreateGarageAsync();
 
-        Assert.Equal(["Blue Streak", "Red Rocket"], await NicknamesAsync(garage, new VehicleSearchCriteria { MinMileage = 42_000 }));
-        Assert.Equal(["Blue Streak", "Garage Queen"], await NicknamesAsync(garage, new VehicleSearchCriteria { MaxMileage = 42_000 }));
-        Assert.Equal(["Blue Streak"], await NicknamesAsync(garage, new VehicleSearchCriteria { MinMileage = 10_000, MaxMileage = 50_000 }));
+        Assert.Equal(["F-150", "Outback"], await ModelsAsync(garage, new VehicleSearchCriteria { MinMileage = 42_000 }));
+        Assert.Equal(["911", "Outback"], await ModelsAsync(garage, new VehicleSearchCriteria { MaxMileage = 42_000 }));
+        Assert.Equal(["Outback"], await ModelsAsync(garage, new VehicleSearchCriteria { MinMileage = 10_000, MaxMileage = 50_000 }));
     }
 
     [Fact]
@@ -145,10 +137,10 @@ public class VehicleSearchTests(PostgresFixture postgres)
     {
         var garage = await CreateGarageAsync();
 
-        var result = await NicknamesAsync(garage, new VehicleSearchCriteria { Query = "ford", Tag = "tow package", MinMileage = 100_000 });
+        var result = await ModelsAsync(garage, new VehicleSearchCriteria { Query = "ford", Tag = "tow package", MinMileage = 100_000 });
 
-        Assert.Equal(["Red Rocket"], result);
-        Assert.Empty(await NicknamesAsync(garage, new VehicleSearchCriteria { Query = "ford", Doors = 2 }));
+        Assert.Equal(["F-150"], result);
+        Assert.Empty(await ModelsAsync(garage, new VehicleSearchCriteria { Query = "ford", Doors = 2 }));
     }
 
     [Fact]
@@ -157,7 +149,7 @@ public class VehicleSearchTests(PostgresFixture postgres)
         var garage = await CreateGarageAsync();
         for (var i = 1; i <= 25; i++)
         {
-            await garage.Repository.InsertAsync(TestData.Vehicle(Owner, $"Match {i:D2}", "Tesla", "3"), CancellationToken.None);
+            await garage.Repository.InsertAsync(TestData.Vehicle(Owner, $"Match {i:D2}", "Tesla"), CancellationToken.None);
         }
 
         var criteria = new VehicleSearchCriteria { Make = "tesla" };
@@ -168,30 +160,30 @@ public class VehicleSearchTests(PostgresFixture postgres)
         Assert.Equal(3, first.TotalPages);
         Assert.Equal(12, first.Items.Count);
         Assert.Single(third.Items);
-        Assert.Equal("Match 25", third.Items[0].Nickname);
+        Assert.Equal("Match 25", third.Items[0].Model);
     }
 
     [Fact]
     public async Task OtherOwnersVehicles_AreNeverReturned()
     {
         var garage = await CreateGarageAsync();
-        await garage.Repository.InsertAsync(TestData.Vehicle("owner-2", "Blue Streak Clone", "Subaru", "Outback"), CancellationToken.None);
+        await garage.Repository.InsertAsync(TestData.Vehicle("owner-2", "Forester", "Subaru"), CancellationToken.None);
 
-        var mine = await NicknamesAsync(garage, new VehicleSearchCriteria { Query = "subaru" });
-        var theirs = await NicknamesAsync(garage, new VehicleSearchCriteria { Query = "subaru" }, "owner-2");
+        var mine = await ModelsAsync(garage, new VehicleSearchCriteria { Query = "subaru" });
+        var theirs = await ModelsAsync(garage, new VehicleSearchCriteria { Query = "subaru" }, "owner-2");
 
-        Assert.Equal(["Blue Streak"], mine);
-        Assert.Equal(["Blue Streak Clone"], theirs);
+        Assert.Equal(["Outback"], mine);
+        Assert.Equal(["Forester"], theirs);
     }
 
     [Fact]
     public async Task FilterOptions_AreDistinctSortedAndOnlyFromTheCallersGarage()
     {
         var garage = await CreateGarageAsync();
-        await AddTagAsync(garage.DataSource, garage.Silver.Id, "SUNROOF");
-        var other = TestData.Vehicle("owner-2", "Other", "Zeta", "Z", color: "Violet");
+        await TestData.LinkFeatureAsync(garage.DataSource, garage.Silver.Id, "SUNROOF");
+        var other = TestData.Vehicle("owner-2", "Z", "Zeta", color: "Violet");
         await garage.Repository.InsertAsync(other, CancellationToken.None);
-        await AddTagAsync(garage.DataSource, other.Id, "secret");
+        await TestData.LinkFeatureAsync(garage.DataSource, other.Id, "secret");
 
         var options = await garage.Repository.GetFilterOptionsAsync(Owner, CancellationToken.None);
 
@@ -200,6 +192,59 @@ public class VehicleSearchTests(PostgresFixture postgres)
         Assert.Equal(["convertible", "sunroof", "tow package"], options.Tags.Select(tag => tag.ToLowerInvariant()));
         Assert.DoesNotContain("Zeta", options.Makes);
         Assert.DoesNotContain("secret", options.Tags);
+    }
+
+    [Fact]
+    public async Task Query_MatchesYearAndMakeTogether()
+    {
+        var garage = await CreateGarageAsync();
+        await garage.Repository.InsertAsync(TestData.Vehicle(Owner, "Grand Cherokee", "Jeep") with { Year = 2012 }, CancellationToken.None);
+        await garage.Repository.InsertAsync(TestData.Vehicle(Owner, "Wrangler", "Jeep") with { Year = 2015 }, CancellationToken.None);
+        await garage.Repository.InsertAsync(TestData.Vehicle(Owner, "Fusion", "Ford") with { Year = 2012 }, CancellationToken.None);
+
+        Assert.Equal(["Grand Cherokee"], await ModelsAsync(garage, new VehicleSearchCriteria { Query = "2012 jeep" }));
+        Assert.Equal(["Grand Cherokee"], await ModelsAsync(garage, new VehicleSearchCriteria { Query = "2012 Jeep Grand" }));
+        Assert.Equal(["Grand Cherokee", "Wrangler"], await ModelsAsync(garage, new VehicleSearchCriteria { Query = "jeep" }));
+        Assert.Empty(await ModelsAsync(garage, new VehicleSearchCriteria { Query = "2015 ford" }));
+    }
+
+    [Fact]
+    public async Task Query_MatchesAFeatureNameFromTheSharedCatalog_ForEachOwnersOwnVehiclesOnly()
+    {
+        var garage = await CreateGarageAsync();
+        var tags = new VehicleTagRepository(garage.DataSource, new SqlScriptStore());
+        var theirs = TestData.Vehicle("owner-2", "Theirs", "Honda");
+        await garage.Repository.InsertAsync(theirs, CancellationToken.None);
+        await tags.AddAsync(Owner, garage.Mystery.Id, Guid.CreateVersion7(), "Panoramic roof", TestData.Created, CancellationToken.None);
+        await tags.AddAsync("owner-2", theirs.Id, Guid.CreateVersion7(), "PANORAMIC ROOF", TestData.Created, CancellationToken.None);
+
+        Assert.Equal(["Mustang"], await ModelsAsync(garage, new VehicleSearchCriteria { Query = "panoramic" }));
+        Assert.Equal(["Theirs"], await ModelsAsync(garage, new VehicleSearchCriteria { Query = "ROOF" }, "owner-2"));
+        Assert.Equal(["Mustang"], await ModelsAsync(garage, new VehicleSearchCriteria { Tag = "panoramic roof" }));
+    }
+
+    [Fact]
+    public async Task ListOrder_IsMakeThenModelThenYearWithMissingYearsLast()
+    {
+        var repository = new VehicleRepository(await postgres.CreateMigratedDatabaseAsync(), new SqlScriptStore());
+        var vehicles = new[]
+        {
+            TestData.Vehicle(Owner, "F-150", "Ford") with { Year = null },
+            TestData.Vehicle(Owner, "F-150", "Ford") with { Year = 2015 },
+            TestData.Vehicle(Owner, "Bronco", "ford") with { Year = 2020 },
+            TestData.Vehicle(Owner, "f-150", "FORD") with { Year = 2010 },
+            TestData.Vehicle(Owner, "A4", "Audi") with { Year = 2018 },
+        };
+        foreach (var vehicle in vehicles)
+        {
+            await repository.InsertAsync(vehicle, CancellationToken.None);
+        }
+
+        var page = await repository.ListPageAsync(Owner, VehicleSearchCriteria.None, 1, 50, CancellationToken.None);
+
+        Assert.Equal(
+            [("A4", (int?)2018), ("Bronco", 2020), ("f-150", 2010), ("F-150", 2015), ("F-150", null)],
+            page.Items.Select(item => (item.Model, item.Year)));
     }
 
     [Fact]

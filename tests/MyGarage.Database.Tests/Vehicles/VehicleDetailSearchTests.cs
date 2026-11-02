@@ -27,7 +27,7 @@ public class VehicleDetailSearchTests(PostgresFixture postgres)
         Guid RearWheelDrive);
 
     // Tacoma: 2018, 3.5L V6, truck, gasoline, automatic, 4WD.  R1T: 2022, quad-motor electric, truck, electric, automatic, AWD.
-    // Miata: 1999, 1.8L I4, convertible, gasoline, manual, RWD.  Legacy: no year or details.
+    // MX-5: 1999, 1.8L I4, convertible, gasoline, manual, RWD.  F-150: no year or details.
     private async Task<Garage> CreateGarageAsync()
     {
         var dataSource = await postgres.CreateMigratedDatabaseAsync();
@@ -47,48 +47,48 @@ public class VehicleDetailSearchTests(PostgresFixture postgres)
             await Id(LookupKind.Drivetrain, "AWD"),
             await Id(LookupKind.Drivetrain, "RWD"));
 
-        await repository.InsertAsync(TestData.Vehicle(Owner, "Tacoma") with
+        await repository.InsertAsync(TestData.Vehicle(Owner, "Tacoma", "Toyota") with
         {
-            Make = "Toyota", Model = "Tacoma", Year = 2018, Vin = "1HGCM82633A004352", Engine = "3.5L V6",
+            Year = 2018, Vin = "1HGCM82633A004352", Engine = "3.5L V6",
             VehicleTypeId = garage.Truck, FuelTypeId = garage.Gasoline, TransmissionId = garage.Automatic, DrivetrainId = garage.FourWheelDrive,
         }, CancellationToken.None);
-        await repository.InsertAsync(TestData.Vehicle(Owner, "R1T") with
+        await repository.InsertAsync(TestData.Vehicle(Owner, "R1T", "Rivian") with
         {
-            Make = "Rivian", Model = "R1T", Year = 2022, Vin = "5YJ3E1EA7KF317000", Engine = "Quad-motor electric",
+            Year = 2022, Vin = "5YJ3E1EA7KF317000", Engine = "Quad-motor electric",
             VehicleTypeId = garage.Truck, FuelTypeId = garage.Electric, TransmissionId = garage.Automatic, DrivetrainId = garage.AllWheelDrive,
         }, CancellationToken.None);
-        await repository.InsertAsync(TestData.Vehicle(Owner, "Miata") with
+        await repository.InsertAsync(TestData.Vehicle(Owner, "MX-5", "Mazda") with
         {
-            Make = "Mazda", Model = "MX-5", Year = 1999, Engine = "1.8L I4",
+            Year = 1999, Engine = "1.8L I4",
             VehicleTypeId = garage.Convertible, FuelTypeId = garage.Gasoline, TransmissionId = garage.Manual, DrivetrainId = garage.RearWheelDrive,
         }, CancellationToken.None);
-        await repository.InsertAsync(TestData.Vehicle(Owner, "Legacy", "Ford", "F-150"), CancellationToken.None);
+        await repository.InsertAsync(TestData.Vehicle(Owner), CancellationToken.None);
 
         return garage;
     }
 
-    private static async Task<List<string>> NicknamesAsync(Garage garage, VehicleSearchCriteria criteria, string ownerId = Owner)
+    private static async Task<List<string>> ModelsAsync(Garage garage, VehicleSearchCriteria criteria, string ownerId = Owner)
     {
         var page = await garage.Repository.ListPageAsync(ownerId, criteria, 1, 50, CancellationToken.None);
-        return page.Items.Select(item => item.Nickname).ToList();
+        return page.Items.Select(item => item.Model).ToList();
     }
 
     [Theory]
     [InlineData("2018", new[] { "Tacoma" })]
-    [InlineData("1999", new[] { "Miata" })]
+    [InlineData("1999", new[] { "MX-5" })]
     [InlineData("317000", new[] { "R1T" })]
     [InlineData("1hgcm", new[] { "Tacoma" })]
     [InlineData("quad", new[] { "R1T" })]
     [InlineData("V6", new[] { "Tacoma" })]
-    [InlineData("1.8L", new[] { "Miata" })]
+    [InlineData("1.8L", new[] { "MX-5" })]
     [InlineData("20", new[] { "R1T", "Tacoma" })]
     public async Task Search_AlsoMatchesYearVinAndEngine(string text, string[] expected)
     {
         var garage = await CreateGarageAsync();
 
-        var names = await NicknamesAsync(garage, new VehicleSearchCriteria { Query = text });
+        var names = await ModelsAsync(garage, new VehicleSearchCriteria { Query = text });
 
-        Assert.Equal(expected.Order(StringComparer.OrdinalIgnoreCase), names);
+        Assert.Equal(expected, names);
     }
 
     [Theory]
@@ -98,7 +98,7 @@ public class VehicleDetailSearchTests(PostgresFixture postgres)
     {
         var garage = await CreateGarageAsync();
 
-        Assert.Empty(await NicknamesAsync(garage, new VehicleSearchCriteria { Query = text }));
+        Assert.Empty(await ModelsAsync(garage, new VehicleSearchCriteria { Query = text }));
     }
 
     [Fact]
@@ -106,11 +106,11 @@ public class VehicleDetailSearchTests(PostgresFixture postgres)
     {
         var garage = await CreateGarageAsync();
 
-        Assert.Equal(["R1T", "Tacoma"], await NicknamesAsync(garage, new VehicleSearchCriteria { MinYear = 2018 }));
-        Assert.Equal(["Miata", "Tacoma"], await NicknamesAsync(garage, new VehicleSearchCriteria { MaxYear = 2018 }));
-        Assert.Equal(["Tacoma"], await NicknamesAsync(garage, new VehicleSearchCriteria { MinYear = 2018, MaxYear = 2018 }));
-        Assert.Empty(await NicknamesAsync(garage, new VehicleSearchCriteria { MinYear = 2023 }));
-        Assert.Equal(["Legacy", "Miata", "R1T", "Tacoma"], await NicknamesAsync(garage, VehicleSearchCriteria.None));
+        Assert.Equal(["R1T", "Tacoma"], await ModelsAsync(garage, new VehicleSearchCriteria { MinYear = 2018 }));
+        Assert.Equal(["MX-5", "Tacoma"], await ModelsAsync(garage, new VehicleSearchCriteria { MaxYear = 2018 }));
+        Assert.Equal(["Tacoma"], await ModelsAsync(garage, new VehicleSearchCriteria { MinYear = 2018, MaxYear = 2018 }));
+        Assert.Empty(await ModelsAsync(garage, new VehicleSearchCriteria { MinYear = 2023 }));
+        Assert.Equal(["F-150", "MX-5", "R1T", "Tacoma"], await ModelsAsync(garage, VehicleSearchCriteria.None));
     }
 
     [Fact]
@@ -118,15 +118,15 @@ public class VehicleDetailSearchTests(PostgresFixture postgres)
     {
         var garage = await CreateGarageAsync();
 
-        Assert.Equal(["R1T", "Tacoma"], await NicknamesAsync(garage, new VehicleSearchCriteria { VehicleTypeId = garage.Truck }));
-        Assert.Equal(["Miata", "Tacoma"], await NicknamesAsync(garage, new VehicleSearchCriteria { FuelTypeId = garage.Gasoline }));
-        Assert.Equal(["Miata"], await NicknamesAsync(garage, new VehicleSearchCriteria { TransmissionId = garage.Manual }));
-        Assert.Equal(["R1T"], await NicknamesAsync(garage, new VehicleSearchCriteria { DrivetrainId = garage.AllWheelDrive }));
-        Assert.Equal(["Tacoma"], await NicknamesAsync(garage, new VehicleSearchCriteria { VehicleTypeId = garage.Truck, FuelTypeId = garage.Gasoline }));
-        Assert.Empty(await NicknamesAsync(garage, new VehicleSearchCriteria { VehicleTypeId = garage.Convertible, FuelTypeId = garage.Electric }));
+        Assert.Equal(["R1T", "Tacoma"], await ModelsAsync(garage, new VehicleSearchCriteria { VehicleTypeId = garage.Truck }));
+        Assert.Equal(["MX-5", "Tacoma"], await ModelsAsync(garage, new VehicleSearchCriteria { FuelTypeId = garage.Gasoline }));
+        Assert.Equal(["MX-5"], await ModelsAsync(garage, new VehicleSearchCriteria { TransmissionId = garage.Manual }));
+        Assert.Equal(["R1T"], await ModelsAsync(garage, new VehicleSearchCriteria { DrivetrainId = garage.AllWheelDrive }));
+        Assert.Equal(["Tacoma"], await ModelsAsync(garage, new VehicleSearchCriteria { VehicleTypeId = garage.Truck, FuelTypeId = garage.Gasoline }));
+        Assert.Empty(await ModelsAsync(garage, new VehicleSearchCriteria { VehicleTypeId = garage.Convertible, FuelTypeId = garage.Electric }));
         Assert.Equal(
             ["Tacoma"],
-            await NicknamesAsync(garage, new VehicleSearchCriteria { Make = "toyota", MinYear = 2000, DrivetrainId = garage.FourWheelDrive, Query = "tacoma" }));
+            await ModelsAsync(garage, new VehicleSearchCriteria { Make = "toyota", MinYear = 2000, DrivetrainId = garage.FourWheelDrive, Query = "tacoma" }));
     }
 
     [Fact]
@@ -139,12 +139,12 @@ public class VehicleDetailSearchTests(PostgresFixture postgres)
 
         Assert.Equal(2, page.TotalCount);
         Assert.Equal(2, page.TotalPages);
-        Assert.Equal(["Miata"], page.Items.Select(item => item.Nickname));
+        Assert.Equal(["MX-5"], page.Items.Select(item => item.Model));
         Assert.Equal(1999, page.Items[0].Year);
-        Assert.Equal(["Tacoma"], second.Items.Select(item => item.Nickname));
+        Assert.Equal(["Tacoma"], second.Items.Select(item => item.Model));
         Assert.Equal(2018, second.Items[0].Year);
-        var legacy = (await garage.Repository.ListPageAsync(Owner, new VehicleSearchCriteria { Query = "legacy" }, 1, 12, CancellationToken.None)).Items.Single();
-        Assert.Null(legacy.Year);
+        var withoutYear = (await garage.Repository.ListPageAsync(Owner, new VehicleSearchCriteria { Query = "f-150" }, 1, 12, CancellationToken.None)).Items.Single();
+        Assert.Null(withoutYear.Year);
     }
 
     [Fact]
@@ -152,9 +152,9 @@ public class VehicleDetailSearchTests(PostgresFixture postgres)
     {
         var garage = await CreateGarageAsync();
 
-        Assert.Empty(await NicknamesAsync(garage, new VehicleSearchCriteria { VehicleTypeId = garage.Truck }, "owner-2"));
-        Assert.Empty(await NicknamesAsync(garage, new VehicleSearchCriteria { Query = "2018" }, "owner-2"));
-        Assert.Empty(await NicknamesAsync(garage, new VehicleSearchCriteria { MinYear = 1900 }, "owner-2"));
+        Assert.Empty(await ModelsAsync(garage, new VehicleSearchCriteria { VehicleTypeId = garage.Truck }, "owner-2"));
+        Assert.Empty(await ModelsAsync(garage, new VehicleSearchCriteria { Query = "2018" }, "owner-2"));
+        Assert.Empty(await ModelsAsync(garage, new VehicleSearchCriteria { MinYear = 1900 }, "owner-2"));
     }
 
     [Fact]

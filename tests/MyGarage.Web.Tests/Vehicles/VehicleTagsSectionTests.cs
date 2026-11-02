@@ -19,30 +19,77 @@ public class VehicleTagsSectionTests : VehicleTestContext
             .Add(section => section.Tags, tags));
 
     [Fact]
-    public void NoTags_ShowsAnEncouragingEmptyState()
+    public void NoFeatures_ShowsAnEncouragingEmptyState()
     {
         RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
 
         var cut = RenderSection();
 
-        Assert.Contains("No tags yet", cut.Markup);
+        Assert.Equal("Features", cut.Find("h2#tags-heading").TextContent.Trim());
+        Assert.Contains("No features yet. Start typing to reuse a feature from other vehicles, or add your own.", cut.Markup);
+        Assert.Empty(cut.FindAll("[data-testid='feature-list']"));
+        Assert.DoesNotContain("Features and tags", cut.Markup);
     }
 
     [Fact]
-    public void Tags_AreShownAsBadgesWithAccessibleRemoveButtons()
+    public void AddFormComesBeforeTheIncludedFeaturesHeadingAndList()
+    {
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderSection(Tag("sunroof"));
+
+        var section = cut.Find("section[aria-labelledby='tags-heading']");
+        Assert.Equal(["H2", "FORM", "DIV", "H3", "UL"], section.Children.Select(child => child.TagName));
+        Assert.Equal("tag-help", section.Children[2].Id);
+        Assert.Equal("add-tag", section.Children[1].GetAttribute("data-testid"));
+        Assert.Equal("Included Features", section.Children[3].TextContent.Trim());
+        Assert.Equal("included-features-heading", section.Children[3].Id);
+        Assert.Equal("included-features-heading", section.Children[4].GetAttribute("aria-labelledby"));
+    }
+
+    [Fact]
+    public void NoFeatures_KeepsTheIncludedFeaturesHeadingAfterTheAddFormWithTheEmptyStateBelowIt()
+    {
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderSection();
+
+        var section = cut.Find("section[aria-labelledby='tags-heading']");
+        var children = section.Children.ToList();
+        var heading = children.Single(child => child.Id == "included-features-heading");
+        Assert.True(children.IndexOf(heading) > children.IndexOf(cut.Find("form[data-testid='add-tag']")));
+        Assert.Contains("No features yet", children[children.IndexOf(heading) + 1].TextContent);
+    }
+
+    [Fact]
+    public void Features_AreShownInAListGroupWithAccessibleRemoveButtons()
     {
         RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
 
         var cut = RenderSection(Tag("sunroof"), Tag("tow package"));
 
-        Assert.Equal(["sunroof", "tow package"], cut.FindAll("[data-testid='tag']").Select(badge => badge.TextContent.Trim()));
+        var list = cut.Find("ul.list-group[data-testid='feature-list']");
+        var items = list.QuerySelectorAll("li.list-group-item[data-testid='tag']");
+        Assert.Equal(["sunroof", "tow package"], items.Select(item => item.TextContent.Trim()));
         Assert.Equal(
-            ["Remove tag sunroof", "Remove tag tow package"],
-            cut.FindAll("[data-testid='tag'] button").Select(button => button.GetAttribute("aria-label")));
+            ["Remove feature sunroof", "Remove feature tow package"],
+            items.Select(item => item.QuerySelector("form button[type='submit'].btn-close")!.GetAttribute("aria-label")));
+        Assert.Empty(cut.FindAll("span.badge"));
+        Assert.DoesNotContain("Remove tag", cut.Markup);
     }
 
     [Fact]
-    public void TagText_IsEncoded()
+    public void EachFeature_HasItsOwnRemoveForm()
+    {
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderSection(Tag("sunroof"), Tag("tow package"));
+
+        Assert.All(cut.FindAll("[data-testid='tag']"), item => Assert.Single(item.QuerySelectorAll("form")));
+    }
+
+    [Fact]
+    public void FeatureText_IsEncoded()
     {
         RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
 
@@ -53,14 +100,32 @@ public class VehicleTagsSectionTests : VehicleTestContext
     }
 
     [Fact]
-    public void AddForm_HasALabeledInputWithTheTagLimit()
+    public void AddForm_HasALabeledInputWithTheFeatureLimit()
     {
         RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
 
         var cut = RenderSection();
 
-        Assert.NotNull(cut.Find("label[for='tag-name']"));
+        Assert.Equal("Add a feature", cut.Find("label[for='tag-name']").TextContent.Trim());
         Assert.Equal("30", cut.Find("input#tag-name").GetAttribute("maxlength"));
+        Assert.Equal("Add feature", cut.Find("form[data-testid='add-tag'] button[type='submit']").TextContent.Trim());
+    }
+
+    [Fact]
+    public void AddInput_IsWiredToTheSuggestionListAndEndpoint()
+    {
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderSection();
+
+        var input = cut.Find("input#tag-name");
+        Assert.Equal("feature-options", input.GetAttribute("list"));
+        Assert.Equal("/features/suggest", input.GetAttribute("data-suggest-url"));
+        Assert.Equal("off", input.GetAttribute("autocomplete"));
+        var options = cut.Find("datalist#feature-options");
+        Assert.Empty(options.Children);
+        Assert.Equal("tag-help", input.GetAttribute("aria-describedby"));
+        Assert.NotNull(cut.Find("#tag-help"));
     }
 
     [Fact]
@@ -133,19 +198,19 @@ public class VehicleTagsSectionTests : VehicleTestContext
             Assert.Contains("d-block", error.ClassName);
             Assert.Equal("alert", error.GetAttribute("role"));
             Assert.DoesNotContain("text-danger", error.ClassName);
-            Assert.Equal("tag-error", cut.Find("input#tag-name").GetAttribute("aria-describedby"));
+            Assert.Equal("tag-help tag-error", cut.Find("input#tag-name").GetAttribute("aria-describedby"));
         });
     }
 
     [Fact]
-    public void NoTags_UsesTheCompactEmptyState()
+    public void NoFeatures_UsesTheCompactEmptyState()
     {
         RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
 
         var cut = RenderSection();
 
         Assert.Contains("text-body-secondary", cut.Find("section p").ClassName);
-        Assert.Contains("No tags yet", cut.Find("section p").TextContent);
+        Assert.Contains("No features yet", cut.Find("section p").TextContent);
     }
 
     [Fact]
@@ -166,7 +231,7 @@ public class VehicleTagsSectionTests : VehicleTestContext
     }
 
     [Fact]
-    public void Remove_SendsDeleteForThatTagAndReturnsToTheVehicle()
+    public void Remove_SendsDeleteForThatFeatureAndReturnsToTheVehicle()
     {
         var sunroof = Tag("sunroof");
         RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));

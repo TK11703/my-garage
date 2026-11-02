@@ -11,7 +11,6 @@ public class VehicleRequestValidatorTests
     private readonly VehicleRequestValidator validator = new(new FixedTimeProvider(Today));
 
     private static VehicleRequest Valid(
-        string? nickname = "Daily",
         string? make = "Ford",
         string? model = "F-150",
         string? trim = null,
@@ -19,7 +18,7 @@ public class VehicleRequestValidatorTests
         int? mileage = null,
         int? doors = null,
         int? year = 2020) =>
-        new() { Nickname = nickname, Make = make, Model = model, Trim = trim, Color = color, Mileage = mileage, Doors = doors, Year = year };
+        new() { Make = make, Model = model, Trim = trim, Color = color, Mileage = mileage, Doors = doors, Year = year };
 
     private bool IsValid(VehicleRequest request) => validator.Validate(request).IsValid;
 
@@ -37,20 +36,6 @@ public class VehicleRequestValidatorTests
     [Fact]
     public void FullRequest_IsValid() =>
         Assert.True(IsValid(Valid(trim: "XLT", color: "Blue", mileage: 100_000, doors: 4)));
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void Nickname_Required(string? nickname) => Assert.False(IsValid(Valid(nickname: nickname)));
-
-    [Fact]
-    public void Nickname_MaxLength100IgnoringSurroundingSpaces()
-    {
-        Assert.True(IsValid(Valid(nickname: new string('a', 100))));
-        Assert.True(IsValid(Valid(nickname: " " + new string('a', 100) + " ")));
-        Assert.False(IsValid(Valid(nickname: new string('a', 101))));
-    }
 
     [Theory]
     [InlineData(null)]
@@ -100,7 +85,6 @@ public class VehicleRequestValidatorTests
     [Fact]
     public void ControlCharacters_Rejected()
     {
-        Assert.False(IsValid(Valid(nickname: "bad\u0007name")));
         Assert.False(IsValid(Valid(make: "bad\nmake")));
         Assert.False(IsValid(Valid(model: "bad\tmodel")));
         Assert.False(IsValid(Valid(trim: "bad\u0000trim")));
@@ -109,7 +93,7 @@ public class VehicleRequestValidatorTests
 
     [Fact]
     public void QuotesAndAngleBrackets_Allowed() =>
-        Assert.True(IsValid(Valid(nickname: "Bob's \"<b>truck</b>\"")));
+        Assert.True(IsValid(Valid(model: "Bob's \"<b>truck</b>\"")));
 
     [Theory]
     [InlineData(1899, false)]
@@ -139,7 +123,7 @@ public class VehicleRequestValidatorTests
     [InlineData("1HGCM82633A00435-", false)]
     public void Vin_Is17AllowedCharactersAfterTrimmingAndUpperCasing(string vin, bool valid)
     {
-        var request = new VehicleRequest { Nickname = "n", Make = "m", Model = "x", Year = 2020, Vin = vin };
+        var request = new VehicleRequest { Make = "m", Model = "x", Year = 2020, Vin = vin };
 
         Assert.Equal(valid, IsValid(request));
         if (!valid)
@@ -150,7 +134,7 @@ public class VehicleRequestValidatorTests
 
     [Fact]
     public void Vin_BlankIsTreatedAsNotSet() =>
-        Assert.True(IsValid(new VehicleRequest { Nickname = "n", Make = "m", Model = "x", Year = 2020, Vin = "  " }));
+        Assert.True(IsValid(new VehicleRequest { Make = "m", Model = "x", Year = 2020, Vin = "  " }));
 
     [Theory]
     [InlineData(0, false)]
@@ -158,7 +142,7 @@ public class VehicleRequestValidatorTests
     [InlineData(3000, true)]
     [InlineData(3001, false)]
     public void Horsepower_Range(int horsepower, bool valid) =>
-        Assert.Equal(valid, IsValid(new VehicleRequest { Nickname = "n", Make = "m", Model = "x", Year = 2020, Horsepower = horsepower }));
+        Assert.Equal(valid, IsValid(new VehicleRequest { Make = "m", Model = "x", Year = 2020, Horsepower = horsepower }));
 
     [Theory]
     [InlineData(0, false)]
@@ -166,7 +150,7 @@ public class VehicleRequestValidatorTests
     [InlineData(20, true)]
     [InlineData(21, false)]
     public void Seats_Range(int seats, bool valid) =>
-        Assert.Equal(valid, IsValid(new VehicleRequest { Nickname = "n", Make = "m", Model = "x", Year = 2020, Seats = seats }));
+        Assert.Equal(valid, IsValid(new VehicleRequest { Make = "m", Model = "x", Year = 2020, Seats = seats }));
 
     [Theory]
     [InlineData("9.9", false)]
@@ -178,14 +162,14 @@ public class VehicleRequestValidatorTests
     public void WheelSize_BetweenTenAndThirtyWithOneDecimal(string size, bool valid) =>
         Assert.Equal(valid, IsValid(new VehicleRequest
         {
-            Nickname = "n", Make = "m", Model = "x", Year = 2020, WheelSize = decimal.Parse(size, System.Globalization.CultureInfo.InvariantCulture),
+            Make = "m", Model = "x", Year = 2020, WheelSize = decimal.Parse(size, System.Globalization.CultureInfo.InvariantCulture),
         }));
 
     [Fact]
     public void EngineAndTireSize_LengthLimitsAndControlCharacters()
     {
         VehicleRequest With(string? engine = null, string? tire = null) =>
-            new() { Nickname = "n", Make = "m", Model = "x", Year = 2020, Engine = engine, TireSize = tire };
+            new() { Make = "m", Model = "x", Year = 2020, Engine = engine, TireSize = tire };
 
         Assert.True(IsValid(With(engine: new string('a', 100), tire: new string('a', 20))));
         Assert.False(IsValid(With(engine: new string('a', 101))));
@@ -197,7 +181,7 @@ public class VehicleRequestValidatorTests
     [Fact]
     public void PurchasedOn_NotInTheFuture()
     {
-        VehicleRequest With(DateOnly date) => new() { Nickname = "n", Make = "m", Model = "x", Year = 2020, PurchasedOn = date };
+        VehicleRequest With(DateOnly date) => new() { Make = "m", Model = "x", Year = 2020, PurchasedOn = date };
 
         Assert.True(IsValid(With(new DateOnly(2026, 11, 1))));
         Assert.True(IsValid(With(new DateOnly(2020, 1, 1))));
@@ -209,7 +193,7 @@ public class VehicleRequestValidatorTests
     public void LeaseEndsOn_OnlyForLeasedAndNotBeforePurchase()
     {
         VehicleRequest With(OwnershipType? ownership, DateOnly? purchased, DateOnly? ends) =>
-            new() { Nickname = "n", Make = "m", Model = "x", Year = 2020, Ownership = ownership, PurchasedOn = purchased, LeaseEndsOn = ends };
+            new() { Make = "m", Model = "x", Year = 2020, Ownership = ownership, PurchasedOn = purchased, LeaseEndsOn = ends };
 
         Assert.True(IsValid(With(OwnershipType.Leased, new DateOnly(2025, 5, 1), new DateOnly(2028, 5, 1))));
         Assert.True(IsValid(With(OwnershipType.Leased, null, new DateOnly(2028, 5, 1))));
@@ -224,6 +208,6 @@ public class VehicleRequestValidatorTests
     [Fact]
     public void ErrorsAreKeyedByThePropertyName() =>
         Assert.Equal(
-            ["Horsepower", "Nickname", "Year"],
-            ErrorFields(new VehicleRequest { Nickname = "", Make = "m", Model = "x", Year = null, Horsepower = 0 }).Order());
+            ["Horsepower", "Make", "Year"],
+            ErrorFields(new VehicleRequest { Make = "", Model = "x", Year = null, Horsepower = 0 }).Order());
 }

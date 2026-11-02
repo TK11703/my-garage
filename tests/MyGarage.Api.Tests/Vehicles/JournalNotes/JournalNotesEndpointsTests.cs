@@ -17,7 +17,7 @@ public class JournalNotesEndpointsTests(ApiFactory factory) : IClassFixture<ApiF
 
     private static async Task<VehicleDetailDto> CreateVehicleAsync(HttpClient client)
     {
-        var response = await client.PostAsJsonAsync("/api/vehicles", new VehicleRequest { Nickname = "Daily", Make = "Ford", Model = "F-150", Year = 2020 });
+        var response = await client.PostAsJsonAsync("/api/vehicles", new VehicleRequest { Make = "Ford", Model = "F-150", Year = 2020 });
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<VehicleDetailDto>())!;
     }

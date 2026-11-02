@@ -1,23 +1,17 @@
-<div>
-    <label for="nickname" class="form-label">Name<span class="text-danger" aria-hidden="true"> *</span></label>
-    <InputText id="nickname" class="form-control" @bind-Value="Model.Nickname" maxlength="100"
-               aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "Nickname")" />
-    <ValidationMessage For="@(() => Model.Nickname)" id="nickname-error" class="invalid-feedback d-block" />
-</div>
-<div>
-    <label for="vin" class="form-label">VIN</label>
-    <InputText id="vin" class="form-control text-uppercase" @bind-Value="Model.Vin" maxlength="17" autocomplete="off"
-               aria-describedby="@VehicleFormFields.Described(Errors, "Vin")" />
-    <ValidationMessage For="@(() => Model.Vin)" id="vin-error" class="invalid-feedback d-block" />
-</div>
 <div class="row g-3">
-    <div class="col-sm-6">
+    <div class="col-sm-4">
+        <label for="year" class="form-label">Year<span class="text-danger" aria-hidden="true"> *</span></label>
+        <InputNumber id="year" TValue="int?" class="form-control" @bind-Value="Model.Year" min="1900" max="@(DateTime.UtcNow.Year + 1)" step="1" inputmode="numeric"
+                     aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "Year")" />
+        <ValidationMessage For="@(() => Model.Year)" id="year-error" class="invalid-feedback d-block" />
+    </div>
+    <div class="col-sm-4">
         <label for="make" class="form-label">Make<span class="text-danger" aria-hidden="true"> *</span></label>
         <InputText id="make" class="form-control" @bind-Value="Model.Make" maxlength="50"
                    aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "Make")" />
         <ValidationMessage For="@(() => Model.Make)" id="make-error" class="invalid-feedback d-block" />
     </div>
-    <div class="col-sm-6">
+    <div class="col-sm-4">
         <label for="model" class="form-label">Model<span class="text-danger" aria-hidden="true"> *</span></label>
         <InputText id="model" class="form-control" @bind-Value="Model.Model" maxlength="50"
                    aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "Model")" />
@@ -25,21 +19,19 @@
     </div>
 </div>
 <div class="row g-3">
-    <div class="col-sm-6">
+    <div class="col-sm-4">
         <label for="trim" class="form-label">Trim</label>
         <InputText id="trim" class="form-control" @bind-Value="Model.Trim" maxlength="50"
                    aria-describedby="@VehicleFormFields.Described(Errors, "Trim")" />
         <ValidationMessage For="@(() => Model.Trim)" id="trim-error" class="invalid-feedback d-block" />
     </div>
-    <div class="col-sm-6">
-        <label for="year" class="form-label">Year<span class="text-danger" aria-hidden="true"> *</span></label>
-        <InputNumber id="year" TValue="int?" class="form-control" @bind-Value="Model.Year" min="1900" max="@(DateTime.UtcNow.Year + 1)" step="1" inputmode="numeric"
-                     aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "Year")" />
-        <ValidationMessage For="@(() => Model.Year)" id="year-error" class="invalid-feedback d-block" />
+    <div class="col-sm-4">
+        <label for="vin" class="form-label">VIN</label>
+        <InputText id="vin" class="form-control text-uppercase" @bind-Value="Model.Vin" maxlength="17" autocomplete="off"
+                   aria-describedby="@VehicleFormFields.Described(Errors, "Vin")" />
+        <ValidationMessage For="@(() => Model.Vin)" id="vin-error" class="invalid-feedback d-block" />
     </div>
-</div>
-<div class="row g-3">
-    <div class="col-sm-6">
+    <div class="col-sm-4">
         <label for="vehicle-type" class="form-label">Vehicle type</label>
         <InputSelect id="vehicle-type" TValue="Guid?" class="form-select" @bind-Value="Model.VehicleTypeId"
                      aria-describedby="@VehicleFormFields.Described(Errors, "VehicleTypeId")">
@@ -51,9 +43,12 @@
         </InputSelect>
         <ValidationMessage For="@(() => Model.VehicleTypeId)" id="vehicletypeid-error" class="invalid-feedback d-block" />
     </div>
-    <div class="col-sm-6">
+</div>
+<div class="row g-3">
+    <div class="col-sm-4">
         <label for="ownership" class="form-label">Purchased or leased</label>
         <InputSelect id="ownership" TValue="OwnershipType?" class="form-select" @bind-Value="Model.Ownership"
+                     data-lease-source="lease-ends-field"
                      aria-describedby="@VehicleFormFields.Described(Errors, "Ownership")">
             <option value="">Not set</option>
             <option value="@OwnershipType.Purchased">Purchased</option>
@@ -61,20 +56,28 @@
         </InputSelect>
         <ValidationMessage For="@(() => Model.Ownership)" id="ownership-error" class="invalid-feedback d-block" />
     </div>
-</div>
-<div class="row g-3">
-    <div class="col-sm-6">
-        <label for="purchased-on" class="form-label">Date purchased</label>
+    <div class="col-sm-4">
+        <label for="purchased-on" class="form-label" data-ownership-text data-purchased="@VehicleFormat.DateLabel(OwnershipType.Purchased)"
+               data-leased="@VehicleFormat.DateLabel(OwnershipType.Leased)" data-unset="@VehicleFormat.DateLabel(null)">@VehicleFormat.DateLabel(Model.Ownership)</label>
         <InputDate id="purchased-on" TValue="DateOnly?" class="form-control" @bind-Value="Model.PurchasedOn"
                    aria-describedby="@VehicleFormFields.Described(Errors, "PurchasedOn")" />
         <ValidationMessage For="@(() => Model.PurchasedOn)" id="purchasedon-error" class="invalid-feedback d-block" />
     </div>
-    <div class="col-sm-6">
+    @* Only leased vehicles have a lease end; the ownership script shows and hides it as the choice above changes. *@
+    <div id="lease-ends-field" class="col-sm-4" hidden="@(Model.Ownership != OwnershipType.Leased)">
         <label for="lease-ends-on" class="form-label">Date lease ends</label>
         <InputDate id="lease-ends-on" TValue="DateOnly?" class="form-control" @bind-Value="Model.LeaseEndsOn"
-                   aria-describedby="@($"lease-ends-on-help {VehicleFormFields.Described(Errors, "LeaseEndsOn")}".Trim())" />
-        <div id="lease-ends-on-help" class="form-text">Leased vehicles only.</div>
+                   aria-describedby="@VehicleFormFields.Described(Errors, "LeaseEndsOn")" />
         <ValidationMessage For="@(() => Model.LeaseEndsOn)" id="leaseendson-error" class="invalid-feedback d-block" />
+    </div>
+</div>
+<div class="row g-3">
+    <div class="col-sm-4">
+        <label for="mileage" class="form-label" data-ownership-text data-purchased="@VehicleFormat.MileageLabel(OwnershipType.Purchased)"
+               data-leased="@VehicleFormat.MileageLabel(OwnershipType.Leased)" data-unset="@VehicleFormat.MileageLabel(null)">@VehicleFormat.MileageLabel(Model.Ownership)</label>
+        <InputNumber id="mileage" TValue="int?" class="form-control" @bind-Value="Model.Mileage" min="0" max="9999999" step="1" inputmode="numeric"
+                     aria-describedby="@VehicleFormFields.Described(Errors, "Mileage")" />
+        <ValidationMessage For="@(() => Model.Mileage)" id="mileage-error" class="invalid-feedback d-block" />
     </div>
 </div>
 

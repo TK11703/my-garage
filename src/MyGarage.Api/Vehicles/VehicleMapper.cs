@@ -13,7 +13,6 @@ public static class VehicleMapper
         {
             Id = id,
             OwnerId = ownerId,
-            Nickname = request.Nickname!.Trim(),
             Vin = Clean(request.Vin)?.ToUpperInvariant(),
             Make = request.Make!.Trim(),
             Model = request.Model!.Trim(),
@@ -52,19 +51,13 @@ public static class VehicleMapper
         new()
         {
             Id = vehicle.Id,
-            Nickname = vehicle.Nickname,
             Vin = vehicle.Vin,
             Make = vehicle.Make,
             Model = vehicle.Model,
             Trim = vehicle.Trim,
             Year = vehicle.Year,
             VehicleType = Value(vehicle.VehicleTypeId, vehicle.VehicleTypeName),
-            Ownership = vehicle.Ownership switch
-            {
-                "purchased" => OwnershipType.Purchased,
-                "leased" => OwnershipType.Leased,
-                _ => null,
-            },
+            Ownership = ToOwnership(vehicle.Ownership),
             PurchasedOn = vehicle.PurchasedOn,
             LeaseEndsOn = vehicle.LeaseEndsOn,
             Engine = vehicle.Engine,
@@ -84,6 +77,14 @@ public static class VehicleMapper
             UpdatedAt = vehicle.UpdatedAt,
         };
 
+    private static OwnershipType? ToOwnership(string? stored) =>
+        stored switch
+        {
+            "purchased" => OwnershipType.Purchased,
+            "leased" => OwnershipType.Leased,
+            _ => null,
+        };
+
     private static LookupValueDto? Value(Guid? id, string? name) =>
         id is { } itemId && name is not null ? new LookupValueDto { Id = itemId, Name = name } : null;
 
@@ -91,12 +92,15 @@ public static class VehicleMapper
         new()
         {
             Id = vehicle.Id,
-            Nickname = vehicle.Nickname,
             Year = vehicle.Year,
             Make = vehicle.Make,
             Model = vehicle.Model,
             Mileage = vehicle.Mileage,
             MainImageId = vehicle.MainImageId,
+            FuelType = vehicle.FuelTypeName,
+            Transmission = vehicle.TransmissionName,
+            Ownership = ToOwnership(vehicle.Ownership),
+            PurchasedYear = vehicle.PurchasedOn?.Year,
         };
 
     public static PagedResultDto<VehicleSummaryDto> ToPageDto(PagedResult<VehicleSummaryRecord> page) =>

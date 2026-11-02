@@ -3,8 +3,6 @@ namespace MyGarage.Shared.Vehicles;
 // Create and update both send the full set of editable fields.
 public sealed record VehicleRequest
 {
-    public string? Nickname { get; init; }
-
     public string? Vin { get; init; }
 
     public string? Make { get; init; }

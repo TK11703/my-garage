@@ -6,8 +6,6 @@ public sealed record VehicleRecord
 
     public string OwnerId { get; init; } = string.Empty;
 
-    public string Nickname { get; init; } = string.Empty;
-
     public string? Vin { get; init; }
 
     public string Make { get; init; } = string.Empty;

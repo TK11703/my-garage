@@ -64,7 +64,7 @@ public class LookupRepositoryTests(PostgresFixture postgres)
 
         var found = await repository.FindAvailableAsync("owner-1", [diesel, mine, theirs, Guid.NewGuid()], CancellationToken.None);
 
-        Assert.Equal([diesel, mine], found.Select(item => item.Id).Order());
+        Assert.Equal(new[] { diesel, mine }.Order(), found.Select(item => item.Id).Order());
         Assert.All(found, item => Assert.Equal(LookupKind.FuelType, item.Kind));
     }
 

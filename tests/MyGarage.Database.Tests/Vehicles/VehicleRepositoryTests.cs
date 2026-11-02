@@ -20,7 +20,7 @@ public class VehicleRepositoryTests(PostgresFixture postgres)
     }
 
     private static VehicleRecord FullVehicle(string ownerId, Guid vehicleType, Guid fuel, Guid transmission, Guid drivetrain) =>
-        TestData.Vehicle(ownerId, "Blue Streak", "Subaru", "Outback", "Limited", "Blue", 42_000, 4) with
+        TestData.Vehicle(ownerId, "Outback", "Subaru", "Limited", "Blue", 42_000, 4) with
         {
             Vin = "1HGCM82633A004352",
             Year = 2019,
@@ -149,7 +149,7 @@ public class VehicleRepositoryTests(PostgresFixture postgres)
     public async Task InsertThenGet_RoundTripsEveryColumn()
     {
         var repository = await CreateRepositoryAsync();
-        var vehicle = TestData.Vehicle("owner-1", "Blue Streak", "Subaru", "Outback", "Limited", "Blue", 42_000, 4);
+        var vehicle = TestData.Vehicle("owner-1", "Outback", "Subaru", "Limited", "Blue", 42_000, 4);
 
         await repository.InsertAsync(vehicle, CancellationToken.None);
         var loaded = await repository.GetByIdAsync("owner-1", vehicle.Id, CancellationToken.None);
@@ -185,20 +185,20 @@ public class VehicleRepositoryTests(PostgresFixture postgres)
     }
 
     [Fact]
-    public async Task ListPage_ReturnsOnlyOwnersVehiclesOrderedByNicknameIgnoringCase()
+    public async Task ListPage_ReturnsOnlyOwnersVehiclesOrderedByMakeThenModelIgnoringCase()
     {
         var repository = await CreateRepositoryAsync();
-        foreach (var nickname in new[] { "charlie", "Alpha", "bravo" })
+        foreach (var (make, model) in new[] { ("Toyota", "Tacoma"), ("ford", "Mustang"), ("Ford", "f-150"), ("FORD", "Bronco") })
         {
-            await repository.InsertAsync(TestData.Vehicle("owner-1", nickname), CancellationToken.None);
+            await repository.InsertAsync(TestData.Vehicle("owner-1", model, make), CancellationToken.None);
         }
 
-        await repository.InsertAsync(TestData.Vehicle("owner-2", "Aardvark"), CancellationToken.None);
+        await repository.InsertAsync(TestData.Vehicle("owner-2", "Aardvark", "Aardvark Motors"), CancellationToken.None);
 
         var page = await repository.ListPageAsync("owner-1", VehicleSearchCriteria.None, 1, 12, CancellationToken.None);
 
-        Assert.Equal(["Alpha", "bravo", "charlie"], page.Items.Select(item => item.Nickname));
-        Assert.Equal(3, page.TotalCount);
+        Assert.Equal(["Bronco", "f-150", "Mustang", "Tacoma"], page.Items.Select(item => item.Model));
+        Assert.Equal(4, page.TotalCount);
     }
 
     [Fact]
@@ -217,14 +217,14 @@ public class VehicleRepositoryTests(PostgresFixture postgres)
         Assert.Equal(12, first.Items.Count);
         Assert.Equal(12, second.Items.Count);
         Assert.Single(third.Items);
-        Assert.Equal("Car 01", first.Items[0].Nickname);
-        Assert.Equal("Car 25", third.Items[0].Nickname);
+        Assert.Equal("Car 01", first.Items[0].Model);
+        Assert.Equal("Car 25", third.Items[0].Model);
         Assert.All([first, second, third], page => Assert.Equal(25, page.TotalCount));
         Assert.Equal(3, first.TotalPages);
     }
 
     [Fact]
-    public async Task ListPage_EqualNicknames_KeepAStableOrderAcrossPages()
+    public async Task ListPage_EqualMakeModelAndYear_KeepAStableOrderAcrossPages()
     {
         var repository = await CreateRepositoryAsync();
         var ids = new List<Guid>();
@@ -242,6 +242,109 @@ public class VehicleRepositoryTests(PostgresFixture postgres)
         }
 
         Assert.Equal(ids.Order(), seen);
+    }
+
+    [Fact]
+    public async Task ListPage_ReturnsFuelTransmissionOwnershipAndPurchaseDateForAVehicleThatHasThem()
+    {
+        var (repository, dataSource) = await CreateWithDataSourceAsync();
+        var vehicle = TestData.Vehicle("owner-1") with
+        {
+            FuelTypeId = await LookupTestData.DefaultIdAsync(dataSource, LookupKind.FuelType, "Gasoline"),
+            TransmissionId = await LookupTestData.DefaultIdAsync(dataSource, LookupKind.Transmission, "Automatic"),
+            Ownership = "leased",
+            PurchasedOn = new DateOnly(2022, 6, 30),
+            LeaseEndsOn = new DateOnly(2025, 6, 29),
+        };
+        await repository.InsertAsync(vehicle, CancellationToken.None);
+
+        var item = Assert.Single((await repository.ListPageAsync("owner-1", VehicleSearchCriteria.None, 1, 12, CancellationToken.None)).Items);
+
+        Assert.Equal("Gasoline", item.FuelTypeName);
+        Assert.Equal("Automatic", item.TransmissionName);
+        Assert.Equal("leased", item.Ownership);
+        Assert.Equal(new DateOnly(2022, 6, 30), item.PurchasedOn);
+    }
+
+    [Fact]
+    public async Task ListPage_VehicleWithoutTheseDetails_ReturnsNulls()
+    {
+        var repository = await CreateRepositoryAsync();
+        await repository.InsertAsync(TestData.Vehicle("owner-1"), CancellationToken.None);
+
+        var item = Assert.Single((await repository.ListPageAsync("owner-1", VehicleSearchCriteria.None, 1, 12, CancellationToken.None)).Items);
+
+        Assert.Null(item.FuelTypeName);
+        Assert.Null(item.TransmissionName);
+        Assert.Null(item.Ownership);
+        Assert.Null(item.PurchasedOn);
+    }
+
+    [Fact]
+    public async Task ListPage_PurchasedVehicleWithOnlyOwnershipAndDate_LeavesLookupNamesNull()
+    {
+        var repository = await CreateRepositoryAsync();
+        await repository.InsertAsync(
+            TestData.Vehicle("owner-1") with { Ownership = "purchased", PurchasedOn = new DateOnly(2020, 1, 2) },
+            CancellationToken.None);
+
+        var item = Assert.Single((await repository.ListPageAsync("owner-1", VehicleSearchCriteria.None, 1, 12, CancellationToken.None)).Items);
+
+        Assert.Equal("purchased", item.Ownership);
+        Assert.Equal(new DateOnly(2020, 1, 2), item.PurchasedOn);
+        Assert.Null(item.FuelTypeName);
+        Assert.Null(item.TransmissionName);
+    }
+
+    [Fact]
+    public async Task ListPage_HiddenLookupItem_StillReturnsItsName()
+    {
+        var (repository, dataSource) = await CreateWithDataSourceAsync();
+        var diesel = await LookupTestData.DefaultIdAsync(dataSource, LookupKind.FuelType, "Diesel");
+        var manual = await LookupTestData.DefaultIdAsync(dataSource, LookupKind.Transmission, "Manual");
+        await repository.InsertAsync(TestData.Vehicle("owner-1") with { FuelTypeId = diesel, TransmissionId = manual }, CancellationToken.None);
+        await LookupTestData.HideAsync(dataSource, "owner-1", diesel);
+        await LookupTestData.HideAsync(dataSource, "owner-1", manual);
+
+        var item = Assert.Single((await repository.ListPageAsync("owner-1", VehicleSearchCriteria.None, 1, 12, CancellationToken.None)).Items);
+
+        Assert.Equal("Diesel", item.FuelTypeName);
+        Assert.Equal("Manual", item.TransmissionName);
+    }
+
+    [Fact]
+    public async Task ListPage_CustomLookupItem_ReturnsItsName()
+    {
+        var (repository, dataSource) = await CreateWithDataSourceAsync();
+        var custom = await LookupTestData.InsertCustomAsync(dataSource, "owner-1", LookupKind.FuelType, "Biodiesel");
+        await repository.InsertAsync(TestData.Vehicle("owner-1") with { FuelTypeId = custom }, CancellationToken.None);
+
+        var item = Assert.Single((await repository.ListPageAsync("owner-1", VehicleSearchCriteria.None, 1, 12, CancellationToken.None)).Items);
+
+        Assert.Equal("Biodiesel", item.FuelTypeName);
+    }
+
+    [Fact]
+    public async Task ListPage_NeverReturnsAnotherOwnersVehicleOrItsDetails()
+    {
+        var (repository, dataSource) = await CreateWithDataSourceAsync();
+        await repository.InsertAsync(
+            TestData.Vehicle("owner-2", "Secret") with
+            {
+                FuelTypeId = await LookupTestData.DefaultIdAsync(dataSource, LookupKind.FuelType, "Electric"),
+                Ownership = "purchased",
+                PurchasedOn = new DateOnly(2021, 5, 5),
+            },
+            CancellationToken.None);
+        await repository.InsertAsync(TestData.Vehicle("owner-1", "Mine"), CancellationToken.None);
+
+        var page = await repository.ListPageAsync("owner-1", VehicleSearchCriteria.None, 1, 12, CancellationToken.None);
+
+        var item = Assert.Single(page.Items);
+        Assert.Equal("Mine", item.Model);
+        Assert.Null(item.FuelTypeName);
+        Assert.Null(item.PurchasedOn);
+        Assert.Equal(1, page.TotalCount);
     }
 
     [Fact]

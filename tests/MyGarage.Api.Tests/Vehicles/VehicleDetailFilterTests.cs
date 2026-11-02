@@ -44,6 +44,10 @@ public class VehicleDetailFilterEndpointsTests(ApiFactory factory) : IClassFixtu
     private const string Alice = "alice-oid";
     private const string Bob = "bob-oid";
 
+    private const string Miata = "1999 Mazda MX-5";
+    private const string R1T = "2022 Rivian R1T";
+    private const string Tacoma = "2018 Toyota Tacoma";
+
     public Task InitializeAsync() => factory.ResetDataAsync();
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -62,19 +66,19 @@ public class VehicleDetailFilterEndpointsTests(ApiFactory factory) : IClassFixtu
         var lookups = (await client.GetFromJsonAsync<LookupsDto>("/api/lookups"))!;
         await CreateAsync(client, new VehicleRequest
         {
-            Nickname = "Tacoma", Make = "Toyota", Model = "Tacoma", Year = 2018, Vin = "1HGCM82633A004352", Engine = "3.5L V6",
+            Make = "Toyota", Model = "Tacoma", Year = 2018, Vin = "1HGCM82633A004352", Engine = "3.5L V6",
             VehicleTypeId = IdOf(lookups.VehicleTypes, "Truck"), FuelTypeId = IdOf(lookups.FuelTypes, "Gasoline"),
             TransmissionId = IdOf(lookups.Transmissions, "Automatic"), DrivetrainId = IdOf(lookups.Drivetrains, "4WD"),
         });
         await CreateAsync(client, new VehicleRequest
         {
-            Nickname = "R1T", Make = "Rivian", Model = "R1T", Year = 2022, Engine = "Quad-motor electric",
+            Make = "Rivian", Model = "R1T", Year = 2022, Engine = "Quad-motor electric",
             VehicleTypeId = IdOf(lookups.VehicleTypes, "Truck"), FuelTypeId = IdOf(lookups.FuelTypes, "Electric"),
             TransmissionId = IdOf(lookups.Transmissions, "Automatic"), DrivetrainId = IdOf(lookups.Drivetrains, "AWD"),
         });
         await CreateAsync(client, new VehicleRequest
         {
-            Nickname = "Miata", Make = "Mazda", Model = "MX-5", Year = 1999, Engine = "1.8L I4",
+            Make = "Mazda", Model = "MX-5", Year = 1999, Engine = "1.8L I4",
             VehicleTypeId = IdOf(lookups.VehicleTypes, "Convertible"), FuelTypeId = IdOf(lookups.FuelTypes, "Gasoline"),
             TransmissionId = IdOf(lookups.Transmissions, "Manual"), DrivetrainId = IdOf(lookups.Drivetrains, "RWD"),
         });
@@ -89,17 +93,17 @@ public class VehicleDetailFilterEndpointsTests(ApiFactory factory) : IClassFixtu
         var page = await ListAsync(client);
 
         Assert.Equal([1999, 2022, 2018], page.Items.Select(item => item.Year));
-        Assert.Equal(["Miata", "R1T", "Tacoma"], page.Items.Select(item => item.Nickname));
+        Assert.Equal([Miata, R1T, Tacoma], page.Items.Select(item => item.Name));
     }
 
     [Theory]
-    [InlineData("?q=2018", "Tacoma")]
+    [InlineData("?q=2018", Tacoma)]
     [InlineData("?q=317000", "")]
-    [InlineData("?q=1hgcm82633", "Tacoma")]
-    [InlineData("?q=quad", "R1T")]
-    [InlineData("?minYear=2000", "R1T,Tacoma")]
-    [InlineData("?maxYear=2000", "Miata")]
-    [InlineData("?minYear=2018&maxYear=2018", "Tacoma")]
+    [InlineData("?q=1hgcm82633", Tacoma)]
+    [InlineData("?q=quad", R1T)]
+    [InlineData("?minYear=2000", $"{R1T},{Tacoma}")]
+    [InlineData("?maxYear=2000", Miata)]
+    [InlineData("?minYear=2018&maxYear=2018", Tacoma)]
     public async Task SearchAndYearFilters_ReturnOnlyMatches(string query, string expected)
     {
         var (client, _) = await SeedAsync();
@@ -107,7 +111,7 @@ public class VehicleDetailFilterEndpointsTests(ApiFactory factory) : IClassFixtu
         var page = await ListAsync(client, query);
 
         var names = expected.Length == 0 ? Array.Empty<string>() : expected.Split(',');
-        Assert.Equal(names, page.Items.Select(item => item.Nickname));
+        Assert.Equal(names, page.Items.Select(item => item.Name));
         Assert.Equal(names.Length, page.TotalCount);
     }
 
@@ -120,11 +124,11 @@ public class VehicleDetailFilterEndpointsTests(ApiFactory factory) : IClassFixtu
         var manual = IdOf(lookups.Transmissions, "Manual");
         var awd = IdOf(lookups.Drivetrains, "AWD");
 
-        Assert.Equal(["R1T", "Tacoma"], (await ListAsync(client, $"?vehicleTypeId={truck}")).Items.Select(item => item.Nickname));
-        Assert.Equal(["Miata", "Tacoma"], (await ListAsync(client, $"?fuelTypeId={gasoline}")).Items.Select(item => item.Nickname));
-        Assert.Equal(["Miata"], (await ListAsync(client, $"?transmissionId={manual}")).Items.Select(item => item.Nickname));
-        Assert.Equal(["R1T"], (await ListAsync(client, $"?drivetrainId={awd}")).Items.Select(item => item.Nickname));
-        Assert.Equal(["Tacoma"], (await ListAsync(client, $"?vehicleTypeId={truck}&fuelTypeId={gasoline}&minYear=2010&make=toyota")).Items.Select(item => item.Nickname));
+        Assert.Equal([R1T, Tacoma], (await ListAsync(client, $"?vehicleTypeId={truck}")).Items.Select(item => item.Name));
+        Assert.Equal([Miata, Tacoma], (await ListAsync(client, $"?fuelTypeId={gasoline}")).Items.Select(item => item.Name));
+        Assert.Equal([Miata], (await ListAsync(client, $"?transmissionId={manual}")).Items.Select(item => item.Name));
+        Assert.Equal([R1T], (await ListAsync(client, $"?drivetrainId={awd}")).Items.Select(item => item.Name));
+        Assert.Equal([Tacoma], (await ListAsync(client, $"?vehicleTypeId={truck}&fuelTypeId={gasoline}&minYear=2010&make=toyota")).Items.Select(item => item.Name));
         Assert.Empty((await ListAsync(client, $"?transmissionId={manual}&drivetrainId={awd}")).Items);
     }
 
@@ -148,7 +152,7 @@ public class VehicleDetailFilterEndpointsTests(ApiFactory factory) : IClassFixtu
         await factory.InsertLookupItemAsync(Bob, "fuel_type", "Hydrogen");
         var bob = factory.CreateClientForUser(Bob);
         var bobLookups = (await bob.GetFromJsonAsync<LookupsDto>("/api/lookups"))!;
-        await CreateAsync(bob, new VehicleRequest { Nickname = "Fuel cell", Make = "Toyota", Model = "Mirai", Year = 2024, FuelTypeId = IdOf(bobLookups.FuelTypes, "Hydrogen") });
+        await CreateAsync(bob, new VehicleRequest { Make = "Toyota", Model = "Mirai", Year = 2024, FuelTypeId = IdOf(bobLookups.FuelTypes, "Hydrogen") });
         // Hiding an item that is in use must not remove it from the filter choices.
         await client.PutAsJsonAsync($"/api/lookups/{LookupKinds.FuelTypes}/{IdOf(lookups.FuelTypes, "Electric")}/visibility", new SetLookupVisibilityRequest { IsHidden = true });
 

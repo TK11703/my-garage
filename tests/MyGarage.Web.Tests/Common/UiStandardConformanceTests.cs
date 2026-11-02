@@ -7,6 +7,20 @@ namespace MyGarage.Web.Tests.Common;
 public class UiStandardConformanceTests
 {
     private static readonly string[] Sources = FindSources();
+    private static readonly string WebProject = FindWebProject();
+    private static readonly string[] Scripts = ["lease-toggle.js", "dropzone.js", "feature-suggest.js"];
+
+    private static string FindWebProject([CallerFilePath] string? sourceFile = null)
+    {
+        var directory = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "MyGarage.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        Assert.NotNull(directory);
+        return Path.Combine(directory.FullName, "src", "MyGarage.Web");
+    }
 
     private static string[] FindSources([CallerFilePath] string? sourceFile = null)
     {
@@ -103,5 +117,48 @@ public class UiStandardConformanceTests
             path => !path.Contains($"{Path.DirectorySeparatorChar}Preferences{Path.DirectorySeparatorChar}") && Path.GetFileName(path) != "TabNav.razor");
 
         Assert.Empty(violations);
+    }
+
+    [Theory]
+    [InlineData("lease-toggle.js")]
+    [InlineData("dropzone.js")]
+    [InlineData("feature-suggest.js")]
+    public void EachScript_ExistsAndIsLoadedAsAModuleFromTheAppShell(string script)
+    {
+        Assert.True(File.Exists(Path.Combine(WebProject, "wwwroot", "js", script)));
+
+        var shell = File.ReadAllText(Path.Combine(WebProject, "Components", "App.razor"));
+        Assert.Matches(new Regex($"<script type=\"module\" src=\"@Assets\\[\"js/{Regex.Escape(script)}\"\\]\"></script>"), shell);
+    }
+
+    [Fact]
+    public void TheJsFolderHoldsOnlyTheKnownScripts()
+    {
+        var files = Directory.GetFiles(Path.Combine(WebProject, "wwwroot", "js"), "*.js").Select(Path.GetFileName);
+
+        Assert.Equal(Scripts.Order(), files.Order());
+    }
+
+    [Theory]
+    [InlineData("lease-toggle.js")]
+    [InlineData("dropzone.js")]
+    [InlineData("feature-suggest.js")]
+    public void Scripts_UseNoJQueryEvalOrInnerHtml(string script)
+    {
+        var source = File.ReadAllText(Path.Combine(WebProject, "wwwroot", "js", script));
+
+        Assert.DoesNotMatch(new Regex("jquery", RegexOptions.IgnoreCase), source);
+        Assert.DoesNotMatch(new Regex(@"\$\("), source);
+        Assert.DoesNotMatch(new Regex(@"\beval\("), source);
+        Assert.DoesNotMatch(new Regex(@"innerHTML|outerHTML|insertAdjacentHTML|document\.write"), source);
+    }
+
+    [Fact]
+    public void TheAppShell_HasNoInlineScriptsOrJQuery()
+    {
+        var shell = File.ReadAllText(Path.Combine(WebProject, "Components", "App.razor"));
+
+        Assert.DoesNotMatch(new Regex("jquery", RegexOptions.IgnoreCase), shell);
+        Assert.DoesNotMatch(new Regex(@"<script(?![^>]*\bsrc=)"), shell);
     }
 }

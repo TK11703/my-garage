@@ -18,10 +18,9 @@ public class VehiclePrivacyTests : VehicleTestContext
     [Fact]
     public void CreatingAVehicleWithAVin_RedirectsToAnAddressWithoutIt_AndTheFormPostsInTheBody()
     {
-        var created = FullDetail(nickname: "Daily");
+        var created = FullDetail();
         RegisterApi(_ => Json(created, System.Net.HttpStatusCode.Created));
         var cut = Render<VehicleCreate>();
-        cut.Find("input#nickname").Change("Daily");
         cut.Find("input#make").Change("Ford");
         cut.Find("input#model").Change("F-150");
         cut.Find("input#year").Change("2019");
@@ -46,7 +45,7 @@ public class VehiclePrivacyTests : VehicleTestContext
         var detail = FullDetail(Guid.NewGuid());
         RegisterApi(_ => Json(new MyGarage.Shared.Vehicles.VehicleDetailDto
         {
-            Id = detail.Id, Nickname = detail.Nickname, Make = detail.Make, Model = detail.Model, Vin = Vin, Year = 2019,
+            Id = detail.Id, Make = detail.Make, Model = detail.Model, Vin = Vin, Year = 2019,
             Tags = [], Images = [], CreatedAt = detail.CreatedAt, UpdatedAt = detail.UpdatedAt,
         }));
 

@@ -124,7 +124,7 @@ public class AppNavbarTests : BunitContext
     }
 
     [Fact]
-    public void ProfileMenuShowsInitialsNameVehiclesShortcutAndSignOut()
+    public void ProfileMenuShowsInitialsNamePreferencesAndSignOutWithoutAVehiclesShortcut()
     {
         var cut = Render<AppNavbar>();
 
@@ -134,10 +134,11 @@ public class AppNavbarTests : BunitContext
 
         var menu = toggle.ParentElement!.QuerySelector(".dropdown-menu")!;
         Assert.Contains("Ada Lovelace", menu.TextContent);
-        Assert.Equal("My vehicles", menu.QuerySelector("a[href='/vehicles']")!.TextContent.Trim());
+        Assert.DoesNotContain("My vehicles", menu.TextContent);
+        Assert.Empty(menu.QuerySelectorAll("a[href='/vehicles']"));
         Assert.Equal("Preferences", menu.QuerySelector("a[href='/preferences']")!.TextContent.Trim());
         Assert.Equal(
-            ["Ada Lovelace", "My vehicles", "Preferences", "Sign out"],
+            ["Ada Lovelace", "Preferences", "Sign out"],
             menu.QuerySelectorAll(".dropdown-item, .dropdown-item-text").Select(item => item.TextContent.Trim()));
         Assert.NotNull(menu.QuerySelector(".dropdown-divider"));
 

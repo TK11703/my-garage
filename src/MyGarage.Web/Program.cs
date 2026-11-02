@@ -43,6 +43,7 @@ app.UseAntiforgery();
 app.MapStaticAssets().AllowAnonymous();
 app.MapAuthenticationEndpoints();
 app.MapVehicleImageEndpoints();
+app.MapFeatureSuggestionEndpoints();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

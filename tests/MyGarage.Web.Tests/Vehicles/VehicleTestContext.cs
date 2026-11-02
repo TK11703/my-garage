@@ -130,8 +130,29 @@ public abstract class VehicleTestContext : BunitContext
             }),
         };
 
-    protected static VehicleSummaryDto Summary(string nickname, string make = "Ford", string model = "F-150", int? mileage = null, Guid? mainImageId = null, int? year = null) =>
-        new() { Id = Guid.NewGuid(), Nickname = nickname, Make = make, Model = model, Mileage = mileage, MainImageId = mainImageId, Year = year };
+    protected static VehicleSummaryDto Summary(
+        string make = "Ford",
+        string model = "F-150",
+        int? mileage = null,
+        Guid? mainImageId = null,
+        int? year = 2020,
+        string? fuelType = null,
+        string? transmission = null,
+        OwnershipType? ownership = null,
+        int? purchasedYear = null) =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            Make = make,
+            Model = model,
+            Mileage = mileage,
+            MainImageId = mainImageId,
+            Year = year,
+            FuelType = fuelType,
+            Transmission = transmission,
+            Ownership = ownership,
+            PurchasedYear = purchasedYear,
+        };
 
     protected static PagedResultDto<VehicleSummaryDto> Page(IReadOnlyList<VehicleSummaryDto> items, int page = 1, int totalCount = -1, int pageSize = 12)
     {
@@ -165,13 +186,12 @@ public abstract class VehicleTestContext : BunitContext
         };
     }
 
-    protected static VehicleDetailDto Detail(Guid? id = null, string nickname = "Daily", int? year = 2020) =>
+    protected static VehicleDetailDto Detail(Guid? id = null, string make = "Ford", string model = "F-150", int? year = 2020) =>
         new()
         {
             Id = id ?? Guid.NewGuid(),
-            Nickname = nickname,
-            Make = "Ford",
-            Model = "F-150",
+            Make = make,
+            Model = model,
             Trim = "XLT",
             Year = year,
             Color = "Blue",
@@ -184,16 +204,15 @@ public abstract class VehicleTestContext : BunitContext
         };
 
     // A vehicle with every new field filled in.
-    protected static VehicleDetailDto FullDetail(Guid? id = null, string nickname = "Blue Streak") =>
+    protected static VehicleDetailDto FullDetail(Guid? id = null, string make = "Subaru", string model = "Outback", int? year = 2019) =>
         new()
         {
             Id = id ?? Guid.NewGuid(),
-            Nickname = nickname,
             Vin = "1HGCM82633A004352",
-            Make = "Subaru",
-            Model = "Outback",
+            Make = make,
+            Model = model,
             Trim = "Limited",
-            Year = 2019,
+            Year = year,
             VehicleType = new LookupValueDto { Id = Guid.NewGuid(), Name = "Wagon" },
             Ownership = OwnershipType.Leased,
             PurchasedOn = new DateOnly(2024, 3, 15),

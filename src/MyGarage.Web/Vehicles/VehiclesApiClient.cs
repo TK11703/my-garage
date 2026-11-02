@@ -33,6 +33,9 @@ public sealed class VehiclesApiClient(HttpClient http)
     public Task<ApiResult<bool>> RemoveTagAsync(Guid vehicleId, Guid tagId, CancellationToken cancellationToken = default) =>
         SendAsync<bool>(HttpMethod.Delete, $"api/vehicles/{vehicleId}/tags/{tagId}", null, cancellationToken);
 
+    public Task<ApiResult<string[]>> SuggestFeaturesAsync(string query, CancellationToken cancellationToken = default) =>
+        SendAsync<string[]>(HttpMethod.Get, $"api/features?query={Uri.EscapeDataString(query)}", null, cancellationToken);
+
     public Task<ApiResult<PagedResultDto<JournalNoteDto>>> ListNotesAsync(Guid vehicleId, int page, CancellationToken cancellationToken = default) =>
         SendAsync<PagedResultDto<JournalNoteDto>>(HttpMethod.Get, $"api/vehicles/{vehicleId}/notes?page={page}", null, cancellationToken);
 

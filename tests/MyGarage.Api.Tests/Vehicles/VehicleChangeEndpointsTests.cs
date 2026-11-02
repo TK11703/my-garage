@@ -15,7 +15,7 @@ public class VehicleChangeEndpointsTests(ApiFactory factory) : IClassFixture<Api
 
     public Task DisposeAsync() => Task.CompletedTask;
 
-    private static VehicleRequest Request(string nickname = "Daily") => new() { Nickname = nickname, Make = "Ford", Model = "F-150", Year = 2020 };
+    private static VehicleRequest Request(string model = "F-150") => new() { Make = "Ford", Model = model, Year = 2020 };
 
     private static async Task<VehicleDetailDto> CreateAsync(HttpClient client, VehicleRequest request)
     {
@@ -28,12 +28,13 @@ public class VehicleChangeEndpointsTests(ApiFactory factory) : IClassFixture<Api
     public async Task VehicleSavedWithoutAYear_IsListedAndReadWithANullYear()
     {
         var client = factory.CreateClientForUser(Alice);
-        var id = await factory.InsertVehicleWithoutYearAsync(Alice, "Legacy");
+        var id = await factory.InsertVehicleWithoutYearAsync(Alice);
 
         var page = (await client.GetFromJsonAsync<PagedResultDto<VehicleSummaryDto>>("/api/vehicles"))!;
         var detail = (await client.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{id}"))!;
 
-        Assert.Equal(["Legacy"], page.Items.Select(item => item.Nickname));
+        Assert.Equal(["Ford F-150"], page.Items.Select(item => item.Name));
+        Assert.Equal("Ford F-150", detail.Name);
         Assert.Null(detail.Year);
         Assert.Null(detail.Vin);
         Assert.Equal(1200, detail.Mileage);
@@ -45,68 +46,70 @@ public class VehicleChangeEndpointsTests(ApiFactory factory) : IClassFixture<Api
     public async Task Put_WithoutAYearOnAVehicleThatHasNone_Returns400AndKeepsStoredData()
     {
         var client = factory.CreateClientForUser(Alice);
-        var id = await factory.InsertVehicleWithoutYearAsync(Alice, "Legacy");
+        var id = await factory.InsertVehicleWithoutYearAsync(Alice);
 
-        var response = await client.PutAsJsonAsync($"/api/vehicles/{id}", new VehicleRequest { Nickname = "Renamed", Make = "Ford", Model = "F-150" });
+        var response = await client.PutAsJsonAsync($"/api/vehicles/{id}", new VehicleRequest { Make = "Ford", Model = "Ranger" });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var problem = (await response.Content.ReadFromJsonAsync<ValidationProblemDetails>())!;
         Assert.Contains(problem.Errors.Keys, key => key.Equals("Year", StringComparison.OrdinalIgnoreCase));
-        Assert.Equal("Legacy", (await client.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{id}"))!.Nickname);
+        Assert.Equal("Ford F-150", (await client.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{id}"))!.Name);
     }
 
     [Fact]
     public async Task Put_WithAYearOnAVehicleThatHadNone_StoresIt()
     {
         var client = factory.CreateClientForUser(Alice);
-        var id = await factory.InsertVehicleWithoutYearAsync(Alice, "Legacy");
+        var id = await factory.InsertVehicleWithoutYearAsync(Alice);
 
         var response = await client.PutAsJsonAsync($"/api/vehicles/{id}", new VehicleRequest
         {
-            Nickname = "Legacy", Make = "Ford", Model = "F-150", Year = 2015, Mileage = 1200, Color = "Red", Doors = 4,
+            Make = "Ford", Model = "F-150", Year = 2015, Mileage = 1200, Color = "Red", Doors = 4,
         });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal(2015, (await response.Content.ReadFromJsonAsync<VehicleDetailDto>())!.Year);
+        var updated = (await response.Content.ReadFromJsonAsync<VehicleDetailDto>())!;
+        Assert.Equal(2015, updated.Year);
+        Assert.Equal("2015 Ford F-150", updated.Name);
     }
 
     [Fact]
     public async Task Put_ValidRequest_ReturnsTheUpdatedDetail()
     {
         var client = factory.CreateClientForUser(Alice);
-        var created = await CreateAsync(client, Request("Old"));
+        var created = await CreateAsync(client, Request());
 
         var response = await client.PutAsJsonAsync($"/api/vehicles/{created.Id}", new VehicleRequest
         {
-            Nickname = " New ", Make = "Chevy", Model = "Silverado", Trim = "LT", Color = "Red", Mileage = 5_000, Doors = 2, Year = 2021,
+            Make = " Chevy ", Model = "Silverado", Trim = "LT", Color = "Red", Mileage = 5_000, Doors = 2, Year = 2021,
         });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var updated = await response.Content.ReadFromJsonAsync<VehicleDetailDto>();
         Assert.NotNull(updated);
         Assert.Equal(created.Id, updated.Id);
-        Assert.Equal("New", updated.Nickname);
+        Assert.Equal("2021 Chevy Silverado", updated.Name);
         Assert.Equal("Chevy", updated.Make);
         Assert.Equal("LT", updated.Trim);
         Assert.Equal(2, updated.Doors);
         Assert.Equal(created.CreatedAt, updated.CreatedAt);
         Assert.True(updated.UpdatedAt >= created.UpdatedAt);
-        Assert.Equal("New", (await client.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{created.Id}"))!.Nickname);
+        Assert.Equal("2021 Chevy Silverado", (await client.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{created.Id}"))!.Name);
     }
 
     [Fact]
     public async Task Put_InvalidRequest_Returns400AndKeepsStoredData()
     {
         var client = factory.CreateClientForUser(Alice);
-        var created = await CreateAsync(client, Request("Keep me"));
+        var created = await CreateAsync(client, Request());
 
-        var response = await client.PutAsJsonAsync($"/api/vehicles/{created.Id}", new VehicleRequest { Nickname = "", Make = "Ford", Model = "F-150", Doors = 9 });
+        var response = await client.PutAsJsonAsync($"/api/vehicles/{created.Id}", new VehicleRequest { Make = "", Model = "F-150", Doors = 9 });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
         Assert.NotNull(problem);
-        Assert.Contains(problem.Errors.Keys, key => key.Contains("Nickname", StringComparison.OrdinalIgnoreCase));
-        Assert.Equal("Keep me", (await client.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{created.Id}"))!.Nickname);
+        Assert.Contains(problem.Errors.Keys, key => key.Contains("Make", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal("2020 Ford F-150", (await client.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{created.Id}"))!.Name);
     }
 
     [Fact]
@@ -122,12 +125,12 @@ public class VehicleChangeEndpointsTests(ApiFactory factory) : IClassFixture<Api
     public async Task Put_AnotherUsersVehicle_Returns404AndChangesNothing()
     {
         var alice = factory.CreateClientForUser(Alice);
-        var created = await CreateAsync(alice, Request("Alice's"));
+        var created = await CreateAsync(alice, Request());
 
         var response = await factory.CreateClientForUser(Bob).PutAsJsonAsync($"/api/vehicles/{created.Id}", Request("Hijacked"));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        Assert.Equal("Alice's", (await alice.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{created.Id}"))!.Nickname);
+        Assert.Equal("2020 Ford F-150", (await alice.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{created.Id}"))!.Name);
     }
 
     [Fact]

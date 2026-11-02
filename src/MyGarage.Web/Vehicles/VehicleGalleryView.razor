@@ -13,7 +13,7 @@
                 <div class="col" @key="image.Id" data-testid="image">
                     <div class="card h-100 border-0 shadow-sm">
                         <div class="ratio ratio-4x3 mg-image-frame">
-                            <img class="card-img-top object-fit-cover" src="/vehicles/@(VehicleId)/images/@(image.Id)" alt="@(image.Caption ?? VehicleNickname)" loading="lazy" />
+                            <img class="card-img-top object-fit-cover" src="/vehicles/@(VehicleId)/images/@(image.Id)" alt="@(image.Caption ?? VehicleName)" loading="lazy" />
                         </div>
                         @if (image.IsMain || image.Caption is not null)
                         {
@@ -40,7 +40,7 @@
     public Guid VehicleId { get; set; }
 
     [Parameter, EditorRequired]
-    public string VehicleNickname { get; set; } = default!;
+    public string VehicleName { get; set; } = default!;
 
     [Parameter, EditorRequired]
     public IReadOnlyList<VehicleImageDto> Images { get; set; } = [];

@@ -20,7 +20,7 @@ else if (notFound)
 }
 else if (vehicle is not null)
 {
-    <PageHeader Title="@vehicle.Nickname" Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(vehicle.Nickname) })">
+    <PageHeader Title="@vehicle.Name" Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(vehicle.Name) })">
         <Actions>
             <div class="d-flex flex-wrap align-items-start gap-2">
                 <a class="btn btn-outline-primary d-inline-flex align-items-center gap-2" href="/vehicles/@VehicleId/edit" data-testid="edit-vehicle" title="Edit this vehicle">
@@ -31,7 +31,7 @@ else if (vehicle is not null)
                         <Icon Name="IconName.Trash" /> Delete
                     </summary>
                     <div class="alert alert-danger mg-confirm-panel shadow" role="alert">
-                        <p>Delete @vehicle.Nickname? This also removes its tags, journal notes, and pictures and cannot be undone.</p>
+                        <p>Delete @vehicle.Name? This also removes its tags, journal notes, and pictures and cannot be undone.</p>
                         <form method="post" @formname="delete-vehicle" @onsubmit="DeleteAsync" class="d-flex flex-wrap gap-2">
                             <AntiforgeryToken />
                             <button type="submit" class="btn btn-danger">Yes, delete this vehicle</button>
@@ -59,26 +59,26 @@ else if (vehicle is not null)
             <div class="tab-content">
                 <div id="tab-basic" class="tab-pane @PaneState("basic", current)" role="tabpanel" aria-labelledby="tab-basic-tab" tabindex="0">
                     <dl class="row mb-0" aria-label="Basic information">
-                        <dt class="col-sm-3">Name</dt>
-                        <dd class="col-sm-9">@vehicle.Nickname</dd>
-                        <dt class="col-sm-3">VIN</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Text(vehicle.Vin)</dd>
+                        <dt class="col-sm-3">Year</dt>
+                        <dd class="col-sm-9">@VehicleFormat.Number(vehicle.Year)</dd>
                         <dt class="col-sm-3">Make</dt>
                         <dd class="col-sm-9">@vehicle.Make</dd>
                         <dt class="col-sm-3">Model</dt>
                         <dd class="col-sm-9">@vehicle.Model</dd>
                         <dt class="col-sm-3">Trim</dt>
                         <dd class="col-sm-9">@VehicleFormat.Text(vehicle.Trim)</dd>
-                        <dt class="col-sm-3">Year</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Number(vehicle.Year)</dd>
+                        <dt class="col-sm-3">VIN</dt>
+                        <dd class="col-sm-9">@VehicleFormat.Text(vehicle.Vin)</dd>
                         <dt class="col-sm-3">Vehicle type</dt>
                         <dd class="col-sm-9">@VehicleFormat.Text(vehicle.VehicleType?.Name)</dd>
                         <dt class="col-sm-3">Purchased or leased</dt>
                         <dd class="col-sm-9">@VehicleFormat.Ownership(vehicle.Ownership)</dd>
-                        <dt class="col-sm-3">Date purchased</dt>
+                        <dt class="col-sm-3">@VehicleFormat.DateLabel(vehicle.Ownership)</dt>
                         <dd class="col-sm-9">@VehicleFormat.Date(vehicle.PurchasedOn)</dd>
                         <dt class="col-sm-3">Date lease ends</dt>
                         <dd class="col-sm-9">@VehicleFormat.Date(vehicle.LeaseEndsOn)</dd>
+                        <dt class="col-sm-3">@VehicleFormat.MileageLabel(vehicle.Ownership)</dt>
+                        <dd class="col-sm-9">@VehicleFormat.MileageOrNotSet(vehicle.Mileage)</dd>
                     </dl>
                 </div>
                 <div id="tab-specifications" class="tab-pane @PaneState("specifications", current)" role="tabpanel" aria-labelledby="tab-specifications-tab" tabindex="0">
@@ -87,20 +87,18 @@ else if (vehicle is not null)
                         <dd class="col-sm-9">@VehicleFormat.Text(vehicle.Engine)</dd>
                         <dt class="col-sm-3">Horsepower</dt>
                         <dd class="col-sm-9">@VehicleFormat.Horsepower(vehicle.Horsepower)</dd>
+                        <dt class="col-sm-3">Drivetrain</dt>
+                        <dd class="col-sm-9">@VehicleFormat.Text(vehicle.Drivetrain?.Name)</dd>
+                        <dt class="col-sm-3">Color</dt>
+                        <dd class="col-sm-9">@VehicleFormat.Text(vehicle.Color)</dd>
                         <dt class="col-sm-3">Fuel type</dt>
                         <dd class="col-sm-9">@VehicleFormat.Text(vehicle.FuelType?.Name)</dd>
                         <dt class="col-sm-3">Transmission</dt>
                         <dd class="col-sm-9">@VehicleFormat.Text(vehicle.Transmission?.Name)</dd>
-                        <dt class="col-sm-3">Mileage</dt>
-                        <dd class="col-sm-9">@VehicleFormat.MileageOrNotSet(vehicle.Mileage)</dd>
-                        <dt class="col-sm-3">Color</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Text(vehicle.Color)</dd>
                         <dt class="col-sm-3">Seats</dt>
                         <dd class="col-sm-9">@VehicleFormat.Number(vehicle.Seats)</dd>
                         <dt class="col-sm-3">Doors</dt>
                         <dd class="col-sm-9">@VehicleFormat.Number(vehicle.Doors)</dd>
-                        <dt class="col-sm-3">Drivetrain</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Text(vehicle.Drivetrain?.Name)</dd>
                         <dt class="col-sm-3">Wheel size</dt>
                         <dd class="col-sm-9">@VehicleFormat.WheelSize(vehicle.WheelSize)</dd>
                         <dt class="col-sm-3">Tire size</dt>
@@ -108,11 +106,17 @@ else if (vehicle is not null)
                     </dl>
                 </div>
                 <div id="tab-media" class="tab-pane @PaneState("media", current)" role="tabpanel" aria-labelledby="tab-media-tab" tabindex="0">
-                    <VehicleGalleryView VehicleId="VehicleId" VehicleNickname="@vehicle.Nickname" Images="vehicle.Images" />
+                    <VehicleGalleryView VehicleId="VehicleId" VehicleName="@vehicle.Name" Images="vehicle.Images" />
                 </div>
                 <div id="tab-description" class="tab-pane @PaneState("description", current)" role="tabpanel" aria-labelledby="tab-description-tab" tabindex="0">
-                    <VehicleTagsView VehicleId="VehicleId" Tags="vehicle.Tags" />
-                    <VehicleJournalView VehicleId="VehicleId" NotesPage="journalPage" />
+                    <div class="row g-4">
+                        <div class="col-lg-6">
+                            <VehicleTagsView VehicleId="VehicleId" Tags="vehicle.Tags" />
+                        </div>
+                        <div class="col-lg-6">
+                            <VehicleJournalView VehicleId="VehicleId" NotesPage="journalPage" />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

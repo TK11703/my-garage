@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using MyGarage.Shared.Lookups;
 
 namespace MyGarage.Shared.Vehicles;
@@ -6,13 +7,15 @@ public sealed class VehicleDetailDto
 {
     public required Guid Id { get; init; }
 
-    public required string Nickname { get; init; }
-
     public string? Vin { get; init; }
 
     public required string Make { get; init; }
 
     public required string Model { get; init; }
+
+    // Shown as "[Year] [Make] [Model]"; computed, not sent over the wire.
+    [JsonIgnore]
+    public string Name => VehicleName.Compose(Year, Make, Model);
 
     public string? Trim { get; init; }
 

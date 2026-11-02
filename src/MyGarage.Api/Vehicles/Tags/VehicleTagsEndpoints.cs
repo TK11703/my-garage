@@ -8,6 +8,8 @@ namespace MyGarage.Api.Vehicles.Tags;
 
 public static class VehicleTagsEndpoints
 {
+    private const int MaxSuggestions = 10;
+
     public static IServiceCollection AddVehicleTags(this IServiceCollection services)
     {
         services.AddSingleton<IValidator<AddVehicleTagRequest>, AddVehicleTagRequestValidator>();
@@ -16,6 +18,26 @@ public static class VehicleTagsEndpoints
 
     public static IEndpointRouteBuilder MapVehicleTagsEndpoints(this IEndpointRouteBuilder endpoints)
     {
+        // Features are shared by every user, so only their names are returned and never which vehicle or owner uses them.
+        endpoints.MapGet("/api/features", async (
+                string? query,
+                VehicleTagRepository tags,
+                CancellationToken cancellationToken) =>
+            {
+                var text = query?.Trim();
+                if (string.IsNullOrEmpty(text) || text.Length > AddVehicleTagRequestValidator.MaxNameLength)
+                {
+                    return Results.Ok(Array.Empty<string>());
+                }
+
+                return Results.Ok(await tags.SuggestAsync(text, MaxSuggestions, cancellationToken));
+            })
+            .WithTags("Tags")
+            .WithName("SuggestFeatures")
+            .WithSummary($"Names of shared features used on vehicles that contain the query text (at most {MaxSuggestions}).")
+            .Produces<string[]>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized);
+
         var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/tags").WithTags("Tags");
 
         group.MapPost("", async (
@@ -37,10 +59,10 @@ public static class VehicleTagsEndpoints
                 return result.Status switch
                 {
                     AddTagStatus.Added => Results.Created($"/api/vehicles/{vehicleId}", VehicleTagMapper.ToDto(result.Tag!)),
-                    AddTagStatus.Duplicate => Results.Problem(statusCode: StatusCodes.Status409Conflict, title: "This vehicle already has that tag."),
+                    AddTagStatus.Duplicate => Results.Problem(statusCode: StatusCodes.Status409Conflict, title: "This vehicle already has that feature."),
                     AddTagStatus.LimitReached => Results.Problem(
                         statusCode: StatusCodes.Status409Conflict,
-                        title: $"A vehicle can have at most {VehicleTagRepository.MaxTagsPerVehicle} tags."),
+                        title: $"A vehicle can have at most {VehicleTagRepository.MaxTagsPerVehicle} features."),
                     _ => VehiclesEndpoints.NotFound(),
                 };
             })

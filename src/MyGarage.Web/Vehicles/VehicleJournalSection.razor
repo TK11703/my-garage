@@ -1,7 +1,7 @@
 @inject VehiclesApiClient Api
 @inject NavigationManager Navigation
 
-<section class="mt-4" aria-labelledby="journal-heading">
+<section aria-labelledby="journal-heading">
     <h2 id="journal-heading" class="h5">Journal</h2>
 
     <EditForm EditContext="addContext" FormName="add-note" OnValidSubmit="AddAsync" data-testid="add-note" class="vstack gap-2 mb-4">
@@ -20,6 +20,8 @@
         </div>
     </EditForm>
 
+    <h3 id="recent-entries-heading" class="h6 fw-semibold">Recent Journal Entries</h3>
+
     @if (failure is not null)
     {
         <ApiFailureAlert Failure="failure.Value" ReturnUrl="@($"/vehicles/{VehicleId}")"
@@ -33,7 +35,7 @@
         }
         else
         {
-            <ul class="list-unstyled vstack gap-3">
+            <ul class="mg-timeline" aria-labelledby="recent-entries-heading">
                 @foreach (var note in notes.Items)
                 {
                     <JournalNoteItem @key="note.Id" VehicleId="VehicleId" Note="note" ReturnHref="@ReturnHref(notes.Page)" />

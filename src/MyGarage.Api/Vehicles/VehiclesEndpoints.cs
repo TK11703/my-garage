@@ -30,7 +30,7 @@ public static class VehiclesEndpoints
                     : NoOwner())
             .AddEndpointFilter<ValidationFilter<VehicleListQuery>>()
             .WithName("ListVehicles")
-            .WithSummary("Page of the caller's vehicles matching the optional search and filters, ordered by nickname then id.")
+            .WithSummary("Page of the caller's vehicles matching the optional search and filters, ordered by make, model, year, then id.")
             .Produces<PagedResultDto<VehicleSummaryDto>>()
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized)

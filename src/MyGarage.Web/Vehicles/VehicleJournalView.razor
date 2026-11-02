@@ -1,8 +1,9 @@
 @using System.Globalization
 @inject VehiclesApiClient Api
 
-<section class="mt-4" aria-labelledby="journal-heading">
+<section aria-labelledby="journal-heading">
     <h2 id="journal-heading" class="h5">Journal</h2>
+    <h3 id="recent-entries-heading" class="h6 fw-semibold">Recent Journal Entries</h3>
 
     @if (failure is not null)
     {
@@ -17,24 +18,21 @@
         }
         else
         {
-            <ul class="list-unstyled vstack gap-3">
+            <ul class="mg-timeline" aria-labelledby="recent-entries-heading">
                 @foreach (var note in notes.Items)
                 {
-                    <li @key="note.Id" data-testid="note" class="card">
-                        <div class="card-body">
-                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-                                <div>
-                                    @if (note.Category is not null)
-                                    {
-                                        <span class="badge text-bg-info fw-normal" data-testid="note-category">@note.Category</span>
-                                    }
-                                </div>
-                                <time class="text-body-secondary small" datetime="@note.CreatedAt.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)">
-                                    @note.CreatedAt.UtcDateTime.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)@(Edited(note) ? " (edited)" : null)
-                                </time>
-                            </div>
-                            <p class="note-body text-break mb-0">@note.Body</p>
-                        </div>
+                    <li @key="note.Id" data-testid="note" class="mg-timeline-item">
+                        <span class="mg-timeline-marker" aria-hidden="true"></span>
+                        <time class="mg-timeline-time" datetime="@note.CreatedAt.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)">
+                            @note.CreatedAt.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) UTC@(Edited(note) ? " (edited)" : null)
+                        </time>
+                        <p class="text-break mb-0">
+                            @if (note.Category is not null)
+                            {
+                                <span class="badge text-bg-info fw-normal me-1" data-testid="note-category">@note.Category</span>
+                            }
+                            <span class="note-body">@note.Body</span>
+                        </p>
                     </li>
                 }
             </ul>

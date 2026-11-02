@@ -21,8 +21,8 @@ else if (notFound)
 }
 else if (loaded && Model is not null)
 {
-    <PageHeader Title="@($"Edit {storedNickname}")"
-                Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(storedNickname, $"/vehicles/{VehicleId}"), new Crumb("Edit") })">
+    <PageHeader Title="@($"Edit {storedName}")"
+                Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(storedName, $"/vehicles/{VehicleId}"), new Crumb("Edit") })">
         <Actions>
             <a class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" href="/vehicles/@VehicleId" title="Back to the vehicle details">
                 <Icon Name="IconName.ArrowLeft" /> Back to vehicle
@@ -33,12 +33,18 @@ else if (loaded && Model is not null)
     <VehicleForm Tabbed="true" ActiveTab="@Tab" Model="Model" FormName="update-vehicle" SubmitText="Save changes" CancelHref="@($"/vehicles/{VehicleId}")"
                  Lookups="lookups" Errors="errors" OnSubmit="SubmitAsync">
         <MediaContent>
-            <VehicleGallerySection VehicleId="VehicleId" VehicleNickname="@storedNickname" Images="images" Status="@ImageStatus"
+            <VehicleGallerySection VehicleId="VehicleId" VehicleName="@storedName" Images="images" Status="@ImageStatus"
                                    ReturnPath="@EditPath("media")" />
         </MediaContent>
         <DescriptionContent>
-            <VehicleTagsSection VehicleId="VehicleId" Tags="tags" ReturnPath="@EditPath("description")" />
-            <VehicleJournalSection VehicleId="VehicleId" NotesPage="journalPage" ReturnPath="@EditPath("description")" />
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <VehicleTagsSection VehicleId="VehicleId" Tags="tags" ReturnPath="@EditPath("description")" />
+                </div>
+                <div class="col-lg-6">
+                    <VehicleJournalSection VehicleId="VehicleId" NotesPage="journalPage" ReturnPath="@EditPath("description")" />
+                </div>
+            </div>
         </DescriptionContent>
     </VehicleForm>
 }
@@ -46,8 +52,8 @@ else if (loaded && Model is not null)
 @code {
     private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
     private GarageApiFailure? failure;
-    // The saved nickname, not any unsaved value posted with the form.
-    private string storedNickname = string.Empty;
+    // The saved name, not any unsaved value posted with the form.
+    private string storedName = string.Empty;
     private IReadOnlyList<VehicleImageDto> images = [];
     private IReadOnlyList<VehicleTagDto> tags = [];
     private VehicleFormLookups lookups = VehicleFormLookups.Empty;
@@ -93,7 +99,7 @@ else if (loaded && Model is not null)
             }
 
             Model ??= VehicleFormModel.From(result.Value!);
-            storedNickname = result.Value!.Nickname;
+            storedName = result.Value!.Name;
             images = result.Value.Images;
             tags = result.Value.Tags;
             lookups = VehicleFormLookups.From((await LookupsApi.GetAsync(includeHidden: false)).Value!, result.Value);

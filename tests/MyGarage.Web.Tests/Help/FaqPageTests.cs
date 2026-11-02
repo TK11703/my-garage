@@ -52,4 +52,24 @@ public class FaqPageTests : IClassFixture<WebAppFactory>
         Assert.Equal(HttpStatusCode.OK, status);
         Assert.Contains("Account menu for Ada Lovelace", html);
     }
+
+    [Fact]
+    public async Task SignedInAccountMenuHasNoMyVehiclesItem()
+    {
+        var (_, html) = await GetAsync("Ada Lovelace");
+
+        Assert.DoesNotMatch(@">\s*My vehicles\s*<", html);
+        Assert.Contains("Preferences", html);
+        Assert.Contains("Sign out", html);
+    }
+
+    [Fact]
+    public async Task AddAVehicleAnswerDescribesTheNameFromYearMakeAndModel()
+    {
+        var (_, html) = await GetAsync();
+
+        Assert.Contains("How do I add a vehicle?", html);
+        Assert.Contains("Enter the year, make, and model; the other details are optional. The vehicle is named from its year, make, and model.", html);
+        Assert.DoesNotContain("nickname", html, StringComparison.OrdinalIgnoreCase);
+    }
 }

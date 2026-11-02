@@ -34,7 +34,6 @@ public class VehicleFormTests : VehicleTestContext
             .Add(form => form.OnSubmit, () => { }));
 
     [Theory]
-    [InlineData("nickname")]
     [InlineData("year")]
     [InlineData("make")]
     [InlineData("model")]
@@ -81,7 +80,7 @@ public class VehicleFormTests : VehicleTestContext
 
         var ids = cut.Find("#tab-basic").QuerySelectorAll("input[id], select[id]").Select(field => field.Id);
         Assert.Equal(
-            ["nickname", "vin", "make", "model", "trim", "year", "vehicle-type", "ownership", "purchased-on", "lease-ends-on"],
+            ["year", "make", "model", "trim", "vin", "vehicle-type", "ownership", "purchased-on", "lease-ends-on", "mileage"],
             ids);
     }
 
@@ -92,8 +91,49 @@ public class VehicleFormTests : VehicleTestContext
 
         var ids = cut.Find("#tab-specifications").QuerySelectorAll("input[id], select[id]").Select(field => field.Id);
         Assert.Equal(
-            ["engine", "horsepower", "fuel-type", "transmission", "mileage", "color", "seats", "doors", "drivetrain", "wheel-size", "tire-size"],
+            ["engine", "horsepower", "drivetrain", "color", "fuel-type", "transmission", "seats", "doors", "wheel-size", "tire-size"],
             ids);
+    }
+
+    [Fact]
+    public void TheFormHasNoNicknameField()
+    {
+        var cut = RenderForm();
+
+        Assert.Empty(cut.FindAll("#nickname, label[for='nickname'], [name*='Nickname']"));
+    }
+
+    [Fact]
+    public void BasicInfoFields_AreGroupedIntoRowsOfThreeThreeThreeAndOne()
+    {
+        var cut = RenderForm(tabbed: true);
+
+        var rows = cut.Find("#tab-basic").QuerySelectorAll("div.row.g-3")
+            .Select(row => row.QuerySelectorAll("input[id], select[id]").Select(field => field.Id).ToList())
+            .ToList();
+        Assert.Equal(
+            [["year", "make", "model"], ["trim", "vin", "vehicle-type"], ["ownership", "purchased-on", "lease-ends-on"], ["mileage"]],
+            rows);
+        Assert.All(
+            cut.Find("#tab-basic").QuerySelectorAll("div.row.g-3 > div"),
+            column => Assert.Contains("col-sm-4", column.ClassList));
+    }
+
+    [Fact]
+    public void SpecificationFields_AreGroupedIntoRowsOfThreeThreeAndFour()
+    {
+        var cut = RenderForm(tabbed: true);
+
+        var rows = cut.Find("#tab-specifications").QuerySelectorAll("div.row.g-3").ToList();
+        Assert.Equal(
+            [["engine", "horsepower", "drivetrain"], ["color", "fuel-type", "transmission"], ["seats", "doors", "wheel-size", "tire-size"]],
+            rows.Select(row => row.QuerySelectorAll("input[id], select[id]").Select(field => field.Id).ToList()).ToList());
+        Assert.All(rows[0].Children.Concat(rows[1].Children), column => Assert.Contains("col-sm-4", column.ClassList));
+        Assert.All(rows[2].Children, column =>
+        {
+            Assert.Contains("col-6", column.ClassList);
+            Assert.Contains("col-sm-3", column.ClassList);
+        });
     }
 
     [Fact]
@@ -102,8 +142,112 @@ public class VehicleFormTests : VehicleTestContext
         var cut = RenderForm();
 
         var ids = cut.FindAll("form input[id], form select[id]").Select(field => field.Id).ToList();
-        Assert.Equal(21, ids.Count);
+        Assert.Equal(20, ids.Count);
         Assert.Equal(ids.Count, ids.Distinct().Count());
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(OwnershipType.Purchased)]
+    public void LeaseEndField_IsHiddenUnlessTheVehicleIsLeased(OwnershipType? ownership)
+    {
+        var cut = RenderForm(model: new VehicleFormModel { Ownership = ownership });
+
+        Assert.True(cut.Find("#lease-ends-field").HasAttribute("hidden"));
+    }
+
+    [Fact]
+    public void LeaseEndField_IsShownWhenTheVehicleIsLeased()
+    {
+        var cut = RenderForm(model: new VehicleFormModel { Ownership = OwnershipType.Leased });
+
+        var field = cut.Find("#lease-ends-field");
+        Assert.False(field.HasAttribute("hidden"));
+        Assert.NotNull(field.QuerySelector("input#lease-ends-on"));
+        Assert.NotNull(field.QuerySelector("label[for='lease-ends-on']"));
+    }
+
+    [Fact]
+    public void LeaseEndField_ContainsTheDateAndItsLabelOnly_WithNoLeasedOnlyHelpText()
+    {
+        var cut = RenderForm(model: new VehicleFormModel { Ownership = OwnershipType.Leased });
+
+        Assert.Equal("Date lease ends", cut.Find("#lease-ends-field").TextContent.Trim());
+        Assert.DoesNotContain("Leased vehicles only", cut.Markup);
+        Assert.Empty(cut.FindAll("#lease-ends-on-help"));
+    }
+
+    [Fact]
+    public void OwnershipSelect_NamesTheLeaseFieldItControls()
+    {
+        var cut = RenderForm();
+
+        var target = cut.Find("select#ownership").GetAttribute("data-lease-source");
+        Assert.Equal("lease-ends-field", target);
+        Assert.NotNull(cut.Find($"#{target}"));
+    }
+
+    [Fact]
+    public void OwnershipPurchaseDateAndLeaseEndShareOneRowOfThreeColumns()
+    {
+        var cut = RenderForm(tabbed: true);
+
+        var row = cut.Find("select#ownership").Closest("div.row")!;
+        Assert.Same(row, cut.Find("input#purchased-on").Closest("div.row"));
+        Assert.Same(row, cut.Find("input#lease-ends-on").Closest("div.row"));
+        Assert.Equal(3, row.Children.Length);
+        Assert.Same(row, cut.Find("#lease-ends-field").ParentElement);
+    }
+
+    [Fact]
+    public void Mileage_SitsOnItsOwnRowOnTheBasicInfoTabAndNotOnSpecifications()
+    {
+        var cut = RenderForm(tabbed: true);
+
+        var row = cut.Find("#tab-basic input#mileage").Closest("div.row")!;
+        Assert.Single(row.Children);
+        Assert.Empty(cut.Find("#tab-specifications").QuerySelectorAll("#mileage, label[for='mileage']"));
+    }
+
+    [Theory]
+    [InlineData(null, "Date purchased or leased", "Mileage on Date purchased or leased")]
+    [InlineData(OwnershipType.Purchased, "Date Purchased", "Mileage on Purchase Date")]
+    [InlineData(OwnershipType.Leased, "Date Leased", "Mileage on Lease Date")]
+    public void DateAndMileageLabels_FollowTheOwnership(OwnershipType? ownership, string dateLabel, string mileageLabel)
+    {
+        var cut = RenderForm(model: new VehicleFormModel { Ownership = ownership });
+
+        Assert.Equal(dateLabel, cut.Find("label[for='purchased-on']").TextContent.Trim());
+        Assert.Equal(mileageLabel, cut.Find("label[for='mileage']").TextContent.Trim());
+    }
+
+    [Fact]
+    public void DateAndMileageLabels_CarryEveryVariantForTheOwnershipScript()
+    {
+        var cut = RenderForm();
+
+        var date = cut.Find("label[for='purchased-on']");
+        Assert.True(date.HasAttribute("data-ownership-text"));
+        Assert.Equal("Date Purchased", date.GetAttribute("data-purchased"));
+        Assert.Equal("Date Leased", date.GetAttribute("data-leased"));
+        Assert.Equal("Date purchased or leased", date.GetAttribute("data-unset"));
+
+        var mileage = cut.Find("label[for='mileage']");
+        Assert.True(mileage.HasAttribute("data-ownership-text"));
+        Assert.Equal("Mileage on Purchase Date", mileage.GetAttribute("data-purchased"));
+        Assert.Equal("Mileage on Lease Date", mileage.GetAttribute("data-leased"));
+        Assert.Equal("Mileage on Date purchased or leased", mileage.GetAttribute("data-unset"));
+    }
+
+    [Fact]
+    public void ARejectedLeaseEnd_KeepsTheFieldVisibleForALeasedVehicle()
+    {
+        var cut = RenderForm(
+            errors: new Dictionary<string, string[]> { ["LeaseEndsOn"] = ["Lease end must be after the purchase date."] },
+            model: new VehicleFormModel { Ownership = OwnershipType.Leased });
+
+        Assert.False(cut.Find("#lease-ends-field").HasAttribute("hidden"));
+        Assert.Contains("Lease end must be after", cut.Find("#leaseendson-error").TextContent);
     }
 
     [Fact]
@@ -134,12 +278,12 @@ public class VehicleFormTests : VehicleTestContext
         Assert.Equal("20", cut.Find("#tire-size").GetAttribute("maxlength"));
         Assert.Equal("date", cut.Find("#purchased-on").GetAttribute("type"));
         Assert.Equal("date", cut.Find("#lease-ends-on").GetAttribute("type"));
-        Assert.Contains("Leased vehicles only", cut.Find("#lease-ends-on-help").TextContent);
     }
 
     [Theory]
     [InlineData("Vin", "vin-error", "tab-basic")]
     [InlineData("LeaseEndsOn", "leaseendson-error", "tab-basic")]
+    [InlineData("Mileage", "mileage-error", "tab-basic")]
     [InlineData("Horsepower", "horsepower-error", "tab-specifications")]
     [InlineData("WheelSize", "wheelsize-error", "tab-specifications")]
     [InlineData("FuelTypeId", "fueltypeid-error", "tab-specifications")]

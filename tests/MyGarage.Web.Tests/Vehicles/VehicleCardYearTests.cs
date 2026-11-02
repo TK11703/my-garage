@@ -13,17 +13,26 @@ public class VehicleCardYearTests : VehicleTestContext
     [Fact]
     public void CardShowsTheYearWithTheMakeAndModel()
     {
-        var cut = RenderCard(Summary("Daily", "Toyota", "Tacoma", year: 2018));
+        var cut = RenderCard(Summary("Toyota", "Tacoma", year: 2018));
 
-        Assert.Equal("2018 Toyota Tacoma", cut.Find("[data-testid='vehicle-make-model']").TextContent.Trim());
+        Assert.Equal("2018 Toyota Tacoma", cut.Find(".card-title a").TextContent.Trim());
     }
 
     [Fact]
     public void CardOmitsTheYearWhenItIsMissing()
     {
-        var cut = RenderCard(Summary("Legacy", "Ford", "F-150", year: null));
+        var cut = RenderCard(Summary("Ford", "F-150", year: null));
 
-        Assert.Equal("Ford F-150", cut.Find("[data-testid='vehicle-make-model']").TextContent.Trim());
+        Assert.Equal("Ford F-150", cut.Find(".card-title a").TextContent.Trim());
+    }
+
+    [Fact]
+    public void CardShowsTheNameOnlyOnce()
+    {
+        var cut = RenderCard(Summary("Toyota", "Tacoma", year: 2018));
+
+        var text = cut.Find(".card-body").TextContent;
+        Assert.Equal(1, text.Split("Toyota Tacoma").Length - 1);
     }
 }
 

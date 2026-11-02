@@ -190,4 +190,172 @@ public class VehicleTagRepositoryTests(PostgresFixture postgres)
 
         Assert.Equal(["first", "second"], listed.Select(tag => tag.Name));
     }
+
+    [Fact]
+    public async Task Add_SameNameDifferentCaseForTwoOwners_ReusesOneSharedFeature()
+    {
+        var (dataSource, vehicles, tags) = await CreateAsync();
+        var first = await InsertVehicleAsync(vehicles, "owner-1");
+        var second = await InsertVehicleAsync(vehicles, "owner-2");
+
+        var created = await AddAsync(tags, "owner-1", first.Id, "Sunroof");
+        var reused = await AddAsync(tags, "owner-2", second.Id, "SUNROOF");
+
+        Assert.Equal(AddTagStatus.Added, created.Status);
+        Assert.Equal(AddTagStatus.Added, reused.Status);
+        Assert.Equal("Sunroof", created.Tag!.Name);
+        Assert.Equal("Sunroof", reused.Tag!.Name);
+        Assert.Equal(["Sunroof"], (await tags.ListAsync("owner-1", first.Id, CancellationToken.None)).Select(tag => tag.Name));
+        Assert.Equal(["Sunroof"], (await tags.ListAsync("owner-2", second.Id, CancellationToken.None)).Select(tag => tag.Name));
+        await using var connection = await dataSource.OpenConnectionAsync();
+        Assert.Equal(1, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM features"));
+        Assert.Equal("owner-1", await connection.ExecuteScalarAsync<string>("SELECT created_by FROM features"));
+        Assert.Equal(2, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM vehicle_tags"));
+    }
+
+    [Fact]
+    public async Task Add_FeatureAlreadyOnTheVehicle_CreatesNothingNew()
+    {
+        var (dataSource, vehicles, tags) = await CreateAsync();
+        var vehicle = await InsertVehicleAsync(vehicles, "owner-1");
+        await AddAsync(tags, "owner-1", vehicle.Id, "Sunroof");
+
+        Assert.Equal(AddTagStatus.Duplicate, (await AddAsync(tags, "owner-1", vehicle.Id, "sUnRoOf")).Status);
+
+        await using var connection = await dataSource.OpenConnectionAsync();
+        Assert.Equal(1, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM features"));
+        Assert.Equal(1, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM vehicle_tags"));
+    }
+
+    [Fact]
+    public async Task Add_AnotherOwnersVehicle_DoesNotCreateAFeature()
+    {
+        var (dataSource, vehicles, tags) = await CreateAsync();
+        var vehicle = await InsertVehicleAsync(vehicles, "owner-1");
+
+        await AddAsync(tags, "owner-2", vehicle.Id, "Sunroof");
+
+        await using var connection = await dataSource.OpenConnectionAsync();
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM features"));
+    }
+
+    [Fact]
+    public async Task DeletingAVehicle_RemovesItsLinksButKeepsTheSharedFeature()
+    {
+        var (dataSource, vehicles, tags) = await CreateAsync();
+        var vehicle = await InsertVehicleAsync(vehicles, "owner-1");
+        await AddAsync(tags, "owner-1", vehicle.Id, "Sunroof");
+
+        Assert.True(await vehicles.DeleteAsync("owner-1", vehicle.Id, CancellationToken.None));
+
+        await using var connection = await dataSource.OpenConnectionAsync();
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM vehicle_tags"));
+        Assert.Equal(["Sunroof"], await connection.QueryAsync<string>("SELECT name FROM features"));
+    }
+
+    private async Task<(VehicleTagRepository Tags, VehicleRecord First, VehicleRecord Second, VehicleRecord Third)> CreateSuggestionGarageAsync()
+    {
+        var (_, vehicles, tags) = await CreateAsync();
+        var first = await InsertVehicleAsync(vehicles, "owner-1");
+        var second = await InsertVehicleAsync(vehicles, "owner-2");
+        var third = await InsertVehicleAsync(vehicles, "owner-1");
+        foreach (var (owner, vehicle, name) in new[]
+        {
+            ("owner-1", first, "Heated seats"),
+            ("owner-2", second, "Heated seats"),
+            ("owner-1", third, "Heated seats"),
+            ("owner-1", first, "Heated steering wheel"),
+            ("owner-2", second, "Heated steering wheel"),
+            ("owner-1", third, "Heated mirrors"),
+            ("owner-1", first, "Apple CarPlay"),
+            ("owner-1", first, "Android Auto"),
+        })
+        {
+            Assert.Equal(AddTagStatus.Added, (await AddAsync(tags, owner, vehicle.Id, name)).Status);
+        }
+
+        return (tags, first, second, third);
+    }
+
+    [Fact]
+    public async Task Suggest_MatchesContainedTextIgnoringCase_MostUsedFirstThenByName()
+    {
+        var (tags, _, _, _) = await CreateSuggestionGarageAsync();
+
+        Assert.Equal(["Heated seats", "Heated steering wheel", "Heated mirrors"], await tags.SuggestAsync("heated", 10, CancellationToken.None));
+        Assert.Equal(["Heated seats", "Heated steering wheel", "Heated mirrors"], await tags.SuggestAsync("HEATED", 10, CancellationToken.None));
+        Assert.Equal(["Heated steering wheel"], await tags.SuggestAsync("ing WHE", 10, CancellationToken.None));
+        Assert.Equal(
+            ["Heated seats", "Heated steering wheel", "Android Auto", "Apple CarPlay", "Heated mirrors"],
+            await tags.SuggestAsync("a", 10, CancellationToken.None));
+        Assert.Empty(await tags.SuggestAsync("nothing like this", 10, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Suggest_RespectsTheLimit()
+    {
+        var (tags, _, _, _) = await CreateSuggestionGarageAsync();
+
+        Assert.Equal(["Heated seats", "Heated steering wheel"], await tags.SuggestAsync("heated", 2, CancellationToken.None));
+        Assert.Equal(["Heated seats"], await tags.SuggestAsync("heated", 1, CancellationToken.None));
+    }
+
+    [Theory]
+    [InlineData("%", "100% cotton")]
+    [InlineData("_", "a_b")]
+    [InlineData("\\", "a\\b")]
+    public async Task Suggest_TreatsLikeWildcardsLiterally(string text, string expected)
+    {
+        var (_, vehicles, tags) = await CreateAsync();
+        var vehicle = await InsertVehicleAsync(vehicles, "owner-1");
+        foreach (var name in new[] { "100% cotton", "a_b", "a\\b", "axb", "ab" })
+        {
+            await AddAsync(tags, "owner-1", vehicle.Id, name);
+        }
+
+        Assert.Equal([expected], await tags.SuggestAsync(text, 10, CancellationToken.None));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Suggest_BlankText_ReturnsNothing(string? text)
+    {
+        var (tags, _, _, _) = await CreateSuggestionGarageAsync();
+
+        Assert.Empty(await tags.SuggestAsync(text, 10, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Suggest_OmitsFeaturesNoVehicleUsesAnymore()
+    {
+        var (_, vehicles, tags) = await CreateAsync();
+        var kept = await InsertVehicleAsync(vehicles, "owner-1");
+        var doomed = await InsertVehicleAsync(vehicles, "owner-2");
+        var removedTag = (await AddAsync(tags, "owner-1", kept.Id, "Removed feature")).Tag!;
+        await AddAsync(tags, "owner-1", kept.Id, "Kept feature");
+        await AddAsync(tags, "owner-2", doomed.Id, "Orphaned by delete");
+        await AddAsync(tags, "owner-2", doomed.Id, "Kept feature");
+
+        Assert.True(await tags.RemoveAsync("owner-1", kept.Id, removedTag.Id, CancellationToken.None));
+        Assert.True(await vehicles.DeleteAsync("owner-2", doomed.Id, CancellationToken.None));
+
+        Assert.Empty(await tags.SuggestAsync("removed", 10, CancellationToken.None));
+        Assert.Empty(await tags.SuggestAsync("orphaned", 10, CancellationToken.None));
+        Assert.Equal(["Kept feature"], await tags.SuggestAsync("feature", 10, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Suggest_CountsUsageAcrossAllOwnersAndKeepsTheCanonicalCasing()
+    {
+        var (_, vehicles, tags) = await CreateAsync();
+        var one = await InsertVehicleAsync(vehicles, "owner-1");
+        var two = await InsertVehicleAsync(vehicles, "owner-2");
+        await AddAsync(tags, "owner-1", one.Id, "Roof rack");
+        await AddAsync(tags, "owner-1", one.Id, "Alloy wheels");
+        await AddAsync(tags, "owner-2", two.Id, "ROOF RACK");
+
+        Assert.Equal(["Roof rack", "Alloy wheels"], await tags.SuggestAsync("o", 10, CancellationToken.None));
+    }
 }

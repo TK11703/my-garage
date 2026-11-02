@@ -22,7 +22,7 @@ else
                 <div class="tab-content">
                     <div id="tab-basic" class="tab-pane @PaneState("basic", current)" role="tabpanel" aria-labelledby="tab-basic-tab" tabindex="0">
                         <div class="row">
-                            <div class="col-lg-8 vstack gap-3">
+                            <div class="col-lg-10 vstack gap-3">
                                 <VehicleBasicFields Model="Model" Errors="Errors" Lookups="Lookups" />
                                 <VehicleFormActions SubmitText="@SubmitText" CancelHref="@CancelHref" />
                             </div>
@@ -30,7 +30,7 @@ else
                     </div>
                     <div id="tab-specifications" class="tab-pane @PaneState("specifications", current)" role="tabpanel" aria-labelledby="tab-specifications-tab" tabindex="0">
                         <div class="row">
-                            <div class="col-lg-8 vstack gap-3">
+                            <div class="col-lg-10 vstack gap-3">
                                 <VehicleSpecificationFields Model="Model" Errors="Errors" Lookups="Lookups" />
                                 <VehicleFormActions SubmitText="@SubmitText" CancelHref="@CancelHref" />
                             </div>
@@ -46,11 +46,7 @@ else
                         @MediaContent
                     </div>
                     <div id="tab-description" class="tab-pane @PaneState("description", current)" role="tabpanel" aria-labelledby="tab-description-tab" tabindex="0">
-                        <div class="row">
-                            <div class="col-lg-8">
-                                @DescriptionContent
-                            </div>
-                        </div>
+                        @DescriptionContent
                     </div>
                 </div>
             }

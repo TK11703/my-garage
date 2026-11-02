@@ -62,23 +62,94 @@ public class VehicleJournalSectionTests : VehicleTestContext
     }
 
     [Fact]
-    public void Notes_AreListedInTheOrderReturnedWithCategoryAndDate()
+    public void Notes_AreListedInTheOrderReturnedWithCategoryAndTimestamp()
     {
-        Notes = NotesPage([Note("Newest note", "Road trip"), Note("Older note", null, new DateTimeOffset(2026, 1, 2, 0, 0, 0, TimeSpan.Zero))]);
+        Notes = NotesPage([Note("Newest note", "Road trip"), Note("Older note", null, new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero))]);
         RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
 
         var cut = RenderSection();
 
         cut.WaitForAssertion(() =>
         {
-            var notes = cut.FindAll("[data-testid='note']");
+            var notes = cut.FindAll("ul.mg-timeline > li.mg-timeline-item[data-testid='note']");
             Assert.Equal(2, notes.Count);
-            Assert.Contains("Newest note", notes[0].TextContent);
-            Assert.Contains("Road trip", notes[0].QuerySelector("[data-testid='note-category']")!.TextContent);
-            Assert.Contains("Oct 31, 2026", notes[0].TextContent);
-            Assert.Contains("Older note", notes[1].TextContent);
+            Assert.Equal("Newest note", notes[0].QuerySelector("span.note-body")!.TextContent.Trim());
+            Assert.Equal("Road trip", notes[0].QuerySelector("span.badge[data-testid='note-category']")!.TextContent.Trim());
+            Assert.Equal("2026-10-31 15:30:00 UTC", notes[0].QuerySelector("time.mg-timeline-time")!.TextContent.Trim());
+            Assert.Equal("Older note", notes[1].QuerySelector("span.note-body")!.TextContent.Trim());
             Assert.Null(notes[1].QuerySelector("[data-testid='note-category']"));
-            Assert.Contains("Jan 2, 2026", notes[1].TextContent);
+            Assert.Equal("2026-01-02 03:04:05 UTC", notes[1].QuerySelector("time.mg-timeline-time")!.TextContent.Trim());
+            Assert.Empty(cut.FindAll(".card"));
+        });
+    }
+
+    [Fact]
+    public void TimelineEntries_HaveAMarkerAndAnIsoUtcDatetimeAttribute()
+    {
+        Notes = NotesPage([Note("A note", null, new DateTimeOffset(2026, 5, 6, 7, 8, 9, TimeSpan.FromHours(2)))]);
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderSection();
+
+        cut.WaitForAssertion(() =>
+        {
+            var note = cut.Find("li[data-testid='note']");
+            Assert.Equal("true", note.QuerySelector("span.mg-timeline-marker")!.GetAttribute("aria-hidden"));
+            var time = note.QuerySelector("time.mg-timeline-time")!;
+            Assert.Equal("2026-05-06T05:08:09.0000000Z", time.GetAttribute("datetime"));
+            Assert.Equal("2026-05-06 05:08:09 UTC", time.TextContent.Trim());
+        });
+    }
+
+    [Fact]
+    public void NotesKeepTheirEditAndDeleteControls()
+    {
+        Notes = NotesPage([Note("A note")]);
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderSection();
+
+        cut.WaitForAssertion(() =>
+        {
+            var note = cut.Find("li[data-testid='note']");
+            Assert.NotNull(note.QuerySelector("details[data-testid='edit-note']"));
+            Assert.NotNull(note.QuerySelector("details[data-testid='delete-note']"));
+        });
+    }
+
+    [Fact]
+    public void AddFormComesBeforeTheRecentEntriesHeadingAndTheTimeline()
+    {
+        Notes = NotesPage([Note("A note")]);
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderSection();
+
+        cut.WaitForAssertion(() =>
+        {
+            var section = cut.Find("section[aria-labelledby='journal-heading']");
+            Assert.Equal(["H2", "FORM", "H3", "UL"], section.Children.Take(4).Select(child => child.TagName));
+            Assert.Equal("Journal", section.Children[0].TextContent.Trim());
+            Assert.Equal("add-note", section.Children[1].GetAttribute("data-testid"));
+            Assert.Equal("recent-entries-heading", section.Children[2].Id);
+            Assert.Equal("Recent Journal Entries", section.Children[2].TextContent.Trim());
+            Assert.Equal("recent-entries-heading", section.Children[3].GetAttribute("aria-labelledby"));
+        });
+    }
+
+    [Fact]
+    public void NoNotes_PutsTheEmptyStateAfterTheRecentEntriesHeading()
+    {
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderSection();
+
+        cut.WaitForAssertion(() =>
+        {
+            var children = cut.Find("section[aria-labelledby='journal-heading']").Children.ToList();
+            var heading = children.Single(child => child.Id == "recent-entries-heading");
+            Assert.Contains("No notes yet", children[children.IndexOf(heading) + 1].TextContent);
+            Assert.Empty(cut.FindAll("ul.mg-timeline"));
         });
     }
 
@@ -108,7 +179,20 @@ public class VehicleJournalSectionTests : VehicleTestContext
 
         var cut = RenderSection();
 
-        cut.WaitForAssertion(() => Assert.Contains("edited", cut.Find("[data-testid='note']").TextContent));
+        cut.WaitForAssertion(() => Assert.Equal(
+            "2026-10-01 00:00:00 UTC (edited)",
+            cut.Find("[data-testid='note'] time.mg-timeline-time").TextContent.Trim()));
+    }
+
+    [Fact]
+    public void NotesNotEditedAreNotMarked()
+    {
+        Notes = NotesPage([Note("fresh")]);
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderSection();
+
+        cut.WaitForAssertion(() => Assert.DoesNotContain("edited", cut.Find("[data-testid='note'] time").TextContent));
     }
 
     [Fact]

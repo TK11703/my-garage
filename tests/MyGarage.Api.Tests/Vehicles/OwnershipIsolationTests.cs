@@ -23,7 +23,7 @@ public class OwnershipIsolationTests(ApiFactory factory) : IClassFixture<ApiFact
     private static readonly Probe[] Probes =
     [
         new("GET vehicle", (c, s) => c.GetAsync($"/api/vehicles/{s.VehicleId}")),
-        new("PUT vehicle", (c, s) => c.PutAsJsonAsync($"/api/vehicles/{s.VehicleId}", new VehicleRequest { Nickname = "x", Make = "x", Model = "x", Year = 2020 })),
+        new("PUT vehicle", (c, s) => c.PutAsJsonAsync($"/api/vehicles/{s.VehicleId}", new VehicleRequest { Make = "x", Model = "x", Year = 2020 })),
         new("DELETE vehicle", (c, s) => c.DeleteAsync($"/api/vehicles/{s.VehicleId}")),
         new("POST tag", (c, s) => c.PostAsJsonAsync($"/api/vehicles/{s.VehicleId}/tags", new AddVehicleTagRequest { Name = "x" })),
         new("DELETE tag", (c, s) => c.DeleteAsync($"/api/vehicles/{s.VehicleId}/tags/{s.TagId}")),
@@ -40,7 +40,7 @@ public class OwnershipIsolationTests(ApiFactory factory) : IClassFixture<ApiFact
 
     private async Task<Seed> SeedAsync(HttpClient owner)
     {
-        var vehicle = (await (await owner.PostAsJsonAsync("/api/vehicles", new VehicleRequest { Nickname = "Private car", Make = "Ford", Model = "F-150", Year = 2020 }))
+        var vehicle = (await (await owner.PostAsJsonAsync("/api/vehicles", new VehicleRequest { Make = "Ford", Model = "F-150", Year = 2020 }))
             .Content.ReadFromJsonAsync<VehicleDetailDto>())!;
         var tag = (await (await owner.PostAsJsonAsync($"/api/vehicles/{vehicle.Id}/tags", new AddVehicleTagRequest { Name = "private-tag" }))
             .Content.ReadFromJsonAsync<VehicleTagDto>())!;
@@ -72,7 +72,7 @@ public class OwnershipIsolationTests(ApiFactory factory) : IClassFixture<ApiFact
         Assert.Empty(failures);
 
         var after = await alice.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{seed.VehicleId}");
-        Assert.Equal(before!.Nickname, after!.Nickname);
+        Assert.Equal(before!.Name, after!.Name);
         Assert.Equal(before.UpdatedAt, after.UpdatedAt);
         Assert.Equal([seed.TagId], after.Tags.Select(t => t.Id));
         Assert.Equal([seed.ImageId], after.Images.Select(i => i.Id));
@@ -107,7 +107,7 @@ public class OwnershipIsolationTests(ApiFactory factory) : IClassFixture<ApiFact
         var alice = factory.CreateClientForUser("alice-oid");
         var bob = factory.CreateClientForUser("bob-oid");
         var seed = await SeedAsync(alice);
-        VehicleRequest Request(Guid itemId) => new() { Nickname = "x", Make = "x", Model = "x", Year = 2020, FuelTypeId = itemId };
+        VehicleRequest Request(Guid itemId) => new() { Make = "x", Model = "x", Year = 2020, FuelTypeId = itemId };
 
         var foreign = await bob.PostAsJsonAsync("/api/vehicles", Request(seed.ItemId));
         var unknown = await bob.PostAsJsonAsync("/api/vehicles", Request(Guid.NewGuid()));
@@ -127,7 +127,7 @@ public class OwnershipIsolationTests(ApiFactory factory) : IClassFixture<ApiFact
         var alice = factory.CreateClientForUser("alice-oid");
         var bob = factory.CreateClientForUser("bob-oid");
         var seed = await SeedAsync(alice);
-        var request = new VehicleRequest { Nickname = "Fueled", Make = "x", Model = "x", Year = 2020, FuelTypeId = seed.ItemId };
+        var request = new VehicleRequest { Make = "x", Model = "x", Year = 2020, FuelTypeId = seed.ItemId };
         (await alice.PostAsJsonAsync("/api/vehicles", request)).EnsureSuccessStatusCode();
 
         var page = await bob.GetFromJsonAsync<PagedResultDto<VehicleSummaryDto>>($"/api/vehicles?fuelTypeId={seed.ItemId}&minYear=1900");

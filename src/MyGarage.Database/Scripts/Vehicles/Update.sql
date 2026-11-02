@@ -1,6 +1,5 @@
 UPDATE vehicles
-SET nickname        = @Nickname,
-    vin             = @Vin,
+SET vin             = @Vin,
     make            = @Make,
     model           = @Model,
     trim            = @Trim,
