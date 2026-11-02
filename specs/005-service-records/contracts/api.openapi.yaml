@@ -1,0 +1,301 @@
+openapi: 3.1.0
+info:
+  title: My Garage API - Service Records
+  version: 1.0.0
+  description: >-
+    Service record endpoints. Extends the vehicles API (specs/002-vehicle-tracking/contracts/api.openapi.yaml and
+    specs/004-expanded-vehicle-details/contracts/api.openapi.yaml). The owner is always derived from the validated access token;
+    no request carries an owner or user id. A vehicle, service record, or line item that does not exist, belongs to another user,
+    or is reached through a vehicle other than its own is reported as 404. All amounts are in a single currency.
+servers:
+  - url: https+http://api
+security:
+  - bearer: [access_as_user]
+paths:
+  /api/vehicles/{vehicleId}/service-records:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+    get:
+      operationId: listServiceRecords
+      summary: Page of the vehicle's service records, most recent Date Serviced first (ties newest created first).
+      tags: [ServiceRecords]
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PageSize10" }
+      responses:
+        "200":
+          description: A page of record summaries (clamped to the last page when out of range; the returned `page` is the page served).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServiceRecordSummaryPage" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      operationId: createServiceRecord
+      summary: Add a service record (metadata only) to the vehicle. Line items are added afterwards.
+      tags: [ServiceRecords]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServiceRecordRequest" }
+      responses:
+        "201":
+          description: Created. The record has no line items and a total cost of 0.00.
+          headers:
+            Location: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServiceRecordDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/{vehicleId}/service-records/{recordId}:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+      - { $ref: "#/components/parameters/RecordId" }
+    get:
+      operationId: getServiceRecord
+      summary: One service record with its line items, parts, and total cost.
+      tags: [ServiceRecords]
+      responses:
+        "200":
+          description: The record.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServiceRecordDto" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      operationId: updateServiceRecord
+      summary: Edit the record's metadata. Line items are unchanged.
+      tags: [ServiceRecords]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServiceRecordRequest" }
+      responses:
+        "200":
+          description: The updated record.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServiceRecordDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    delete:
+      operationId: deleteServiceRecord
+      summary: Delete the record and all of its line items and parts.
+      tags: [ServiceRecords]
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/{vehicleId}/service-records/{recordId}/line-items:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+      - { $ref: "#/components/parameters/RecordId" }
+    post:
+      operationId: addServiceLineItem
+      summary: Add a line item (a service performed) priced either by a flat cost or by a labor and parts breakdown.
+      tags: [ServiceRecords]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServiceLineItemRequest" }
+      responses:
+        "201":
+          description: Created. The whole record is returned so the caller has the new total.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServiceRecordDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409":
+          description: The record already has the maximum of 50 line items.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+  /api/vehicles/{vehicleId}/service-records/{recordId}/line-items/{lineItemId}:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+      - { $ref: "#/components/parameters/RecordId" }
+      - { name: lineItemId, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      operationId: updateServiceLineItem
+      summary: Replace the line item's description, pricing, and parts.
+      tags: [ServiceRecords]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServiceLineItemRequest" }
+      responses:
+        "200":
+          description: The whole record with the updated line item and new total.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ServiceRecordDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    delete:
+      operationId: deleteServiceLineItem
+      summary: Delete the line item and its parts.
+      tags: [ServiceRecords]
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+components:
+  securitySchemes:
+    bearer:
+      type: oauth2
+      description: Microsoft Entra ID access token; the owner id comes from its validated claims.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://login.microsoftonline.com/common/oauth2/v2.0/authorize
+          tokenUrl: https://login.microsoftonline.com/common/oauth2/v2.0/token
+          scopes:
+            access_as_user: Access My Garage as the signed-in user.
+  parameters:
+    VehicleId: { name: vehicleId, in: path, required: true, schema: { type: string, format: uuid } }
+    RecordId: { name: recordId, in: path, required: true, schema: { type: string, format: uuid } }
+    Page: { name: page, in: query, required: false, schema: { type: integer, minimum: 1, default: 1 } }
+    PageSize10: { name: pageSize, in: query, required: false, description: Default 10, maximum 50., schema: { type: integer, minimum: 1, maximum: 50, default: 10 } }
+  responses:
+    Problem:
+      description: RFC 9457 problem details.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ProblemDetails" }
+    ValidationProblem:
+      description: Validation failed; `errors` is keyed by field name (for example `dateServiced`, `parts[0].quantity`).
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ValidationProblemDetails" }
+  schemas:
+    ProblemDetails:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+    ValidationProblemDetails:
+      allOf:
+        - { $ref: "#/components/schemas/ProblemDetails" }
+        - type: object
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items: { type: string }
+    Money:
+      type: number
+      format: decimal
+      minimum: 0
+      maximum: 9999999.99
+      description: At most two decimal places.
+    ServiceRecordRequest:
+      type: object
+      required: [dateServiced, odometerReading]
+      properties:
+        dateServiced: { type: string, format: date, description: "Not in the future (UTC date); not before 1900-01-01." }
+        odometerReading: { type: integer, minimum: 0, maximum: 9999999 }
+        shopOrPerson: { type: [string, "null"], maxLength: 100, description: "Free text; trimmed; blank means not set; no control characters." }
+    ServiceRecordSummaryDto:
+      type: object
+      required: [id, dateServiced, odometerReading, lineItemCount, totalCost]
+      properties:
+        id: { type: string, format: uuid }
+        dateServiced: { type: string, format: date }
+        odometerReading: { type: integer }
+        shopOrPerson: { type: [string, "null"] }
+        lineItemCount: { type: integer }
+        totalCost: { $ref: "#/components/schemas/Money" }
+    ServiceRecordSummaryPage:
+      type: object
+      required: [items, page, pageSize, totalCount, totalPages]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/ServiceRecordSummaryDto" }
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalCount: { type: integer }
+        totalPages: { type: integer }
+    ServiceRecordDto:
+      type: object
+      required: [id, vehicleId, dateServiced, odometerReading, lineItems, totalCost, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        vehicleId: { type: string, format: uuid }
+        dateServiced: { type: string, format: date }
+        odometerReading: { type: integer }
+        shopOrPerson: { type: [string, "null"] }
+        lineItems:
+          type: array
+          description: In the order they were added.
+          items: { $ref: "#/components/schemas/ServiceLineItemDto" }
+        totalCost: { $ref: "#/components/schemas/Money" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ServicePartRequest:
+      type: object
+      required: [name, quantity, unitPrice]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        quantity: { type: number, format: decimal, minimum: 0.01, maximum: 9999.99, description: At most two decimal places. }
+        unitPrice: { $ref: "#/components/schemas/Money" }
+    ServiceLineItemRequest:
+      type: object
+      required: [description]
+      description: >-
+        Exactly one pricing mode. Flat: `flatCost` set, no labor, no parts (a free service is 0.00).
+        Breakdown: `flatCost` absent, and `laborHours` with `laborRate` (required together) and/or at least one part.
+      properties:
+        description: { type: string, minLength: 1, maxLength: 200, description: What service was performed. }
+        flatCost: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
+        laborHours: { type: [number, "null"], format: decimal, minimum: 0.01, maximum: 999.99 }
+        laborRate: { type: [number, "null"], format: decimal, minimum: 0, maximum: 99999.99, description: Price per hour. }
+        parts:
+          type: array
+          maxItems: 25
+          items: { $ref: "#/components/schemas/ServicePartRequest" }
+    ServicePartDto:
+      type: object
+      required: [name, quantity, unitPrice, totalPrice]
+      properties:
+        name: { type: string }
+        quantity: { type: number, format: decimal }
+        unitPrice: { $ref: "#/components/schemas/Money" }
+        totalPrice: { $ref: "#/components/schemas/Money" }
+    ServiceLineItemDto:
+      type: object
+      required: [id, description, parts, totalCost]
+      properties:
+        id: { type: string, format: uuid }
+        description: { type: string }
+        flatCost: { type: [number, "null"], format: decimal }
+        laborHours: { type: [number, "null"], format: decimal }
+        laborRate: { type: [number, "null"], format: decimal }
+        laborCost: { type: [number, "null"], format: decimal, description: Hours x rate rounded to two decimals; null without labor. }
+        parts:
+          type: array
+          items: { $ref: "#/components/schemas/ServicePartDto" }
+        totalCost: { $ref: "#/components/schemas/Money" }
