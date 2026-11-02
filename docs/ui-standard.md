@@ -43,7 +43,7 @@ Theming is done by overriding Bootstrap 5.3 CSS custom properties in `wwwroot/ap
 2. `AppNavbar`: fixed top, full width. Signed in: logo and name, search, notifications, help (?), account menu. Signed out: logo and name, help, Sign in.
 3. `<main id="main-content" class="container-fluid py-3">` containing the page, which always starts with `PageHeader`.
 
-The search box submits `GET /vehicles?q=` (the existing owner-scoped vehicle search). Notifications is a placeholder menu with no unread indicator. Help links to `/faq` and `/about`, which are viewable without signing in. The account menu shows the user's own name, a shortcut to their vehicles, and Sign out (antiforgery `POST /authentication/logout`).
+The search box submits `GET /vehicles?q=` (the existing owner-scoped vehicle search). Notifications is a placeholder menu with no unread indicator. Help links to `/faq` and `/about`, which are viewable without signing in. The account menu shows the user's own name, a shortcut to their vehicles, Preferences, and Sign out (antiforgery `POST /authentication/logout`).
 
 ## Page header: trail and title
 
@@ -57,6 +57,7 @@ The search box submits `GET /vehicles?q=` (the existing owner-scoped vehicle sea
 | Vehicle detail | `/vehicles/{id}` | Vehicles > {nickname} | {nickname} |
 | Edit vehicle | `/vehicles/{id}/edit` | Vehicles > {nickname} > Edit | Edit {nickname} |
 | Vehicle not found | detail or edit | Vehicles | Vehicle not found |
+| Preferences | `/preferences` | Preferences | Preferences |
 | FAQ | `/faq` | FAQ | Frequently Asked Questions |
 | About | `/about` | About | About My Garage |
 | API check | `/api-check` | API check | API Check |
@@ -77,9 +78,10 @@ The search box submits `GET /vehicles?q=` (the existing owner-scoped vehicle sea
 | Destructive confirmation | Inline `<details>` with a danger alert, a POST form, and buttons "Yes, delete this {vehicle, note, picture}" and "Keep {vehicle, note, picture}". Tag removal is immediately reversible, so it is a one-click remove button with the accessible name "Remove tag {name}" |
 | Forms | `form-label` above each control; required fields marked with a visible `*` (`aria-hidden`) and a "* Required" note; field errors use `invalid-feedback d-block`; forms limited to `col-lg-8` |
 | Cards | Bootstrap card (`border-0 shadow-sm`) with a 16:9 image or placeholder, bold title link, make and model, and a detail line with an icon; long text uses `text-break`. Vehicle cards are `mg-vehicle-card` and lift slightly on hover (not with reduced motion) |
-| View page | Page header with an Edit action, then the same four tabs read-only: Basic Info and Specifications as definition lists, Media as a picture grid, Description as feature-tag badges followed by the journal. Empty sections link to the matching edit tab. Delete vehicle stays below the card |
-| Edit page | Page header with a "Back to vehicle" action, then a card with tabs: Basic Info (nickname, make, model, trim) and Specifications (color, mileage, doors) share one form with Save changes and Cancel; Media holds the picture gallery; Description holds feature tags followed by the journal. `?tab=` opens a tab, and a rejected save opens the tab with the first error |
-| Listing page | A search card holding only the search field, then a results card: result count in the header, the card grid (1, 2, 3, then 4 columns), and a footer with "Showing x to y of z entries" and the pager at the right |
+| View page | Page header with an Edit action, then the same four tabs read-only: Basic Info (Name, VIN, Make, Model, Trim, Year, Vehicle type, Purchased or leased, Date purchased, Date lease ends) and Specifications (Engine, Horsepower, Fuel type, Transmission, Mileage, Color, Seats, Doors, Drivetrain, Wheel size, Tire size) as definition lists with "Not set" for empty values, Media as a picture grid, Description as feature-tag badges followed by the journal. A vehicle without a year shows a warning prompt linking to the Basic Info edit tab. Delete vehicle stays below the card |
+| Edit page | Page header with a "Back to vehicle" action, then a card with tabs: Basic Info and Specifications (the fields above; Vehicle type, Purchased or leased, Fuel type, Transmission, and Drivetrain are selects starting with "Not set", and a hidden item already on the vehicle stays selected marked "(hidden)") share one form with Save changes and Cancel; Media holds the picture gallery; Description holds feature tags followed by the journal. `?tab=` opens a tab, and a rejected save opens the tab with the first error |
+| Preferences page | Page header, an Account card (display name and email as read-only text), then tabs built with the shared `TabNav` component: Vehicle Types, Fuel Types, Transmissions, Drivetrains. Each tab is a list group of every item with a "Default" or "Yours" badge, a "Hidden" badge on hidden items, and a Hide or Show button named after the item, followed by an add form. `?tab=` opens a tab, and a refused change opens its tab with the message |
+| Listing page | A search card holding only the search field, a collapsible Filters card whose controls submit with the search form (`form="vehicle-search"`) and whose active criteria are removable badges with a "Clear all" link, then a results card: result count in the header, the card grid (1, 2, 3, then 4 columns), and a footer with "Showing x to y of z entries" and the pager at the right |
 | Empty and no-match states | `EmptyState` (full block with an action, or `Compact` inside a section) |
 | API failures | `ApiFailureAlert` (warning alert, "Sign in again" when the session is not accepted) |
 | Feedback | `alert-success` (`role="status"`), `alert-info`, `alert-warning`, `alert-danger` (`role="alert"`); every alert has a role |

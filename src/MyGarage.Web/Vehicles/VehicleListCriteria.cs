@@ -1,4 +1,6 @@
 using System.Globalization;
+using MyGarage.Shared.Lookups;
+using MyGarage.Shared.Vehicles;
 
 namespace MyGarage.Web.Vehicles;
 
@@ -21,12 +23,40 @@ public sealed record VehicleListCriteria
 
     public int? MaxMileage { get; init; }
 
-    public bool HasFilters => Make is not null || Color is not null || Doors is not null || Tag is not null || MinMileage is not null || MaxMileage is not null;
+    public int? MinYear { get; init; }
+
+    public int? MaxYear { get; init; }
+
+    public Guid? VehicleTypeId { get; init; }
+
+    public Guid? FuelTypeId { get; init; }
+
+    public Guid? TransmissionId { get; init; }
+
+    public Guid? DrivetrainId { get; init; }
+
+    public bool HasFilters =>
+        Make is not null || Color is not null || Doors is not null || Tag is not null || MinMileage is not null || MaxMileage is not null
+        || MinYear is not null || MaxYear is not null || VehicleTypeId is not null || FuelTypeId is not null
+        || TransmissionId is not null || DrivetrainId is not null;
 
     public bool HasAny => Query is not null || HasFilters;
 
-    // Text values are trimmed and blank means absent; numbers that do not parse are ignored.
-    public static VehicleListCriteria FromQuery(string? q, string? make, string? color, string? doors, string? tag, string? minMileage, string? maxMileage) =>
+    // Text values are trimmed and blank means absent; numbers and ids that do not parse are ignored.
+    public static VehicleListCriteria FromQuery(
+        string? q,
+        string? make,
+        string? color,
+        string? doors,
+        string? tag,
+        string? minMileage,
+        string? maxMileage,
+        string? minYear = null,
+        string? maxYear = null,
+        string? vehicleTypeId = null,
+        string? fuelTypeId = null,
+        string? transmissionId = null,
+        string? drivetrainId = null) =>
         new()
         {
             Query = Clean(q),
@@ -36,6 +66,12 @@ public sealed record VehicleListCriteria
             Tag = Clean(tag),
             MinMileage = ParseNumber(minMileage),
             MaxMileage = ParseNumber(maxMileage),
+            MinYear = ParseNumber(minYear),
+            MaxYear = ParseNumber(maxYear),
+            VehicleTypeId = ParseGuid(vehicleTypeId),
+            FuelTypeId = ParseGuid(fuelTypeId),
+            TransmissionId = ParseGuid(transmissionId),
+            DrivetrainId = ParseGuid(drivetrainId),
         };
 
     public string ToQueryString(int? page = null)
@@ -48,6 +84,12 @@ public sealed record VehicleListCriteria
         Add(parts, "tag", Tag);
         Add(parts, "minMileage", MinMileage?.ToString(CultureInfo.InvariantCulture));
         Add(parts, "maxMileage", MaxMileage?.ToString(CultureInfo.InvariantCulture));
+        Add(parts, "minYear", MinYear?.ToString(CultureInfo.InvariantCulture));
+        Add(parts, "maxYear", MaxYear?.ToString(CultureInfo.InvariantCulture));
+        Add(parts, "vehicleTypeId", VehicleTypeId?.ToString());
+        Add(parts, "fuelTypeId", FuelTypeId?.ToString());
+        Add(parts, "transmissionId", TransmissionId?.ToString());
+        Add(parts, "drivetrainId", DrivetrainId?.ToString());
         if (page is not null)
         {
             parts.Add($"page={page.Value.ToString(CultureInfo.InvariantCulture)}");
@@ -60,7 +102,8 @@ public sealed record VehicleListCriteria
     public string ToHref() => ToQueryString() is { Length: > 0 } query ? $"/vehicles?{query}" : "/vehicles";
 
     // One removable badge per active criterion; Without() gives the criteria with that one cleared.
-    public IEnumerable<(string Key, string Label)> Active()
+    // Lookup choices are named from the user's own filter options and never shown as identifiers.
+    public IEnumerable<(string Key, string Label)> Active(VehicleFilterOptionsDto? options = null)
     {
         if (Query is not null)
         {
@@ -96,6 +139,36 @@ public sealed record VehicleListCriteria
         {
             yield return ("maxMileage", $"Max mileage: {MaxMileage.Value.ToString("N0", CultureInfo.InvariantCulture)}");
         }
+
+        if (MinYear is not null)
+        {
+            yield return ("minYear", $"Min year: {MinYear.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (MaxYear is not null)
+        {
+            yield return ("maxYear", $"Max year: {MaxYear.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (VehicleTypeId is { } vehicleType)
+        {
+            yield return ("vehicleTypeId", $"Vehicle type: {NameOf(options?.VehicleTypes, vehicleType)}");
+        }
+
+        if (FuelTypeId is { } fuelType)
+        {
+            yield return ("fuelTypeId", $"Fuel type: {NameOf(options?.FuelTypes, fuelType)}");
+        }
+
+        if (TransmissionId is { } transmission)
+        {
+            yield return ("transmissionId", $"Transmission: {NameOf(options?.Transmissions, transmission)}");
+        }
+
+        if (DrivetrainId is { } drivetrain)
+        {
+            yield return ("drivetrainId", $"Drivetrain: {NameOf(options?.Drivetrains, drivetrain)}");
+        }
     }
 
     public VehicleListCriteria Without(string key) =>
@@ -108,8 +181,17 @@ public sealed record VehicleListCriteria
             "tag" => this with { Tag = null },
             "minMileage" => this with { MinMileage = null },
             "maxMileage" => this with { MaxMileage = null },
+            "minYear" => this with { MinYear = null },
+            "maxYear" => this with { MaxYear = null },
+            "vehicleTypeId" => this with { VehicleTypeId = null },
+            "fuelTypeId" => this with { FuelTypeId = null },
+            "transmissionId" => this with { TransmissionId = null },
+            "drivetrainId" => this with { DrivetrainId = null },
             _ => this,
         };
+
+    private static string NameOf(IReadOnlyList<LookupValueDto>? choices, Guid id) =>
+        choices?.FirstOrDefault(choice => choice.Id == id)?.Name ?? "selected";
 
     private static void Add(List<string> parts, string name, string? value)
     {
@@ -123,4 +205,6 @@ public sealed record VehicleListCriteria
 
     private static int? ParseNumber(string? value) =>
         int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number : null;
+
+    private static Guid? ParseGuid(string? value) => Guid.TryParse(value, out var id) ? id : null;
 }

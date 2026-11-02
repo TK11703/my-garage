@@ -1,0 +1,163 @@
+@using System.Globalization
+
+<section class="card border-0 shadow-sm mb-3 mg-filter-card" aria-labelledby="filters-heading">
+    <div class="card-header bg-transparent d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <h2 id="filters-heading" class="h6 mb-0">
+            <button type="button" class="btn btn-link p-0 fw-semibold text-decoration-none"
+                    data-bs-toggle="collapse" data-bs-target="#filter-panel" aria-controls="filter-panel"
+                    aria-expanded="@(open ? "true" : "false")">Filters</button>
+        </h2>
+        @if (Criteria.HasAny)
+        {
+            <a class="small" href="/vehicles" data-testid="clear-all">Clear all</a>
+        }
+    </div>
+
+    @if (badges.Count > 0)
+    {
+        <div class="card-body pb-0">
+            <ul class="list-unstyled d-flex flex-wrap gap-2 mb-0" aria-label="Active search and filters">
+                @foreach (var (key, label) in badges)
+                {
+                    <li @key="key">
+                        <span class="badge text-bg-secondary fw-normal d-inline-flex align-items-center gap-2" data-testid="active-criterion">
+                            @label
+                            <a class="link-light text-decoration-none" href="@Criteria.Without(key).ToHref()" aria-label="Remove filter @label"><span aria-hidden="true">&times;</span></a>
+                        </span>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+
+    <div id="filter-panel" class="collapse @(open ? "show" : null)">
+        <div class="card-body">
+            <div class="row g-3">
+                @if (Options is not null)
+                {
+                    <div class="col-sm-6 col-lg-3">
+                        <label for="filter-make" class="form-label">Make</label>
+                        <select id="filter-make" name="make" form="vehicle-search" class="form-select">
+                            <option value="">Any</option>
+                            @foreach (var make in Options.Makes)
+                            {
+                                <option value="@make" selected="@Same(Criteria.Make, make)">@make</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <label for="filter-color" class="form-label">Color</label>
+                        <select id="filter-color" name="color" form="vehicle-search" class="form-select">
+                            <option value="">Any</option>
+                            @foreach (var color in Options.Colors)
+                            {
+                                <option value="@color" selected="@Same(Criteria.Color, color)">@color</option>
+                            }
+                        </select>
+                    </div>
+                }
+                <div class="col-sm-6 col-lg-3">
+                    <label for="filter-doors" class="form-label">Doors</label>
+                    <select id="filter-doors" name="doors" form="vehicle-search" class="form-select">
+                        <option value="">Any</option>
+                        @for (var doors = 1; doors <= 6; doors++)
+                        {
+                            <option value="@doors" selected="@(Criteria.Doors == doors)">@doors</option>
+                        }
+                    </select>
+                </div>
+                @if (Options is not null)
+                {
+                    <div class="col-sm-6 col-lg-3">
+                        <label for="filter-tag" class="form-label">Tag</label>
+                        <select id="filter-tag" name="tag" form="vehicle-search" class="form-select">
+                            <option value="">Any</option>
+                            @foreach (var tag in Options.Tags)
+                            {
+                                <option value="@tag" selected="@Same(Criteria.Tag, tag)">@tag</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <label for="filter-vehicle-type" class="form-label">Vehicle type</label>
+                        <select id="filter-vehicle-type" name="vehicleTypeId" form="vehicle-search" class="form-select">
+                            <option value="">Any</option>
+                            @foreach (var item in Options.VehicleTypes)
+                            {
+                                <option value="@item.Id" selected="@(Criteria.VehicleTypeId == item.Id)">@item.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <label for="filter-fuel-type" class="form-label">Fuel type</label>
+                        <select id="filter-fuel-type" name="fuelTypeId" form="vehicle-search" class="form-select">
+                            <option value="">Any</option>
+                            @foreach (var item in Options.FuelTypes)
+                            {
+                                <option value="@item.Id" selected="@(Criteria.FuelTypeId == item.Id)">@item.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <label for="filter-transmission" class="form-label">Transmission</label>
+                        <select id="filter-transmission" name="transmissionId" form="vehicle-search" class="form-select">
+                            <option value="">Any</option>
+                            @foreach (var item in Options.Transmissions)
+                            {
+                                <option value="@item.Id" selected="@(Criteria.TransmissionId == item.Id)">@item.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <label for="filter-drivetrain" class="form-label">Drivetrain</label>
+                        <select id="filter-drivetrain" name="drivetrainId" form="vehicle-search" class="form-select">
+                            <option value="">Any</option>
+                            @foreach (var item in Options.Drivetrains)
+                            {
+                                <option value="@item.Id" selected="@(Criteria.DrivetrainId == item.Id)">@item.Name</option>
+                            }
+                        </select>
+                    </div>
+                }
+                <div class="col-sm-6 col-lg-3">
+                    <label for="filter-min-mileage" class="form-label">Minimum mileage</label>
+                    <input id="filter-min-mileage" name="minMileage" form="vehicle-search" type="number" class="form-control" min="0" max="9999999" step="1"
+                           inputmode="numeric" value="@Format(Criteria.MinMileage)" />
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <label for="filter-max-mileage" class="form-label">Maximum mileage</label>
+                    <input id="filter-max-mileage" name="maxMileage" form="vehicle-search" type="number" class="form-control" min="0" max="9999999" step="1"
+                           inputmode="numeric" value="@Format(Criteria.MaxMileage)" />
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <label for="filter-min-year" class="form-label">Minimum year</label>
+                    <input id="filter-min-year" name="minYear" form="vehicle-search" type="number" class="form-control" min="1900" max="2200" step="1"
+                           inputmode="numeric" value="@Format(Criteria.MinYear)" />
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <label for="filter-max-year" class="form-label">Maximum year</label>
+                    <input id="filter-max-year" name="maxYear" form="vehicle-search" type="number" class="form-control" min="1900" max="2200" step="1"
+                           inputmode="numeric" value="@Format(Criteria.MaxYear)" />
+                </div>
+            </div>
+            <button type="submit" form="vehicle-search" class="btn btn-primary mt-3">Apply</button>
+        </div>
+    </div>
+</section>
+
+@code {
+    private bool open => Criteria.HasFilters;
+
+    private List<(string Key, string Label)> badges => [.. Criteria.Active(Options)];
+
+    [Parameter, EditorRequired]
+    public VehicleListCriteria Criteria { get; set; } = VehicleListCriteria.None;
+
+    // The choices present in the user's own garage; null when they could not be loaded.
+    [Parameter]
+    public VehicleFilterOptionsDto? Options { get; set; }
+
+    private static bool Same(string? chosen, string value) => string.Equals(chosen, value, StringComparison.OrdinalIgnoreCase);
+
+    private static string? Format(int? value) => value?.ToString(CultureInfo.InvariantCulture);
+}

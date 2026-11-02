@@ -96,7 +96,57 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await command.ExecuteNonQueryAsync();
     }
 
-    // Removes every vehicle (and, by cascade, its tags, notes, and image rows) and every stored image file.
+    // Seeds a vehicle in the shape of one saved before the year existed; returns its id.
+    public async Task<Guid> InsertVehicleWithoutYearAsync(string ownerId, string nickname)
+    {
+        _ = Services;
+
+        var id = Guid.NewGuid();
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand(
+            "INSERT INTO vehicles (id, owner_id, nickname, make, model, mileage, color, doors, created_at, updated_at, created_by, updated_by) " +
+            "VALUES (@id, @ownerId, @nickname, 'Ford', 'F-150', 1200, 'Red', 4, now(), now(), @ownerId, @ownerId)", connection);
+        command.Parameters.AddWithValue("id", id);
+        command.Parameters.AddWithValue("ownerId", ownerId);
+        command.Parameters.AddWithValue("nickname", nickname);
+        await command.ExecuteNonQueryAsync();
+        return id;
+    }
+
+    // Seeds a custom lookup item for an owner directly; returns its id.
+    public async Task<Guid> InsertLookupItemAsync(string ownerId, string kind, string name)
+    {
+        _ = Services;
+
+        var id = Guid.NewGuid();
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand(
+            "INSERT INTO lookup_items (id, kind, owner_id, name, created_at, created_by) VALUES (@id, @kind, @ownerId, @name, now(), @ownerId)", connection);
+        command.Parameters.AddWithValue("id", id);
+        command.Parameters.AddWithValue("kind", kind);
+        command.Parameters.AddWithValue("ownerId", ownerId);
+        command.Parameters.AddWithValue("name", name);
+        await command.ExecuteNonQueryAsync();
+        return id;
+    }
+
+    // Hides an item for an owner directly.
+    public async Task HideLookupItemAsync(string ownerId, Guid itemId)
+    {
+        _ = Services;
+
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand(
+            "INSERT INTO lookup_item_hidden (owner_id, item_id, hidden_at) VALUES (@ownerId, @itemId, now())", connection);
+        command.Parameters.AddWithValue("ownerId", ownerId);
+        command.Parameters.AddWithValue("itemId", itemId);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    // Removes every vehicle (and, by cascade, its tags, notes, and image rows), every user's lookup items and choices (never the defaults), and every stored image file.
     public async Task ResetDataAsync()
     {
         // Starting the host applies the migrations and creates the blob container, so both exist before they are cleared.
@@ -104,7 +154,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
         await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync();
-        await using var command = new NpgsqlCommand("TRUNCATE TABLE vehicles CASCADE", connection);
+        await using var command = new NpgsqlCommand(
+            "TRUNCATE TABLE vehicles CASCADE; DELETE FROM lookup_item_hidden; DELETE FROM lookup_items WHERE owner_id IS NOT NULL;", connection);
         await command.ExecuteNonQueryAsync();
 
         await foreach (var blob in ImageContainer.GetBlobsAsync())

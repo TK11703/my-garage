@@ -6,6 +6,9 @@ public sealed class VehicleSummaryDto
 
     public required string Nickname { get; init; }
 
+    // Null for vehicles saved before the year was collected.
+    public int? Year { get; init; }
+
     public required string Make { get; init; }
 
     public required string Model { get; init; }

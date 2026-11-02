@@ -18,7 +18,7 @@ public class VehicleSearchEndpointsTests(ApiFactory factory) : IClassFixture<Api
     {
         var response = await client.PostAsJsonAsync("/api/vehicles", new VehicleRequest
         {
-            Nickname = nickname, Make = make, Model = model, Color = color, Mileage = mileage, Doors = doors,
+            Nickname = nickname, Make = make, Model = model, Color = color, Mileage = mileage, Doors = doors, Year = 2020,
         });
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<VehicleDetailDto>())!;

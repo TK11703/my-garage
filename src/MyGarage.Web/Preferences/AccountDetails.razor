@@ -1,0 +1,20 @@
+<section class="card border-0 shadow-sm mb-4" aria-labelledby="account-heading" data-testid="account-details">
+    <div class="card-body">
+        <h2 id="account-heading" class="h5">Account</h2>
+        <dl class="row mb-2">
+            <dt class="col-sm-3">Name</dt>
+            <dd class="col-sm-9 text-break">@Show(User?.DisplayName)</dd>
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9 text-break">@Show(User?.Email)</dd>
+        </dl>
+        <p class="form-text mb-0">Your account details come from your sign-in and cannot be changed here.</p>
+    </div>
+</section>
+
+@code {
+    // Null when the details could not be loaded.
+    [Parameter]
+    public CurrentUserDto? User { get; set; }
+
+    private static string Show(string? value) => string.IsNullOrWhiteSpace(value) ? "Not available" : value;
+}

@@ -32,6 +32,7 @@ public class AppNavbarSignedOutTests : BunitContext
         Assert.Empty(cut.FindAll("input[type='search']"));
         Assert.Empty(cut.FindAll("button[aria-label='Notifications']"));
         Assert.Empty(cut.FindAll("button[aria-label^='Account menu']"));
+        Assert.Empty(cut.FindAll("a[href='/preferences']"));
         Assert.Empty(cut.FindAll("button[aria-label='Toggle search']"));
     }
 }

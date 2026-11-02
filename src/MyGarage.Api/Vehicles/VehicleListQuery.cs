@@ -13,7 +13,13 @@ public sealed record VehicleListQuery(
     int? MinMileage = null,
     int? MaxMileage = null,
     int Page = 1,
-    int? PageSize = null);
+    int? PageSize = null,
+    int? MinYear = null,
+    int? MaxYear = null,
+    Guid? VehicleTypeId = null,
+    Guid? FuelTypeId = null,
+    Guid? TransmissionId = null,
+    Guid? DrivetrainId = null);
 
 public sealed class VehicleListQueryValidator : AbstractValidator<VehicleListQuery>
 {
@@ -29,6 +35,11 @@ public sealed class VehicleListQueryValidator : AbstractValidator<VehicleListQue
         RuleFor(query => query.MinMileage)
             .Must((query, min) => min is null || query.MaxMileage is null || min <= query.MaxMileage)
             .WithMessage("Minimum mileage must not exceed maximum mileage.");
+        RuleFor(query => query.MinYear).InclusiveBetween(1900, 2200).WithMessage("Minimum year must be between 1900 and 2200.");
+        RuleFor(query => query.MaxYear).InclusiveBetween(1900, 2200).WithMessage("Maximum year must be between 1900 and 2200.");
+        RuleFor(query => query.MinYear)
+            .Must((query, min) => min is null || query.MaxYear is null || min <= query.MaxYear)
+            .WithMessage("Minimum year must not exceed maximum year.");
         this.AddPagingRules(query => query.Page, query => query.PageSize);
     }
 }

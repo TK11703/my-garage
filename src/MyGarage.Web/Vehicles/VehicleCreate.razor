@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @attribute [ExcludeFromInteractiveRouting]
 @inject VehiclesApiClient Api
+@inject LookupsApiClient LookupsApi
 @inject NavigationManager Navigation
 
 <PageHeader Title="Add Vehicle" Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb("New vehicle") })" />
@@ -12,17 +13,35 @@
                      NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
 }
 
-<VehicleForm Model="Model" FormName="create-vehicle" SubmitText="Add vehicle" CancelHref="/vehicles"
-             Errors="errors" OnSubmit="SubmitAsync" />
+@if (!lookupsFailed)
+{
+    <VehicleForm Tabbed="true" AttachmentTabs="false" Model="Model" FormName="create-vehicle" SubmitText="Add vehicle" CancelHref="/vehicles"
+                 Lookups="lookups" Errors="errors" OnSubmit="SubmitAsync" />
+}
 
 @code {
     private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
     private GarageApiFailure? failure;
+    private VehicleFormLookups lookups = VehicleFormLookups.Empty;
+    private bool lookupsFailed;
 
     [SupplyParameterFromForm(FormName = "create-vehicle")]
     private VehicleFormModel? Model { get; set; }
 
-    protected override void OnInitialized() => Model ??= new VehicleFormModel();
+    protected override async Task OnInitializedAsync()
+    {
+        Model ??= new VehicleFormModel();
+
+        try
+        {
+            lookups = VehicleFormLookups.From((await LookupsApi.GetAsync(includeHidden: false)).Value!);
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+            lookupsFailed = true;
+        }
+    }
 
     private async Task SubmitAsync()
     {

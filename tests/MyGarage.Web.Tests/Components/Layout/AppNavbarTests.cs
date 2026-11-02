@@ -135,6 +135,10 @@ public class AppNavbarTests : BunitContext
         var menu = toggle.ParentElement!.QuerySelector(".dropdown-menu")!;
         Assert.Contains("Ada Lovelace", menu.TextContent);
         Assert.Equal("My vehicles", menu.QuerySelector("a[href='/vehicles']")!.TextContent.Trim());
+        Assert.Equal("Preferences", menu.QuerySelector("a[href='/preferences']")!.TextContent.Trim());
+        Assert.Equal(
+            ["Ada Lovelace", "My vehicles", "Preferences", "Sign out"],
+            menu.QuerySelectorAll(".dropdown-item, .dropdown-item-text").Select(item => item.TextContent.Trim()));
         Assert.NotNull(menu.QuerySelector(".dropdown-divider"));
 
         var form = menu.QuerySelector("form")!;

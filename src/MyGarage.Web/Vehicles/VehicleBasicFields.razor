@@ -1,8 +1,14 @@
 <div>
-    <label for="nickname" class="form-label">Nickname<span class="text-danger" aria-hidden="true"> *</span></label>
+    <label for="nickname" class="form-label">Name<span class="text-danger" aria-hidden="true"> *</span></label>
     <InputText id="nickname" class="form-control" @bind-Value="Model.Nickname" maxlength="100"
                aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "Nickname")" />
     <ValidationMessage For="@(() => Model.Nickname)" id="nickname-error" class="invalid-feedback d-block" />
+</div>
+<div>
+    <label for="vin" class="form-label">VIN</label>
+    <InputText id="vin" class="form-control text-uppercase" @bind-Value="Model.Vin" maxlength="17" autocomplete="off"
+               aria-describedby="@VehicleFormFields.Described(Errors, "Vin")" />
+    <ValidationMessage For="@(() => Model.Vin)" id="vin-error" class="invalid-feedback d-block" />
 </div>
 <div class="row g-3">
     <div class="col-sm-6">
@@ -25,6 +31,51 @@
                    aria-describedby="@VehicleFormFields.Described(Errors, "Trim")" />
         <ValidationMessage For="@(() => Model.Trim)" id="trim-error" class="invalid-feedback d-block" />
     </div>
+    <div class="col-sm-6">
+        <label for="year" class="form-label">Year<span class="text-danger" aria-hidden="true"> *</span></label>
+        <InputNumber id="year" TValue="int?" class="form-control" @bind-Value="Model.Year" min="1900" max="@(DateTime.UtcNow.Year + 1)" step="1" inputmode="numeric"
+                     aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "Year")" />
+        <ValidationMessage For="@(() => Model.Year)" id="year-error" class="invalid-feedback d-block" />
+    </div>
+</div>
+<div class="row g-3">
+    <div class="col-sm-6">
+        <label for="vehicle-type" class="form-label">Vehicle type</label>
+        <InputSelect id="vehicle-type" TValue="Guid?" class="form-select" @bind-Value="Model.VehicleTypeId"
+                     aria-describedby="@VehicleFormFields.Described(Errors, "VehicleTypeId")">
+            <option value="">Not set</option>
+            @foreach (var item in Lookups.VehicleTypes)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </InputSelect>
+        <ValidationMessage For="@(() => Model.VehicleTypeId)" id="vehicletypeid-error" class="invalid-feedback d-block" />
+    </div>
+    <div class="col-sm-6">
+        <label for="ownership" class="form-label">Purchased or leased</label>
+        <InputSelect id="ownership" TValue="OwnershipType?" class="form-select" @bind-Value="Model.Ownership"
+                     aria-describedby="@VehicleFormFields.Described(Errors, "Ownership")">
+            <option value="">Not set</option>
+            <option value="@OwnershipType.Purchased">Purchased</option>
+            <option value="@OwnershipType.Leased">Leased</option>
+        </InputSelect>
+        <ValidationMessage For="@(() => Model.Ownership)" id="ownership-error" class="invalid-feedback d-block" />
+    </div>
+</div>
+<div class="row g-3">
+    <div class="col-sm-6">
+        <label for="purchased-on" class="form-label">Date purchased</label>
+        <InputDate id="purchased-on" TValue="DateOnly?" class="form-control" @bind-Value="Model.PurchasedOn"
+                   aria-describedby="@VehicleFormFields.Described(Errors, "PurchasedOn")" />
+        <ValidationMessage For="@(() => Model.PurchasedOn)" id="purchasedon-error" class="invalid-feedback d-block" />
+    </div>
+    <div class="col-sm-6">
+        <label for="lease-ends-on" class="form-label">Date lease ends</label>
+        <InputDate id="lease-ends-on" TValue="DateOnly?" class="form-control" @bind-Value="Model.LeaseEndsOn"
+                   aria-describedby="@($"lease-ends-on-help {VehicleFormFields.Described(Errors, "LeaseEndsOn")}".Trim())" />
+        <div id="lease-ends-on-help" class="form-text">Leased vehicles only.</div>
+        <ValidationMessage For="@(() => Model.LeaseEndsOn)" id="leaseendson-error" class="invalid-feedback d-block" />
+    </div>
 </div>
 
 @code {
@@ -33,4 +84,7 @@
 
     [Parameter]
     public IReadOnlyDictionary<string, string[]> Errors { get; set; } = new Dictionary<string, string[]>();
+
+    [Parameter]
+    public VehicleFormLookups Lookups { get; set; } = VehicleFormLookups.Empty;
 }

@@ -43,18 +43,18 @@ public class VehicleSearchTests : VehicleTestContext
     }
 
     [Fact]
-    public void ThePageOffersNoFilterControls()
+    public void FilterPanel_IsASeparateCardThatSubmitsWithTheSearchForm()
     {
         RegisterApi(_ => Json(Page([Summary("Alpha")])));
 
         var cut = RenderList();
 
         cut.WaitForAssertion(() => Assert.Contains("Alpha", cut.Markup));
-        Assert.Empty(cut.FindAll("select"));
-        Assert.Empty(cut.FindAll("input[type='number']"));
-        Assert.Empty(cut.FindAll("[data-bs-toggle='collapse']"));
-        Assert.DoesNotContain("Filters", cut.Markup);
-        Assert.DoesNotContain("/api/vehicles/filter-options", Requests.Select(request => request.RequestUri!.AbsolutePath));
+        Assert.Contains("/api/vehicles/filter-options", Requests.Select(request => request.RequestUri!.AbsolutePath));
+        var panel = cut.Find(".mg-filter-card");
+        Assert.Null(panel.Closest(".mg-search-card"));
+        Assert.All(panel.QuerySelectorAll("select, input[type='number']"), field => Assert.Equal("vehicle-search", field.GetAttribute("form")));
+        Assert.Equal("vehicle-search", panel.QuerySelector("button[type='submit']")!.GetAttribute("form"));
     }
 
     [Fact]

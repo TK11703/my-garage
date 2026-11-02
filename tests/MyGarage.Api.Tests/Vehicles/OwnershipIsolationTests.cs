@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Mvc;
 using MyGarage.Api.Tests.Common;
+using MyGarage.Shared.Lookups;
 using MyGarage.Shared.Vehicles;
 
 namespace MyGarage.Api.Tests.Vehicles;
@@ -14,14 +16,14 @@ public class OwnershipIsolationTests(ApiFactory factory) : IClassFixture<ApiFact
 
     public Task DisposeAsync() => Task.CompletedTask;
 
-    private sealed record Seed(Guid VehicleId, Guid TagId, Guid NoteId, Guid ImageId);
+    private sealed record Seed(Guid VehicleId, Guid TagId, Guid NoteId, Guid ImageId, Guid ItemId);
 
     private sealed record Probe(string Name, Func<HttpClient, Seed, Task<HttpResponseMessage>> Send);
 
     private static readonly Probe[] Probes =
     [
         new("GET vehicle", (c, s) => c.GetAsync($"/api/vehicles/{s.VehicleId}")),
-        new("PUT vehicle", (c, s) => c.PutAsJsonAsync($"/api/vehicles/{s.VehicleId}", new VehicleRequest { Nickname = "x", Make = "x", Model = "x" })),
+        new("PUT vehicle", (c, s) => c.PutAsJsonAsync($"/api/vehicles/{s.VehicleId}", new VehicleRequest { Nickname = "x", Make = "x", Model = "x", Year = 2020 })),
         new("DELETE vehicle", (c, s) => c.DeleteAsync($"/api/vehicles/{s.VehicleId}")),
         new("POST tag", (c, s) => c.PostAsJsonAsync($"/api/vehicles/{s.VehicleId}/tags", new AddVehicleTagRequest { Name = "x" })),
         new("DELETE tag", (c, s) => c.DeleteAsync($"/api/vehicles/{s.VehicleId}/tags/{s.TagId}")),
@@ -33,11 +35,12 @@ public class OwnershipIsolationTests(ApiFactory factory) : IClassFixture<ApiFact
         new("GET image content", (c, s) => c.GetAsync($"/api/vehicles/{s.VehicleId}/images/{s.ImageId}/content")),
         new("PUT main image", (c, s) => c.PutAsync($"/api/vehicles/{s.VehicleId}/images/{s.ImageId}/main", null)),
         new("DELETE image", (c, s) => c.DeleteAsync($"/api/vehicles/{s.VehicleId}/images/{s.ImageId}")),
+        new("PUT lookup visibility", (c, s) => c.PutAsJsonAsync($"/api/lookups/{LookupKinds.FuelTypes}/{s.ItemId}/visibility", new SetLookupVisibilityRequest { IsHidden = true })),
     ];
 
     private async Task<Seed> SeedAsync(HttpClient owner)
     {
-        var vehicle = (await (await owner.PostAsJsonAsync("/api/vehicles", new VehicleRequest { Nickname = "Private car", Make = "Ford", Model = "F-150" }))
+        var vehicle = (await (await owner.PostAsJsonAsync("/api/vehicles", new VehicleRequest { Nickname = "Private car", Make = "Ford", Model = "F-150", Year = 2020 }))
             .Content.ReadFromJsonAsync<VehicleDetailDto>())!;
         var tag = (await (await owner.PostAsJsonAsync($"/api/vehicles/{vehicle.Id}/tags", new AddVehicleTagRequest { Name = "private-tag" }))
             .Content.ReadFromJsonAsync<VehicleTagDto>())!;
@@ -45,7 +48,7 @@ public class OwnershipIsolationTests(ApiFactory factory) : IClassFixture<ApiFact
             .Content.ReadFromJsonAsync<JournalNoteDto>())!;
         var image = (await (await owner.PostAsync($"/api/vehicles/{vehicle.Id}/images", new MultipartFormDataContent { { new ByteArrayContent(Png), "file", "a.png" } }))
             .Content.ReadFromJsonAsync<VehicleImageDto>())!;
-        return new Seed(vehicle.Id, tag.Id, note.Id, image.Id);
+        return new Seed(vehicle.Id, tag.Id, note.Id, image.Id, await factory.InsertLookupItemAsync("alice-oid", "fuel_type", "Alice special"));
     }
 
     [Fact]
@@ -78,6 +81,58 @@ public class OwnershipIsolationTests(ApiFactory factory) : IClassFixture<ApiFact
         Assert.Equal(["private note"], notes!.Items.Select(n => n.Body));
         Assert.Equal("secret", notes.Items.Single().Category);
         Assert.Equal(HttpStatusCode.OK, (await alice.GetAsync($"/api/vehicles/{seed.VehicleId}/images/{seed.ImageId}/content")).StatusCode);
+        var aliceFuel = (await alice.GetFromJsonAsync<LookupsDto>("/api/lookups"))!.FuelTypes;
+        Assert.Contains(aliceFuel, item => item.Id == seed.ItemId && !item.IsHidden);
+    }
+
+    [Fact]
+    public async Task AnotherUser_NeverSeesCustomLookupItemsOrTheOwnersHiddenChoices()
+    {
+        var alice = factory.CreateClientForUser("alice-oid");
+        var bob = factory.CreateClientForUser("bob-oid");
+        var seed = await SeedAsync(alice);
+        var sedan = (await alice.GetFromJsonAsync<LookupsDto>("/api/lookups"))!.VehicleTypes.Single(item => item.Name == "Sedan");
+        await alice.PutAsJsonAsync($"/api/lookups/{LookupKinds.VehicleTypes}/{sedan.Id}/visibility", new SetLookupVisibilityRequest { IsHidden = true });
+
+        var lookups = (await bob.GetFromJsonAsync<LookupsDto>("/api/lookups?includeHidden=true"))!;
+
+        Assert.DoesNotContain(lookups.FuelTypes, item => item.Id == seed.ItemId);
+        Assert.Contains(lookups.VehicleTypes, item => item.Id == sedan.Id && !item.IsHidden);
+        Assert.Empty((await bob.GetFromJsonAsync<VehicleFilterOptionsDto>("/api/vehicles/filter-options"))!.FuelTypes);
+    }
+
+    [Fact]
+    public async Task AnotherUser_CannotReferenceTheOwnersCustomItem_AndGetsTheSameAnswerAsForAnUnknownId()
+    {
+        var alice = factory.CreateClientForUser("alice-oid");
+        var bob = factory.CreateClientForUser("bob-oid");
+        var seed = await SeedAsync(alice);
+        VehicleRequest Request(Guid itemId) => new() { Nickname = "x", Make = "x", Model = "x", Year = 2020, FuelTypeId = itemId };
+
+        var foreign = await bob.PostAsJsonAsync("/api/vehicles", Request(seed.ItemId));
+        var unknown = await bob.PostAsJsonAsync("/api/vehicles", Request(Guid.NewGuid()));
+
+        Assert.Equal(HttpStatusCode.BadRequest, foreign.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, unknown.StatusCode);
+        var foreignErrors = (await foreign.Content.ReadFromJsonAsync<ValidationProblemDetails>())!.Errors;
+        var unknownErrors = (await unknown.Content.ReadFromJsonAsync<ValidationProblemDetails>())!.Errors;
+        Assert.Equal(unknownErrors.Single().Key, foreignErrors.Single().Key);
+        Assert.Equal(unknownErrors.Single().Value, foreignErrors.Single().Value);
+        Assert.Empty((await bob.GetFromJsonAsync<PagedResultDto<VehicleSummaryDto>>("/api/vehicles"))!.Items);
+    }
+
+    [Fact]
+    public async Task AnotherUser_CannotFilterOnTheOwnersLookupItems()
+    {
+        var alice = factory.CreateClientForUser("alice-oid");
+        var bob = factory.CreateClientForUser("bob-oid");
+        var seed = await SeedAsync(alice);
+        var request = new VehicleRequest { Nickname = "Fueled", Make = "x", Model = "x", Year = 2020, FuelTypeId = seed.ItemId };
+        (await alice.PostAsJsonAsync("/api/vehicles", request)).EnsureSuccessStatusCode();
+
+        var page = await bob.GetFromJsonAsync<PagedResultDto<VehicleSummaryDto>>($"/api/vehicles?fuelTypeId={seed.ItemId}&minYear=1900");
+
+        Assert.Empty(page!.Items);
     }
 
     [Fact]

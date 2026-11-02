@@ -80,4 +80,28 @@ public class UiStandardConformanceTests
     {
         Assert.Empty(Violations(new Regex("text-danger small")));
     }
+
+    [Fact]
+    public void UserTextIsNeverRenderedAsMarkup()
+    {
+        Assert.Empty(Violations(new Regex("MarkupString")));
+    }
+
+    [Fact]
+    public void LookupListsAreNotTables()
+    {
+        var violations = Violations(new Regex("<table[\\s>]"), path => !path.Contains($"{Path.DirectorySeparatorChar}Preferences{Path.DirectorySeparatorChar}"));
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void NoJQueryOrCustomScriptsInThePreferencesAndTabSources()
+    {
+        var violations = Violations(
+            new Regex("<script|jquery", RegexOptions.IgnoreCase),
+            path => !path.Contains($"{Path.DirectorySeparatorChar}Preferences{Path.DirectorySeparatorChar}") && Path.GetFileName(path) != "TabNav.razor");
+
+        Assert.Empty(violations);
+    }
 }

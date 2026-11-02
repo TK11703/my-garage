@@ -17,7 +17,7 @@ public class VehicleTagsEndpointsTests(ApiFactory factory) : IClassFixture<ApiFa
 
     private static async Task<VehicleDetailDto> CreateVehicleAsync(HttpClient client)
     {
-        var response = await client.PostAsJsonAsync("/api/vehicles", new VehicleRequest { Nickname = "Daily", Make = "Ford", Model = "F-150" });
+        var response = await client.PostAsJsonAsync("/api/vehicles", new VehicleRequest { Nickname = "Daily", Make = "Ford", Model = "F-150", Year = 2020 });
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<VehicleDetailDto>())!;
     }
@@ -146,7 +146,7 @@ public class VehicleTagsEndpointsTests(ApiFactory factory) : IClassFixture<ApiFa
         var vehicle = await CreateVehicleAsync(client);
         await AddTagAsync(client, vehicle.Id, "sunroof");
 
-        var response = await client.PutAsJsonAsync($"/api/vehicles/{vehicle.Id}", new VehicleRequest { Nickname = "Renamed", Make = "Ford", Model = "F-150" });
+        var response = await client.PutAsJsonAsync($"/api/vehicles/{vehicle.Id}", new VehicleRequest { Nickname = "Renamed", Make = "Ford", Model = "F-150", Year = 2020 });
 
         var updated = await response.Content.ReadFromJsonAsync<VehicleDetailDto>();
         Assert.Equal(["sunroof"], updated!.Tags.Select(t => t.Name));

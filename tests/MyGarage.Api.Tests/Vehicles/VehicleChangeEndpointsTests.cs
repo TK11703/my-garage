@@ -15,13 +15,59 @@ public class VehicleChangeEndpointsTests(ApiFactory factory) : IClassFixture<Api
 
     public Task DisposeAsync() => Task.CompletedTask;
 
-    private static VehicleRequest Request(string nickname = "Daily") => new() { Nickname = nickname, Make = "Ford", Model = "F-150" };
+    private static VehicleRequest Request(string nickname = "Daily") => new() { Nickname = nickname, Make = "Ford", Model = "F-150", Year = 2020 };
 
     private static async Task<VehicleDetailDto> CreateAsync(HttpClient client, VehicleRequest request)
     {
         var response = await client.PostAsJsonAsync("/api/vehicles", request);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<VehicleDetailDto>())!;
+    }
+
+    [Fact]
+    public async Task VehicleSavedWithoutAYear_IsListedAndReadWithANullYear()
+    {
+        var client = factory.CreateClientForUser(Alice);
+        var id = await factory.InsertVehicleWithoutYearAsync(Alice, "Legacy");
+
+        var page = (await client.GetFromJsonAsync<PagedResultDto<VehicleSummaryDto>>("/api/vehicles"))!;
+        var detail = (await client.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{id}"))!;
+
+        Assert.Equal(["Legacy"], page.Items.Select(item => item.Nickname));
+        Assert.Null(detail.Year);
+        Assert.Null(detail.Vin);
+        Assert.Equal(1200, detail.Mileage);
+        Assert.Equal("Red", detail.Color);
+        Assert.Equal(4, detail.Doors);
+    }
+
+    [Fact]
+    public async Task Put_WithoutAYearOnAVehicleThatHasNone_Returns400AndKeepsStoredData()
+    {
+        var client = factory.CreateClientForUser(Alice);
+        var id = await factory.InsertVehicleWithoutYearAsync(Alice, "Legacy");
+
+        var response = await client.PutAsJsonAsync($"/api/vehicles/{id}", new VehicleRequest { Nickname = "Renamed", Make = "Ford", Model = "F-150" });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = (await response.Content.ReadFromJsonAsync<ValidationProblemDetails>())!;
+        Assert.Contains(problem.Errors.Keys, key => key.Equals("Year", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal("Legacy", (await client.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{id}"))!.Nickname);
+    }
+
+    [Fact]
+    public async Task Put_WithAYearOnAVehicleThatHadNone_StoresIt()
+    {
+        var client = factory.CreateClientForUser(Alice);
+        var id = await factory.InsertVehicleWithoutYearAsync(Alice, "Legacy");
+
+        var response = await client.PutAsJsonAsync($"/api/vehicles/{id}", new VehicleRequest
+        {
+            Nickname = "Legacy", Make = "Ford", Model = "F-150", Year = 2015, Mileage = 1200, Color = "Red", Doors = 4,
+        });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(2015, (await response.Content.ReadFromJsonAsync<VehicleDetailDto>())!.Year);
     }
 
     [Fact]
@@ -32,7 +78,7 @@ public class VehicleChangeEndpointsTests(ApiFactory factory) : IClassFixture<Api
 
         var response = await client.PutAsJsonAsync($"/api/vehicles/{created.Id}", new VehicleRequest
         {
-            Nickname = " New ", Make = "Chevy", Model = "Silverado", Trim = "LT", Color = "Red", Mileage = 5_000, Doors = 2,
+            Nickname = " New ", Make = "Chevy", Model = "Silverado", Trim = "LT", Color = "Red", Mileage = 5_000, Doors = 2, Year = 2021,
         });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

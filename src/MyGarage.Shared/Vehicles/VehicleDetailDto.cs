@@ -1,3 +1,5 @@
+using MyGarage.Shared.Lookups;
+
 namespace MyGarage.Shared.Vehicles;
 
 public sealed class VehicleDetailDto
@@ -6,17 +8,46 @@ public sealed class VehicleDetailDto
 
     public required string Nickname { get; init; }
 
+    public string? Vin { get; init; }
+
     public required string Make { get; init; }
 
     public required string Model { get; init; }
 
     public string? Trim { get; init; }
 
-    public string? Color { get; init; }
+    // Null for vehicles saved before the year was collected.
+    public int? Year { get; init; }
+
+    public LookupValueDto? VehicleType { get; init; }
+
+    public OwnershipType? Ownership { get; init; }
+
+    public DateOnly? PurchasedOn { get; init; }
+
+    public DateOnly? LeaseEndsOn { get; init; }
+
+    public string? Engine { get; init; }
+
+    public int? Horsepower { get; init; }
+
+    public LookupValueDto? FuelType { get; init; }
+
+    public LookupValueDto? Transmission { get; init; }
 
     public int? Mileage { get; init; }
 
+    public string? Color { get; init; }
+
+    public int? Seats { get; init; }
+
     public int? Doors { get; init; }
+
+    public LookupValueDto? Drivetrain { get; init; }
+
+    public decimal? WheelSize { get; init; }
+
+    public string? TireSize { get; init; }
 
     public required IReadOnlyList<VehicleTagDto> Tags { get; init; }
 

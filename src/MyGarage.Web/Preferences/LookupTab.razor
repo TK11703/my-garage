@@ -1,0 +1,150 @@
+@inject LookupsApiClient Api
+@inject NavigationManager Navigation
+
+<div id="@PaneId" class="tab-pane @(Active ? "show active" : null)" role="tabpanel" aria-labelledby="@($"{PaneId}-tab")" tabindex="0">
+    <h2 class="h5">@Label</h2>
+
+    @if (message is not null)
+    {
+        <div class="alert alert-warning" role="alert" data-testid="tab-message">@message</div>
+    }
+
+    <ul class="list-group mb-4">
+        @foreach (var item in Items)
+        {
+            <li class="list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2 @(item.IsHidden ? "text-body-secondary" : null)"
+                data-testid="lookup-item" @key="item.Id">
+                <span class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="text-break @(item.IsHidden ? "text-decoration-line-through" : null)" data-testid="item-name">@item.Name</span>
+                    <span class="badge text-bg-light border fw-normal" data-testid="origin-badge">@(item.IsDefault ? "Default" : "Yours")</span>
+                    @if (item.IsHidden)
+                    {
+                        <span class="badge text-bg-secondary fw-normal" data-testid="hidden-badge">Hidden</span>
+                    }
+                </span>
+                <form method="post" @formname="@($"toggle-{item.Id}")" @onsubmit="() => ToggleAsync(item)" data-testid="@($"toggle-{Slug}-{item.Id}")">
+                    <AntiforgeryToken />
+                    <button type="submit" class="btn btn-outline-secondary btn-sm" aria-label="@($"{(item.IsHidden ? "Show" : "Hide")} {item.Name}")">
+                        @(item.IsHidden ? "Show" : "Hide")
+                    </button>
+                </form>
+            </li>
+        }
+    </ul>
+
+    <EditForm EditContext="editContext" FormName="add" OnValidSubmit="AddAsync" data-testid="@($"add-lookup-{Slug}")" class="row g-2 align-items-end">
+        <div class="col-sm-8 col-md-6">
+            <label for="@($"{PaneId}-name")" class="form-label">Add a custom item</label>
+            <InputText id="@($"{PaneId}-name")" class="form-control" @bind-Value="Model!.Name" maxlength="30"
+                       aria-describedby="@(error is null ? null : $"{PaneId}-error")" />
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-outline-primary">Add</button>
+        </div>
+    </EditForm>
+
+    @if (error is not null)
+    {
+        <div id="@($"{PaneId}-error")" class="invalid-feedback d-block" role="alert">@error</div>
+    }
+</div>
+
+@code {
+    private string? message;
+    private string? error;
+    private EditContext editContext = default!;
+
+    // The lookup's route slug (see LookupKinds).
+    [Parameter, EditorRequired]
+    public string Slug { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<LookupItemDto> Items { get; set; } = [];
+
+    // True for the tab that is open.
+    [Parameter]
+    public bool Active { get; set; }
+
+    // Raised when a change is refused so the page can open this tab and the message is not hidden.
+    [Parameter]
+    public EventCallback<string> OnAttention { get; set; }
+
+    // Supplied from the form scope the page wraps around this component, so each tab's add form is told apart.
+    [SupplyParameterFromForm(FormName = "add")]
+    private AddModel? Model { get; set; }
+
+    private string PaneId => $"lookup-{Slug}";
+
+    protected override void OnInitialized()
+    {
+        Model ??= new AddModel();
+        editContext = new EditContext(Model);
+    }
+
+    private async Task AddAsync()
+    {
+        message = null;
+        error = null;
+        try
+        {
+            var result = await Api.AddAsync(Slug, Model!.Name);
+            switch (result.Outcome)
+            {
+                case ApiOutcome.Success:
+                    Navigation.NavigateTo(ReturnHref);
+                    return;
+                case ApiOutcome.Conflict:
+                    error = result.Title ?? "The item could not be added.";
+                    break;
+                case ApiOutcome.Invalid:
+                    error = result.Errors.Values.SelectMany(messages => messages).FirstOrDefault() ?? "The name is not valid.";
+                    break;
+                default:
+                    message = "This list could not be found.";
+                    break;
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            message = Describe(ex);
+        }
+
+        await OnAttention.InvokeAsync(Slug);
+    }
+
+    private async Task ToggleAsync(LookupItemDto item)
+    {
+        message = null;
+        error = null;
+        try
+        {
+            var result = await Api.SetVisibilityAsync(Slug, item.Id, !item.IsHidden);
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo(ReturnHref);
+                return;
+            }
+
+            message = "That item could not be found. It may have been removed.";
+        }
+        catch (GarageApiException ex)
+        {
+            message = Describe(ex);
+        }
+
+        await OnAttention.InvokeAsync(Slug);
+    }
+
+    private string ReturnHref => $"/preferences?tab={Slug}";
+
+    private static string Describe(GarageApiException ex) =>
+        ex.Failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable;
+
+    public sealed class AddModel
+    {
+        public string? Name { get; set; }
+    }
+}

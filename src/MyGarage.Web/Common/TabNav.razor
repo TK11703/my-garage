@@ -1,0 +1,26 @@
+<ul class="nav mg-tabs mb-3" role="tablist">
+    @foreach (var (id, label, icon) in Tabs)
+    {
+        <li class="nav-item" role="presentation">
+            <button type="button" id="@($"{IdPrefix}-{id}-tab")" class="nav-link @(id == Current ? "active" : null)" role="tab"
+                    data-bs-toggle="tab" data-bs-target="@($"#{IdPrefix}-{id}")" aria-controls="@($"{IdPrefix}-{id}")"
+                    aria-selected="@(id == Current ? "true" : "false")">
+                <Icon Name="icon" />
+                <span>@label</span>
+            </button>
+        </li>
+    }
+</ul>
+
+@code {
+    // Each tab's id, label, and icon; the matching pane's id is "{IdPrefix}-{id}".
+    [Parameter, EditorRequired]
+    public IReadOnlyList<(string Id, string Label, IconName Icon)> Tabs { get; set; } = [];
+
+    // The id of the tab that is open.
+    [Parameter, EditorRequired]
+    public string Current { get; set; } = string.Empty;
+
+    [Parameter]
+    public string IdPrefix { get; set; } = "tab";
+}

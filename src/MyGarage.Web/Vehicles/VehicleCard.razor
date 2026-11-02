@@ -15,7 +15,7 @@
         <h2 class="card-title h6 fw-semibold mb-1">
             <a class="stretched-link text-decoration-none text-body text-break" href="/vehicles/@Vehicle.Id">@Vehicle.Nickname</a>
         </h2>
-        <p class="card-text text-break mb-2" data-testid="vehicle-make-model">@Vehicle.Make @Vehicle.Model</p>
+        <p class="card-text text-break mb-2" data-testid="vehicle-make-model">@(Vehicle.Year is { } year ? $"{year} " : null)@Vehicle.Make @Vehicle.Model</p>
         <p class="card-text text-body-secondary small mb-0 d-flex align-items-center gap-1" data-testid="vehicle-mileage">
             <Icon Name="IconName.Speedometer" />
             <span>@VehicleFormat.Mileage(Vehicle.Mileage)</span>

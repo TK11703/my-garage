@@ -78,6 +78,117 @@ public class VehicleMapperTests
     }
 
     [Fact]
+    public void ToRecord_MapsEveryNewFieldNormalizingText()
+    {
+        var typeId = Guid.NewGuid();
+        var fuelId = Guid.NewGuid();
+        var gearboxId = Guid.NewGuid();
+        var driveId = Guid.NewGuid();
+        var request = new VehicleRequest
+        {
+            Nickname = "n",
+            Make = "m",
+            Model = "x",
+            Year = 2019,
+            Vin = " 1hgcm82633a004352 ",
+            VehicleTypeId = typeId,
+            Ownership = OwnershipType.Leased,
+            PurchasedOn = new DateOnly(2024, 3, 15),
+            LeaseEndsOn = new DateOnly(2027, 3, 14),
+            Engine = " 2.0L turbo ",
+            Horsepower = 250,
+            FuelTypeId = fuelId,
+            TransmissionId = gearboxId,
+            Seats = 5,
+            DrivetrainId = driveId,
+            WheelSize = 17.5m,
+            TireSize = " 225/45R17 ",
+        };
+
+        var record = VehicleMapper.ToRecord(request, "owner-1", Guid.NewGuid(), Now);
+
+        Assert.Equal(2019, record.Year);
+        Assert.Equal("1HGCM82633A004352", record.Vin);
+        Assert.Equal(typeId, record.VehicleTypeId);
+        Assert.Equal("leased", record.Ownership);
+        Assert.Equal(new DateOnly(2024, 3, 15), record.PurchasedOn);
+        Assert.Equal(new DateOnly(2027, 3, 14), record.LeaseEndsOn);
+        Assert.Equal("2.0L turbo", record.Engine);
+        Assert.Equal(250, record.Horsepower);
+        Assert.Equal(fuelId, record.FuelTypeId);
+        Assert.Equal(gearboxId, record.TransmissionId);
+        Assert.Equal(5, record.Seats);
+        Assert.Equal(driveId, record.DrivetrainId);
+        Assert.Equal(17.5m, record.WheelSize);
+        Assert.Equal("225/45R17", record.TireSize);
+    }
+
+    [Fact]
+    public void ToRecord_BlankOptionalTextBecomesNullAndPurchasedMapsToPurchased()
+    {
+        var record = VehicleMapper.ToRecord(
+            new VehicleRequest { Nickname = "n", Make = "m", Model = "x", Year = 2019, Vin = "  ", Engine = "", TireSize = " ", Ownership = OwnershipType.Purchased },
+            "owner-1",
+            Guid.NewGuid(),
+            Now);
+
+        Assert.Null(record.Vin);
+        Assert.Null(record.Engine);
+        Assert.Null(record.TireSize);
+        Assert.Equal("purchased", record.Ownership);
+    }
+
+    [Fact]
+    public void ToDetailDto_MapsNewFieldsAndLookupValues()
+    {
+        var typeId = Guid.NewGuid();
+        var record = new VehicleRecord
+        {
+            Id = Guid.NewGuid(),
+            OwnerId = "owner-1",
+            Nickname = "n",
+            Make = "m",
+            Model = "x",
+            Year = 2019,
+            Vin = "1HGCM82633A004352",
+            VehicleTypeId = typeId,
+            VehicleTypeName = "Wagon",
+            Ownership = "leased",
+            PurchasedOn = new DateOnly(2024, 3, 15),
+            LeaseEndsOn = new DateOnly(2027, 3, 14),
+            Engine = "2.0L",
+            Horsepower = 250,
+            FuelTypeId = Guid.NewGuid(),
+            FuelTypeName = "Hybrid",
+            Seats = 5,
+            WheelSize = 17.5m,
+            TireSize = "225/45R17",
+            CreatedAt = Now,
+            UpdatedAt = Now,
+            CreatedBy = "owner-1",
+            UpdatedBy = "owner-1",
+        };
+
+        var dto = VehicleMapper.ToDetailDto(record, [], []);
+
+        Assert.Equal(2019, dto.Year);
+        Assert.Equal("1HGCM82633A004352", dto.Vin);
+        Assert.Equal(typeId, dto.VehicleType!.Id);
+        Assert.Equal("Wagon", dto.VehicleType.Name);
+        Assert.Equal(OwnershipType.Leased, dto.Ownership);
+        Assert.Equal(new DateOnly(2024, 3, 15), dto.PurchasedOn);
+        Assert.Equal(new DateOnly(2027, 3, 14), dto.LeaseEndsOn);
+        Assert.Equal("2.0L", dto.Engine);
+        Assert.Equal(250, dto.Horsepower);
+        Assert.Equal("Hybrid", dto.FuelType!.Name);
+        Assert.Null(dto.Transmission);
+        Assert.Null(dto.Drivetrain);
+        Assert.Equal(5, dto.Seats);
+        Assert.Equal(17.5m, dto.WheelSize);
+        Assert.Equal("225/45R17", dto.TireSize);
+    }
+
+    [Fact]
     public void ToPageDto_MapsSummariesAndPaging()
     {
         var imageId = Guid.NewGuid();
@@ -106,7 +217,7 @@ public class VehicleMapperTests
             .SelectMany(type => type.GetProperties())
             .Select(property => property.Name);
 
-        Assert.DoesNotContain(propertyNames, name => name.Contains("Owner", StringComparison.OrdinalIgnoreCase)
+        Assert.DoesNotContain(propertyNames, name => (name.Contains("Owner", StringComparison.OrdinalIgnoreCase) && name != nameof(VehicleRequest.Ownership))
                                                     || name.Contains("UserId", StringComparison.OrdinalIgnoreCase));
     }
 }

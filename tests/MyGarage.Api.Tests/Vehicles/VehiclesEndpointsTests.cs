@@ -17,7 +17,7 @@ public class VehiclesEndpointsTests(ApiFactory factory) : IClassFixture<ApiFacto
     public Task DisposeAsync() => Task.CompletedTask;
 
     private static VehicleRequest Request(string nickname = "Daily", string make = "Ford", string model = "F-150") =>
-        new() { Nickname = nickname, Make = make, Model = model };
+        new() { Nickname = nickname, Make = make, Model = model, Year = 2020 };
 
     private static async Task<VehicleDetailDto> CreateAsync(HttpClient client, VehicleRequest request)
     {
@@ -33,7 +33,7 @@ public class VehiclesEndpointsTests(ApiFactory factory) : IClassFixture<ApiFacto
 
         var response = await client.PostAsJsonAsync("/api/vehicles", new VehicleRequest
         {
-            Nickname = " Daily ", Make = "Ford", Model = "F-150", Trim = "XLT", Color = "Blue", Mileage = 1000, Doors = 4,
+            Nickname = " Daily ", Make = "Ford", Model = "F-150", Trim = "XLT", Color = "Blue", Mileage = 1000, Doors = 4, Year = 2020,
         });
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -69,7 +69,7 @@ public class VehiclesEndpointsTests(ApiFactory factory) : IClassFixture<ApiFacto
     {
         var alice = factory.CreateClientForUser(Alice);
         var json = new StringContent(
-            """{"nickname":"Daily","make":"Ford","model":"F-150","ownerId":"bob-oid","userId":"bob-oid"}""",
+            """{"nickname":"Daily","make":"Ford","model":"F-150","year":2020,"ownerId":"bob-oid","userId":"bob-oid"}""",
             Encoding.UTF8,
             "application/json");
 

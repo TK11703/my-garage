@@ -1,5 +1,6 @@
 using Dapper;
 using MyGarage.Database.Common;
+using MyGarage.Database.Lookups;
 using Npgsql;
 
 namespace MyGarage.Database.Vehicles;
@@ -56,6 +57,12 @@ public sealed class VehicleRepository(NpgsqlDataSource dataSource, SqlScriptStor
             Tag = Clean(criteria.Tag),
             criteria.MinMileage,
             criteria.MaxMileage,
+            criteria.MinYear,
+            criteria.MaxYear,
+            criteria.VehicleTypeId,
+            criteria.FuelTypeId,
+            criteria.TransmissionId,
+            criteria.DrivetrainId,
         };
 
         var items = (await connection.QueryAsync<VehicleSummaryRecord>(new CommandDefinition(
@@ -63,6 +70,7 @@ public sealed class VehicleRepository(NpgsqlDataSource dataSource, SqlScriptStor
             new
             {
                 filters.OwnerId, filters.Pattern, filters.Make, filters.Color, filters.Doors, filters.Tag, filters.MinMileage, filters.MaxMileage,
+                filters.MinYear, filters.MaxYear, filters.VehicleTypeId, filters.FuelTypeId, filters.TransmissionId, filters.DrivetrainId,
                 PageSize = pageSize,
                 Offset = (page - 1) * pageSize,
             },
@@ -82,8 +90,18 @@ public sealed class VehicleRepository(NpgsqlDataSource dataSource, SqlScriptStor
         var makes = (await results.ReadAsync<string>()).ToList();
         var colors = (await results.ReadAsync<string>()).ToList();
         var tags = (await results.ReadAsync<string>()).ToList();
+        var vehicleTypes = (await results.ReadAsync<LookupOptionRecord>()).ToList();
+        var fuelTypes = (await results.ReadAsync<LookupOptionRecord>()).ToList();
+        var transmissions = (await results.ReadAsync<LookupOptionRecord>()).ToList();
+        var drivetrains = (await results.ReadAsync<LookupOptionRecord>()).ToList();
 
-        return new VehicleFilterOptionsRecord(makes, colors, tags);
+        return new VehicleFilterOptionsRecord(makes, colors, tags)
+        {
+            VehicleTypes = vehicleTypes,
+            FuelTypes = fuelTypes,
+            Transmissions = transmissions,
+            Drivetrains = drivetrains,
+        };
     }
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

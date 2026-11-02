@@ -131,66 +131,6 @@ public sealed class VehiclesApiClient(HttpClient http)
         }
     }
 
-    private async Task<ApiResult<T>> SendAsync<T>(HttpMethod method, string path, object? body, CancellationToken cancellationToken)
-    {
-        try
-        {
-            using var request = new HttpRequestMessage(method, path);
-            if (body is not null)
-            {
-                request.Content = JsonContent.Create(body, body.GetType());
-            }
-
-            using var response = await http.SendAsync(request, cancellationToken);
-
-            switch (response.StatusCode)
-            {
-                case HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden:
-                    throw new GarageApiException(GarageApiFailure.NotAccepted);
-                case HttpStatusCode.NotFound:
-                    return new ApiResult<T> { Outcome = ApiOutcome.NotFound };
-                case HttpStatusCode.BadRequest:
-                    return new ApiResult<T> { Outcome = ApiOutcome.Invalid, Errors = await ReadErrorsAsync(response, cancellationToken) };
-                case HttpStatusCode.Conflict:
-                    return new ApiResult<T> { Outcome = ApiOutcome.Conflict, Title = await ReadTitleAsync(response, cancellationToken) };
-            }
-
-            response.EnsureSuccessStatusCode();
-
-            if (response.StatusCode == HttpStatusCode.NoContent)
-            {
-                return new ApiResult<T> { Outcome = ApiOutcome.Success };
-            }
-
-            return new ApiResult<T>
-            {
-                Outcome = ApiOutcome.Success,
-                Value = await response.Content.ReadFromJsonAsync<T>(cancellationToken),
-            };
-        }
-        catch (Exception ex) when (ex is HttpRequestException or JsonException)
-        {
-            throw new GarageApiException(GarageApiFailure.Unavailable);
-        }
-        catch (MicrosoftIdentityWebChallengeUserException)
-        {
-            throw new GarageApiException(GarageApiFailure.NotAccepted);
-        }
-    }
-
-    private static async Task<IReadOnlyDictionary<string, string[]>> ReadErrorsAsync(HttpResponseMessage response, CancellationToken cancellationToken)
-    {
-        var problem = await response.Content.ReadFromJsonAsync<ProblemBody>(cancellationToken);
-        return problem?.Errors ?? new Dictionary<string, string[]>();
-    }
-
-    private static async Task<string?> ReadTitleAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
-        (await response.Content.ReadFromJsonAsync<ProblemBody>(cancellationToken))?.Title;
-
-    private sealed class ProblemBody
-    {
-        public string? Title { get; init; }
-
-        public Dictionary<string, string[]>? Errors { get; init; }
-    }
+    private Task<ApiResult<T>> SendAsync<T>(HttpMethod method, string path, object? body, CancellationToken cancellationToken) =>
+        ApiCalls.SendAsync<T>(http, method, path, body, cancellationToken);
 }

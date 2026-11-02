@@ -33,6 +33,101 @@ public class VehicleEditPageTests : VehicleTestContext
     }
 
     [Fact]
+    public void Form_IsPrefilledWithEveryNewDetail()
+    {
+        var detail = FullDetail(vehicleId);
+        Lookups = new MyGarage.Shared.Lookups.LookupsDto
+        {
+            VehicleTypes = [Item("Sedan"), new() { Id = detail.VehicleType!.Id, Name = "Wagon", IsDefault = true, IsHidden = false }],
+            FuelTypes = [new() { Id = detail.FuelType!.Id, Name = "Gasoline", IsDefault = true, IsHidden = false }],
+            Transmissions = [new() { Id = detail.Transmission!.Id, Name = "Automatic", IsDefault = true, IsHidden = false }],
+            Drivetrains = [new() { Id = detail.Drivetrain!.Id, Name = "AWD", IsDefault = true, IsHidden = false }],
+        };
+        RegisterApi(_ => Json(detail));
+
+        var cut = RenderEdit();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("1HGCM82633A004352", cut.Find("input#vin").GetAttribute("value"));
+            Assert.Equal("2019", cut.Find("input#year").GetAttribute("value"));
+            Assert.Equal("2024-03-15", cut.Find("input#purchased-on").GetAttribute("value"));
+            Assert.Equal("2027-03-14", cut.Find("input#lease-ends-on").GetAttribute("value"));
+            Assert.Equal("2.5L flat-4", cut.Find("input#engine").GetAttribute("value"));
+            Assert.Equal("182", cut.Find("input#horsepower").GetAttribute("value"));
+            Assert.Equal("5", cut.Find("input#seats").GetAttribute("value"));
+            Assert.Equal("17.5", cut.Find("input#wheel-size").GetAttribute("value"));
+            Assert.Equal("225/60R17", cut.Find("input#tire-size").GetAttribute("value"));
+            Assert.Equal(detail.VehicleType!.Id.ToString(), cut.Find("select#vehicle-type").GetAttribute("value"));
+            Assert.Equal(detail.FuelType!.Id.ToString(), cut.Find("select#fuel-type").GetAttribute("value"));
+            Assert.Equal(detail.Transmission!.Id.ToString(), cut.Find("select#transmission").GetAttribute("value"));
+            Assert.Equal(detail.Drivetrain!.Id.ToString(), cut.Find("select#drivetrain").GetAttribute("value"));
+            Assert.Equal("Leased", cut.Find("select#ownership").GetAttribute("value"));
+        });
+    }
+
+    [Fact]
+    public void HiddenCurrentItem_StaysSelectedAndIsMarkedHidden()
+    {
+        var detail = FullDetail(vehicleId);
+        Lookups = new MyGarage.Shared.Lookups.LookupsDto
+        {
+            VehicleTypes = [Item("Sedan")],
+            FuelTypes = [],
+            Transmissions = [],
+            Drivetrains = [],
+        };
+        RegisterApi(_ => Json(detail));
+
+        var cut = RenderEdit();
+
+        cut.WaitForAssertion(() =>
+        {
+            var options = cut.FindAll("select#vehicle-type option").Select(option => option.TextContent.Trim()).ToList();
+            Assert.Equal(["Not set", "Sedan", "Wagon (hidden)"], options);
+            Assert.Equal(detail.VehicleType!.Id.ToString(), cut.Find("select#vehicle-type").GetAttribute("value"));
+            Assert.Contains("Gasoline (hidden)", cut.Find("select#fuel-type").TextContent);
+        });
+    }
+
+    [Fact]
+    public void LegacyVehicle_OpensWithAnEmptyRequiredYear()
+    {
+        RegisterApi(_ => Json(Detail(vehicleId, "Legacy", year: null)));
+
+        var cut = RenderEdit();
+
+        cut.WaitForAssertion(() =>
+        {
+            var year = cut.Find("input#year");
+            Assert.True(string.IsNullOrEmpty(year.GetAttribute("value")));
+            Assert.Equal("true", year.GetAttribute("aria-required"));
+            Assert.Equal("", cut.Find("select#vehicle-type").GetAttribute("value") ?? "");
+        });
+    }
+
+    [Fact]
+    public void SavingALegacyVehicleWithoutAYear_ShowsTheYearErrorOnTheBasicInfoTab()
+    {
+        RegisterApi(request => request.Method == HttpMethod.Put
+            ? ValidationProblem(("Year", "Year is required."))
+            : Json(Detail(vehicleId, "Legacy", year: null)));
+        NavigateTo($"/vehicles/{vehicleId}/edit?tab=specifications");
+        var cut = RenderEdit();
+        cut.WaitForAssertion(() => Assert.NotNull(cut.Find("form")));
+        cut.Find("input#engine").Change("5.0L V8");
+
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("Year is required.", cut.Find("#year-error").TextContent);
+            Assert.Equal(["tab-basic"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
+            Assert.Equal("5.0L V8", cut.Find("input#engine").GetAttribute("value"));
+        });
+    }
+
+    [Fact]
     public void ShowsTrailAndTitleWithTheStoredNickname()
     {
         RegisterApi(_ => Json(Detail(vehicleId, "Daily")));
@@ -133,20 +228,20 @@ public class VehicleEditPageTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             var basic = cut.Find("#tab-basic");
-            foreach (var field in new[] { "nickname", "make", "model", "trim" })
+            foreach (var field in new[] { "nickname", "vin", "make", "model", "trim", "year", "vehicle-type", "ownership", "purchased-on", "lease-ends-on" })
             {
-                Assert.NotNull(basic.QuerySelector($"input#{field}"));
+                Assert.NotNull(basic.QuerySelector($"#{field}"));
             }
 
             var specifications = cut.Find("#tab-specifications");
-            foreach (var field in new[] { "color", "mileage", "doors" })
+            foreach (var field in new[] { "engine", "horsepower", "fuel-type", "transmission", "mileage", "color", "seats", "doors", "drivetrain", "wheel-size", "tire-size" })
             {
-                Assert.NotNull(specifications.QuerySelector($"input#{field}"));
+                Assert.NotNull(specifications.QuerySelector($"#{field}"));
             }
 
             var form = cut.Find("form");
             Assert.NotNull(form.QuerySelector("input#nickname"));
-            Assert.NotNull(form.QuerySelector("input#doors"));
+            Assert.NotNull(form.QuerySelector("input#tire-size"));
             Assert.Equal("Save changes", cut.Find("#tab-basic button[type='submit']").TextContent.Trim());
             Assert.Equal("Save changes", cut.Find("#tab-specifications button[type='submit']").TextContent.Trim());
         });

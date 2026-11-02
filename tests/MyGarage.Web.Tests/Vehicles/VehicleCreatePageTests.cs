@@ -29,11 +29,86 @@ public class VehicleCreatePageTests : VehicleTestContext
 
         var cut = Render<VehicleCreate>();
 
-        foreach (var field in new[] { "nickname", "make", "model", "trim", "color", "mileage", "doors" })
+        foreach (var field in new[]
+                 {
+                     "nickname", "vin", "make", "model", "trim", "year", "vehicle-type", "ownership", "purchased-on", "lease-ends-on",
+                     "engine", "horsepower", "fuel-type", "transmission", "mileage", "color", "seats", "doors", "drivetrain", "wheel-size", "tire-size",
+                 })
         {
-            Assert.NotNull(cut.Find($"input#{field}"));
+            Assert.NotNull(cut.Find($"#{field}"));
             Assert.NotNull(cut.Find($"label[for='{field}']"));
         }
+    }
+
+    [Fact]
+    public void Form_HasOnlyTheBasicInfoAndSpecificationsTabsWithTheFieldsOnEach()
+    {
+        RegisterApi(_ => Json(Detail()));
+
+        var cut = Render<VehicleCreate>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var tabs = cut.FindAll("ul.mg-tabs[role='tablist'] button[role='tab']");
+            Assert.Equal(["Basic Info", "Specifications"], tabs.Select(tab => tab.TextContent.Trim()));
+            Assert.Equal(["tab-basic"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
+            Assert.Empty(cut.FindAll("#tab-media, #tab-description"));
+            Assert.Equal(
+                ["nickname", "vin", "make", "model", "trim", "year", "vehicle-type", "ownership", "purchased-on", "lease-ends-on"],
+                cut.Find("#tab-basic").QuerySelectorAll("input[id], select[id]").Select(field => field.Id));
+            Assert.Equal(
+                ["engine", "horsepower", "fuel-type", "transmission", "mileage", "color", "seats", "doors", "drivetrain", "wheel-size", "tire-size"],
+                cut.Find("#tab-specifications").QuerySelectorAll("input[id], select[id]").Select(field => field.Id));
+        });
+    }
+
+    [Fact]
+    public void ARejectedSaveOpensTheTabHoldingTheFirstError()
+    {
+        RegisterApi(_ => ValidationProblem(("Horsepower", "Horsepower must be between 1 and 3,000.")));
+        var cut = Render<VehicleCreate>();
+        cut.Find("input#horsepower").Change("0");
+
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("Horsepower must be between", cut.Find("#horsepower-error").TextContent);
+            Assert.Equal(["tab-specifications"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
+        });
+    }
+
+    [Fact]
+    public void SelectsOfferTheUsersShownLookupItems()
+    {
+        RegisterApi(_ => Json(Detail()));
+        Lookups = new MyGarage.Shared.Lookups.LookupsDto
+        {
+            VehicleTypes = [Item("Sedan"), Item("Hidden one", isHidden: true), Item("Mine", isDefault: false)],
+            FuelTypes = [Item("Diesel")],
+            Transmissions = [],
+            Drivetrains = [Item("AWD")],
+        };
+
+        var cut = Render<VehicleCreate>();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal(["Not set", "Sedan", "Mine"], cut.FindAll("select#vehicle-type option").Select(option => option.TextContent.Trim()));
+            Assert.Equal(["Not set", "Diesel"], cut.FindAll("select#fuel-type option").Select(option => option.TextContent.Trim()));
+            Assert.Equal(["Not set"], cut.FindAll("select#transmission option").Select(option => option.TextContent.Trim()));
+        });
+    }
+
+    [Fact]
+    public void LookupsUnavailable_ShowsTheUnavailableMessage()
+    {
+        RegisterApi(_ => Json(Detail()));
+        LookupsFailure = System.Net.HttpStatusCode.ServiceUnavailable;
+
+        var cut = Render<VehicleCreate>();
+
+        cut.WaitForAssertion(() => Assert.Contains(MyGarage.Web.Vehicles.VehicleMessages.Unavailable, cut.Markup));
     }
 
     [Fact]
@@ -64,14 +139,14 @@ public class VehicleCreatePageTests : VehicleTestContext
         cut.Find("input#nickname").Change("Daily");
         cut.Find("input#make").Change("Ford");
         cut.Find("input#model").Change("F-150");
+        cut.Find("input#year").Change("2019");
         cut.Find("input#mileage").Change("1200");
 
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() =>
             Assert.EndsWith($"/vehicles/{created.Id}", Services.GetRequiredService<NavigationManager>().Uri));
-        var request = Requests.Single();
-        Assert.Equal(System.Net.Http.HttpMethod.Post, request.Method);
+        var request = Requests.Single(r => r.Method == System.Net.Http.HttpMethod.Post);
         Assert.Equal("/api/vehicles", request.RequestUri!.AbsolutePath);
     }
 

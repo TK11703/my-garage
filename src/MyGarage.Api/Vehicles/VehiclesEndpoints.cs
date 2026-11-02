@@ -14,6 +14,7 @@ public static class VehiclesEndpoints
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IValidator<VehicleRequest>, VehicleRequestValidator>();
         services.AddSingleton<IValidator<VehicleListQuery>, VehicleListQueryValidator>();
+        services.AddSingleton<VehicleLookupChecker>();
         services.AddSingleton<VehicleService>();
         return services;
     }
@@ -45,11 +46,17 @@ public static class VehiclesEndpoints
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
 
-        group.MapPost("", async (VehicleRequest request, ClaimsPrincipal user, VehicleService service, CancellationToken cancellationToken) =>
+        group.MapPost("", async (VehicleRequest request, ClaimsPrincipal user, VehicleService service, VehicleLookupChecker checker, CancellationToken cancellationToken) =>
             {
                 if (CurrentOwner.Get(user) is not { } ownerId)
                 {
                     return NoOwner();
+                }
+
+                var errors = await checker.CheckAsync(ownerId, request, null, cancellationToken);
+                if (errors.Count > 0)
+                {
+                    return Results.ValidationProblem(errors);
                 }
 
                 var created = await service.CreateAsync(ownerId, request, cancellationToken);
@@ -80,11 +87,17 @@ public static class VehiclesEndpoints
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
-        group.MapPut("/{vehicleId:guid}", async (Guid vehicleId, VehicleRequest request, ClaimsPrincipal user, VehicleService service, CancellationToken cancellationToken) =>
+        group.MapPut("/{vehicleId:guid}", async (Guid vehicleId, VehicleRequest request, ClaimsPrincipal user, VehicleService service, VehicleLookupChecker checker, CancellationToken cancellationToken) =>
             {
                 if (CurrentOwner.Get(user) is not { } ownerId)
                 {
                     return NoOwner();
+                }
+
+                var errors = await checker.CheckAsync(ownerId, request, vehicleId, cancellationToken);
+                if (errors.Count > 0)
+                {
+                    return Results.ValidationProblem(errors);
                 }
 
                 var updated = await service.UpdateAsync(ownerId, vehicleId, request, cancellationToken);

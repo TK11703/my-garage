@@ -18,6 +18,43 @@ public class VehicleRepositoryChangeTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task VehicleWithoutAYear_ListsLoadsAndCanLaterGainAYearAndDetails()
+    {
+        var (dataSource, repository) = await CreateAsync();
+        var id = Guid.NewGuid();
+        await using (var connection = await dataSource.OpenConnectionAsync())
+        {
+            // The shape of a row saved before the new columns existed.
+            await connection.ExecuteAsync(
+                "INSERT INTO vehicles (id, owner_id, nickname, make, model, trim, color, mileage, doors, created_at, updated_at, created_by, updated_by) " +
+                "VALUES (@id, 'owner-1', 'Old', 'Ford', 'F-150', 'XL', 'Red', 1200, 4, now(), now(), 'owner-1', 'owner-1')", new { id });
+        }
+
+        var listed = await repository.ListPageAsync("owner-1", VehicleSearchCriteria.None, 1, 12, CancellationToken.None);
+        var loaded = await repository.GetByIdAsync("owner-1", id, CancellationToken.None);
+
+        Assert.Equal(1, listed.TotalCount);
+        Assert.NotNull(loaded);
+        Assert.Null(loaded.Year);
+        Assert.Null(loaded.Vin);
+        Assert.Null(loaded.VehicleTypeId);
+        Assert.Null(loaded.Ownership);
+        Assert.Equal(1200, loaded.Mileage);
+        Assert.Equal("Red", loaded.Color);
+        Assert.Equal(4, loaded.Doors);
+
+        Assert.True(await repository.UpdateAsync(loaded with { Year = 2015, Engine = "5.0L V8", Horsepower = 385 }, CancellationToken.None));
+        var updated = await repository.GetByIdAsync("owner-1", id, CancellationToken.None);
+
+        Assert.Equal(2015, updated!.Year);
+        Assert.Equal("5.0L V8", updated.Engine);
+        Assert.Equal(385, updated.Horsepower);
+        Assert.Equal(1200, updated.Mileage);
+        Assert.Equal("Red", updated.Color);
+        Assert.Equal(4, updated.Doors);
+    }
+
+    [Fact]
     public async Task Update_ReplacesEveryEditableFieldAndStampsUpdate()
     {
         var (_, repository) = await CreateAsync();

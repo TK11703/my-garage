@@ -19,7 +19,7 @@ public class VehicleDetailPageTests : VehicleTestContext
         var basis = Detail(id);
         return new VehicleDetailDto
         {
-            Id = basis.Id, Nickname = basis.Nickname, Make = basis.Make, Model = basis.Model, Trim = basis.Trim, Color = basis.Color,
+            Id = basis.Id, Nickname = basis.Nickname, Make = basis.Make, Model = basis.Model, Trim = basis.Trim, Color = basis.Color, Year = basis.Year,
             Mileage = basis.Mileage, Doors = basis.Doors, Tags = tags, Images = images, CreatedAt = basis.CreatedAt, UpdatedAt = basis.UpdatedAt,
         };
     }
@@ -116,12 +116,84 @@ public class VehicleDetailPageTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             var basic = cut.Find("#tab-basic");
-            Assert.Equal(["Nickname", "Make", "Model", "Trim"], basic.QuerySelectorAll("dt").Select(dt => dt.TextContent.Trim()));
-            Assert.Equal(["Daily", "Ford", "F-150", "XLT"], basic.QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()));
+            Assert.Equal(
+                ["Name", "VIN", "Make", "Model", "Trim", "Year", "Vehicle type", "Purchased or leased", "Date purchased", "Date lease ends"],
+                basic.QuerySelectorAll("dt").Select(dt => dt.TextContent.Trim()));
+            Assert.Equal(
+                ["Daily", "Not set", "Ford", "F-150", "XLT", "2020", "Not set", "Not set", "Not set", "Not set"],
+                basic.QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()));
 
             var specifications = cut.Find("#tab-specifications");
-            Assert.Equal(["Color", "Mileage", "Doors"], specifications.QuerySelectorAll("dt").Select(dt => dt.TextContent.Trim()));
-            Assert.Equal(["Blue", "42,000 mi", "4"], specifications.QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()));
+            Assert.Equal(
+                ["Engine", "Horsepower", "Fuel type", "Transmission", "Mileage", "Color", "Seats", "Doors", "Drivetrain", "Wheel size", "Tire size"],
+                specifications.QuerySelectorAll("dt").Select(dt => dt.TextContent.Trim()));
+            Assert.Equal(
+                ["Not set", "Not set", "Not set", "Not set", "42,000 mi", "Blue", "Not set", "4", "Not set", "Not set", "Not set"],
+                specifications.QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()));
+        });
+    }
+
+    [Fact]
+    public void VehicleWithoutAYear_ShowsAPromptLinkingToTheBasicInfoEditTab()
+    {
+        RegisterApi(_ => Json(Detail(vehicleId, "Legacy", year: null)));
+
+        var cut = RenderDetail();
+
+        cut.WaitForAssertion(() =>
+        {
+            var prompt = cut.Find("[data-testid='missing-year']");
+            Assert.Contains("year", prompt.TextContent, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal($"/vehicles/{vehicleId}/edit?tab=basic", prompt.QuerySelector("a")!.GetAttribute("href"));
+            Assert.Equal("Not set", cut.Find("#tab-basic").QuerySelectorAll("dd")[5].TextContent.Trim());
+        });
+    }
+
+    [Fact]
+    public void VehicleWithAYear_ShowsNoPrompt()
+    {
+        RegisterApi(_ => Json(Detail(vehicleId)));
+
+        var cut = RenderDetail();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("Daily", cut.Find("h1").TextContent);
+            Assert.Empty(cut.FindAll("[data-testid='missing-year']"));
+        });
+    }
+
+    [Fact]
+    public void LegacyVehicle_StillShowsMileageColorAndDoorsOnTheSpecificationsTab()
+    {
+        RegisterApi(_ => Json(Detail(vehicleId, "Legacy", year: null)));
+
+        var cut = RenderDetail();
+
+        cut.WaitForAssertion(() =>
+        {
+            var values = cut.Find("#tab-specifications").QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()).ToList();
+            Assert.Contains("42,000 mi", values);
+            Assert.Contains("Blue", values);
+            Assert.Contains("4", values);
+        });
+    }
+
+    [Fact]
+    public void EveryNewDetailIsShownOnItsTab()
+    {
+        RegisterApi(_ => Json(FullDetail(vehicleId)));
+
+        var cut = RenderDetail();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal(
+                ["Blue Streak", "1HGCM82633A004352", "Subaru", "Outback", "Limited", "2019", "Wagon", "Leased", "Mar 15, 2024", "Mar 14, 2027"],
+                cut.Find("#tab-basic").QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()));
+            Assert.Equal(
+                ["2.5L flat-4", "182 hp", "Gasoline", "Automatic", "42,000 mi", "Blue", "5", "4", "AWD", "17.5 in", "225/60R17"],
+                cut.Find("#tab-specifications").QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()));
         });
     }
 

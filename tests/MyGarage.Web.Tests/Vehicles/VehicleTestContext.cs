@@ -4,7 +4,11 @@ using Bunit;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Forms.Mapping;
 using Microsoft.Extensions.DependencyInjection;
+using MyGarage.Shared.Lookups;
+using MyGarage.Shared.Users;
 using MyGarage.Shared.Vehicles;
+using MyGarage.Web.Common;
+using MyGarage.Web.Lookups;
 using MyGarage.Web.Vehicles;
 
 namespace MyGarage.Web.Tests.Vehicles;
@@ -23,6 +27,33 @@ public abstract class VehicleTestContext : BunitContext
     // Answered to GET /api/vehicles/filter-options.
     protected VehicleFilterOptionsDto FilterOptions { get; set; } = new() { Makes = [], Colors = [], Tags = [] };
 
+    // When set, GET /api/vehicles/filter-options answers with this status instead of the options.
+    protected HttpStatusCode? FilterOptionsFailure { get; set; }
+
+    // Answered to GET /api/lookups (hidden items are left out unless includeHidden=true).
+    protected LookupsDto Lookups { get; set; } = DefaultLookups();
+
+    // When set, GET /api/lookups answers with this status instead of the lookups.
+    protected HttpStatusCode? LookupsFailure { get; set; }
+
+    // Answered to GET /api/users/me.
+    protected CurrentUserDto CurrentUser { get; set; } = new() { UserId = "user-1", DisplayName = "Ada Lovelace", Email = "ada@example.com" };
+
+    // When set, GET /api/users/me answers with this status instead of the current user.
+    protected HttpStatusCode? CurrentUserFailure { get; set; }
+
+    protected static LookupItemDto Item(string name, bool isDefault = true, bool isHidden = false) =>
+        new() { Id = Guid.NewGuid(), Name = name, IsDefault = isDefault, IsHidden = isHidden };
+
+    protected static LookupsDto DefaultLookups() =>
+        new()
+        {
+            VehicleTypes = [Item("Sedan"), Item("SUV"), Item("Truck")],
+            FuelTypes = [Item("Gasoline"), Item("Diesel"), Item("Electric"), Item("Hybrid")],
+            Transmissions = [Item("Automatic"), Item("Manual")],
+            Drivetrains = [Item("FWD"), Item("RWD"), Item("AWD"), Item("4WD")],
+        };
+
     protected VehicleTestContext()
     {
         Services.AddSingleton<AntiforgeryStateProvider, NoAntiforgeryStateProvider>();
@@ -40,7 +71,22 @@ public abstract class VehicleTestContext : BunitContext
             Requests.Add(request);
             if (request.RequestUri!.AbsolutePath == "/api/vehicles/filter-options")
             {
-                return Json(FilterOptions);
+                return FilterOptionsFailure is { } optionsFailure ? new HttpResponseMessage(optionsFailure) : Json(FilterOptions);
+            }
+
+            if (request.RequestUri.AbsolutePath == "/api/users/me")
+            {
+                return CurrentUserFailure is { } userFailure ? new HttpResponseMessage(userFailure) : Json(CurrentUser);
+            }
+
+            if (request.RequestUri.AbsolutePath == "/api/lookups" && request.Method == HttpMethod.Get)
+            {
+                if (LookupsFailure is { } failureStatus)
+                {
+                    return new HttpResponseMessage(failureStatus);
+                }
+
+                return Json(request.RequestUri.Query.Contains("includeHidden=true", StringComparison.Ordinal) ? Lookups : WithoutHidden(Lookups));
             }
 
             if (Notes is not null && request.Method == HttpMethod.Get && request.RequestUri.AbsolutePath.EndsWith("/notes", StringComparison.Ordinal))
@@ -51,7 +97,18 @@ public abstract class VehicleTestContext : BunitContext
             return respond(request);
         });
         Services.AddSingleton(new VehiclesApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
+        Services.AddSingleton(new LookupsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
+        Services.AddSingleton(new GarageApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
     }
+
+    private static LookupsDto WithoutHidden(LookupsDto lookups) =>
+        new()
+        {
+            VehicleTypes = [.. lookups.VehicleTypes.Where(item => !item.IsHidden)],
+            FuelTypes = [.. lookups.FuelTypes.Where(item => !item.IsHidden)],
+            Transmissions = [.. lookups.Transmissions.Where(item => !item.IsHidden)],
+            Drivetrains = [.. lookups.Drivetrains.Where(item => !item.IsHidden)],
+        };
 
     protected static HttpResponseMessage Json<T>(T value, HttpStatusCode status = HttpStatusCode.OK) =>
         new(status) { Content = JsonContent.Create(value) };
@@ -73,8 +130,8 @@ public abstract class VehicleTestContext : BunitContext
             }),
         };
 
-    protected static VehicleSummaryDto Summary(string nickname, string make = "Ford", string model = "F-150", int? mileage = null, Guid? mainImageId = null) =>
-        new() { Id = Guid.NewGuid(), Nickname = nickname, Make = make, Model = model, Mileage = mileage, MainImageId = mainImageId };
+    protected static VehicleSummaryDto Summary(string nickname, string make = "Ford", string model = "F-150", int? mileage = null, Guid? mainImageId = null, int? year = null) =>
+        new() { Id = Guid.NewGuid(), Nickname = nickname, Make = make, Model = model, Mileage = mileage, MainImageId = mainImageId, Year = year };
 
     protected static PagedResultDto<VehicleSummaryDto> Page(IReadOnlyList<VehicleSummaryDto> items, int page = 1, int totalCount = -1, int pageSize = 12)
     {
@@ -108,7 +165,7 @@ public abstract class VehicleTestContext : BunitContext
         };
     }
 
-    protected static VehicleDetailDto Detail(Guid? id = null, string nickname = "Daily") =>
+    protected static VehicleDetailDto Detail(Guid? id = null, string nickname = "Daily", int? year = 2020) =>
         new()
         {
             Id = id ?? Guid.NewGuid(),
@@ -116,9 +173,42 @@ public abstract class VehicleTestContext : BunitContext
             Make = "Ford",
             Model = "F-150",
             Trim = "XLT",
+            Year = year,
             Color = "Blue",
             Mileage = 42_000,
             Doors = 4,
+            Tags = [],
+            Images = [],
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+
+    // A vehicle with every new field filled in.
+    protected static VehicleDetailDto FullDetail(Guid? id = null, string nickname = "Blue Streak") =>
+        new()
+        {
+            Id = id ?? Guid.NewGuid(),
+            Nickname = nickname,
+            Vin = "1HGCM82633A004352",
+            Make = "Subaru",
+            Model = "Outback",
+            Trim = "Limited",
+            Year = 2019,
+            VehicleType = new LookupValueDto { Id = Guid.NewGuid(), Name = "Wagon" },
+            Ownership = OwnershipType.Leased,
+            PurchasedOn = new DateOnly(2024, 3, 15),
+            LeaseEndsOn = new DateOnly(2027, 3, 14),
+            Engine = "2.5L flat-4",
+            Horsepower = 182,
+            FuelType = new LookupValueDto { Id = Guid.NewGuid(), Name = "Gasoline" },
+            Transmission = new LookupValueDto { Id = Guid.NewGuid(), Name = "Automatic" },
+            Mileage = 42_000,
+            Color = "Blue",
+            Seats = 5,
+            Doors = 4,
+            Drivetrain = new LookupValueDto { Id = Guid.NewGuid(), Name = "AWD" },
+            WheelSize = 17.5m,
+            TireSize = "225/60R17",
             Tags = [],
             Images = [],
             CreatedAt = DateTimeOffset.UtcNow,
