@@ -46,6 +46,7 @@ public class SqlScriptStoreTests
             [
                 "0001_create_vehicles", "0002_create_vehicle_tags", "0003_create_journal_notes", "0004_create_vehicle_images",
                 "0005_create_lookup_items", "0006_add_vehicle_details", "0007_drop_vehicle_nickname", "0008_create_features",
+                "0009_create_service_records", "0010_add_vehicle_latest_odometer",
             ],
             migrations);
     }

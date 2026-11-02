@@ -1,0 +1,10 @@
+SELECT sr.id, sr.vehicle_id, sr.date_serviced, sr.odometer_reading, sr.shop_or_person,
+       (SELECT count(*) FROM service_line_items li WHERE li.service_record_id = sr.id)::int AS line_item_count,
+       (SELECT COALESCE(sum(li.total_cost), 0) FROM service_line_items li WHERE li.service_record_id = sr.id) AS total_cost,
+       sr.created_at, sr.updated_at, sr.created_by, sr.updated_by
+FROM service_records sr
+JOIN vehicles v ON v.id = sr.vehicle_id
+WHERE sr.vehicle_id = @VehicleId
+  AND v.owner_id = @OwnerId
+ORDER BY sr.date_serviced DESC, sr.created_at DESC, sr.id DESC
+LIMIT @PageSize OFFSET @Offset;

@@ -22,12 +22,14 @@ public class MigrationRunnerTests(PostgresFixture postgres)
         var tables = (await connection.QueryAsync<string>(
             "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")).ToHashSet();
         Assert.Superset(
-            new HashSet<string> { "vehicles", "vehicle_tags", "features", "journal_notes", "vehicle_images", "lookup_items", "lookup_item_hidden", "schema_migrations" },
+            new HashSet<string> { "vehicles", "vehicle_tags", "features", "journal_notes", "vehicle_images", "lookup_items", "lookup_item_hidden", "service_records", "service_line_items", "service_line_item_parts", "schema_migrations" },
             tables);
 
         var ledger = (await connection.QueryAsync<(string ScriptId, string Checksum, DateTime AppliedAt)>(
             "SELECT script_id AS ScriptId, checksum AS Checksum, applied_at AS AppliedAt FROM schema_migrations ORDER BY script_id")).ToList();
-        Assert.Equal(8, ledger.Count);
+        Assert.Equal(10, ledger.Count);
+        Assert.Equal("0009_create_service_records", ledger[8].ScriptId);
+        Assert.Equal("0010_add_vehicle_latest_odometer", ledger[9].ScriptId);
         Assert.Equal("0001_create_vehicles", ledger[0].ScriptId);
         Assert.Equal("0005_create_lookup_items", ledger[4].ScriptId);
         Assert.Equal("0006_add_vehicle_details", ledger[5].ScriptId);
@@ -46,7 +48,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
         await runner.RunAsync();
 
         await using var connection = await dataSource.OpenConnectionAsync();
-        Assert.Equal(8, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
+        Assert.Equal(10, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
     }
 
     [Fact]
@@ -76,7 +78,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
             CreateRunner(dataSource).RunAsync());
 
         await using var connection = await dataSource.OpenConnectionAsync();
-        Assert.Equal(8, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
+        Assert.Equal(10, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
     }
 
     [Theory]
@@ -365,6 +367,141 @@ public class MigrationRunnerTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task Migration0010_AddsTheLatestOdometerColumn_AndLeavesExistingVehiclesUnchanged()
+    {
+        await using var dataSource = await postgres.CreateDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var scripts = new SqlScriptStore();
+        await ApplyAsync(connection, scripts, AllMigrations[..9]);
+        var id = await InsertVehicleAsync(connection);
+        await connection.ExecuteAsync("UPDATE vehicles SET mileage = 1200 WHERE id = @id", new { id });
+
+        await ApplyAsync(connection, scripts, AllMigrations[9]);
+
+        var row = await connection.QuerySingleAsync<(int? Mileage, int? Latest)>(
+            "SELECT mileage AS Mileage, latest_odometer_reading AS Latest FROM vehicles WHERE id = @id", new { id });
+        Assert.Equal(1200, row.Mileage);
+        Assert.Null(row.Latest);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(10000000)]
+    public async Task Schema_LatestOdometerCheck_RejectsOutOfRangeValues(int value)
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+
+        await Assert.ThrowsAsync<PostgresException>(() => connection.ExecuteAsync(
+            "INSERT INTO vehicles (id, owner_id, make, model, latest_odometer_reading, created_at, updated_at, created_by, updated_by) " +
+            "VALUES (gen_random_uuid(), 'o', 'm', 'x', @value, now(), now(), 'o', 'o')", new { value }));
+    }
+
+    public static TheoryData<string, string> InvalidServiceRecordValues => new()
+    {
+        { "odometer_reading", "-1" },
+        { "odometer_reading", "10000000" },
+        { "date_serviced", "'1899-12-31'" },
+        { "shop_or_person", "repeat('x', 101)" },
+    };
+
+    [Theory]
+    [MemberData(nameof(InvalidServiceRecordValues))]
+    public async Task Schema_ServiceRecordChecks_RejectInvalidValues(string column, string value)
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var vehicleId = await InsertVehicleAsync(connection);
+        var values = new Dictionary<string, string> { ["date_serviced"] = "'2026-05-01'", ["odometer_reading"] = "100", ["shop_or_person"] = "null" };
+        values[column] = value;
+
+        var sql = "INSERT INTO service_records (id, vehicle_id, date_serviced, odometer_reading, shop_or_person, created_at, updated_at, created_by, updated_by) " +
+                  $"VALUES (gen_random_uuid(), @vehicleId, {values["date_serviced"]}, {values["odometer_reading"]}, {values["shop_or_person"]}, now(), now(), 'o', 'o')";
+
+        await Assert.ThrowsAsync<PostgresException>(() => connection.ExecuteAsync(sql, new { vehicleId }));
+    }
+
+    public static TheoryData<string> InvalidLineItemAssignments => new()
+    {
+        "flat_cost = -0.01",
+        "flat_cost = 10000000.00",
+        "labor_hours = 0, labor_rate = 1",
+        "labor_hours = 1000, labor_rate = 1",
+        "labor_hours = 1, labor_rate = -0.01",
+        "labor_hours = 1, labor_rate = 100000.00",
+        "total_cost = -0.01",
+        "total_cost = 10000000.00",
+        "labor_hours = 1",
+        "labor_rate = 1",
+        "flat_cost = 5, labor_hours = 1, labor_rate = 1",
+    };
+
+    [Theory]
+    [MemberData(nameof(InvalidLineItemAssignments))]
+    public async Task Schema_ServiceLineItemChecks_RejectInvalidValues(string assignments)
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var recordId = await InsertServiceRecordAsync(connection, await InsertVehicleAsync(connection));
+        var lineItemId = await InsertLineItemAsync(connection, recordId);
+
+        await Assert.ThrowsAsync<PostgresException>(() => connection.ExecuteAsync(
+            $"UPDATE service_line_items SET {assignments} WHERE id = @lineItemId", new { lineItemId }));
+    }
+
+    [Fact]
+    public async Task Schema_ServiceLinePartChecks_RejectInvalidValuesAndDuplicatePositions()
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var recordId = await InsertServiceRecordAsync(connection, await InsertVehicleAsync(connection));
+        var lineItemId = await InsertLineItemAsync(connection, recordId);
+        const string insert = "INSERT INTO service_line_item_parts (id, line_item_id, position, name, quantity, unit_price) " +
+                              "VALUES (gen_random_uuid(), @lineItemId, @position, 'Filter', @quantity, @unitPrice)";
+
+        await Assert.ThrowsAsync<PostgresException>(() => connection.ExecuteAsync(insert, new { lineItemId, position = 1, quantity = 0m, unitPrice = 1m }));
+        await Assert.ThrowsAsync<PostgresException>(() => connection.ExecuteAsync(insert, new { lineItemId, position = 1, quantity = 10000m, unitPrice = 1m }));
+        await Assert.ThrowsAsync<PostgresException>(() => connection.ExecuteAsync(insert, new { lineItemId, position = 1, quantity = 1m, unitPrice = -0.01m }));
+
+        await connection.ExecuteAsync(insert, new { lineItemId, position = 1, quantity = 1m, unitPrice = 12.5m });
+        await Assert.ThrowsAsync<PostgresException>(() => connection.ExecuteAsync(insert, new { lineItemId, position = 1, quantity = 1m, unitPrice = 1m }));
+    }
+
+    [Fact]
+    public async Task Schema_DeletingParents_CascadesThroughServiceRecordTables()
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var vehicleId = await InsertVehicleAsync(connection);
+        var recordId = await InsertServiceRecordAsync(connection, vehicleId);
+        var lineItemId = await InsertLineItemAsync(connection, recordId);
+        await connection.ExecuteAsync(
+            "INSERT INTO service_line_item_parts (id, line_item_id, position, name, quantity, unit_price) VALUES (gen_random_uuid(), @lineItemId, 1, 'Filter', 1, 1)",
+            new { lineItemId });
+
+        await connection.ExecuteAsync("DELETE FROM service_line_items WHERE id = @lineItemId", new { lineItemId });
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM service_line_item_parts"));
+
+        var secondLine = await InsertLineItemAsync(connection, recordId);
+        await connection.ExecuteAsync(
+            "INSERT INTO service_line_item_parts (id, line_item_id, position, name, quantity, unit_price) VALUES (gen_random_uuid(), @secondLine, 1, 'Filter', 1, 1)",
+            new { secondLine });
+        await connection.ExecuteAsync("DELETE FROM service_records WHERE id = @recordId", new { recordId });
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM service_line_items"));
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM service_line_item_parts"));
+
+        var thirdRecord = await InsertServiceRecordAsync(connection, vehicleId);
+        var thirdLine = await InsertLineItemAsync(connection, thirdRecord);
+        await connection.ExecuteAsync(
+            "INSERT INTO service_line_item_parts (id, line_item_id, position, name, quantity, unit_price) VALUES (gen_random_uuid(), @thirdLine, 1, 'Filter', 1, 1)",
+            new { thirdLine });
+        await connection.ExecuteAsync("DELETE FROM vehicles WHERE id = @vehicleId", new { vehicleId });
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM service_records"));
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM service_line_items"));
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM service_line_item_parts"));
+    }
+
+    [Fact]
     public async Task Schema_VehicleLookupReferences_MustExist()
     {
         await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
@@ -379,6 +516,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
     [
         "0001_create_vehicles", "0002_create_vehicle_tags", "0003_create_journal_notes", "0004_create_vehicle_images",
         "0005_create_lookup_items", "0006_add_vehicle_details", "0007_drop_vehicle_nickname", "0008_create_features",
+        "0009_create_service_records", "0010_add_vehicle_latest_odometer",
     ];
 
     private static async Task ApplyAsync(NpgsqlConnection connection, SqlScriptStore scripts, params string[] migrations)
@@ -396,6 +534,26 @@ public class MigrationRunnerTests(PostgresFixture postgres)
     private static async Task<HashSet<string>> IndexesAsync(NpgsqlConnection connection, string table) =>
         (await connection.QueryAsync<string>(
             "SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND tablename = @table", new { table })).ToHashSet();
+
+    private static async Task<Guid> InsertServiceRecordAsync(NpgsqlConnection connection, Guid vehicleId)
+    {
+        var id = Guid.NewGuid();
+        await connection.ExecuteAsync(
+            "INSERT INTO service_records (id, vehicle_id, date_serviced, odometer_reading, created_at, updated_at, created_by, updated_by) " +
+            "VALUES (@id, @vehicleId, '2026-05-01', 100, now(), now(), 'o', 'o')",
+            new { id, vehicleId });
+        return id;
+    }
+
+    private static async Task<Guid> InsertLineItemAsync(NpgsqlConnection connection, Guid recordId)
+    {
+        var id = Guid.NewGuid();
+        await connection.ExecuteAsync(
+            "INSERT INTO service_line_items (id, service_record_id, description, total_cost, created_at, updated_at, created_by, updated_by) " +
+            "VALUES (@id, @recordId, 'Oil change', 0, now(), now(), 'o', 'o')",
+            new { id, recordId });
+        return id;
+    }
 
     private static async Task<Guid> InsertVehicleAsync(NpgsqlConnection connection, string ownerId = "o")
     {

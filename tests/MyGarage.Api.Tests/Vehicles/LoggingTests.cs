@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MyGarage.Api.Tests.Common;
 using MyGarage.Shared.Lookups;
+using MyGarage.Shared.ServiceRecords;
 using MyGarage.Shared.Vehicles;
 
 namespace MyGarage.Api.Tests.Vehicles;
@@ -16,7 +17,7 @@ public class LoggingTests(ApiFactory factory) : IClassFixture<ApiFactory>, IAsyn
     private static readonly string[] Markers =
     [
         "QZMAKE", "QZMODEL", "QZTRIM", "QZCOLOR", "QZSEARCH", "QZTAG", "QZNOTE", "QZCAT", "QZCAPTION", "QZFILE", "QZBYTES",
-        "WZW9WZW9WZW9WZW9W", "QZENGINE", "QZTIRE", "QZITEM",
+        "WZW9WZW9WZW9WZW9W", "QZENGINE", "QZTIRE", "QZITEM", "QZSHOP", "QZLINE", "QZPART", "7654.32",
     ];
 
     public Task InitializeAsync() => factory.ResetDataAsync();
@@ -101,6 +102,39 @@ public class LoggingTests(ApiFactory factory) : IClassFixture<ApiFactory>, IAsyn
         await client.PutAsync($"/api/vehicles/{created.Id}/images/{image.Id}/main", null);
         await client.DeleteAsync($"/api/vehicles/{created.Id}/images/{image.Id}");
         await client.GetAsync($"/api/vehicles/{Guid.NewGuid()}");
+
+        var record = await (await client.PostAsJsonAsync($"/api/vehicles/{created.Id}/service-records", new ServiceRecordRequest
+        {
+            DateServiced = new DateOnly(2026, 1, 2), OdometerReading = 1234, ShopOrPerson = "QZSHOP",
+        })).Content.ReadFromJsonAsync<ServiceRecordDto>();
+        await client.PostAsJsonAsync($"/api/vehicles/{created.Id}/service-records", new ServiceRecordRequest
+        {
+            DateServiced = new DateOnly(2999, 1, 1), OdometerReading = -1, ShopOrPerson = "QZSHOP" + new string('x', 120),
+        });
+        await client.PutAsJsonAsync($"/api/vehicles/{created.Id}/service-records/{record!.Id}", new ServiceRecordRequest
+        {
+            DateServiced = new DateOnly(2026, 1, 3), OdometerReading = 1235, ShopOrPerson = "QZSHOP edited",
+        });
+        var withLine = await (await client.PostAsJsonAsync($"/api/vehicles/{created.Id}/service-records/{record.Id}/line-items", new ServiceLineItemRequest
+        {
+            Description = "QZLINE",
+            LaborHours = 1m,
+            LaborRate = 7654.32m,
+            Parts = [new ServicePartRequest { Name = "QZPART", Quantity = 1m, UnitPrice = 7654.32m }],
+        })).Content.ReadFromJsonAsync<ServiceRecordDto>();
+        await client.PostAsJsonAsync($"/api/vehicles/{created.Id}/service-records/{record.Id}/line-items", new ServiceLineItemRequest
+        {
+            Description = "QZLINE", FlatCost = 7654.32m, LaborHours = 1m, LaborRate = 7654.32m,
+        });
+        var lineId = withLine!.LineItems.Single().Id;
+        await client.PutAsJsonAsync($"/api/vehicles/{created.Id}/service-records/{record.Id}/line-items/{lineId}", new ServiceLineItemRequest
+        {
+            Description = "QZLINE edited", FlatCost = 7654.32m,
+        });
+        await client.GetAsync($"/api/vehicles/{created.Id}/service-records");
+        await client.GetAsync($"/api/vehicles/{created.Id}/service-records/{record.Id}");
+        await client.DeleteAsync($"/api/vehicles/{created.Id}/service-records/{record.Id}/line-items/{lineId}");
+        await client.DeleteAsync($"/api/vehicles/{created.Id}/service-records/{record.Id}");
         await client.DeleteAsync($"/api/vehicles/{created.Id}");
 
         var logs = string.Join('\n', provider.Entries);

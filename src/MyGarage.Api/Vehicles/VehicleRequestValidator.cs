@@ -32,6 +32,7 @@ public sealed partial class VehicleRequestValidator : AbstractValidator<VehicleR
         RuleFor(request => request.Engine).TrimmedText("Engine", 100, required: false);
         RuleFor(request => request.Horsepower).InclusiveBetween(1, 3000).WithMessage("Horsepower must be between 1 and 3,000.");
         RuleFor(request => request.Mileage).InclusiveBetween(0, 9_999_999).WithMessage("Mileage must be between 0 and 9,999,999.");
+        RuleFor(request => request.LatestOdometerReading).InclusiveBetween(0, 9_999_999).WithMessage("Latest odometer reading must be between 0 and 9,999,999.");
         RuleFor(request => request.Color).TrimmedText("Color", 30, required: false);
         RuleFor(request => request.Seats).InclusiveBetween(1, 20).WithMessage("Seats must be between 1 and 20.");
         RuleFor(request => request.Doors).InclusiveBetween(1, 6).WithMessage("Doors must be between 1 and 6.");

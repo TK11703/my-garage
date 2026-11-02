@@ -17,6 +17,7 @@ public sealed class VehicleSummaryDto
     [JsonIgnore]
     public string Name => VehicleName.Compose(Year, Make, Model);
 
+    // The greater of the latest service record's odometer, the latest odometer reading, and the mileage on purchase or lease.
     public int? Mileage { get; init; }
 
     public Guid? MainImageId { get; init; }
