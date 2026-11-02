@@ -469,3 +469,22 @@ main:focus {
 .mg-timeline details[open] {
     flex: 1 0 100%;
 }
+
+/* Home page hero and feature grid */
+.mg-hero-art {
+    background: linear-gradient(135deg, var(--mg-navbar-bg) 0%, #0B4F8A 100%);
+    min-height: 16rem;
+}
+
+.mg-hero-car {
+    max-width: 32rem;
+}
+
+.mg-feature-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+}
+
+.mg-narrow {
+    max-width: 40rem;
+}

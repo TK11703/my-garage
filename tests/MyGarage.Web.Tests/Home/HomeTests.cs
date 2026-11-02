@@ -76,6 +76,78 @@ public class HomeTests : VehicleTestContext
     }
 
     [Fact]
+    public void Hero_ShowsTheVehicleCountAndThatOnlyTheUserSeesTheGarage()
+    {
+        RegisterApiReplacement(_ => Json(Page([Summary("A"), Summary("B")], totalCount: 7)));
+
+        var cut = RenderHome();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("7 vehicles", cut.Find("[data-testid='vehicle-count']").TextContent.Trim());
+            Assert.Contains("Only you", cut.Find("[data-testid='hero-stats']").TextContent);
+        });
+    }
+
+    [Fact]
+    public void Hero_UsesTheSingularForOneVehicle()
+    {
+        RegisterApiReplacement(_ => Json(Page([Summary("A")], totalCount: 1)));
+
+        var cut = RenderHome();
+
+        cut.WaitForAssertion(() => Assert.Equal("1 vehicle", cut.Find("[data-testid='vehicle-count']").TextContent.Trim()));
+    }
+
+    [Fact]
+    public void Hero_OmitsTheCountWhenTheApiFails()
+    {
+        RegisterApiReplacement(_ => throw new HttpRequestException("boom"));
+
+        var cut = RenderHome();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Empty(cut.FindAll("[data-testid='vehicle-count']"));
+            Assert.Contains("Only you", cut.Find("[data-testid='hero-stats']").TextContent);
+        });
+    }
+
+    [Fact]
+    public void Hero_HasADecorativeCarIllustrationHiddenFromAssistiveTechnology()
+    {
+        var cut = RenderHome();
+
+        cut.WaitForAssertion(() =>
+        {
+            var art = cut.Find("[data-testid='hero'] .mg-hero-art");
+            Assert.Equal("true", art.GetAttribute("aria-hidden"));
+            Assert.NotNull(art.QuerySelector("svg"));
+            Assert.Equal("hero-heading", cut.Find("[data-testid='hero']").GetAttribute("aria-labelledby"));
+        });
+    }
+
+    [Fact]
+    public void AboutSection_ListsEightFeaturesEachWithAnIconAndAHeading()
+    {
+        var cut = RenderHome();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("About My Garage", cut.Find("h2#about-heading").TextContent.Trim());
+            var features = cut.FindAll("[data-testid='about'] [data-testid='feature']");
+            Assert.Equal(8, features.Count);
+            Assert.All(features, feature =>
+            {
+                Assert.NotNull(feature.QuerySelector("svg.bi[aria-hidden='true']"));
+                Assert.False(string.IsNullOrWhiteSpace(feature.QuerySelector("h3")!.TextContent));
+                Assert.False(string.IsNullOrWhiteSpace(feature.QuerySelector("p")!.TextContent));
+            });
+            Assert.Contains("Maintenance you can trust", cut.Find("[data-testid='about']").TextContent);
+        });
+    }
+
+    [Fact]
     public void WithVehicles_OffersMyVehiclesAsThePrimaryActionAndAddVehicle()
     {
         var cut = RenderHome();

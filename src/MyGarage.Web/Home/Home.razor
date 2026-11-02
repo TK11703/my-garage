@@ -6,24 +6,116 @@
 
 <PageHeader Title="@($"Welcome, {displayName}")" />
 
-<p class="lead">My Garage keeps a private list of your vehicles, their details, tags, journal notes, and pictures.</p>
+<section class="card border-0 shadow-sm overflow-hidden mb-5" aria-labelledby="hero-heading" data-testid="hero">
+    <div class="row g-0">
+        <div class="col-lg-6 p-4 p-lg-5 d-flex flex-column justify-content-center gap-3">
+            <h2 id="hero-heading" class="display-6 fw-bold mb-0">Your whole garage, in one place</h2>
+            <p class="lead mb-0">My Garage keeps a private list of your vehicles, with their details, pictures, journal notes, and service history in one place.</p>
 
-<div class="d-flex flex-wrap gap-2">
-    @if (hasNoVehicles)
-    {
-        <a class="btn btn-primary" href="/vehicles/new">Add your first vehicle</a>
-        <a class="btn btn-outline-secondary" href="/vehicles">My vehicles</a>
-    }
-    else
-    {
-        <a class="btn btn-primary" href="/vehicles">My vehicles</a>
-        <a class="btn btn-outline-primary" href="/vehicles/new">Add vehicle</a>
-    }
-</div>
+            <ul class="list-unstyled d-flex flex-wrap gap-2 mb-0" data-testid="hero-highlights">
+                <li class="badge text-bg-light border fw-normal d-inline-flex align-items-center gap-1"><Icon Name="IconName.Speedometer" Size="14" /> Details</li>
+                <li class="badge text-bg-light border fw-normal d-inline-flex align-items-center gap-1"><Icon Name="IconName.Image" Size="14" /> Pictures</li>
+                <li class="badge text-bg-light border fw-normal d-inline-flex align-items-center gap-1"><Icon Name="IconName.FileText" Size="14" /> Journal</li>
+                <li class="badge text-bg-light border fw-normal d-inline-flex align-items-center gap-1"><Icon Name="IconName.Wrench" Size="14" /> Maintenance</li>
+            </ul>
+
+            <div class="d-flex flex-wrap gap-2">
+                @if (hasNoVehicles)
+                {
+                    <a class="btn btn-primary btn-lg d-inline-flex align-items-center gap-2" href="/vehicles/new"><Icon Name="IconName.Plus" /> Add your first vehicle</a>
+                    <a class="btn btn-outline-secondary btn-lg" href="/vehicles">My vehicles</a>
+                }
+                else
+                {
+                    <a class="btn btn-primary btn-lg" href="/vehicles">My vehicles</a>
+                    <a class="btn btn-outline-primary btn-lg d-inline-flex align-items-center gap-2" href="/vehicles/new"><Icon Name="IconName.Plus" /> Add vehicle</a>
+                }
+            </div>
+
+            <hr class="my-1" />
+
+            <dl class="row g-3 mb-0" data-testid="hero-stats">
+                @if (vehicleCount is { } count)
+                {
+                    <div class="col-6">
+                        <dt class="fw-normal text-body-secondary small">In your garage</dt>
+                        <dd class="h4 mb-0" data-testid="vehicle-count">@count @(count == 1 ? "vehicle" : "vehicles")</dd>
+                    </div>
+                }
+                <div class="col-6">
+                    <dt class="fw-normal text-body-secondary small">Who can see it</dt>
+                    <dd class="h4 mb-0">Only you</dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="col-lg-6 mg-hero-art d-flex align-items-center justify-content-center p-4" aria-hidden="true">
+            <svg class="w-100 mg-hero-car" viewBox="0 0 480 260" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                <circle cx="240" cy="130" r="118" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="2" />
+                <circle cx="240" cy="130" r="92" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="2" />
+                <path d="M96 190 A 150 150 0 0 1 384 190" fill="none" stroke="#F5A623" stroke-opacity="0.55" stroke-width="4" stroke-linecap="round" stroke-dasharray="3 12" />
+                <path d="M40 176 L40 150 Q40 134 62 130 L134 114 L178 72 Q188 64 204 64 L308 64 Q324 64 334 74 L374 114 L418 122 Q444 128 444 150 L444 176 Z" fill="#DCE8F5" />
+                <path d="M158 112 L190 80 Q194 76 202 76 L240 76 L240 112 Z" fill="#0F2A43" fill-opacity="0.85" />
+                <path d="M252 76 L304 76 Q312 76 318 82 L346 112 L252 112 Z" fill="#0F2A43" fill-opacity="0.85" />
+                <rect x="40" y="150" width="404" height="6" fill="#0B4F8A" fill-opacity="0.35" />
+                <path d="M410 134 L440 138 Q444 140 444 146 L444 152 L418 152 Z" fill="#F5A623" />
+                <rect x="40" y="140" width="16" height="10" rx="3" fill="#E5484D" />
+                <circle cx="130" cy="178" r="40" fill="#0F2A43" />
+                <circle cx="130" cy="178" r="32" fill="#0A1B2C" />
+                <circle cx="130" cy="178" r="16" fill="#B9CCE0" />
+                <circle cx="130" cy="178" r="5" fill="#0F2A43" />
+                <circle cx="352" cy="178" r="40" fill="#0F2A43" />
+                <circle cx="352" cy="178" r="32" fill="#0A1B2C" />
+                <circle cx="352" cy="178" r="16" fill="#B9CCE0" />
+                <circle cx="352" cy="178" r="5" fill="#0F2A43" />
+                <path d="M16 222 H464" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="3" stroke-linecap="round" stroke-dasharray="26 18" />
+            </svg>
+        </div>
+    </div>
+</section>
+
+<section aria-labelledby="about-heading" data-testid="about">
+    <div class="text-center mb-4">
+        <h2 id="about-heading" class="h3">About My Garage</h2>
+        <p class="text-body-secondary mx-auto mb-0 mg-narrow">Everything you want to remember about the cars you own, kept private and easy to find.</p>
+    </div>
+
+    <ul class="list-unstyled row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-4 mb-0">
+        @foreach (var feature in Features)
+        {
+            <li class="col" data-testid="feature">
+                <div class="d-flex gap-3">
+                    <span class="mg-feature-icon flex-shrink-0 d-inline-flex align-items-center justify-content-center rounded bg-primary-subtle text-primary">
+                        <Icon Name="feature.Icon" Size="22" />
+                    </span>
+                    <div>
+                        <h3 class="h6 mb-1">@feature.Title</h3>
+                        <p class="small text-body-secondary mb-0">@feature.Description</p>
+                    </div>
+                </div>
+            </li>
+        }
+    </ul>
+</section>
 
 @code {
+    private sealed record Feature(IconName Icon, string Title, string Description);
+
+    private static readonly Feature[] Features =
+    [
+        new(IconName.Speedometer, "Know every vehicle", "Keep the year, make, model, VIN, specifications, and mileage for each vehicle together."),
+        new(IconName.Image, "Pictures that show it off", "Upload photos, pick a main picture for the garage card, and add captions."),
+        new(IconName.FileText, "A journal for each vehicle", "Write dated notes about trips, repairs, and anything else worth remembering."),
+        new(IconName.Wrench, "Maintenance you can trust", "Record each service with its line items, so you always know what was done and what it cost."),
+        new(IconName.Calendar, "Dates that matter", "Track when you bought or leased a vehicle, when a lease ends, and when it was last serviced."),
+        new(IconName.Sliders, "Make it yours", "Choose the vehicle types, fuel types, transmissions, and drivetrains you see in your forms."),
+        new(IconName.PersonCircle, "Private by design", "Your vehicles belong to your account, and no one else can see or change them."),
+        new(IconName.QuestionCircle, "Help when you need it", "The FAQ answers common questions about adding vehicles, pictures, and service records.")
+    ];
+
     private string displayName = ClaimsPrincipalExtensions.NeutralName;
     private bool hasNoVehicles;
+    private int? vehicleCount;
 
     protected override async Task OnInitializedAsync()
     {
@@ -33,7 +125,8 @@
         try
         {
             var result = await Api.ListAsync(VehicleListCriteria.None, 1);
-            hasNoVehicles = result.Value?.TotalCount == 0;
+            vehicleCount = result.Value?.TotalCount;
+            hasNoVehicles = vehicleCount == 0;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
