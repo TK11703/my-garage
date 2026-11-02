@@ -1,0 +1,314 @@
+openapi: 3.1.0
+info:
+  title: My Garage API - Expanded vehicle details and lookups
+  version: 1.2.0
+  description: |
+    Changes to the vehicles API (specs/002-vehicle-tracking/contracts/api.openapi.yaml) and the new lookups API. Only changed or new operations and schemas are listed; everything else from 1.1.0 is unchanged. The owner is always derived from the validated access token; no request carries an owner or user id. A vehicle or lookup item that does not exist or belongs to another user is reported as 404.
+servers:
+  - url: https+http://api
+security:
+  - bearer: [access_as_user]
+paths:
+  /api/lookups:
+    get:
+      operationId: getLookups
+      summary: The caller's four lookups (vehicle types, fuel types, transmissions, drivetrains), defaults first in their defined order, then the caller's own items alphabetically.
+      tags: [Lookups]
+      parameters:
+        - name: includeHidden
+          in: query
+          required: false
+          description: When false (default) items the caller has hidden are omitted; when true every item is returned with `isHidden` set accordingly.
+          schema: { type: boolean, default: false }
+      responses:
+        "200":
+          description: The lookups.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LookupsDto" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+  /api/lookups/{kind}:
+    parameters:
+      - { $ref: "#/components/parameters/Kind" }
+    post:
+      operationId: addLookupItem
+      summary: Add a custom item to one of the caller's lookups (max 50 per lookup; unique ignoring case against defaults and the caller's own items).
+      tags: [Lookups]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AddLookupItemRequest" }
+      responses:
+        "201":
+          description: Created; shown (not hidden).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LookupItemDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409":
+          description: An item with that name already exists (the problem detail says whether it is hidden) or the limit of custom items is reached.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+  /api/lookups/{kind}/{itemId}/visibility:
+    parameters:
+      - { $ref: "#/components/parameters/Kind" }
+      - { name: itemId, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      operationId: setLookupItemVisibility
+      summary: Hide or show a default or custom item for the caller only. Idempotent. Does not change any vehicle that uses the item.
+      tags: [Lookups]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SetLookupVisibilityRequest" }
+      responses:
+        "200":
+          description: The item with its resulting visibility.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LookupItemDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/vehicles:
+    get:
+      operationId: listVehicles
+      summary: Changed - additional search fields and filters. All supplied criteria are ANDed.
+      tags: [Vehicles]
+      parameters:
+        - { name: q, in: query, required: false, description: "Case-insensitive contains match (literal text) over nickname, make, model, trim, color, year, VIN, engine, and tag names. Whitespace-only is ignored.", schema: { type: string, maxLength: 100 } }
+        - { name: minYear, in: query, required: false, description: Inclusive; must not exceed maxYear. Vehicles without a year never match a year bound., schema: { type: integer, minimum: 1900, maximum: 2200 } }
+        - { name: maxYear, in: query, required: false, description: Inclusive., schema: { type: integer, minimum: 1900, maximum: 2200 } }
+        - { name: vehicleTypeId, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: fuelTypeId, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: transmissionId, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: drivetrainId, in: query, required: false, schema: { type: string, format: uuid } }
+      description: Existing parameters make, color, doors, tag, minMileage, maxMileage, page, and pageSize are unchanged. Responses and error codes are unchanged except that each summary now includes `year`.
+      responses:
+        "200":
+          description: A page of vehicle summaries.
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+    post:
+      operationId: createVehicle
+      summary: Changed - accepts the expanded VehicleRequest; `year` is required; lookup ids must be available to the caller.
+      tags: [Vehicles]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VehicleRequest" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VehicleDetailDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+  /api/vehicles/filter-options:
+    get:
+      operationId: getVehicleFilterOptions
+      summary: Changed - also returns the lookup items used by the caller's vehicles (including hidden items).
+      tags: [Vehicles]
+      responses:
+        "200":
+          description: Filter choices.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VehicleFilterOptionsDto" }
+  /api/vehicles/{vehicleId}:
+    parameters:
+      - { name: vehicleId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getVehicle
+      summary: Changed - returns the expanded VehicleDetailDto.
+      tags: [Vehicles]
+      responses:
+        "200":
+          description: Vehicle.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VehicleDetailDto" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      operationId: updateVehicle
+      summary: Changed - replaces all editable details using the expanded VehicleRequest; `year` is required even for vehicles that had none. A hidden lookup item is accepted only if it is already the vehicle's value for that field.
+      tags: [Vehicles]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VehicleRequest" }
+      responses:
+        "200":
+          description: Updated vehicle.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VehicleDetailDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "404": { $ref: "#/components/responses/Problem" }
+components:
+  securitySchemes:
+    bearer:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize
+          tokenUrl: https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token
+          scopes:
+            access_as_user: Access My Garage on behalf of the user
+  parameters:
+    Kind:
+      name: kind
+      in: path
+      required: true
+      description: Which lookup. Any other value is answered with 404.
+      schema: { type: string, enum: [vehicle-types, fuel-types, transmissions, drivetrains] }
+  responses:
+    Problem:
+      description: RFC 9457 problem details.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ProblemDetails" }
+    ValidationProblem:
+      description: RFC 9457 validation problem; `errors` is keyed by property name (for example `Vin`, `Year`, `LeaseEndsOn`, `FuelTypeId`, `Name`).
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ValidationProblemDetails" }
+  schemas:
+    ProblemDetails:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+    ValidationProblemDetails:
+      allOf:
+        - { $ref: "#/components/schemas/ProblemDetails" }
+        - type: object
+          properties:
+            errors:
+              type: object
+              additionalProperties: { type: array, items: { type: string } }
+    LookupItemDto:
+      type: object
+      required: [id, name, isDefault, isHidden]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, maxLength: 30 }
+        isDefault: { type: boolean, description: True for items provided by the application. }
+        isHidden: { type: boolean, description: True when the caller has hidden the item. }
+    LookupsDto:
+      type: object
+      required: [vehicleTypes, fuelTypes, transmissions, drivetrains]
+      properties:
+        vehicleTypes: { type: array, items: { $ref: "#/components/schemas/LookupItemDto" } }
+        fuelTypes: { type: array, items: { $ref: "#/components/schemas/LookupItemDto" } }
+        transmissions: { type: array, items: { $ref: "#/components/schemas/LookupItemDto" } }
+        drivetrains: { type: array, items: { $ref: "#/components/schemas/LookupItemDto" } }
+    LookupValueDto:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+    AddLookupItemRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 30, description: Trimmed; no control characters. }
+    SetLookupVisibilityRequest:
+      type: object
+      required: [isHidden]
+      properties:
+        isHidden: { type: boolean }
+    OwnershipType:
+      type: string
+      enum: [Purchased, Leased]
+    VehicleRequest:
+      type: object
+      required: [nickname, year, make, model]
+      properties:
+        nickname: { type: string, minLength: 1, maxLength: 100, description: Shown as "Name". }
+        vin: { type: [string, "null"], pattern: "^[A-HJ-NPR-Z0-9]{17}$", description: Trimmed and upper-cased before validation. }
+        make: { type: string, minLength: 1, maxLength: 50 }
+        model: { type: string, minLength: 1, maxLength: 50 }
+        trim: { type: [string, "null"], maxLength: 50 }
+        year: { type: integer, minimum: 1900, description: Maximum is next calendar year (UTC). }
+        vehicleTypeId: { type: [string, "null"], format: uuid }
+        ownership: { oneOf: [{ $ref: "#/components/schemas/OwnershipType" }, { type: "null" }] }
+        purchasedOn: { type: [string, "null"], format: date, description: Not in the future. }
+        leaseEndsOn: { type: [string, "null"], format: date, description: Only when ownership is Leased; not before purchasedOn. }
+        engine: { type: [string, "null"], maxLength: 100 }
+        horsepower: { type: [integer, "null"], minimum: 1, maximum: 3000 }
+        fuelTypeId: { type: [string, "null"], format: uuid }
+        transmissionId: { type: [string, "null"], format: uuid }
+        mileage: { type: [integer, "null"], minimum: 0, maximum: 9999999 }
+        color: { type: [string, "null"], maxLength: 30 }
+        seats: { type: [integer, "null"], minimum: 1, maximum: 20 }
+        doors: { type: [integer, "null"], minimum: 1, maximum: 6 }
+        drivetrainId: { type: [string, "null"], format: uuid }
+        wheelSize: { type: [number, "null"], minimum: 10, maximum: 30, multipleOf: 0.1, description: Inches. }
+        tireSize: { type: [string, "null"], maxLength: 20 }
+    VehicleDetailDto:
+      type: object
+      description: The same fields as VehicleRequest, except lookup references are returned as LookupValueDto (id and name), plus the unchanged id, tags, images, and audit timestamps. `year` may be null for vehicles saved before this feature.
+      required: [id, nickname, make, model, tags, images, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        nickname: { type: string }
+        vin: { type: [string, "null"] }
+        make: { type: string }
+        model: { type: string }
+        trim: { type: [string, "null"] }
+        year: { type: [integer, "null"] }
+        vehicleType: { oneOf: [{ $ref: "#/components/schemas/LookupValueDto" }, { type: "null" }] }
+        ownership: { oneOf: [{ $ref: "#/components/schemas/OwnershipType" }, { type: "null" }] }
+        purchasedOn: { type: [string, "null"], format: date }
+        leaseEndsOn: { type: [string, "null"], format: date }
+        engine: { type: [string, "null"] }
+        horsepower: { type: [integer, "null"] }
+        fuelType: { oneOf: [{ $ref: "#/components/schemas/LookupValueDto" }, { type: "null" }] }
+        transmission: { oneOf: [{ $ref: "#/components/schemas/LookupValueDto" }, { type: "null" }] }
+        mileage: { type: [integer, "null"] }
+        color: { type: [string, "null"] }
+        seats: { type: [integer, "null"] }
+        doors: { type: [integer, "null"] }
+        drivetrain: { oneOf: [{ $ref: "#/components/schemas/LookupValueDto" }, { type: "null" }] }
+        wheelSize: { type: [number, "null"] }
+        tireSize: { type: [string, "null"] }
+        tags: { type: array, items: { type: object } }
+        images: { type: array, items: { type: object } }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    VehicleSummaryDto:
+      type: object
+      required: [id, nickname, make, model]
+      properties:
+        id: { type: string, format: uuid }
+        nickname: { type: string }
+        year: { type: [integer, "null"], description: New. }
+        make: { type: string }
+        model: { type: string }
+        mileage: { type: [integer, "null"] }
+        mainImageId: { type: [string, "null"], format: uuid }
+    VehicleFilterOptionsDto:
+      type: object
+      required: [makes, colors, tags, vehicleTypes, fuelTypes, transmissions, drivetrains]
+      properties:
+        makes: { type: array, items: { type: string } }
+        colors: { type: array, items: { type: string } }
+        tags: { type: array, items: { type: string } }
+        vehicleTypes: { type: array, items: { $ref: "#/components/schemas/LookupValueDto" }, description: New; only items used by the caller's vehicles. }
+        fuelTypes: { type: array, items: { $ref: "#/components/schemas/LookupValueDto" } }
+        transmissions: { type: array, items: { $ref: "#/components/schemas/LookupValueDto" } }
+        drivetrains: { type: array, items: { $ref: "#/components/schemas/LookupValueDto" } }
