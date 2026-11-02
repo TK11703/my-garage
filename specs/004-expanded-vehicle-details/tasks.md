@@ -222,6 +222,27 @@ description: "Task list for Expanded Vehicle Details and Lookup Preferences"
 
 ---
 
+## Phase 10: Amendment 1 (2026-11-02) - vehicle name, form layout, media, shared features
+
+**Purpose**: The six follow-up changes recorded in `spec.md` (Amendment 1, FR-025 to FR-031).
+
+- [X] T079 Add migration `0007_drop_vehicle_nickname.sql` (drop `nickname` and `ix_vehicles_owner_nickname`, add `ix_vehicles_owner_name`); remove `Nickname` from the vehicle SQL, records, mapper, validator, request, and DTOs; add `VehicleName.Compose` and a computed `Name` on `VehicleDetailDto` and `VehicleSummaryDto`; order the list by make, model, year, id and let search match "year make model"
+- [X] T080 Add migration `0008_create_features.sql` (shared `features` catalog, `vehicle_tags` becomes the link table, backfill from existing tags); update the Tags SQL, `VehicleTagRepository.AddAsync` (find-or-create the feature) and add `SuggestAsync`; add `GET /api/features?query=` and the Web proxy `GET /features/suggest`
+- [X] T081 Reorder `VehicleBasicFields.razor`, `VehicleSpecificationFields.razor`, `VehicleFormFields`, and the detail view to the new field order; hide Date Lease Ends unless Leased (server-rendered `hidden`, `lease-toggle.js`) and send no lease end for a vehicle that is not leased
+- [X] T082 Rebuild the Media tab (`VehicleGallerySection.razor`): `mg-dropzone` upload form with `dropzone.js`, "Uploaded Images (N)" and square tiles, `CloudUpload` icon, styles in `app.css`
+- [X] T083 Rebuild the Description tab: Features (`VehicleTagsSection.razor`, `VehicleTagsView.razor`) as a list group with remove buttons and a datalist-backed add box (`feature-suggest.js`), laid out beside the Journal in two `col-lg-6` columns on the edit and detail pages
+- [X] T084 Remove "My vehicles" from the account menu in `AppNavbar.razor`; update the FAQ answer for adding a vehicle
+- [X] T085 [P] Fix and extend `tests/MyGarage.Database.Tests` (migrations 0007 and 0008 including the backfill, shared-feature reuse, `SuggestAsync`, search by "year make model", new ordering)
+- [X] T086 [P] Fix and extend `tests/MyGarage.Api.Tests` (no nickname, computed `Name`, ordering, feature sharing, `GET /api/features`)
+- [X] T087 [P] Fix and extend `tests/MyGarage.Web.Tests` (new field order and groupings, lease end visibility, dropzone, features list group, half-width Description columns, account menu, `/features/suggest`, script conformance)
+- [X] T088 [P] Update `docs/ui-standard.md`, `data-model.md`, and `contracts/web-routes.md`
+- [X] T089 Run `dotnet build MyGarage.slnx` (zero warnings) and `dotnet test MyGarage.slnx` with Docker running
+- [X] T090 Amendment 2: move the date and lease end onto the ownership row, move Mileage to Basic Info, make the date and mileage labels follow the ownership choice (`VehicleFormat.DateLabel` / `MileageLabel`, `lease-toggle.js`), restructure the Description tab (Add a feature then Included Features; Recent Journal Entries timeline), update tests and docs; spec `FR-032` to `FR-034`
+- [X] T092 Show fuel type, transmission, and purchase/lease year on garage cards (list query, summary DTO, `VehicleCard.razor`, tests, docs); spec `FR-035`
+- [X] T091 Manual pass in the browser (after signing in): add and edit a vehicle (field order, lease end toggling, no Name), upload by click and by drag and drop, add a feature that another vehicle already uses and a new one, remove a feature, confirm the account menu has no "My vehicles"; confirm migrations 0007 and 0008 apply once on the existing local database and the existing vehicle and its tags survive
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

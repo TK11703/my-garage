@@ -10,6 +10,8 @@
 
 **Refinement (2026-11-01)**: "The application will need to incorporate various defaults for lookup fields. The application will provide the defaults to each user, but it will permit the user to show/hide/add items in a look up. In the user dropdown menu, we will have a preferences menu and page. On that user preferences page, we will show the account details and a tabbed section where the user can adjust the look up fields. These are the look up fields to create: 1. Vehicle Types: Sedan, SUV, coupe, Hatchback, Convertible, Truck, Van, Wagon, etc. 2. Fuel Types: Gasoline, Diesel, Electric, Hybrid. 3. Vehicle Transmission: Automatic, Manual. 4. Drivetrain: FWD, RWD, AWD, 4WD. The vehicle data fields are going to be listed below, and will need to be placed in the associated tabs: 1. Basic Info: Name, VIN, Make, Model, Trim, Year, Vehicle Type, Purchased or Leased, Date Purchased, Date Lease Ends. 2. Specifications: engine, Horsepower, Fuel Type, Transmission, Mileage, Color, Seats, Doors, Drivetrain, Wheel size, Tire Size."
 
+**Amendment 1 (2026-11-02)**: The user asked for six changes after first use: drop the Name field (vehicles are named "[Year] [Make] [Model]"), reorder the Basic Info fields with the lease end shown only for leased vehicles, a three-column Specifications layout, a click-or-drop picture upload area, a half-and-half Description tab with shared, auto-completed Features, and no "My vehicles" item in the account menu. See **Amendment 1** at the end of this document; where it conflicts with the text above (Name as a required field, the Basic Info and Specifications field order, `My vehicles` in the account menu, per-vehicle tags), the amendment wins.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Record fuller vehicle details on the Basic Info and Specifications tabs (Priority: P1)
@@ -205,3 +207,45 @@ A user's VIN, vehicle details, and lookup customizations are visible and changea
 - Filters allow one value each for Vehicle Type, Fuel Type, Transmission, and Drivetrain plus a year range; sorting options, bulk edits, and importing vehicles are out of scope.
 - Mobile browsers are supported in the same way as desktop browsers; native mobile apps are out of scope.
 - Editing uses last-save-wins; no concurrent-edit conflict resolution is required for v1.
+
+## Amendment 1 (2026-11-02)
+
+### Changes requested
+
+1. **No Name field.** A vehicle has no stored name. It is shown as "[Year] [Make] [Model]" everywhere it appears (cards, page title, breadcrumb, delete confirmation, picture descriptions); the year is left out for a vehicle saved before years were collected. Required vehicle fields are therefore Year, Make, and Model.
+2. **Basic Info order.** Year, Make, Model; Trim, VIN, Vehicle Type; Purchased or Leased on its own row; Date Purchased or Leased, then Date Lease Ends. Date Lease Ends is shown only while Purchased or Leased is "Leased" and hidden otherwise (a small script toggles it as the choice changes; the server renders the same state, and a lease end date is never saved for a vehicle that is not leased).
+3. **Specifications layout.** Row 1: Engine, Horsepower, Drivetrain (a third of the row each). Row 2: Color, Fuel Type, Transmission (a third each). Row 3: Seats, Doors, Wheel Size, Tire Size in one row. (Mileage first followed on a row of its own; see Amendment 2.)
+4. **Media tab.** A click-to-upload or drag-and-drop area for pictures, with "Uploaded Images (N)" and the pictures below it as square tiles, each with a delete button.
+5. **Description tab.** Features take half the content area and the Journal the other half. Features are a shared list: the add box suggests features already used on other vehicles (by any user) as the user types, choosing one adds it, and typing a name nobody has used creates a new feature that everyone can then pick. A vehicle's features are shown as a list group, each with an X button to remove it from that vehicle (the feature itself stays available to others while any vehicle uses it).
+6. **Account menu.** The "My vehicles" item is removed; the menu shows the display name, Preferences, and Sign out.
+
+### Requirements
+
+- **FR-025**: The system MUST NOT store or ask for a vehicle name. Every place that shows a vehicle MUST show "[Year] [Make] [Model]" (without the year when it is unknown). The garage text search MUST also match that combined text (for example "2012 jeep"). The garage list MUST be ordered by make, then model, then year, then a stable tiebreaker.
+- **FR-026**: Existing vehicles MUST keep every other stored value when the stored name is retired; no vehicle is hidden or blocked because it once had a name.
+- **FR-027**: The Basic Info and Specifications fields MUST appear in the orders and groupings in changes 2 and 3 on the add, edit, and detail views. "Date Purchased" is labeled "Date purchased or leased" and applies to both ownership types.
+- **FR-028**: Date Lease Ends MUST be visible only while Purchased or Leased is "Leased"; the add and edit pages MUST also render the correct state without a script (after a reload or a rejected save). Hiding it MUST NOT lose the rest of the form.
+- **FR-029**: The Media tab MUST let the user choose pictures by clicking the area or dropping files on it, and MUST still allow uploading without a script. Existing rules are unchanged (JPEG, PNG, or WebP, up to 5 MB each, at most 10 per vehicle, private to the owner). Several files dropped at once are uploaded one after another.
+- **FR-030**: Features MUST be shared across users: one feature per name (ignoring letter case, 1 to 30 characters), reused by every vehicle that adds it. Suggestions MUST list only feature names that at least one vehicle currently uses, most-used first, at most 10, and MUST never reveal which user or vehicle uses a feature. A vehicle MUST NOT have the same feature twice and MUST NOT have more than 20 features. Removing a feature from a vehicle MUST affect only that vehicle. Existing per-vehicle tags MUST become shared features without losing any vehicle's tags.
+- **FR-031**: Only the owner of a vehicle MAY add or remove its features; ownership MUST come from the verified sign-in. Feature names are visible to every signed-in user once a vehicle uses them, so the add box MUST say new features are shared with everyone.
+
+### Notes
+
+- Shared feature names are the only data in this feature visible across users. They are free text, so users are told when adding one that it is shared; no vehicle, owner, or date is exposed with them.
+- The code still calls features "tags" internally (`vehicle_tags`, `/api/vehicles/{id}/tags`); the user interface says "Features".
+
+## Amendment 2 (2026-11-02)
+
+### Changes requested
+
+1. **Ownership row.** Purchased or Leased, the purchase/lease date, and Date Lease Ends share one row on Basic Info (Date Lease Ends still only while Leased).
+2. **Mileage moves to Basic Info**, on its own row under the ownership row, and is no longer on Specifications.
+3. **Ownership-aware labels.** The date is labeled "Date Purchased" or "Date Leased" and the mileage "Mileage on Purchase Date" or "Mileage on Lease Date" once an ownership is chosen; while it is not set they read "Date purchased or leased" and "Mileage on Date purchased or leased".
+4. **Description tab structure and journal timeline.** The Features column shows "Add a feature" first, then "Included Features". The Journal column shows its new-note form, then "Recent Journal Entries" as a vertical timeline (marker, timestamp, then category and text), newest first.
+
+### Requirements
+
+- **FR-032**: Basic Info MUST list, in order: Year, Make, Model; Trim, VIN, Vehicle Type; Purchased or Leased, the date, Date Lease Ends (on one row); Mileage. Specifications MUST NOT include Mileage. The detail page MUST follow the same placement. Mileage keeps its existing validation (whole number 0 to 9,999,999) and its existing meaning for the garage card, search, and filters.
+- **FR-033**: The date and mileage labels MUST follow the Purchased or Leased choice as in change 3, in the form (immediately, as the choice changes, and when the page is rendered) and on the detail page.
+- **FR-034**: The Description tab MUST present Features as "Add a feature" followed by "Included Features", and the Journal as the new-note form followed by "Recent Journal Entries". Journal entries MUST be shown newest first as a timeline with the entry time (shown in UTC, with "(edited)" when changed), the category in bold when there is one, and the note text. Owners keep Edit and Delete on each entry.
+- **FR-035**: Garage cards MUST show the vehicle's fuel type and transmission as badges and the year of its purchase or lease date (worded Purchased, Leased, or Acquired by ownership), each only when the vehicle has that value. The year is the year of Date Purchased or Leased, not the model year, which the card title already shows.

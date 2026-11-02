@@ -92,17 +92,17 @@ Existing columns are unchanged (`id`, `owner_id`, `nickname`, `make`, `model`, `
 | `wheel_size` | numeric(3,1) | Inches; `CHECK (wheel_size BETWEEN 10 AND 30)`. |
 | `tire_size` | varchar(20) | Free text. |
 
-Existing index `ix_vehicles_owner_nickname` remains the access path for owner-scoped listing; at tens of rows per owner no further indexes are needed (foreign key columns are not indexed because deleting lookup items never happens in v1).
+Migration `0007` later replaces `ix_vehicles_owner_nickname` with `ix_vehicles_owner_name` (see Amendment 1 below); at tens of rows per owner no further indexes are needed (foreign key columns are not indexed because deleting lookup items never happens in v1).
 
 ### schema_migrations
 
-Unchanged; records `0005_create_lookup_items` and `0006_add_vehicle_details` with checksums.
+Unchanged; records `0005_create_lookup_items`, `0006_add_vehicle_details`, `0007_drop_vehicle_nickname`, and `0008_create_features` with checksums.
 
 ## Data records (`MyGarage.Database`)
 
 - `LookupItemRecord` (id, kind, name, isDefault, isHidden, sortOrder). `LookupKind` maps slugs to stored kind values.
 - `VehicleRecord`: all vehicle columns including the new ones and the four lookup item ids; the read model adds the four item names (via `LEFT JOIN lookup_items`).
-- `VehicleSummaryRecord`: id, nickname, year, make, model, mileage, `MainImageId`.
+- `VehicleSummaryRecord`: id, year, make, model, mileage, `MainImageId` (no nickname after Amendment 1).
 - `VehicleFilterOptionsRecord`: makes, colors, tag names, plus used vehicle types, fuel types, transmissions, drivetrains as `(id, name)` pairs.
 - `VehicleSearchCriteria`: gains `MinYear`, `MaxYear`, `VehicleTypeId`, `FuelTypeId`, `TransmissionId`, `DrivetrainId`.
 
@@ -141,3 +141,21 @@ See research R6 for the consolidated limits. Implemented as FluentValidation val
 - **Custom lookup item**: created (owner-scoped, limits and uniqueness enforced) -> hidden/shown any number of times. Not renamed or deleted in v1, so no vehicle can reference a missing item.
 - **Vehicle**: created with a year -> edited any number of times (year stays required; a pre-existing vehicle with no year acquires one on its next successful edit) -> deleted (existing cascade removes tags, notes, images). A vehicle's lookup references survive their items being hidden.
 - **Ownership fields**: `leased` allows a lease end date; changing a vehicle to `purchased` (or clearing ownership) requires clearing the lease end date in the same save.
+
+## Amendment 1 (2026-11-02): vehicle name and shared features
+
+### vehicles (`0007_drop_vehicle_nickname.sql`)
+
+Drops `vehicles.nickname` and `ix_vehicles_owner_nickname`; adds `ix_vehicles_owner_name` on `(owner_id, lower(make), lower(model), year, id)`, the access path for the owner-scoped list (ordered by make, model, year, id). `VehicleRecord` and `VehicleSummaryRecord` lose `Nickname`. The DTOs (`VehicleDetailDto`, `VehicleSummaryDto`) gain a computed, non-serialized `Name` from `VehicleName.Compose(year, make, model)`; `VehicleRequest` loses `Nickname`.
+
+### features (`0008_create_features.sql`)
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| `id` | uuid | no | PK. |
+| `name` | varchar(30) | no | Canonical casing of the first creator. |
+| `name_key` | text | no | `GENERATED ALWAYS AS (lower(name)) STORED`; unique index `ux_features_name`. |
+| `created_at` | timestamptz | no | UTC. |
+| `created_by` | text | no | Owner who first created it; never returned by any endpoint. |
+
+`vehicle_tags` becomes the vehicle-to-feature link: `(id, vehicle_id, feature_id NOT NULL FK -> features ON DELETE RESTRICT, created_at)` with `UNIQUE (vehicle_id, feature_id)` and `ix_vehicle_tags_feature`; its `name` and `name_key` columns are dropped (`name_key` first, because it is generated from `name`). The migration backfills one feature per `lower(name)` from the existing tags (earliest casing and creator) and links every existing tag. Suggestions (`SuggestFeatures.sql`) return only features with at least one link, most used first.

@@ -19,7 +19,7 @@ Each tab shows a list (one row per item, Bootstrap list group, not a table) with
 
 ## Changed: account menu
 
-`AppNavbar` account dropdown becomes: display name (text), "My vehicles", "Preferences" (`/preferences`), divider, "Sign out". The navbar search, help menu, and notifications are unchanged.
+`AppNavbar` account dropdown becomes: display name (text), "Preferences" (`/preferences`), divider, "Sign out" (the "My vehicles" item was removed by Amendment 1; the brand link and vehicle search reach the garage). The navbar search, help menu, and notifications are unchanged.
 
 ## Changed: vehicle pages
 
@@ -34,10 +34,10 @@ Each tab shows a list (one row per item, Bootstrap list group, not a table) with
 
 | Tab | Fields in order |
 |---|---|
-| Basic Info | Name*, VIN, Make*, Model*, Trim, Year*, Vehicle Type (select), Purchased or Leased (select: not set, Purchased, Leased), Date Purchased (date), Date Lease Ends (date; help text "Leased vehicles only") |
-| Specifications | Engine, Horsepower, Fuel Type (select), Transmission (select), Mileage (mi), Color, Seats, Doors, Drivetrain (select), Wheel size (in), Tire size |
-| Media | Unchanged (picture gallery) |
-| Description | Unchanged (tags, journal) |
+| Basic Info | Rows: Year*, Make*, Model*; Trim, VIN, Vehicle Type (select); Purchased or Leased (select: not set, Purchased, Leased), Date Purchased / Date Leased (date; label follows the select), Date Lease Ends (date, shown only while Leased) on one row; Mileage (mi; "Mileage on Purchase Date" / "Mileage on Lease Date") |
+| Specifications | Rows: Engine, Horsepower, Drivetrain (select); Color, Fuel Type (select), Transmission (select); Seats, Doors, Wheel size (in), Tire size |
+| Media | Click-or-drop upload area, then "Uploaded Images (N)" tiles (Amendment 1) |
+| Description | Two equal columns: Features ("Add a feature", then "Included Features"; shared, auto-completed) and Journal (new note, then "Recent Journal Entries" timeline) (Amendments 1 and 2) |
 
 `*` required. Each select starts with a "Not set" option. Selected values are posted as lookup item ids.
 
@@ -48,3 +48,10 @@ The `?tab=` values for vehicles stay `basic`, `specifications`, `media`, `descri
 ## Accessibility and presentation
 
 Bootstrap 5.3 components only; labels on every input and select; validation messages are linked with `aria-describedby`; the Hide/Show buttons have names such as "Hide Sedan"; user-provided text (item names, vehicle values) is rendered encoded (no `MarkupString`); icon-only controls have accessible names; animations respect `prefers-reduced-motion`.
+
+## Amendment 1 (2026-11-02)
+
+- There is no Name field and no `#nickname` input; the page title, breadcrumb, and delete text use "[Year] [Make] [Model]".
+- `GET /features/suggest?query=text` (signed-in only, `Cache-Control: no-store`): returns a JSON array of at most 10 shared feature names containing the text, from API `GET /api/features`; a blank query or an API failure returns `[]`.
+- Picture upload: `POST /vehicles/{id}/images` is unchanged (one `file` per post); the page script posts several dropped files one after another and then shows the last result. The caption input was removed from the upload form.
+- Three small module scripts (`wwwroot/js/lease-toggle.js`, `dropzone.js`, `feature-suggest.js`) are loaded from `App.razor`; each works through delegated events, so enhanced navigation needs no re-initialization, and every behavior still works without them (server-rendered lease state, an Upload button, typing a feature and pressing Add).
