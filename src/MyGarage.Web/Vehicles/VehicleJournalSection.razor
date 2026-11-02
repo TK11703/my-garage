@@ -1,55 +1,59 @@
 @inject VehiclesApiClient Api
 @inject NavigationManager Navigation
 
-<section aria-labelledby="journal-heading">
-    <h2 id="journal-heading" class="h5">Journal</h2>
-
-    <EditForm EditContext="addContext" FormName="add-note" OnValidSubmit="AddAsync" data-testid="add-note" class="vstack gap-2 mb-4">
-        <div>
-            <div class="form-floating">
-                <InputTextArea id="note-body" class="form-control" maxlength="4000" placeholder=" " @bind-Value="AddModel!.Body" />
-                <label for="note-body">New note</label>
+<div class="vstack gap-4">
+    <EditForm EditContext="addContext" FormName="add-note" OnValidSubmit="AddAsync" data-testid="add-note" class="card border-0 shadow-sm" aria-labelledby="journal-heading">
+        <h2 id="journal-heading" class="card-header h6 mb-0">Journal</h2>
+        <div class="card-body vstack gap-2">
+            <div>
+                <div class="form-floating">
+                    <InputTextArea id="note-body" class="form-control" maxlength="4000" placeholder=" " @bind-Value="AddModel!.Body" />
+                    <label for="note-body">New note</label>
+                </div>
+                <ValidationMessage For="@(() => AddModel.Body)" id="note-body-error" class="invalid-feedback d-block" />
             </div>
-            <ValidationMessage For="@(() => AddModel.Body)" id="note-body-error" class="invalid-feedback d-block" />
-        </div>
-        <div class="col-sm-8 col-md-6">
-            <div class="form-floating">
-                <InputText id="note-category" class="form-control" maxlength="40" placeholder=" " @bind-Value="AddModel.Category" />
-                <label for="note-category">Category (optional)</label>
+            <div class="col-sm-8 col-md-6">
+                <div class="form-floating">
+                    <InputText id="note-category" class="form-control" maxlength="40" placeholder=" " @bind-Value="AddModel.Category" />
+                    <label for="note-category">Category (optional)</label>
+                </div>
+                <ValidationMessage For="@(() => AddModel.Category)" id="note-category-error" class="invalid-feedback d-block" />
             </div>
-            <ValidationMessage For="@(() => AddModel.Category)" id="note-category-error" class="invalid-feedback d-block" />
         </div>
-        <div>
+        <div class="card-footer">
             <button type="submit" class="btn btn-outline-primary">Add note</button>
         </div>
     </EditForm>
 
-    <h3 id="recent-entries-heading" class="h6 fw-semibold">Recent Journal Entries</h3>
-
-    @if (failure is not null)
-    {
-        <ApiFailureAlert Failure="failure.Value" ReturnUrl="@($"/vehicles/{VehicleId}")"
-                         NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
-    }
-    else if (notes is not null)
-    {
-        @if (notes.TotalCount == 0)
-        {
-            <EmptyState Compact="true" Message="No notes yet. Write the first entry in this vehicle's journal." />
-        }
-        else
-        {
-            <ul class="mg-timeline" aria-labelledby="recent-entries-heading">
-                @foreach (var note in notes.Items)
+    <section class="card border-0 shadow-sm" aria-labelledby="recent-entries-heading">
+        <h2 id="recent-entries-heading" class="card-header h6 mb-0">Recent Journal Entries</h2>
+        <div class="card-body">
+            @if (failure is not null)
+            {
+                <ApiFailureAlert Failure="failure.Value" ReturnUrl="@($"/vehicles/{VehicleId}")"
+                                 NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+            }
+            else if (notes is not null)
+            {
+                @if (notes.TotalCount == 0)
                 {
-                    <JournalNoteItem @key="note.Id" VehicleId="VehicleId" Note="note" ReturnHref="@ReturnHref(notes.Page)" />
+                    <EmptyState Compact="true" Message="No notes yet. Write the first entry in this vehicle's journal." />
                 }
-            </ul>
+                else
+                {
+                    <ul class="mg-timeline" aria-labelledby="recent-entries-heading">
+                        @foreach (var note in notes.Items)
+                        {
+                            <JournalNoteItem @key="note.Id" VehicleId="VehicleId" Note="note" ReturnHref="@ReturnHref(notes.Page)" />
+                        }
+                    </ul>
 
-            <Pager Page="notes.Page" TotalPages="notes.TotalPages" HrefFor="@(p => ReturnHref(p))" />
-        }
-    }
-</section>
+                    <Pager Page="notes.Page" TotalPages="notes.TotalPages" HrefFor="@(p => ReturnHref(p))" />
+                }
+            }
+        </div>
+    </section>
+</div>
 
 @code {
     private PagedResultDto<JournalNoteDto>? notes;

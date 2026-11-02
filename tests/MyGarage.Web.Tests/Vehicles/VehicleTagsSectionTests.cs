@@ -38,13 +38,17 @@ public class VehicleTagsSectionTests : VehicleTestContext
 
         var cut = RenderSection(Tag("sunroof"));
 
-        var section = cut.Find("section[aria-labelledby='tags-heading']");
-        Assert.Equal(["H2", "FORM", "DIV", "H3", "UL"], section.Children.Select(child => child.TagName));
-        Assert.Equal("tag-help", section.Children[2].Id);
-        Assert.Equal("add-tag", section.Children[1].GetAttribute("data-testid"));
-        Assert.Equal("Included Features", section.Children[3].TextContent.Trim());
-        Assert.Equal("included-features-heading", section.Children[3].Id);
-        Assert.Equal("included-features-heading", section.Children[4].GetAttribute("aria-labelledby"));
+        var section = cut.Find("section.card[aria-labelledby='tags-heading']");
+        Assert.Equal(["H2", "DIV"], section.Children.Select(child => child.TagName));
+        Assert.Contains("card-header", section.Children[0].ClassList);
+        var body = section.Children[1];
+        Assert.Contains("card-body", body.ClassList);
+        Assert.Equal(["FORM", "DIV", "H3", "UL"], body.Children.Select(child => child.TagName));
+        Assert.Equal("tag-help", body.Children[1].Id);
+        Assert.Equal("add-tag", body.Children[0].GetAttribute("data-testid"));
+        Assert.Equal("Included Features", body.Children[2].TextContent.Trim());
+        Assert.Equal("included-features-heading", body.Children[2].Id);
+        Assert.Equal("included-features-heading", body.Children[3].GetAttribute("aria-labelledby"));
     }
 
     [Fact]
@@ -54,7 +58,7 @@ public class VehicleTagsSectionTests : VehicleTestContext
 
         var cut = RenderSection();
 
-        var section = cut.Find("section[aria-labelledby='tags-heading']");
+        var section = cut.Find("section[aria-labelledby='tags-heading'] .card-body");
         var children = section.Children.ToList();
         var heading = children.Single(child => child.Id == "included-features-heading");
         Assert.True(children.IndexOf(heading) > children.IndexOf(cut.Find("form[data-testid='add-tag']")));

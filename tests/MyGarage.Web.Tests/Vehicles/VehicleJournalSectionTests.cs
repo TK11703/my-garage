@@ -79,7 +79,7 @@ public class VehicleJournalSectionTests : VehicleTestContext
             Assert.Equal("Older note", notes[1].QuerySelector("span.note-body")!.TextContent.Trim());
             Assert.Null(notes[1].QuerySelector("[data-testid='note-category']"));
             Assert.Equal("2026-01-02 03:04:05 UTC", notes[1].QuerySelector("time.mg-timeline-time")!.TextContent.Trim());
-            Assert.Empty(cut.FindAll(".card"));
+            Assert.Empty(cut.FindAll("li.mg-timeline-item .card"));
         });
     }
 
@@ -118,7 +118,7 @@ public class VehicleJournalSectionTests : VehicleTestContext
     }
 
     [Fact]
-    public void AddFormComesBeforeTheRecentEntriesHeadingAndTheTimeline()
+    public void JournalCardHoldsTheNoteFieldsAndAddNoteFooter_AndRecentEntriesIsItsOwnCard()
     {
         Notes = NotesPage([Note("A note")]);
         RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
@@ -127,18 +127,25 @@ public class VehicleJournalSectionTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            var section = cut.Find("section[aria-labelledby='journal-heading']");
-            Assert.Equal(["H2", "FORM", "H3", "UL"], section.Children.Take(4).Select(child => child.TagName));
-            Assert.Equal("Journal", section.Children[0].TextContent.Trim());
-            Assert.Equal("add-note", section.Children[1].GetAttribute("data-testid"));
-            Assert.Equal("recent-entries-heading", section.Children[2].Id);
-            Assert.Equal("Recent Journal Entries", section.Children[2].TextContent.Trim());
-            Assert.Equal("recent-entries-heading", section.Children[3].GetAttribute("aria-labelledby"));
+            var journal = cut.Find("form.card[aria-labelledby='journal-heading']");
+            Assert.Equal("add-note", journal.GetAttribute("data-testid"));
+            Assert.Equal("Journal", journal.QuerySelector("h2#journal-heading.card-header")!.TextContent.Trim());
+            var body = journal.QuerySelector(".card-body")!;
+            Assert.NotNull(body.QuerySelector("textarea#note-body"));
+            Assert.NotNull(body.QuerySelector("input#note-category"));
+            Assert.Empty(body.QuerySelectorAll("button"));
+            var footer = journal.QuerySelector(".card-footer")!;
+            Assert.Equal("Add note", footer.QuerySelector("button[type='submit']")!.TextContent.Trim());
+
+            var recent = cut.Find("section.card[aria-labelledby='recent-entries-heading']");
+            Assert.Equal("Recent Journal Entries", recent.QuerySelector("h2#recent-entries-heading.card-header")!.TextContent.Trim());
+            Assert.NotNull(recent.QuerySelector(".card-body > ul.mg-timeline[aria-labelledby='recent-entries-heading']"));
+            Assert.Null(recent.Closest("form"));
         });
     }
 
     [Fact]
-    public void NoNotes_PutsTheEmptyStateAfterTheRecentEntriesHeading()
+    public void NoNotes_PutsTheEmptyStateInTheRecentEntriesCardBody()
     {
         RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
 
@@ -146,9 +153,7 @@ public class VehicleJournalSectionTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            var children = cut.Find("section[aria-labelledby='journal-heading']").Children.ToList();
-            var heading = children.Single(child => child.Id == "recent-entries-heading");
-            Assert.Contains("No notes yet", children[children.IndexOf(heading) + 1].TextContent);
+            Assert.Contains("No notes yet", cut.Find("section[aria-labelledby='recent-entries-heading'] .card-body").TextContent);
             Assert.Empty(cut.FindAll("ul.mg-timeline"));
         });
     }

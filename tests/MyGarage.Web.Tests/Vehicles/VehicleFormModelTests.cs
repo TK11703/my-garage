@@ -62,7 +62,7 @@ public class VehicleFormModelTests
     [Fact]
     public void BasicFieldsAreInFormOrder() =>
         Assert.Equal(
-            ["Year", "Make", "Model", "Trim", "Vin", "VehicleTypeId", "Ownership", "PurchasedOn", "LeaseEndsOn", "Mileage"],
+            ["Year", "Make", "Model", "Trim", "Vin", "VehicleTypeId", "Ownership", "PurchasedOn", "LeaseEndsOn", "Mileage", "LatestOdometerReading"],
             VehicleFormFields.BasicFields);
 
     [Fact]

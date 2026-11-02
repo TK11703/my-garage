@@ -1,7 +1,13 @@
 <p class="form-text mb-0">* Required</p>
 <div class="d-flex gap-2">
-    <button type="submit" class="btn btn-primary">@SubmitText</button>
-    <a class="btn btn-outline-secondary" href="@CancelHref">Cancel</a>
+    <button type="submit" class="btn btn-primary @(SubmitIcon is null ? null : "d-inline-flex align-items-center gap-2")" title="@SubmitTitle">
+        @if (SubmitIcon is { } icon)
+        {
+            <Icon Name="icon" />
+        }
+        @SubmitText
+    </button>
+    <a class="btn btn-outline-secondary" href="@CancelHref" title="@CancelTitle">Cancel</a>
 </div>
 
 @code {
@@ -10,4 +16,13 @@
 
     [Parameter, EditorRequired]
     public string CancelHref { get; set; } = default!;
+
+    [Parameter]
+    public IconName? SubmitIcon { get; set; }
+
+    [Parameter]
+    public string? SubmitTitle { get; set; }
+
+    [Parameter]
+    public string? CancelTitle { get; set; }
 }

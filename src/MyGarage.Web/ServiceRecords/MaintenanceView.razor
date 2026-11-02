@@ -1,0 +1,125 @@
+<div class="accordion vstack gap-3" id="maintenance-accordion" data-testid="maintenance-accordion">
+    @* No data-bs-parent on the items, so each one opens and closes on its own. *@
+    <div class="accordion-item border rounded overflow-hidden" data-testid="accordion-service-records">
+        <h2 class="accordion-header">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#maintenance-service-records"
+                    aria-expanded="true" aria-controls="maintenance-service-records">
+                <span class="fw-semibold" data-testid="service-records-count">Service Records@(records is null ? null : $" ({records.TotalCount})")</span>
+                @if (latestServiced is { } latest)
+                {
+                    <span class="ms-3 small text-body-secondary" data-testid="service-records-last">Last Service @ServiceRecordFormat.Date(latest)</span>
+                }
+            </button>
+        </h2>
+        <div id="maintenance-service-records" class="accordion-collapse collapse show">
+            <div class="accordion-body">
+                <div class="d-flex justify-content-end mb-3">
+                    <a class="btn btn-primary d-inline-flex align-items-center gap-2" href="/vehicles/@VehicleId/service-records/new" data-testid="add-service-record">
+                        <Icon Name="IconName.Plus" /> Add service record
+                    </a>
+                </div>
+
+                @if (failure is not null)
+                {
+                    <ApiFailureAlert Failure="failure.Value" ReturnUrl="@TabHref(RecordsPage)"
+                                     NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+                }
+                else if (records is not null)
+                {
+                    @if (records.TotalCount == 0)
+                    {
+                        <EmptyState Compact="true" Message="No service records yet. Add the first record for this vehicle." />
+                    }
+                    else
+                    {
+                        <ul class="list-group" data-testid="service-record-list">
+                            @foreach (var record in records.Items)
+                            {
+                                <li @key="record.Id" class="list-group-item list-group-item-action p-0" data-testid="service-record">
+                                    <a class="d-block text-decoration-none text-reset p-3" href="/vehicles/@VehicleId/service-records/@record.Id">
+                                        <span class="d-flex flex-wrap justify-content-between gap-2">
+                                            <span class="fw-semibold" data-testid="record-date">@ServiceRecordFormat.Date(record.DateServiced)</span>
+                                            <span class="fw-semibold" data-testid="record-total">@ServiceRecordFormat.Money(record.TotalCost)</span>
+                                        </span>
+                                        <span class="d-flex flex-wrap gap-3 small text-body-secondary">
+                                            <span data-testid="record-odometer">@ServiceRecordFormat.Odometer(record.OdometerReading)</span>
+                                            <span data-testid="record-shop">@ServiceRecordFormat.ShopOrNotSet(record.ShopOrPerson)</span>
+                                            <span data-testid="record-line-items">@ServiceRecordFormat.LineItems(record.LineItemCount)</span>
+                                        </span>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+
+                        <Pager Page="records.Page" TotalPages="records.TotalPages" HrefFor="@(p => TabHref(p))" />
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion-item border rounded overflow-hidden" data-testid="accordion-inspections">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#maintenance-inspections"
+                    aria-expanded="false" aria-controls="maintenance-inspections">
+                <span class="fw-semibold">Inspections</span>
+            </button>
+        </h2>
+        <div id="maintenance-inspections" class="accordion-collapse collapse">
+            <div class="accordion-body">
+                <p class="text-body-secondary mb-0">Inspections will be tracked here in a future update.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion-item border rounded overflow-hidden" data-testid="accordion-fuel-data">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#maintenance-fuel-data"
+                    aria-expanded="false" aria-controls="maintenance-fuel-data">
+                <span class="fw-semibold">Fuel Data</span>
+            </button>
+        </h2>
+        <div id="maintenance-fuel-data" class="accordion-collapse collapse">
+            <div class="accordion-body">
+                <p class="text-body-secondary mb-0">Fuel data will be tracked here in a future update.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private PagedResultDto<ServiceRecordSummaryDto>? records;
+    private DateOnly? latestServiced;
+    private GarageApiFailure? failure;
+
+    [Inject]
+    private ServiceRecordsApiClient Api { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    // The page of records to show (1-based).
+    [Parameter]
+    public int RecordsPage { get; set; } = 1;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            var result = await Api.ListAsync(VehicleId, Math.Max(1, RecordsPage));
+            records = result.Value;
+
+            // The newest record is first on page 1, so a later page needs that page too.
+            var firstPage = records is { Page: > 1, TotalCount: > 0 } ? (await Api.ListAsync(VehicleId, 1)).Value : records;
+            latestServiced = firstPage?.Items.Count > 0 ? firstPage.Items[0].DateServiced : null;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    // Page 1 has no page number so the address stays tidy.
+    private string TabHref(int page) =>
+        page <= 1 ? $"/vehicles/{VehicleId}?tab=service-records" : $"/vehicles/{VehicleId}?tab=service-records&recordsPage={page}";
+}

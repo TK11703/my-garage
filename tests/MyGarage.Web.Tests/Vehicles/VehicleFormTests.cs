@@ -80,7 +80,7 @@ public class VehicleFormTests : VehicleTestContext
 
         var ids = cut.Find("#group-basic").QuerySelectorAll("input[id], select[id]").Select(field => field.Id);
         Assert.Equal(
-            ["year", "make", "model", "trim", "vin", "vehicle-type", "ownership", "purchased-on", "lease-ends-on", "mileage"],
+            ["year", "make", "model", "trim", "vin", "vehicle-type", "ownership", "purchased-on", "lease-ends-on", "mileage", "latest-odometer-reading"],
             ids);
     }
 
@@ -104,7 +104,7 @@ public class VehicleFormTests : VehicleTestContext
     }
 
     [Fact]
-    public void BasicInfoFields_AreGroupedIntoRowsOfThreeThreeThreeAndOne()
+    public void BasicInfoFields_AreGroupedIntoRowsOfThreeThreeThreeAndTwo()
     {
         var cut = RenderForm(tabbed: true);
 
@@ -112,7 +112,7 @@ public class VehicleFormTests : VehicleTestContext
             .Select(row => row.QuerySelectorAll("input[id], select[id]").Select(field => field.Id).ToList())
             .ToList();
         Assert.Equal(
-            [["year", "make", "model"], ["trim", "vin", "vehicle-type"], ["ownership", "purchased-on", "lease-ends-on"], ["mileage"]],
+            [["year", "make", "model"], ["trim", "vin", "vehicle-type"], ["ownership", "purchased-on", "lease-ends-on"], ["mileage", "latest-odometer-reading"]],
             rows);
         Assert.All(
             cut.Find("#group-basic").QuerySelectorAll("div.row.g-3 > div"),
@@ -142,7 +142,7 @@ public class VehicleFormTests : VehicleTestContext
         var cut = RenderForm();
 
         var ids = cut.FindAll("form input[id], form select[id]").Select(field => field.Id).ToList();
-        Assert.Equal(20, ids.Count);
+        Assert.Equal(21, ids.Count);
         Assert.Equal(ids.Count, ids.Distinct().Count());
     }
 
@@ -200,12 +200,13 @@ public class VehicleFormTests : VehicleTestContext
     }
 
     [Fact]
-    public void Mileage_SitsOnItsOwnRowOnTheBasicInfoTabAndNotOnSpecifications()
+    public void Mileage_SharesItsRowWithTheLatestOdometerReadingOnTheBasicInfoTabAndIsNotOnSpecifications()
     {
         var cut = RenderForm(tabbed: true);
 
         var row = cut.Find("#group-basic input#mileage").Closest("div.row")!;
-        Assert.Single(row.Children);
+        Assert.Equal(2, row.Children.Length);
+        Assert.Same(row, cut.Find("#group-basic input#latest-odometer-reading").Closest("div.row"));
         Assert.Empty(cut.Find("#group-specifications").QuerySelectorAll("#mileage, label[for='mileage']"));
     }
 

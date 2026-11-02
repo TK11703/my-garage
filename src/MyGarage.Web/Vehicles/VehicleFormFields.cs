@@ -4,7 +4,7 @@ public static class VehicleFormFields
 {
     // Which edit tab each field lives on; used to open the tab that holds an error.
     public static readonly string[] BasicFields =
-        ["Year", "Make", "Model", "Trim", "Vin", "VehicleTypeId", "Ownership", "PurchasedOn", "LeaseEndsOn", "Mileage"];
+        ["Year", "Make", "Model", "Trim", "Vin", "VehicleTypeId", "Ownership", "PurchasedOn", "LeaseEndsOn", "Mileage", "LatestOdometerReading"];
 
     public static readonly string[] SpecificationFields =
         ["Engine", "Horsepower", "DrivetrainId", "Color", "FuelTypeId", "TransmissionId", "Seats", "Doors", "WheelSize", "TireSize"];

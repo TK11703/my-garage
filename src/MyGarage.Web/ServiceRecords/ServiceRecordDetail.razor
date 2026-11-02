@@ -1,0 +1,144 @@
+@page "/vehicles/{VehicleId:guid}/service-records/{RecordId:guid}"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject VehiclesApiClient VehiclesApi
+@inject ServiceRecordsApiClient Api
+@inject NavigationManager Navigation
+
+@if (failure is not null)
+{
+    <PageHeader Title="Service record" Trail="@(new[] { new Crumb("Vehicles") })" />
+
+    <ApiFailureAlert Failure="failure.Value" ReturnUrl="@($"/vehicles/{VehicleId}/service-records/{RecordId}")"
+                     NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+}
+else if (notFound)
+{
+    <PageHeader Title="Service record not found" Trail="@(new[] { new Crumb("Vehicles") })" />
+
+    <EmptyState Variant="EmptyStateVariant.NoMatch" Message="This service record could not be found."
+                ActionText="Back to Maintenance" ActionHref="@TabHref" />
+}
+else if (record is not null && vehicleName is not null)
+{
+    var title = $"Service record {ServiceRecordFormat.Date(record.DateServiced)}";
+
+    <PageHeader Title="@title"
+                Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(vehicleName, TabHref), new Crumb(title) })">
+        <Actions>
+            <div class="d-flex flex-wrap align-items-start gap-2">
+                <a class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" href="@TabHref" title="Back to the vehicle's Maintenance tab">
+                    <Icon Name="IconName.ArrowLeft" /> Back to Maintenance
+                </a>
+                <a class="btn btn-outline-primary d-inline-flex align-items-center gap-2" href="/vehicles/@VehicleId/service-records/@RecordId/edit" data-testid="edit-service-record" title="Edit this service record">
+                    <Icon Name="IconName.Pencil" /> Edit
+                </a>
+                <details class="position-relative" data-testid="delete-service-record">
+                    <summary class="btn btn-outline-danger d-inline-flex align-items-center gap-2" title="Delete this service record">
+                        <Icon Name="IconName.Trash" /> Delete
+                    </summary>
+                    <div class="alert alert-danger mg-confirm-panel shadow" role="alert">
+                        <p>Delete this service record? This also removes its line items and cannot be undone.</p>
+                        <form method="post" @formname="delete-service-record" @onsubmit="DeleteAsync" class="d-flex flex-wrap gap-2">
+                            <AntiforgeryToken />
+                            <button type="submit" class="btn btn-danger">Yes, delete this service record</button>
+                            <a class="btn btn-outline-secondary" href="/vehicles/@VehicleId/service-records/@RecordId">Keep service record</a>
+                        </form>
+                    </div>
+                </details>
+            </div>
+        </Actions>
+    </PageHeader>
+
+    <FieldGroup Id="service-record" Title="Service record">
+        <dl class="row g-3 mb-0" aria-label="Service record">
+            <ViewField Label="Date serviced" Value="@ServiceRecordFormat.Date(record.DateServiced)" />
+            <ViewField Label="Odometer reading" Value="@ServiceRecordFormat.Odometer(record.OdometerReading)" />
+            <ViewField Label="Shop name or person" Value="@ServiceRecordFormat.ShopOrNotSet(record.ShopOrPerson)" />
+        </dl>
+    </FieldGroup>
+
+    <FieldGroup Id="line-items" Title="Line items">
+        @if (record.LineItems.Count == 0)
+        {
+            <p class="text-body-secondary">No line items yet. Add what was done and what it cost.</p>
+        }
+        else
+        {
+            <ul class="list-group mb-3" data-testid="line-item-list">
+                @foreach (var line in record.LineItems)
+                {
+                    <ServiceLineItemRow @key="line.Id" VehicleId="VehicleId" RecordId="RecordId" Line="line" />
+                }
+            </ul>
+        }
+
+        <a class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2" href="/vehicles/@VehicleId/service-records/@RecordId/line-items/new" data-testid="add-line-item">
+            <Icon Name="IconName.Plus" /> Add line item
+        </a>
+
+        <p class="fs-5 fw-semibold mt-3 mb-0">
+            Total cost: <span data-testid="total-cost">@ServiceRecordFormat.Money(record.TotalCost)</span>
+        </p>
+    </FieldGroup>
+}
+
+@code {
+    private ServiceRecordDto? record;
+    private string? vehicleName;
+    private bool notFound;
+    private GarageApiFailure? failure;
+
+    [Parameter]
+    public Guid VehicleId { get; set; }
+
+    [Parameter]
+    public Guid RecordId { get; set; }
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string TabHref => $"/vehicles/{VehicleId}?tab=service-records";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var vehicle = await VehiclesApi.GetAsync(VehicleId);
+            var result = vehicle.IsNotFound ? null : await Api.GetAsync(VehicleId, RecordId);
+            if (vehicle.IsNotFound || result!.IsNotFound)
+            {
+                notFound = true;
+                if (HttpContext is { Response.HasStarted: false })
+                {
+                    HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+                }
+
+                return;
+            }
+
+            vehicleName = vehicle.Value!.Name;
+            record = result.Value;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        try
+        {
+            var result = await Api.DeleteAsync(VehicleId, RecordId);
+            if (result.IsSuccess || result.IsNotFound)
+            {
+                Navigation.NavigateTo(TabHref);
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+}

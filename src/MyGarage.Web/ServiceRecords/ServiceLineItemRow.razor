@@ -1,0 +1,77 @@
+@inject ServiceRecordsApiClient Api
+@inject NavigationManager Navigation
+
+<li class="list-group-item" data-testid="line-item">
+    <div class="d-flex flex-wrap justify-content-between gap-2">
+        <span class="fw-semibold text-break" data-testid="line-description">@Line.Description</span>
+        <span class="fw-semibold" data-testid="line-total">@ServiceRecordFormat.Money(Line.TotalCost)</span>
+    </div>
+
+    <ul class="list-unstyled small text-body-secondary mb-2" data-testid="line-pricing">
+        @if (Line.FlatCost is { } flat)
+        {
+            <li data-testid="line-flat">Flat cost @ServiceRecordFormat.Money(flat)</li>
+        }
+        @if (Line.LaborHours is not null)
+        {
+            <li data-testid="line-labor">@ServiceRecordFormat.LaborLine(Line)</li>
+        }
+        @foreach (var part in Line.Parts)
+        {
+            <li data-testid="line-part" class="text-break">@ServiceRecordFormat.PartLine(part)</li>
+        }
+    </ul>
+
+    @if (message is not null)
+    {
+        <div class="alert alert-warning" role="alert">@message</div>
+    }
+
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-outline-secondary btn-sm" data-testid="edit-line-item" aria-label="@($"Edit {Line.Description}")"
+           href="/vehicles/@VehicleId/service-records/@RecordId/line-items/@Line.Id/edit">Edit</a>
+        <details data-testid="delete-line-item">
+            <summary class="btn btn-outline-danger btn-sm" aria-label="@($"Delete {Line.Description}")">Delete</summary>
+            <div class="alert alert-danger mt-2" role="alert">
+                <p class="mb-2">Delete this line item? This cannot be undone.</p>
+                <form method="post" @formname="@($"delete-line-item-{Line.Id}")" @onsubmit="DeleteAsync" class="d-flex gap-2">
+                    <AntiforgeryToken />
+                    <button type="submit" class="btn btn-danger btn-sm">Yes, delete this line item</button>
+                    <a class="btn btn-outline-secondary btn-sm" href="@RecordHref">Keep line item</a>
+                </form>
+            </div>
+        </details>
+    </div>
+</li>
+
+@code {
+    private string? message;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid RecordId { get; set; }
+
+    [Parameter, EditorRequired]
+    public ServiceLineItemDto Line { get; set; } = default!;
+
+    private string RecordHref => $"/vehicles/{VehicleId}/service-records/{RecordId}";
+
+    private async Task DeleteAsync()
+    {
+        message = null;
+        try
+        {
+            var result = await Api.DeleteLineItemAsync(VehicleId, RecordId, Line.Id);
+            if (result.IsSuccess || result.IsNotFound)
+            {
+                Navigation.NavigateTo(RecordHref);
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            message = ex.Failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable;
+        }
+    }
+}

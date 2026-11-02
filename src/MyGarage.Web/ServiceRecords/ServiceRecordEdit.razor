@@ -1,0 +1,119 @@
+@page "/vehicles/{VehicleId:guid}/service-records/{RecordId:guid}/edit"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject VehiclesApiClient VehiclesApi
+@inject ServiceRecordsApiClient Api
+@inject NavigationManager Navigation
+
+@if (failure is not null)
+{
+    <PageHeader Title="Edit service record" Trail="@(new[] { new Crumb("Vehicles") })" />
+
+    <ApiFailureAlert Failure="failure.Value" ReturnUrl="@($"/vehicles/{VehicleId}/service-records/{RecordId}/edit")"
+                     NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+}
+else if (notFound)
+{
+    <PageHeader Title="Service record not found" Trail="@(new[] { new Crumb("Vehicles") })" />
+
+    <EmptyState Variant="EmptyStateVariant.NoMatch" Message="This service record could not be found."
+                ActionText="Back to Maintenance" ActionHref="@TabHref" />
+}
+else if (loaded && Model is not null)
+{
+    <PageHeader Title="Edit service record"
+                Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(vehicleName, TabHref), new Crumb(storedTitle, RecordHref), new Crumb("Edit") })" />
+
+    <div class="row">
+        <div class="col-lg-10">
+            <ServiceRecordForm Model="Model" FormName="update-service-record" SubmitText="Save changes" CancelHref="@RecordHref"
+                               Errors="errors" OnSubmit="SubmitAsync" />
+        </div>
+    </div>
+}
+
+@code {
+    private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
+    private GarageApiFailure? failure;
+    private string vehicleName = string.Empty;
+    // The saved date, not any unsaved value posted with the form.
+    private string storedTitle = string.Empty;
+    private bool notFound;
+    // A posted Model exists before the stored record loads, so Model alone can't gate the form.
+    private bool loaded;
+
+    [Parameter]
+    public Guid VehicleId { get; set; }
+
+    [Parameter]
+    public Guid RecordId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "update-service-record")]
+    private ServiceRecordFormModel? Model { get; set; }
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string TabHref => $"/vehicles/{VehicleId}?tab=service-records";
+
+    private string RecordHref => $"/vehicles/{VehicleId}/service-records/{RecordId}";
+
+    // The stored record is loaded on every request; a posted form takes precedence over it.
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var vehicle = await VehiclesApi.GetAsync(VehicleId);
+            var result = vehicle.IsNotFound ? null : await Api.GetAsync(VehicleId, RecordId);
+            if (vehicle.IsNotFound || result!.IsNotFound)
+            {
+                MarkNotFound();
+                return;
+            }
+
+            Model ??= ServiceRecordFormModel.From(result.Value!);
+            vehicleName = vehicle.Value!.Name;
+            storedTitle = $"Service record {ServiceRecordFormat.Date(result.Value!.DateServiced)}";
+            loaded = true;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        failure = null;
+        try
+        {
+            var result = await Api.UpdateAsync(VehicleId, RecordId, Model!.ToRequest());
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo(RecordHref);
+                return;
+            }
+
+            if (result.IsNotFound)
+            {
+                MarkNotFound();
+                return;
+            }
+
+            errors = result.Errors;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private void MarkNotFound()
+    {
+        notFound = true;
+        if (HttpContext is { Response.HasStarted: false })
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+        }
+    }
+}

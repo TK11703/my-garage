@@ -1,20 +1,20 @@
-<section aria-labelledby="tags-heading">
-    <h2 id="tags-heading" class="h5">Features</h2>
-    <h3 id="included-features-heading" class="h6 fw-semibold">Included Features</h3>
-
-    @if (Tags.Count == 0)
-    {
-        <p class="text-body-secondary">No features yet. <a href="/vehicles/@VehicleId/edit?tab=description">Add features</a></p>
-    }
-    else
-    {
-        <ul class="list-group" aria-labelledby="included-features-heading">
-            @foreach (var tag in Tags)
-            {
-                <li class="list-group-item" @key="tag.Id" data-testid="tag">@tag.Name</li>
-            }
-        </ul>
-    }
+<section class="card border-0 shadow-sm" aria-labelledby="tags-heading">
+    <h2 id="tags-heading" class="card-header h6 mb-0">Features</h2>
+    <div class="card-body">
+        @if (Tags.Count == 0)
+        {
+            <p class="text-body-secondary mb-0">No features yet. <a href="/vehicles/@VehicleId/edit?tab=description">Add features</a></p>
+        }
+        else
+        {
+            <ul class="list-group" aria-labelledby="tags-heading">
+                @foreach (var tag in Tags)
+                {
+                    <li class="list-group-item" @key="tag.Id" data-testid="tag">@tag.Name</li>
+                }
+            </ul>
+        }
+    </div>
 </section>
 
 @code {

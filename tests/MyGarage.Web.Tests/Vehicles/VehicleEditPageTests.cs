@@ -305,7 +305,7 @@ public class VehicleEditPageTests : VehicleTestContext
     }
 
     [Fact]
-    public void DescriptionTabHoldsFeaturesThenTheJournalEachInAHalfWidthColumn()
+    public void DescriptionTabHoldsTheFeaturesCardThenTheJournalCardsEachInAHalfWidthColumn()
     {
         RegisterApi(_ => Json(Detail(vehicleId)));
 
@@ -318,9 +318,10 @@ public class VehicleEditPageTests : VehicleTestContext
             Assert.Equal(2, columns.Count);
             Assert.All(columns, column => Assert.Contains("col-lg-6", column.ClassList));
             Assert.NotNull(columns[0].QuerySelector("section[aria-labelledby='tags-heading']"));
-            Assert.NotNull(columns[1].QuerySelector("section[aria-labelledby='journal-heading']"));
+            Assert.NotNull(columns[1].QuerySelector("form.card[aria-labelledby='journal-heading']"));
+            Assert.NotNull(columns[1].QuerySelector("section.card[aria-labelledby='recent-entries-heading']"));
             var sections = cut.Find("#tab-description").QuerySelectorAll("section").Select(section => section.GetAttribute("aria-labelledby")).ToList();
-            Assert.Equal(["tags-heading", "journal-heading"], sections);
+            Assert.Equal(["tags-heading", "recent-entries-heading"], sections);
         });
     }
 
