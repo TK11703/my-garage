@@ -1,45 +1,45 @@
 @using System.Globalization
 @inject VehiclesApiClient Api
 
-<section aria-labelledby="journal-heading">
-    <h2 id="journal-heading" class="h5">Journal</h2>
-    <h3 id="recent-entries-heading" class="h6 fw-semibold">Recent Journal Entries</h3>
-
-    @if (failure is not null)
-    {
-        <ApiFailureAlert Failure="failure.Value" ReturnUrl="@ReturnHref(NotesPage)"
-                         NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
-    }
-    else if (notes is not null)
-    {
-        @if (notes.TotalCount == 0)
+<section class="card border-0 shadow-sm" aria-labelledby="recent-entries-heading">
+    <h2 id="recent-entries-heading" class="card-header h6 mb-0">Recent Journal Entries</h2>
+    <div class="card-body">
+        @if (failure is not null)
         {
-            <p class="text-body-secondary">No notes yet. <a href="/vehicles/@VehicleId/edit?tab=description">Add a note</a></p>
+            <ApiFailureAlert Failure="failure.Value" ReturnUrl="@ReturnHref(NotesPage)"
+                             NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
         }
-        else
+        else if (notes is not null)
         {
-            <ul class="mg-timeline" aria-labelledby="recent-entries-heading">
-                @foreach (var note in notes.Items)
-                {
-                    <li @key="note.Id" data-testid="note" class="mg-timeline-item">
-                        <span class="mg-timeline-marker" aria-hidden="true"></span>
-                        <time class="mg-timeline-time" datetime="@note.CreatedAt.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)">
-                            @note.CreatedAt.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) UTC@(Edited(note) ? " (edited)" : null)
-                        </time>
-                        <p class="text-break mb-0">
-                            @if (note.Category is not null)
-                            {
-                                <span class="badge text-bg-info fw-normal me-1" data-testid="note-category">@note.Category</span>
-                            }
-                            <span class="note-body">@note.Body</span>
-                        </p>
-                    </li>
-                }
-            </ul>
+            @if (notes.TotalCount == 0)
+            {
+                <p class="text-body-secondary mb-0">No notes yet. <a href="/vehicles/@VehicleId/edit?tab=description">Add a note</a></p>
+            }
+            else
+            {
+                <ul class="mg-timeline" aria-labelledby="recent-entries-heading">
+                    @foreach (var note in notes.Items)
+                    {
+                        <li @key="note.Id" data-testid="note" class="mg-timeline-item">
+                            <span class="mg-timeline-marker" aria-hidden="true"></span>
+                            <time class="mg-timeline-time" datetime="@note.CreatedAt.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)">
+                                @note.CreatedAt.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) UTC@(Edited(note) ? " (edited)" : null)
+                            </time>
+                            <p class="text-break mb-0">
+                                @if (note.Category is not null)
+                                {
+                                    <span class="badge text-bg-info fw-normal me-1" data-testid="note-category">@note.Category</span>
+                                }
+                                <span class="note-body">@note.Body</span>
+                            </p>
+                        </li>
+                    }
+                </ul>
 
-            <Pager Page="notes.Page" TotalPages="notes.TotalPages" HrefFor="@(p => ReturnHref(p))" />
+                <Pager Page="notes.Page" TotalPages="notes.TotalPages" HrefFor="@(p => ReturnHref(p))" />
+            }
         }
-    }
+    </div>
 </section>
 
 @code {

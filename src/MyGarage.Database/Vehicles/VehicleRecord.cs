@@ -42,6 +42,8 @@ public sealed record VehicleRecord
 
     public int? Mileage { get; init; }
 
+    public int? LatestOdometerReading { get; init; }
+
     public string? Color { get; init; }
 
     public int? Seats { get; init; }

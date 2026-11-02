@@ -1,0 +1,132 @@
+@page "/vehicles/{VehicleId:guid}/service-records/{RecordId:guid}/line-items/new"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject VehiclesApiClient VehiclesApi
+@inject ServiceRecordsApiClient Api
+@inject NavigationManager Navigation
+
+@if (failure is not null)
+{
+    <PageHeader Title="Add line item" Trail="@(new[] { new Crumb("Vehicles") })" />
+
+    <ApiFailureAlert Failure="failure.Value" ReturnUrl="@($"/vehicles/{VehicleId}/service-records/{RecordId}/line-items/new")"
+                     NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+}
+else if (notFound)
+{
+    <PageHeader Title="Service record not found" Trail="@(new[] { new Crumb("Vehicles") })" />
+
+    <EmptyState Variant="EmptyStateVariant.NoMatch" Message="This service record could not be found."
+                ActionText="Back to Maintenance" ActionHref="@TabHref" />
+}
+else if (loaded && Model is not null)
+{
+    <PageHeader Title="Add line item"
+                Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(vehicleName, TabHref), new Crumb(recordTitle, RecordHref), new Crumb("Add line item") })" />
+
+    <div class="row">
+        <div class="col-lg-10">
+            <ServiceLineItemForm Model="Model" FormName="create-line-item" SubmitText="Save Line Item" CancelHref="@RecordHref"
+                                 Errors="errors" Message="@message" OnSubmit="SubmitAsync" />
+        </div>
+    </div>
+}
+
+@code {
+    private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
+    private GarageApiFailure? failure;
+    private string vehicleName = string.Empty;
+    private string recordTitle = string.Empty;
+    private string? message;
+    private bool notFound;
+    // A posted Model exists before the record loads, so Model alone can't gate the form.
+    private bool loaded;
+
+    [Parameter]
+    public Guid VehicleId { get; set; }
+
+    [Parameter]
+    public Guid RecordId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "create-line-item")]
+    private ServiceLineItemFormModel? Model { get; set; }
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string TabHref => $"/vehicles/{VehicleId}?tab=service-records";
+
+    private string RecordHref => $"/vehicles/{VehicleId}/service-records/{RecordId}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Model ??= ServiceLineItemFormModel.New();
+
+        try
+        {
+            var vehicle = await VehiclesApi.GetAsync(VehicleId);
+            var record = vehicle.IsNotFound ? null : await Api.GetAsync(VehicleId, RecordId);
+            if (vehicle.IsNotFound || record!.IsNotFound)
+            {
+                MarkNotFound();
+                return;
+            }
+
+            vehicleName = vehicle.Value!.Name;
+            recordTitle = $"Service record {ServiceRecordFormat.Date(record.Value!.DateServiced)}";
+            loaded = true;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        failure = null;
+        message = null;
+        if (ServiceLineItemFormModel.IsAddPartRowsRequest(HttpContext))
+        {
+            Model!.AddBlankPartRows();
+            return;
+        }
+
+        try
+        {
+            var result = await Api.AddLineItemAsync(VehicleId, RecordId, Model!.ToRequest());
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo(RecordHref);
+                return;
+            }
+
+            if (result.IsNotFound)
+            {
+                MarkNotFound();
+                return;
+            }
+
+            if (result.Outcome == ApiOutcome.Conflict)
+            {
+                message = result.Title;
+                return;
+            }
+
+            errors = result.Errors;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private void MarkNotFound()
+    {
+        notFound = true;
+        if (HttpContext is { Response.HasStarted: false })
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+        }
+    }
+}

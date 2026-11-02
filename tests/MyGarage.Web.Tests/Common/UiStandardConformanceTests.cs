@@ -8,7 +8,7 @@ public class UiStandardConformanceTests
 {
     private static readonly string[] Sources = FindSources();
     private static readonly string WebProject = FindWebProject();
-    private static readonly string[] Scripts = ["lease-toggle.js", "dropzone.js", "feature-suggest.js", "auto-submit.js", "clear-error.js"];
+    private static readonly string[] Scripts = ["lease-toggle.js", "pricing-toggle.js", "dropzone.js", "feature-suggest.js", "auto-submit.js", "clear-error.js"];
 
     private static string FindWebProject([CallerFilePath] string? sourceFile = null)
     {
@@ -102,6 +102,26 @@ public class UiStandardConformanceTests
     }
 
     [Fact]
+    public void TheServiceRecordSourcesAreScanned_AndUseNoTablesScriptsOrIconOnlyButtons()
+    {
+        var serviceRecordSources = Sources.Where(path => path.Contains($"{Path.DirectorySeparatorChar}ServiceRecords{Path.DirectorySeparatorChar}")).ToList();
+
+        Assert.True(serviceRecordSources.Count >= 7);
+        foreach (var path in serviceRecordSources)
+        {
+            var source = File.ReadAllText(path);
+            Assert.DoesNotMatch(new Regex("<table[\\s>]"), source);
+            Assert.DoesNotMatch(new Regex("<script|jquery", RegexOptions.IgnoreCase), source);
+            Assert.DoesNotMatch(new Regex("MarkupString"), source);
+        }
+
+        // Row-level controls are small and named after what they act on.
+        var row = File.ReadAllText(serviceRecordSources.Single(path => Path.GetFileName(path) == "ServiceLineItemRow.razor"));
+        Assert.Contains("aria-label=\"@($\"Edit {Line.Description}\")\"", row);
+        Assert.Contains("aria-label=\"@($\"Delete {Line.Description}\")\"", row);
+    }
+
+    [Fact]
     public void LookupListsAreNotTables()
     {
         var violations = Violations(new Regex("<table[\\s>]"), path => !path.Contains($"{Path.DirectorySeparatorChar}Preferences{Path.DirectorySeparatorChar}"));
@@ -121,6 +141,7 @@ public class UiStandardConformanceTests
 
     [Theory]
     [InlineData("lease-toggle.js")]
+    [InlineData("pricing-toggle.js")]
     [InlineData("dropzone.js")]
     [InlineData("feature-suggest.js")]
     [InlineData("auto-submit.js")]
@@ -143,6 +164,7 @@ public class UiStandardConformanceTests
 
     [Theory]
     [InlineData("lease-toggle.js")]
+    [InlineData("pricing-toggle.js")]
     [InlineData("dropzone.js")]
     [InlineData("feature-suggest.js")]
     [InlineData("auto-submit.js")]

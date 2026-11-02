@@ -31,7 +31,7 @@ else if (vehicle is not null)
                         <Icon Name="IconName.Trash" /> Delete
                     </summary>
                     <div class="alert alert-danger mg-confirm-panel shadow" role="alert">
-                        <p>Delete @vehicle.Name? This also removes its tags, journal notes, and pictures and cannot be undone.</p>
+                        <p>Delete @vehicle.Name? This also removes its tags, journal notes, service records, and pictures and cannot be undone.</p>
                         <form method="post" @formname="delete-vehicle" @onsubmit="DeleteAsync" class="d-flex flex-wrap gap-2">
                             <AntiforgeryToken />
                             <button type="submit" class="btn btn-danger">Yes, delete this vehicle</button>
@@ -68,6 +68,7 @@ else if (vehicle is not null)
                         <ViewField Label="@VehicleFormat.DateLabel(vehicle.Ownership)" Value="@VehicleFormat.Date(vehicle.PurchasedOn)" />
                         <ViewField Label="Date lease ends" Value="@VehicleFormat.Date(vehicle.LeaseEndsOn)" />
                         <ViewField Label="@VehicleFormat.MileageLabel(vehicle.Ownership)" Value="@VehicleFormat.MileageOrNotSet(vehicle.Mileage)" />
+                        <ViewField Label="Latest odometer reading" Value="@VehicleFormat.MileageOrNotSet(vehicle.LatestOdometerReading)" />
                     </dl>
                     </FieldGroup>
                     <FieldGroup Id="specifications" Title="Specifications">
@@ -85,22 +86,21 @@ else if (vehicle is not null)
                     </dl>
                     </FieldGroup>
                 </div>
-                <div id="tab-media" class="tab-pane card border-0 shadow-sm @PaneState("media", current)" role="tabpanel" aria-labelledby="tab-media-tab" tabindex="0">
-                    <div class="card-body">
-                        <VehicleGalleryView VehicleId="VehicleId" VehicleName="@vehicle.Name" Images="vehicle.Images" />
-                    </div>
+                <div id="tab-media" class="tab-pane @PaneState("media", current)" role="tabpanel" aria-labelledby="tab-media-tab" tabindex="0">
+                    <VehicleGalleryView VehicleId="VehicleId" VehicleName="@vehicle.Name" Images="vehicle.Images" />
                 </div>
-                <div id="tab-description" class="tab-pane card border-0 shadow-sm @PaneState("description", current)" role="tabpanel" aria-labelledby="tab-description-tab" tabindex="0">
-                    <div class="card-body">
-                        <div class="row g-4">
-                            <div class="col-lg-6">
-                                <VehicleTagsView VehicleId="VehicleId" Tags="vehicle.Tags" />
-                            </div>
-                            <div class="col-lg-6">
-                                <VehicleJournalView VehicleId="VehicleId" NotesPage="journalPage" />
-                            </div>
+                <div id="tab-description" class="tab-pane @PaneState("description", current)" role="tabpanel" aria-labelledby="tab-description-tab" tabindex="0">
+                    <div class="row g-4">
+                        <div class="col-lg-6">
+                            <VehicleTagsView VehicleId="VehicleId" Tags="vehicle.Tags" />
+                        </div>
+                        <div class="col-lg-6">
+                            <VehicleJournalView VehicleId="VehicleId" NotesPage="journalPage" />
                         </div>
                     </div>
+                </div>
+                <div id="tab-service-records" class="tab-pane @PaneState("service-records", current)" role="tabpanel" aria-labelledby="tab-service-records-tab" tabindex="0">
+                    <MaintenanceView VehicleId="VehicleId" RecordsPage="recordsPage" />
                 </div>
     </div>
 
@@ -114,7 +114,7 @@ else if (vehicle is not null)
     [Parameter]
     public Guid VehicleId { get; set; }
 
-    // Which tab to open: details, media, or description.
+    // Which tab to open: details, media, description, or service-records (shown as Maintenance).
     [Parameter, SupplyParameterFromQuery(Name = "tab")]
     public string? Tab { get; set; }
 
@@ -123,6 +123,12 @@ else if (vehicle is not null)
     public string? NotesPage { get; set; }
 
     private int journalPage => int.TryParse(NotesPage, out var parsed) ? Math.Max(1, parsed) : 1;
+
+    // Read as text: a bad query value must mean the first page of records, not a binding error.
+    [Parameter, SupplyParameterFromQuery(Name = "recordsPage")]
+    public string? RecordsPage { get; set; }
+
+    private int recordsPage => int.TryParse(RecordsPage, out var parsedPage) ? Math.Max(1, parsedPage) : 1;
 
     private static string PaneState(string id, string current) => id == current ? "show active" : string.Empty;
 

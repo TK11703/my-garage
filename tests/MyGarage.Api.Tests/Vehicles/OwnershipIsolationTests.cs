@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
 using MyGarage.Api.Tests.Common;
 using MyGarage.Shared.Lookups;
+using MyGarage.Shared.ServiceRecords;
 using MyGarage.Shared.Vehicles;
 
 namespace MyGarage.Api.Tests.Vehicles;
@@ -16,7 +17,7 @@ public class OwnershipIsolationTests(ApiFactory factory) : IClassFixture<ApiFact
 
     public Task DisposeAsync() => Task.CompletedTask;
 
-    private sealed record Seed(Guid VehicleId, Guid TagId, Guid NoteId, Guid ImageId, Guid ItemId);
+    private sealed record Seed(Guid VehicleId, Guid TagId, Guid NoteId, Guid ImageId, Guid ItemId, Guid RecordId, Guid LineItemId);
 
     private sealed record Probe(string Name, Func<HttpClient, Seed, Task<HttpResponseMessage>> Send);
 
@@ -36,6 +37,14 @@ public class OwnershipIsolationTests(ApiFactory factory) : IClassFixture<ApiFact
         new("PUT main image", (c, s) => c.PutAsync($"/api/vehicles/{s.VehicleId}/images/{s.ImageId}/main", null)),
         new("DELETE image", (c, s) => c.DeleteAsync($"/api/vehicles/{s.VehicleId}/images/{s.ImageId}")),
         new("PUT lookup visibility", (c, s) => c.PutAsJsonAsync($"/api/lookups/{LookupKinds.FuelTypes}/{s.ItemId}/visibility", new SetLookupVisibilityRequest { IsHidden = true })),
+        new("GET service records", (c, s) => c.GetAsync($"/api/vehicles/{s.VehicleId}/service-records")),
+        new("POST service record", (c, s) => c.PostAsJsonAsync($"/api/vehicles/{s.VehicleId}/service-records", new ServiceRecordRequest { DateServiced = new DateOnly(2026, 1, 1), OdometerReading = 1 })),
+        new("GET service record", (c, s) => c.GetAsync($"/api/vehicles/{s.VehicleId}/service-records/{s.RecordId}")),
+        new("PUT service record", (c, s) => c.PutAsJsonAsync($"/api/vehicles/{s.VehicleId}/service-records/{s.RecordId}", new ServiceRecordRequest { DateServiced = new DateOnly(2026, 1, 1), OdometerReading = 1 })),
+        new("DELETE service record", (c, s) => c.DeleteAsync($"/api/vehicles/{s.VehicleId}/service-records/{s.RecordId}")),
+        new("POST line item", (c, s) => c.PostAsJsonAsync($"/api/vehicles/{s.VehicleId}/service-records/{s.RecordId}/line-items", new ServiceLineItemRequest { Description = "x", FlatCost = 1m })),
+        new("PUT line item", (c, s) => c.PutAsJsonAsync($"/api/vehicles/{s.VehicleId}/service-records/{s.RecordId}/line-items/{s.LineItemId}", new ServiceLineItemRequest { Description = "x", FlatCost = 1m })),
+        new("DELETE line item", (c, s) => c.DeleteAsync($"/api/vehicles/{s.VehicleId}/service-records/{s.RecordId}/line-items/{s.LineItemId}")),
     ];
 
     private async Task<Seed> SeedAsync(HttpClient owner)
@@ -48,7 +57,15 @@ public class OwnershipIsolationTests(ApiFactory factory) : IClassFixture<ApiFact
             .Content.ReadFromJsonAsync<JournalNoteDto>())!;
         var image = (await (await owner.PostAsync($"/api/vehicles/{vehicle.Id}/images", new MultipartFormDataContent { { new ByteArrayContent(Png), "file", "a.png" } }))
             .Content.ReadFromJsonAsync<VehicleImageDto>())!;
-        return new Seed(vehicle.Id, tag.Id, note.Id, image.Id, await factory.InsertLookupItemAsync("alice-oid", "fuel_type", "Alice special"));
+        var record = (await (await owner.PostAsJsonAsync(
+                $"/api/vehicles/{vehicle.Id}/service-records",
+                new ServiceRecordRequest { DateServiced = new DateOnly(2026, 5, 1), OdometerReading = 4242, ShopOrPerson = "private shop" }))
+            .Content.ReadFromJsonAsync<ServiceRecordDto>())!;
+        var withLine = (await (await owner.PostAsJsonAsync(
+                $"/api/vehicles/{vehicle.Id}/service-records/{record.Id}/line-items",
+                new ServiceLineItemRequest { Description = "private work", FlatCost = 99m }))
+            .Content.ReadFromJsonAsync<ServiceRecordDto>())!;
+        return new Seed(vehicle.Id, tag.Id, note.Id, image.Id, await factory.InsertLookupItemAsync("alice-oid", "fuel_type", "Alice special"), record.Id, withLine.LineItems.Single().Id);
     }
 
     [Fact]
@@ -81,6 +98,12 @@ public class OwnershipIsolationTests(ApiFactory factory) : IClassFixture<ApiFact
         Assert.Equal(["private note"], notes!.Items.Select(n => n.Body));
         Assert.Equal("secret", notes.Items.Single().Category);
         Assert.Equal(HttpStatusCode.OK, (await alice.GetAsync($"/api/vehicles/{seed.VehicleId}/images/{seed.ImageId}/content")).StatusCode);
+        var aliceRecord = await alice.GetFromJsonAsync<ServiceRecordDto>($"/api/vehicles/{seed.VehicleId}/service-records/{seed.RecordId}");
+        Assert.Equal(4242, aliceRecord!.OdometerReading);
+        Assert.Equal("private shop", aliceRecord.ShopOrPerson);
+        Assert.Equal(["private work"], aliceRecord.LineItems.Select(line => line.Description));
+        Assert.Equal(99m, aliceRecord.TotalCost);
+        Assert.Equal(1, (await alice.GetFromJsonAsync<PagedResultDto<ServiceRecordSummaryDto>>($"/api/vehicles/{seed.VehicleId}/service-records"))!.TotalCount);
         var aliceFuel = (await alice.GetFromJsonAsync<LookupsDto>("/api/lookups"))!.FuelTypes;
         Assert.Contains(aliceFuel, item => item.Id == seed.ItemId && !item.IsHidden);
     }

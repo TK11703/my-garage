@@ -2,6 +2,7 @@ using MyGarage.Web.Authentication;
 using MyGarage.Web.Common;
 using MyGarage.Web.Components;
 using MyGarage.Web.Lookups;
+using MyGarage.Web.ServiceRecords;
 using MyGarage.Web.Vehicles;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,6 +22,8 @@ builder.Services.AddHttpClient<GarageApiClient>(client => client.BaseAddress = n
 builder.Services.AddHttpClient<VehiclesApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
     .AddHttpMessageHandler<ApiAccessTokenHandler>();
 builder.Services.AddHttpClient<LookupsApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
+    .AddHttpMessageHandler<ApiAccessTokenHandler>();
+builder.Services.AddHttpClient<ServiceRecordsApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
     .AddHttpMessageHandler<ApiAccessTokenHandler>();
 
 var app = builder.Build();

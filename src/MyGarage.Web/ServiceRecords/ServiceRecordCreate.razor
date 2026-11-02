@@ -1,0 +1,107 @@
+@page "/vehicles/{VehicleId:guid}/service-records/new"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject VehiclesApiClient VehiclesApi
+@inject ServiceRecordsApiClient Api
+@inject NavigationManager Navigation
+
+@if (failure is not null)
+{
+    <PageHeader Title="Add service record" Trail="@(new[] { new Crumb("Vehicles") })" />
+
+    <ApiFailureAlert Failure="failure.Value" ReturnUrl="@($"/vehicles/{VehicleId}/service-records/new")"
+                     NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+}
+else if (notFound)
+{
+    <PageHeader Title="Vehicle not found" Trail="@(new[] { new Crumb("Vehicles") })" />
+
+    <EmptyState Variant="EmptyStateVariant.NoMatch" Message="@VehicleMessages.NotFound"
+                ActionText="Back to my vehicles" ActionHref="/vehicles" />
+}
+else if (vehicleName is not null)
+{
+    <PageHeader Title="Add service record"
+                Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(vehicleName, TabHref), new Crumb("Add service record") })" />
+
+    <div class="row">
+        <div class="col-lg-10">
+            <ServiceRecordForm Model="Model" FormName="create-service-record" SubmitText="Add service record" CancelHref="@TabHref"
+                               Errors="errors" OnSubmit="SubmitAsync" />
+        </div>
+    </div>
+}
+
+@code {
+    private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
+    private GarageApiFailure? failure;
+    private string? vehicleName;
+    private bool notFound;
+
+    [Parameter]
+    public Guid VehicleId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "create-service-record")]
+    private ServiceRecordFormModel? Model { get; set; }
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string TabHref => $"/vehicles/{VehicleId}?tab=service-records";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Model ??= new ServiceRecordFormModel();
+
+        try
+        {
+            var result = await VehiclesApi.GetAsync(VehicleId);
+            if (result.IsNotFound)
+            {
+                MarkNotFound();
+                return;
+            }
+
+            vehicleName = result.Value!.Name;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        failure = null;
+        try
+        {
+            var result = await Api.CreateAsync(VehicleId, Model!.ToRequest());
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo($"/vehicles/{VehicleId}/service-records/{result.Value!.Id}");
+                return;
+            }
+
+            if (result.IsNotFound)
+            {
+                MarkNotFound();
+                return;
+            }
+
+            errors = result.Errors;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private void MarkNotFound()
+    {
+        notFound = true;
+        if (HttpContext is { Response.HasStarted: false })
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+        }
+    }
+}

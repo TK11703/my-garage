@@ -3,7 +3,7 @@ SELECT v.id, v.owner_id, v.vin, v.make, v.model, v.trim, v.year,
        v.ownership, v.purchased_on, v.lease_ends_on, v.engine, v.horsepower,
        v.fuel_type_id, ft.name AS fuel_type_name,
        v.transmission_id, tr.name AS transmission_name,
-       v.mileage, v.color, v.seats, v.doors,
+       v.mileage, v.latest_odometer_reading, v.color, v.seats, v.doors,
        v.drivetrain_id, dt.name AS drivetrain_name,
        v.wheel_size, v.tire_size,
        v.created_at, v.updated_at, v.created_by, v.updated_by

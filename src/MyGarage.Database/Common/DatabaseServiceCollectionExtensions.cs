@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using MyGarage.Database.JournalNotes;
 using MyGarage.Database.Lookups;
+using MyGarage.Database.ServiceRecords;
 using MyGarage.Database.Tags;
 using MyGarage.Database.VehicleImages;
 using MyGarage.Database.Vehicles;
@@ -19,6 +20,7 @@ public static class DatabaseServiceCollectionExtensions
         services.AddSingleton<LookupRepository>();
         services.AddSingleton<VehicleTagRepository>();
         services.AddSingleton<JournalNoteRepository>();
+        services.AddSingleton<ServiceRecordRepository>();
         services.AddSingleton<IVehicleImageBlobStore, AzureBlobVehicleImageStore>();
         services.AddSingleton<VehicleImageRepository>();
 

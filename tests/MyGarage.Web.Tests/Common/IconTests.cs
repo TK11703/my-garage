@@ -19,6 +19,7 @@ public class IconTests : BunitContext
     [InlineData(IconName.Sliders)]
     [InlineData(IconName.Image)]
     [InlineData(IconName.FileText)]
+    [InlineData(IconName.Wrench)]
     public void RendersDecorativeInlineSvg(IconName name)
     {
         var cut = Render<Icon>(ps => ps.Add(p => p.Name, name));

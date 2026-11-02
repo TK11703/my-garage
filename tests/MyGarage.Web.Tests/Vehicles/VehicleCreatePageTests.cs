@@ -56,7 +56,7 @@ public class VehicleCreatePageTests : VehicleTestContext
             Assert.Equal(["tab-details"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
             Assert.Empty(cut.FindAll("#tab-media, #tab-description"));
             Assert.Equal(
-                ["year", "make", "model", "trim", "vin", "vehicle-type", "ownership", "purchased-on", "lease-ends-on", "mileage"],
+                ["year", "make", "model", "trim", "vin", "vehicle-type", "ownership", "purchased-on", "lease-ends-on", "mileage", "latest-odometer-reading"],
                 cut.Find("#group-basic").QuerySelectorAll("input[id], select[id]").Select(field => field.Id));
             Assert.Equal(
                 ["engine", "horsepower", "drivetrain", "color", "fuel-type", "transmission", "seats", "doors", "wheel-size", "tire-size"],

@@ -1,6 +1,7 @@
 using MyGarage.Api.Common;
 using MyGarage.Api.Lookups;
 using MyGarage.Api.SampleData;
+using MyGarage.Api.ServiceRecords;
 using MyGarage.Api.Users;
 using MyGarage.Api.Vehicles;
 using MyGarage.Api.Vehicles.Images;
@@ -24,6 +25,7 @@ builder.Services.AddVehicles();
 builder.Services.AddVehicleTags();
 builder.Services.AddJournalNotes();
 builder.Services.AddVehicleImages();
+builder.Services.AddServiceRecords();
 
 var app = builder.Build();
 
@@ -44,6 +46,7 @@ app.MapVehiclesEndpoints();
 app.MapVehicleTagsEndpoints();
 app.MapJournalNotesEndpoints();
 app.MapVehicleImagesEndpoints();
+app.MapServiceRecordsEndpoints();
 app.MapSampleDataEndpoints();
 app.MapDefaultEndpoints();
 

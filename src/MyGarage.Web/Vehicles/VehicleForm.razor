@@ -44,9 +44,7 @@ else
             <div id="tab-media" class="tab-pane card border-0 shadow-sm @PaneState("media", current)" role="tabpanel" aria-labelledby="tab-media-tab" tabindex="0">
                 <div class="card-body">@MediaContent</div>
             </div>
-            <div id="tab-description" class="tab-pane card border-0 shadow-sm @PaneState("description", current)" role="tabpanel" aria-labelledby="tab-description-tab" tabindex="0">
-                <div class="card-body">@DescriptionContent</div>
-            </div>
+            <div id="tab-description" class="tab-pane @PaneState("description", current)" role="tabpanel" aria-labelledby="tab-description-tab" tabindex="0">@DescriptionContent</div>
         </div>
     }
 }
@@ -93,7 +91,7 @@ else
     [Parameter]
     public bool AttachmentTabs { get; set; } = true;
 
-    private IReadOnlyList<(string Id, string Label, IconName Icon)> Tabs => AttachmentTabs ? VehicleTabs.All : [.. VehicleTabs.All.Take(1)];
+    private IReadOnlyList<(string Id, string Label, IconName Icon)> Tabs => AttachmentTabs ? VehicleTabs.Edit : [.. VehicleTabs.Edit.Take(1)];
 
     [Parameter]
     public RenderFragment? MediaContent { get; set; }
@@ -131,7 +129,7 @@ else
             return "details";
         }
 
-        var requested = VehicleTabs.Normalize(ActiveTab);
+        var requested = VehicleTabs.NormalizeForEdit(ActiveTab);
         return !AttachmentTabs && requested is "media" or "description" ? "details" : requested;
     }
 

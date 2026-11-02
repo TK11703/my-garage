@@ -5,10 +5,12 @@ using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Forms.Mapping;
 using Microsoft.Extensions.DependencyInjection;
 using MyGarage.Shared.Lookups;
+using MyGarage.Shared.ServiceRecords;
 using MyGarage.Shared.Users;
 using MyGarage.Shared.Vehicles;
 using MyGarage.Web.Common;
 using MyGarage.Web.Lookups;
+using MyGarage.Web.ServiceRecords;
 using MyGarage.Web.Vehicles;
 
 namespace MyGarage.Web.Tests.Vehicles;
@@ -23,6 +25,12 @@ public abstract class VehicleTestContext : BunitContext
 
     // Answered to GET /api/vehicles/{id}/notes; null sends the request to the test's own handler.
     protected PagedResultDto<JournalNoteDto>? Notes { get; set; } = NotesPage([]);
+
+    // Answered to GET /api/vehicles/{id}/service-records; null sends the request to the test's own handler.
+    protected PagedResultDto<ServiceRecordSummaryDto>? ServiceRecords { get; set; } = ServiceRecordsPage([]);
+
+    // When set, GET /api/vehicles/{id}/service-records answers with this status instead of the page.
+    protected HttpStatusCode? ServiceRecordsFailure { get; set; }
 
     // Answered to GET /api/vehicles/filter-options.
     protected VehicleFilterOptionsDto FilterOptions { get; set; } = new() { Makes = [], Colors = [], Tags = [] };
@@ -94,11 +102,17 @@ public abstract class VehicleTestContext : BunitContext
                 return Json(Notes);
             }
 
+            if (ServiceRecords is not null && request.Method == HttpMethod.Get && request.RequestUri.AbsolutePath.EndsWith("/service-records", StringComparison.Ordinal))
+            {
+                return ServiceRecordsFailure is { } recordsFailure ? new HttpResponseMessage(recordsFailure) : Json(ServiceRecords);
+            }
+
             return respond(request);
         });
         Services.AddSingleton(new VehiclesApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
         Services.AddSingleton(new LookupsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
         Services.AddSingleton(new GarageApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
+        Services.AddSingleton(new ServiceRecordsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
     }
 
     private static LookupsDto WithoutHidden(LookupsDto lookups) =>
@@ -183,6 +197,56 @@ public abstract class VehicleTestContext : BunitContext
             PageSize = pageSize,
             TotalCount = total,
             TotalPages = (int)Math.Ceiling(total / (double)pageSize),
+        };
+    }
+
+    protected static ServiceRecordSummaryDto RecordSummary(
+        DateOnly? date = null, int odometer = 45_000, string? shop = "Joe's Garage", int lineItems = 0, decimal total = 0m) =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            DateServiced = date ?? new DateOnly(2026, 5, 1),
+            OdometerReading = odometer,
+            ShopOrPerson = shop,
+            LineItemCount = lineItems,
+            TotalCost = total,
+        };
+
+    protected static PagedResultDto<ServiceRecordSummaryDto> ServiceRecordsPage(
+        IReadOnlyList<ServiceRecordSummaryDto> items, int page = 1, int totalCount = -1, int pageSize = 10)
+    {
+        var total = totalCount < 0 ? items.Count : totalCount;
+        return new PagedResultDto<ServiceRecordSummaryDto>
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = total,
+            TotalPages = (int)Math.Ceiling(total / (double)pageSize),
+        };
+    }
+
+    protected static ServiceRecordDto RecordDetail(
+        Guid? vehicleId = null,
+        Guid? id = null,
+        DateOnly? date = null,
+        int odometer = 45_000,
+        string? shop = "Joe's Garage",
+        IReadOnlyList<ServiceLineItemDto>? lineItems = null,
+        decimal? total = null)
+    {
+        var items = lineItems ?? [];
+        return new ServiceRecordDto
+        {
+            Id = id ?? Guid.NewGuid(),
+            VehicleId = vehicleId ?? Guid.NewGuid(),
+            DateServiced = date ?? new DateOnly(2026, 5, 1),
+            OdometerReading = odometer,
+            ShopOrPerson = shop,
+            LineItems = items,
+            TotalCost = total ?? items.Sum(item => item.TotalCost),
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
         };
     }
 

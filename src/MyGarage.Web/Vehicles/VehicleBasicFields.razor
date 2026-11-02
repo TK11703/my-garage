@@ -99,6 +99,15 @@
         </div>
         <ValidationMessage For="@(() => Model.Mileage)" id="mileage-error" class="invalid-feedback d-block" />
     </div>
+    <div class="col-sm-4">
+        <div class="form-floating">
+            <InputNumber id="latest-odometer-reading" TValue="int?" class="form-control" @bind-Value="Model.LatestOdometerReading" min="0" max="9999999" step="1" inputmode="numeric" placeholder=" "
+                         aria-describedby="@LatestDescribedBy" />
+            <label for="latest-odometer-reading">Latest odometer reading</label>
+        </div>
+        <ValidationMessage For="@(() => Model.LatestOdometerReading)" id="latestodometerreading-error" class="invalid-feedback d-block" />
+        <div id="latest-odometer-help" class="form-text">Shown on your garage card unless a newer service record has a higher reading.</div>
+    </div>
 </div>
 
 @code {
@@ -110,4 +119,7 @@
 
     [Parameter]
     public VehicleFormLookups Lookups { get; set; } = VehicleFormLookups.Empty;
+
+    private string LatestDescribedBy =>
+        VehicleFormFields.Described(Errors, "LatestOdometerReading") is { } error ? $"{error} latest-odometer-help" : "latest-odometer-help";
 }

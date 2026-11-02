@@ -40,6 +40,9 @@ public sealed class VehicleDetailDto
 
     public int? Mileage { get; init; }
 
+    // Entered by the owner; the garage card shows the greater of this, the latest service record's odometer, and the mileage above.
+    public int? LatestOdometerReading { get; init; }
+
     public string? Color { get; init; }
 
     public int? Seats { get; init; }

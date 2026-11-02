@@ -33,6 +33,8 @@ public sealed class VehicleFormModel
 
     public int? Mileage { get; set; }
 
+    public int? LatestOdometerReading { get; set; }
+
     public string? Color { get; set; }
 
     public int? Seats { get; set; }
@@ -63,6 +65,7 @@ public sealed class VehicleFormModel
             FuelTypeId = FuelTypeId,
             TransmissionId = TransmissionId,
             Mileage = Mileage,
+            LatestOdometerReading = LatestOdometerReading,
             Color = Color,
             Seats = Seats,
             Doors = Doors,
@@ -88,6 +91,7 @@ public sealed class VehicleFormModel
             FuelTypeId = vehicle.FuelType?.Id,
             TransmissionId = vehicle.Transmission?.Id,
             Mileage = vehicle.Mileage,
+            LatestOdometerReading = vehicle.LatestOdometerReading,
             Color = vehicle.Color,
             Seats = vehicle.Seats,
             Doors = vehicle.Doors,
