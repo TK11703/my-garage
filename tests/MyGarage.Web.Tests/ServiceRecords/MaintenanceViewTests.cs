@@ -31,7 +31,7 @@ public class MaintenanceViewTests : VehicleTestContext
             Assert.Equal(3, buttons.Count);
             Assert.StartsWith("Service Records", buttons[0].TextContent.Trim());
             Assert.Equal("Inspections", buttons[1].TextContent.Trim());
-            Assert.Equal("Fuel Data", buttons[2].TextContent.Trim());
+            Assert.Equal("Charging and Fueling", buttons[2].TextContent.Trim());
         });
     }
 
