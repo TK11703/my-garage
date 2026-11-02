@@ -25,7 +25,8 @@ public sealed class VehicleService(
         var record = VehicleMapper.ToRecord(request, ownerId, Guid.CreateVersion7(), Now());
         await vehicles.InsertAsync(record, cancellationToken);
 
-        return VehicleMapper.ToDetailDto(record, [], []);
+        // Read back so the lookup names come from the stored references.
+        return (await GetAsync(ownerId, record.Id, cancellationToken))!;
     }
 
     public async Task<VehicleDetailDto?> GetAsync(string ownerId, Guid vehicleId, CancellationToken cancellationToken)

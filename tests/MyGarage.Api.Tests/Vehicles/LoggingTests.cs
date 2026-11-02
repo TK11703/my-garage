@@ -2,8 +2,10 @@ using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MyGarage.Api.Tests.Common;
+using MyGarage.Shared.Lookups;
 using MyGarage.Shared.Vehicles;
 
 namespace MyGarage.Api.Tests.Vehicles;
@@ -13,7 +15,8 @@ public class LoggingTests(ApiFactory factory) : IClassFixture<ApiFactory>, IAsyn
 {
     private static readonly string[] Markers =
     [
-        "QZNICK", "QZMAKE", "QZMODEL", "QZTRIM", "QZCOLOR", "QZSEARCH", "QZTAG", "QZNOTE", "QZCAT", "QZCAPTION", "QZFILE", "QZBYTES",
+        "QZMAKE", "QZMODEL", "QZTRIM", "QZCOLOR", "QZSEARCH", "QZTAG", "QZNOTE", "QZCAT", "QZCAPTION", "QZFILE", "QZBYTES",
+        "WZW9WZW9WZW9WZW9W", "QZENGINE", "QZTIRE", "QZITEM",
     ];
 
     public Task InitializeAsync() => factory.ResetDataAsync();
@@ -53,20 +56,33 @@ public class LoggingTests(ApiFactory factory) : IClassFixture<ApiFactory>, IAsyn
             logging.AddProvider(provider);
         }));
         var client = logged.CreateClient();
+        // Proves the host writes to the capturing provider, so an empty result below could not hide a leak.
+        logged.Services.GetRequiredService<ILoggerFactory>().CreateLogger("LoggingTests").LogInformation("capture check");
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", TestJwt.Create(claims: new Dictionary<string, object> { ["oid"] = "log-user" }));
 
         var created = await (await client.PostAsJsonAsync("/api/vehicles", new VehicleRequest
         {
-            Nickname = "QZNICK", Make = "QZMAKE", Model = "QZMODEL", Trim = "QZTRIM", Color = "QZCOLOR", Mileage = 1, Doors = 4,
+            Make = "QZMAKE", Model = "QZMODEL", Trim = "QZTRIM", Color = "QZCOLOR", Mileage = 1, Doors = 4, Year = 2020,
+            Vin = "WZW9WZW9WZW9WZW9W", Engine = "QZENGINE", TireSize = "QZTIRE",
         })).Content.ReadFromJsonAsync<VehicleDetailDto>();
-        await client.PostAsJsonAsync("/api/vehicles", new VehicleRequest { Nickname = "QZNICK", Make = "QZMAKE", Model = "QZMODEL", Mileage = -1 });
+        await client.PostAsJsonAsync("/api/vehicles", new VehicleRequest { Make = "QZMAKE", Model = "QZMODEL", Mileage = -1, Year = 2020, Vin = "WZW9WZW9WZW9WZW9W", Horsepower = 0 });
         await client.GetAsync("/api/vehicles?q=QZSEARCH&make=QZMAKE&color=QZCOLOR&tag=QZTAG");
+        await client.GetAsync("/api/vehicles?q=WZW9WZW9WZW9WZW9W");
         await client.GetAsync("/api/vehicles/filter-options");
-        await client.PutAsJsonAsync($"/api/vehicles/{created!.Id}", new VehicleRequest { Nickname = "QZNICK", Make = "QZMAKE", Model = "QZMODEL" });
+        await client.PutAsJsonAsync($"/api/vehicles/{created!.Id}", new VehicleRequest
+        {
+            Make = "QZMAKE", Model = "QZMODEL", Year = 2020, Vin = "WZW9WZW9WZW9WZW9W", Engine = "QZENGINE", TireSize = "QZTIRE",
+        });
+
+        var item = await (await client.PostAsJsonAsync("/api/lookups/fuel-types", new AddLookupItemRequest { Name = "QZITEM" })).Content.ReadFromJsonAsync<LookupItemDto>();
+        await client.PostAsJsonAsync("/api/lookups/fuel-types", new AddLookupItemRequest { Name = "QZITEM" });
+        await client.PutAsJsonAsync($"/api/lookups/fuel-types/{item!.Id}/visibility", new SetLookupVisibilityRequest { IsHidden = true });
+        await client.GetAsync("/api/lookups?includeHidden=true");
 
         await client.PostAsJsonAsync($"/api/vehicles/{created.Id}/tags", new AddVehicleTagRequest { Name = "QZTAG" });
         await client.PostAsJsonAsync($"/api/vehicles/{created.Id}/tags", new AddVehicleTagRequest { Name = "QZTAG" });
+        await client.GetAsync("/api/features?query=QZTAG");
 
         var note = await (await client.PostAsJsonAsync($"/api/vehicles/{created.Id}/notes", new JournalNoteRequest { Body = "QZNOTE", Category = "QZCAT" }))
             .Content.ReadFromJsonAsync<JournalNoteDto>();
@@ -88,7 +104,7 @@ public class LoggingTests(ApiFactory factory) : IClassFixture<ApiFactory>, IAsyn
         await client.DeleteAsync($"/api/vehicles/{created.Id}");
 
         var logs = string.Join('\n', provider.Entries);
-        Assert.NotEmpty(provider.Entries);
+        Assert.Contains("capture check", logs);
         foreach (var marker in Markers)
         {
             Assert.DoesNotContain(marker, logs);

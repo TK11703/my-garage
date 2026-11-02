@@ -18,15 +18,52 @@ public class VehicleRepositoryChangeTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task VehicleWithoutAYear_ListsLoadsAndCanLaterGainAYearAndDetails()
+    {
+        var (dataSource, repository) = await CreateAsync();
+        var id = Guid.NewGuid();
+        await using (var connection = await dataSource.OpenConnectionAsync())
+        {
+            // The shape of a row saved before the new columns existed.
+            await connection.ExecuteAsync(
+                "INSERT INTO vehicles (id, owner_id, make, model, trim, color, mileage, doors, created_at, updated_at, created_by, updated_by) " +
+                "VALUES (@id, 'owner-1', 'Ford', 'F-150', 'XL', 'Red', 1200, 4, now(), now(), 'owner-1', 'owner-1')", new { id });
+        }
+
+        var listed = await repository.ListPageAsync("owner-1", VehicleSearchCriteria.None, 1, 12, CancellationToken.None);
+        var loaded = await repository.GetByIdAsync("owner-1", id, CancellationToken.None);
+
+        Assert.Equal(1, listed.TotalCount);
+        Assert.NotNull(loaded);
+        Assert.Null(loaded.Year);
+        Assert.Null(loaded.Vin);
+        Assert.Null(loaded.VehicleTypeId);
+        Assert.Null(loaded.Ownership);
+        Assert.Equal(1200, loaded.Mileage);
+        Assert.Equal("Red", loaded.Color);
+        Assert.Equal(4, loaded.Doors);
+
+        Assert.True(await repository.UpdateAsync(loaded with { Year = 2015, Engine = "5.0L V8", Horsepower = 385 }, CancellationToken.None));
+        var updated = await repository.GetByIdAsync("owner-1", id, CancellationToken.None);
+
+        Assert.Equal(2015, updated!.Year);
+        Assert.Equal("5.0L V8", updated.Engine);
+        Assert.Equal(385, updated.Horsepower);
+        Assert.Equal(1200, updated.Mileage);
+        Assert.Equal("Red", updated.Color);
+        Assert.Equal(4, updated.Doors);
+    }
+
+    [Fact]
     public async Task Update_ReplacesEveryEditableFieldAndStampsUpdate()
     {
         var (_, repository) = await CreateAsync();
-        var original = TestData.Vehicle("owner-1", "Old", "Ford", "F-150", "XLT", "Blue", 100, 4);
+        var original = TestData.Vehicle("owner-1", "F-150", "Ford", "XLT", "Blue", 100, 4);
         await repository.InsertAsync(original, CancellationToken.None);
 
         var changed = original with
         {
-            Nickname = "New", Make = "Chevy", Model = "Silverado", Trim = "LT", Color = "Red", Mileage = 5_000, Doors = 2,
+            Make = "Chevy", Model = "Silverado", Trim = "LT", Color = "Red", Mileage = 5_000, Doors = 2,
             UpdatedAt = Later, UpdatedBy = "owner-1", CreatedAt = Later, CreatedBy = "ignored",
         };
         var updated = await repository.UpdateAsync(changed, CancellationToken.None);
@@ -34,7 +71,6 @@ public class VehicleRepositoryChangeTests(PostgresFixture postgres)
 
         Assert.True(updated);
         Assert.NotNull(loaded);
-        Assert.Equal("New", loaded.Nickname);
         Assert.Equal("Chevy", loaded.Make);
         Assert.Equal("Silverado", loaded.Model);
         Assert.Equal("LT", loaded.Trim);
@@ -70,10 +106,10 @@ public class VehicleRepositoryChangeTests(PostgresFixture postgres)
         var original = TestData.Vehicle("owner-1", "Mine");
         await repository.InsertAsync(original, CancellationToken.None);
 
-        var updated = await repository.UpdateAsync(original with { OwnerId = "owner-2", Nickname = "Hijacked" }, CancellationToken.None);
+        var updated = await repository.UpdateAsync(original with { OwnerId = "owner-2", Model = "Hijacked" }, CancellationToken.None);
 
         Assert.False(updated);
-        Assert.Equal("Mine", (await repository.GetByIdAsync("owner-1", original.Id, CancellationToken.None))!.Nickname);
+        Assert.Equal("Mine", (await repository.GetByIdAsync("owner-1", original.Id, CancellationToken.None))!.Model);
     }
 
     [Fact]
@@ -93,8 +129,7 @@ public class VehicleRepositoryChangeTests(PostgresFixture postgres)
         await using (var connection = await dataSource.OpenConnectionAsync())
         {
             var vehicleId = vehicle.Id;
-            await connection.ExecuteAsync(
-                "INSERT INTO vehicle_tags (id, vehicle_id, name, created_at) VALUES (gen_random_uuid(), @vehicleId, 'a', now())", new { vehicleId });
+            await TestData.LinkFeatureAsync(connection, vehicleId, "a");
             await connection.ExecuteAsync(
                 "INSERT INTO journal_notes (id, vehicle_id, body, created_at, updated_at, created_by, updated_by) " +
                 "VALUES (gen_random_uuid(), @vehicleId, 'b', now(), now(), 'o', 'o')", new { vehicleId });

@@ -15,4 +15,6 @@ public enum IconName
     Sliders,
     Image,
     FileText,
+    CloudUpload,
+    Calendar,
 }

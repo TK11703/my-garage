@@ -2,23 +2,44 @@
     <div class="ratio ratio-16x9">
         @if (Vehicle.MainImageId is { } imageId)
         {
-            <img class="card-img-top object-fit-cover" src="/vehicles/@(Vehicle.Id)/images/@(imageId)" alt="@Vehicle.Nickname" loading="lazy" />
+            <img class="card-img-top object-fit-cover" src="/vehicles/@(Vehicle.Id)/images/@(imageId)" alt="@Vehicle.Name" loading="lazy" />
         }
         else
         {
-            <div class="card-img-top d-flex align-items-center justify-content-center bg-body-secondary text-secondary" data-testid="vehicle-placeholder" role="img" aria-label="No picture for @Vehicle.Nickname">
+            <div class="card-img-top d-flex align-items-center justify-content-center bg-body-secondary text-secondary" data-testid="vehicle-placeholder" role="img" aria-label="No picture for @Vehicle.Name">
                 <span aria-hidden="true">No picture</span>
             </div>
         }
     </div>
     <div class="card-body">
-        <h2 class="card-title h6 fw-semibold mb-1">
-            <a class="stretched-link text-decoration-none text-body text-break" href="/vehicles/@Vehicle.Id">@Vehicle.Nickname</a>
+        <h2 class="card-title h6 fw-semibold mb-2">
+            <a class="stretched-link text-decoration-none text-body text-break" href="/vehicles/@Vehicle.Id">@Vehicle.Name</a>
         </h2>
-        <p class="card-text text-break mb-2" data-testid="vehicle-make-model">@Vehicle.Make @Vehicle.Model</p>
-        <p class="card-text text-body-secondary small mb-0 d-flex align-items-center gap-1" data-testid="vehicle-mileage">
-            <Icon Name="IconName.Speedometer" />
-            <span>@VehicleFormat.Mileage(Vehicle.Mileage)</span>
+        @if (Vehicle.FuelType is not null || Vehicle.Transmission is not null)
+        {
+            <p class="d-flex flex-wrap gap-2 mb-2" data-testid="vehicle-badges">
+                @if (Vehicle.FuelType is not null)
+                {
+                    <span class="badge bg-info-subtle text-info-emphasis fw-normal text-break" data-testid="vehicle-fuel">@Vehicle.FuelType</span>
+                }
+                @if (Vehicle.Transmission is not null)
+                {
+                    <span class="badge bg-primary-subtle text-primary-emphasis fw-normal text-break" data-testid="vehicle-transmission">@Vehicle.Transmission</span>
+                }
+            </p>
+        }
+        <p class="card-text text-body-secondary small mb-0 d-flex flex-wrap align-items-center gap-3">
+            <span class="d-inline-flex align-items-center gap-1" data-testid="vehicle-mileage">
+                <Icon Name="IconName.Speedometer" />
+                <span>@VehicleFormat.Mileage(Vehicle.Mileage)</span>
+            </span>
+            @if (Vehicle.PurchasedYear is { } purchasedYear)
+            {
+                <span class="d-inline-flex align-items-center gap-1" data-testid="vehicle-acquired">
+                    <Icon Name="IconName.Calendar" />
+                    <span>@VehicleFormat.Acquired(Vehicle.Ownership, purchasedYear)</span>
+                </span>
+            }
         </p>
     </div>
 </div>

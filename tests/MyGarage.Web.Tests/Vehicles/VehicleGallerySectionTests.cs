@@ -17,7 +17,7 @@ public class VehicleGallerySectionTests : VehicleTestContext
     private IRenderedComponent<VehicleGallerySection> RenderGallery(IReadOnlyList<VehicleImageDto> images, string? status = null) =>
         Render<VehicleGallerySection>(parameters => parameters
             .Add(gallery => gallery.VehicleId, vehicleId)
-            .Add(gallery => gallery.VehicleNickname, "Daily")
+            .Add(gallery => gallery.VehicleName, "2020 Ford F-150")
             .Add(gallery => gallery.Images, images)
             .Add(gallery => gallery.Status, status));
 
@@ -54,7 +54,7 @@ public class VehicleGallerySectionTests : VehicleTestContext
         var returnPath = $"/vehicles/{vehicleId}/edit?tab=media";
         var cut = Render<VehicleGallerySection>(parameters => parameters
             .Add(gallery => gallery.VehicleId, vehicleId)
-            .Add(gallery => gallery.VehicleNickname, "Daily")
+            .Add(gallery => gallery.VehicleName, "2020 Ford F-150")
             .Add(gallery => gallery.Images, new[] { Image(isMain: true), Image() })
             .Add(gallery => gallery.ReturnPath, returnPath));
 
@@ -90,15 +90,83 @@ public class VehicleGallerySectionTests : VehicleTestContext
         Assert.Equal("file", file.GetAttribute("name"));
         Assert.Equal("image/jpeg,image/png,image/webp", file.GetAttribute("accept"));
         Assert.True(file.HasAttribute("required"));
+        Assert.True(file.HasAttribute("multiple"));
         Assert.NotNull(cut.Find("label[for='image-file']"));
-        var caption = cut.Find("input#image-caption");
-        Assert.Equal("caption", caption.GetAttribute("name"));
-        Assert.Equal("200", caption.GetAttribute("maxlength"));
-        Assert.NotNull(cut.Find("label[for='image-caption']"));
     }
 
     [Fact]
-    public void Images_AreLazyThumbnailsWithAltTextFromTheCaptionOrTheNickname()
+    public void UploadForm_IsAClickOrDropAreaWithNoCaptionField()
+    {
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderGallery([]);
+
+        var form = cut.Find("form[data-testid='upload-image']");
+        Assert.True(form.HasAttribute("data-dropzone"));
+        Assert.Contains("mg-dropzone", form.ClassList);
+        Assert.Contains("Drag & Drop Images Here", form.TextContent);
+        Assert.Contains("or click to browse", form.TextContent);
+        Assert.Contains("JPG, PNG, WebP", form.TextContent);
+        Assert.Contains("visually-hidden", form.QuerySelector("label[for='image-file']")!.ClassList);
+        Assert.Empty(cut.FindAll("input#image-caption"));
+        Assert.Empty(cut.FindAll("input[name='caption']"));
+        Assert.NotNull(form.QuerySelector("svg.bi[aria-hidden='true']"));
+    }
+
+    [Fact]
+    public void UploadForm_OffersAnUploadButtonOnlyWhenScriptIsOff()
+    {
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderGallery([]);
+
+        Assert.Contains("<noscript>", cut.Find("form[data-testid='upload-image']").InnerHtml);
+        Assert.Empty(cut.FindAll("form[data-testid='upload-image'] > button"));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(7)]
+    public void UploadedHeading_CountsThePictures(int count)
+    {
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+        var images = Enumerable.Range(0, count).Select(i => Image(isMain: i == 0)).ToList();
+
+        var cut = RenderGallery(images);
+
+        var heading = cut.Find("h3[data-testid='uploaded-heading']");
+        Assert.Equal($"Uploaded Images ({count})", heading.TextContent.Trim());
+        Assert.Equal(count, cut.FindAll("[data-testid='image']").Count);
+    }
+
+    [Fact]
+    public void AtTheLimit_TheHeadingStillCountsAndTilesStayVisible()
+    {
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+        var images = Enumerable.Range(0, 10).Select(i => Image(isMain: i == 0)).ToList();
+
+        var cut = RenderGallery(images);
+
+        Assert.Equal("Uploaded Images (10)", cut.Find("[data-testid='uploaded-heading']").TextContent.Trim());
+        Assert.Equal(10, cut.FindAll("[data-testid='image'] .mg-image-tile").Count);
+    }
+
+    [Fact]
+    public void EachTile_HasAnIconOnlyDeleteButtonWithAnAccessibleName()
+    {
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderGallery([Image(isMain: true, caption: "Front")]);
+
+        var summary = cut.Find("[data-testid='image'] details[data-testid='delete-image'] summary");
+        Assert.Equal("Delete picture Front", summary.GetAttribute("aria-label"));
+        Assert.NotNull(summary.QuerySelector("svg.bi"));
+        Assert.Equal(string.Empty, summary.TextContent.Trim());
+    }
+
+    [Fact]
+    public void Images_AreLazyThumbnailsWithAltTextFromTheCaptionOrTheVehicleName()
     {
         RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
         var captioned = Image(isMain: true, caption: "Front view");
@@ -111,7 +179,7 @@ public class VehicleGallerySectionTests : VehicleTestContext
         Assert.Equal($"/vehicles/{vehicleId}/images/{captioned.Id}", images[0].GetAttribute("src"));
         Assert.Equal("Front view", images[0].GetAttribute("alt"));
         Assert.Equal("lazy", images[0].GetAttribute("loading"));
-        Assert.Equal("Daily", images[1].GetAttribute("alt"));
+        Assert.Equal("2020 Ford F-150", images[1].GetAttribute("alt"));
     }
 
     [Fact]
@@ -138,7 +206,7 @@ public class VehicleGallerySectionTests : VehicleTestContext
         var cut = RenderGallery([Image(caption: "<b>bold</b>")]);
 
         Assert.Empty(cut.FindAll("[data-testid='image'] b"));
-        Assert.Contains("<b>bold</b>", cut.Find("[data-testid='image'] p").TextContent);
+        Assert.Contains("<b>bold</b>", cut.Find("[data-testid='image'] .mg-image-caption").TextContent);
     }
 
     [Fact]
@@ -151,6 +219,7 @@ public class VehicleGallerySectionTests : VehicleTestContext
 
         Assert.NotNull(cut.Find("[data-testid='image-limit']"));
         Assert.Empty(cut.FindAll("form[data-testid='upload-image']"));
+        Assert.Empty(cut.FindAll("input#image-file"));
     }
 
     [Fact]

@@ -17,7 +17,7 @@ public class VehicleTagsEndpointsTests(ApiFactory factory) : IClassFixture<ApiFa
 
     private static async Task<VehicleDetailDto> CreateVehicleAsync(HttpClient client)
     {
-        var response = await client.PostAsJsonAsync("/api/vehicles", new VehicleRequest { Nickname = "Daily", Make = "Ford", Model = "F-150" });
+        var response = await client.PostAsJsonAsync("/api/vehicles", new VehicleRequest { Make = "Ford", Model = "F-150", Year = 2020 });
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<VehicleDetailDto>())!;
     }
@@ -56,6 +56,7 @@ public class VehicleTagsEndpointsTests(ApiFactory factory) : IClassFixture<ApiFa
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
         var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
         Assert.Contains(problem!.Errors.Keys, key => key.Contains("Name", StringComparison.OrdinalIgnoreCase));
+        Assert.All(problem.Errors.Values.SelectMany(messages => messages), message => Assert.StartsWith("Feature ", message, StringComparison.Ordinal));
         Assert.Empty((await client.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{vehicle.Id}"))!.Tags);
     }
 
@@ -70,6 +71,8 @@ public class VehicleTagsEndpointsTests(ApiFactory factory) : IClassFixture<ApiFa
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.Equal("This vehicle already has that feature.", problem!.Title);
         Assert.Single((await client.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{vehicle.Id}"))!.Tags);
     }
 
@@ -86,6 +89,8 @@ public class VehicleTagsEndpointsTests(ApiFactory factory) : IClassFixture<ApiFa
         var response = await AddTagAsync(client, vehicle.Id, "one more");
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.Equal("A vehicle can have at most 20 features.", problem!.Title);
         Assert.Equal(20, (await client.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{vehicle.Id}"))!.Tags.Count);
     }
 
@@ -112,6 +117,57 @@ public class VehicleTagsEndpointsTests(ApiFactory factory) : IClassFixture<ApiFa
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         Assert.Equal([keep.Id], (await client.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{vehicle.Id}"))!.Tags.Select(t => t.Id));
+    }
+
+    [Fact]
+    public async Task Post_TheSameFeatureOnTwoOfTheSameUsersVehicles_IsAllowedAndSharesOneCatalogEntry()
+    {
+        var client = factory.CreateClientForUser(Alice);
+        var first = await CreateVehicleAsync(client);
+        var second = await CreateVehicleAsync(client);
+
+        Assert.Equal(HttpStatusCode.Created, (await AddTagAsync(client, first.Id, "Sunroof")).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await AddTagAsync(client, second.Id, "sunroof")).StatusCode);
+
+        Assert.Equal(1, await factory.CountFeaturesAsync());
+    }
+
+    [Fact]
+    public async Task Post_SameFeatureInDifferentCaseOnAnotherUsersVehicle_ReusesOneCatalogRowAndReturnsTheCanonicalCasing()
+    {
+        var alice = factory.CreateClientForUser(Alice);
+        var bob = factory.CreateClientForUser(Bob);
+        var aliceVehicle = await CreateVehicleAsync(alice);
+        var bobVehicle = await CreateVehicleAsync(bob);
+
+        var first = await AddTagAsync(alice, aliceVehicle.Id, "Heated Seats");
+        var second = await AddTagAsync(bob, bobVehicle.Id, "  HEATED seats ");
+
+        Assert.Equal(HttpStatusCode.Created, first.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, second.StatusCode);
+        var firstTag = (await first.Content.ReadFromJsonAsync<VehicleTagDto>())!;
+        var secondTag = (await second.Content.ReadFromJsonAsync<VehicleTagDto>())!;
+        Assert.Equal("Heated Seats", firstTag.Name);
+        Assert.Equal("Heated Seats", secondTag.Name);
+        Assert.NotEqual(firstTag.Id, secondTag.Id);
+        Assert.Equal(1, await factory.CountFeaturesAsync());
+        Assert.Equal(["Heated Seats"], (await bob.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{bobVehicle.Id}"))!.Tags.Select(t => t.Name));
+    }
+
+    [Fact]
+    public async Task Delete_OneUsersLink_LeavesAnotherUsersLinkToTheSharedFeature()
+    {
+        var alice = factory.CreateClientForUser(Alice);
+        var bob = factory.CreateClientForUser(Bob);
+        var aliceVehicle = await CreateVehicleAsync(alice);
+        var bobVehicle = await CreateVehicleAsync(bob);
+        var aliceTag = (await (await AddTagAsync(alice, aliceVehicle.Id, "Sunroof")).Content.ReadFromJsonAsync<VehicleTagDto>())!;
+        await AddTagAsync(bob, bobVehicle.Id, "sunroof");
+
+        Assert.Equal(HttpStatusCode.NoContent, (await alice.DeleteAsync($"/api/vehicles/{aliceVehicle.Id}/tags/{aliceTag.Id}")).StatusCode);
+
+        Assert.Empty((await alice.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{aliceVehicle.Id}"))!.Tags);
+        Assert.Equal(["Sunroof"], (await bob.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{bobVehicle.Id}"))!.Tags.Select(t => t.Name));
     }
 
     [Fact]
@@ -146,7 +202,7 @@ public class VehicleTagsEndpointsTests(ApiFactory factory) : IClassFixture<ApiFa
         var vehicle = await CreateVehicleAsync(client);
         await AddTagAsync(client, vehicle.Id, "sunroof");
 
-        var response = await client.PutAsJsonAsync($"/api/vehicles/{vehicle.Id}", new VehicleRequest { Nickname = "Renamed", Make = "Ford", Model = "F-150" });
+        var response = await client.PutAsJsonAsync($"/api/vehicles/{vehicle.Id}", new VehicleRequest { Make = "Ford", Model = "Ranger", Year = 2020 });
 
         var updated = await response.Content.ReadFromJsonAsync<VehicleDetailDto>();
         Assert.Equal(["sunroof"], updated!.Tags.Select(t => t.Name));

@@ -3,8 +3,8 @@
     <div class="row">
         <div class="col-lg-8">
             <EditForm EditContext="editContext" FormName="@FormName" OnValidSubmit="OnSubmit" class="vstack gap-3">
-                <VehicleBasicFields Model="Model" Errors="Errors" />
-                <VehicleSpecificationFields Model="Model" Errors="Errors" />
+                <VehicleBasicFields Model="Model" Errors="Errors" Lookups="Lookups" />
+                <VehicleSpecificationFields Model="Model" Errors="Errors" Lookups="Lookups" />
                 <VehicleFormActions SubmitText="@SubmitText" CancelHref="@CancelHref" />
             </EditForm>
         </div>
@@ -14,7 +14,7 @@ else
 {
     var current = CurrentTab();
 
-    <VehicleTabNav Current="@current" />
+    <TabNav Tabs="Tabs" Current="@current" />
 
     <div class="card border-0 shadow-sm">
         <div class="card-body">
@@ -22,16 +22,16 @@ else
                 <div class="tab-content">
                     <div id="tab-basic" class="tab-pane @PaneState("basic", current)" role="tabpanel" aria-labelledby="tab-basic-tab" tabindex="0">
                         <div class="row">
-                            <div class="col-lg-8 vstack gap-3">
-                                <VehicleBasicFields Model="Model" Errors="Errors" />
+                            <div class="col-lg-10 vstack gap-3">
+                                <VehicleBasicFields Model="Model" Errors="Errors" Lookups="Lookups" />
                                 <VehicleFormActions SubmitText="@SubmitText" CancelHref="@CancelHref" />
                             </div>
                         </div>
                     </div>
                     <div id="tab-specifications" class="tab-pane @PaneState("specifications", current)" role="tabpanel" aria-labelledby="tab-specifications-tab" tabindex="0">
                         <div class="row">
-                            <div class="col-lg-8 vstack gap-3">
-                                <VehicleSpecificationFields Model="Model" Errors="Errors" />
+                            <div class="col-lg-10 vstack gap-3">
+                                <VehicleSpecificationFields Model="Model" Errors="Errors" Lookups="Lookups" />
                                 <VehicleFormActions SubmitText="@SubmitText" CancelHref="@CancelHref" />
                             </div>
                         </div>
@@ -39,25 +39,23 @@ else
                 </div>
             </EditForm>
 
-            <div class="tab-content">
-                <div id="tab-media" class="tab-pane @PaneState("media", current)" role="tabpanel" aria-labelledby="tab-media-tab" tabindex="0">
-                    @MediaContent
-                </div>
-                <div id="tab-description" class="tab-pane @PaneState("description", current)" role="tabpanel" aria-labelledby="tab-description-tab" tabindex="0">
-                    <div class="row">
-                        <div class="col-lg-8">
-                            @DescriptionContent
-                        </div>
+            @if (AttachmentTabs)
+            {
+                <div class="tab-content">
+                    <div id="tab-media" class="tab-pane @PaneState("media", current)" role="tabpanel" aria-labelledby="tab-media-tab" tabindex="0">
+                        @MediaContent
+                    </div>
+                    <div id="tab-description" class="tab-pane @PaneState("description", current)" role="tabpanel" aria-labelledby="tab-description-tab" tabindex="0">
+                        @DescriptionContent
                     </div>
                 </div>
-            </div>
+            }
         </div>
     </div>
 }
 
 @code {
-    private static readonly string[] Fields = [nameof(VehicleFormModel.Nickname), nameof(VehicleFormModel.Make), nameof(VehicleFormModel.Model),
-        nameof(VehicleFormModel.Trim), nameof(VehicleFormModel.Color), nameof(VehicleFormModel.Mileage), nameof(VehicleFormModel.Doors)];
+    private static readonly string[] Fields = [.. VehicleFormFields.BasicFields, .. VehicleFormFields.SpecificationFields];
 
     private EditContext editContext = default!;
     private ValidationMessageStore messages = default!;
@@ -79,6 +77,10 @@ else
     [Parameter]
     public IReadOnlyDictionary<string, string[]> Errors { get; set; } = new Dictionary<string, string[]>();
 
+    // The choices offered by the lookup dropdowns.
+    [Parameter]
+    public VehicleFormLookups Lookups { get; set; } = VehicleFormLookups.Empty;
+
     [Parameter, EditorRequired]
     public EventCallback OnSubmit { get; set; }
 
@@ -89,6 +91,12 @@ else
     // basic, specifications, media, or description; anything else means basic.
     [Parameter]
     public string? ActiveTab { get; set; }
+
+    // False on the add page: pictures, tags, and the journal need a saved vehicle, so only the two form tabs are shown.
+    [Parameter]
+    public bool AttachmentTabs { get; set; } = true;
+
+    private IReadOnlyList<(string Id, string Label, IconName Icon)> Tabs => AttachmentTabs ? VehicleTabs.All : [.. VehicleTabs.All.Take(2)];
 
     [Parameter]
     public RenderFragment? MediaContent { get; set; }
@@ -131,7 +139,8 @@ else
             return "specifications";
         }
 
-        return VehicleTabs.Normalize(ActiveTab);
+        var requested = VehicleTabs.Normalize(ActiveTab);
+        return !AttachmentTabs && requested is "media" or "description" ? "basic" : requested;
     }
 
     private static string PaneState(string id, string current) => id == current ? "show active" : string.Empty;

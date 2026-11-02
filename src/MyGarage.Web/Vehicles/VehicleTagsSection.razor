@@ -1,45 +1,48 @@
 @inject VehiclesApiClient Api
 @inject NavigationManager Navigation
 
-<section class="mt-4" aria-labelledby="tags-heading">
-    <h2 id="tags-heading" class="h5">Features and tags</h2>
-
-    @if (Tags.Count == 0)
-    {
-        <EmptyState Compact="true" Message="No tags yet. Add a few words that describe this vehicle's features." />
-    }
-    else
-    {
-        <ul class="list-unstyled d-flex flex-wrap gap-2">
-            @foreach (var tag in Tags)
-            {
-                <li @key="tag.Id" data-testid="tag">
-                    <form method="post" @formname="@($"remove-tag-{tag.Id}")" @onsubmit="() => RemoveAsync(tag.Id)">
-                        <AntiforgeryToken />
-                        <span class="badge text-bg-secondary fs-6 fw-normal d-inline-flex align-items-center gap-2">
-                            @tag.Name
-                            <button type="submit" class="btn-close btn-close-white" aria-label="Remove tag @tag.Name"></button>
-                        </span>
-                    </form>
-                </li>
-            }
-        </ul>
-    }
+<section aria-labelledby="tags-heading">
+    <h2 id="tags-heading" class="h5">Features</h2>
 
     <EditForm EditContext="editContext" FormName="add-tag" OnValidSubmit="AddAsync" data-testid="add-tag" class="row g-2 align-items-end">
-        <div class="col-sm-8 col-md-6">
-            <label for="tag-name" class="form-label">Add a tag</label>
-            <InputText id="tag-name" class="form-control" @bind-Value="Model!.Name" maxlength="30"
-                       aria-describedby="@(error is null ? null : "tag-error")" />
+        <div class="col">
+            <label for="tag-name" class="form-label fw-semibold">Add a feature</label>
+            <InputText id="tag-name" class="form-control" @bind-Value="Model!.Name" maxlength="30" autocomplete="off"
+                       list="feature-options" data-suggest-url="/features/suggest"
+                       aria-describedby="@(error is null ? "tag-help" : "tag-help tag-error")" />
+            <datalist id="feature-options"></datalist>
         </div>
         <div class="col-auto">
-            <button type="submit" class="btn btn-outline-primary">Add tag</button>
+            <button type="submit" class="btn btn-outline-primary">Add feature</button>
         </div>
     </EditForm>
+    <div id="tag-help" class="form-text">Pick a feature other vehicles use, or type a new one. New features are shared with everyone.</div>
 
     @if (error is not null)
     {
         <div id="tag-error" class="invalid-feedback d-block" role="alert">@error</div>
+    }
+
+    <h3 id="included-features-heading" class="h6 fw-semibold mt-4">Included Features</h3>
+
+    @if (Tags.Count == 0)
+    {
+        <EmptyState Compact="true" Message="No features yet. Start typing to reuse a feature from other vehicles, or add your own." />
+    }
+    else
+    {
+        <ul class="list-group" aria-labelledby="included-features-heading" data-testid="feature-list">
+            @foreach (var tag in Tags)
+            {
+                <li class="list-group-item d-flex justify-content-between align-items-center gap-2" @key="tag.Id" data-testid="tag">
+                    <span class="text-break">@tag.Name</span>
+                    <form method="post" @formname="@($"remove-tag-{tag.Id}")" @onsubmit="() => RemoveAsync(tag.Id)">
+                        <AntiforgeryToken />
+                        <button type="submit" class="btn-close" aria-label="Remove feature @tag.Name"></button>
+                    </form>
+                </li>
+            }
+        </ul>
     }
 </section>
 
@@ -91,10 +94,10 @@
                     Navigation.NavigateTo(Back);
                     break;
                 case ApiOutcome.Conflict:
-                    Fail(result.Title ?? "The tag could not be added.");
+                    Fail(result.Title ?? "The feature could not be added.");
                     break;
                 case ApiOutcome.Invalid:
-                    Fail(result.Errors.Values.SelectMany(messages => messages).FirstOrDefault() ?? "The tag is not valid.");
+                    Fail(result.Errors.Values.SelectMany(messages => messages).FirstOrDefault() ?? "The feature is not valid.");
                     break;
                 default:
                     Fail(VehicleMessages.NotFound);

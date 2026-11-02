@@ -302,3 +302,156 @@ main:focus {
     color: var(--bs-primary);
     border-bottom-color: var(--bs-primary);
 }
+
+/* Click-or-drop picture upload area; the real file input covers it so a click or a drop on it picks files */
+.mg-dropzone {
+    position: relative;
+    min-height: 11rem;
+    border: 2px dashed var(--bs-border-color);
+    border-radius: 0.75rem;
+    background: var(--bs-body-bg);
+    color: var(--bs-secondary-color);
+    transition: border-color 0.15s ease-in-out, background-color 0.15s ease-in-out;
+}
+
+.mg-dropzone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.mg-dropzone:hover,
+.mg-dropzone.is-dragging {
+    border-color: var(--bs-primary);
+    background: var(--bs-primary-bg-subtle);
+}
+
+.mg-dropzone:focus-within {
+    outline: 0.25rem solid rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.mg-dropzone.is-busy {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mg-dropzone {
+        transition: none;
+    }
+}
+
+/* Square picture tile with its actions laid over the picture */
+.mg-image-tile {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    background: var(--bs-secondary-bg);
+}
+
+.mg-image-tile img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.mg-image-main {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 1;
+}
+
+.mg-image-caption {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: 0.25rem 0.5rem;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 0.8125rem;
+}
+
+.mg-image-delete summary {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 2;
+    list-style: none;
+}
+
+.mg-image-delete summary::-webkit-details-marker {
+    display: none;
+}
+
+.mg-image-confirm {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 2.5rem 0.5rem 0.5rem;
+    background: rgba(var(--bs-body-bg-rgb), 0.94);
+    text-align: center;
+}
+
+/* Journal timeline: a rail of markers, newest entry first */
+.mg-timeline {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.mg-timeline-item {
+    position: relative;
+    padding: 0 0 1.5rem 2rem;
+}
+
+.mg-timeline-item::before {
+    content: "";
+    position: absolute;
+    top: 1.25rem;
+    bottom: -0.25rem;
+    left: 0.5rem;
+    width: 2px;
+    background: var(--bs-border-color);
+}
+
+.mg-timeline-item:last-child {
+    padding-bottom: 0.5rem;
+}
+
+.mg-timeline-marker {
+    position: absolute;
+    top: 0.05rem;
+    left: 0;
+    width: 1.1rem;
+    height: 1.1rem;
+    border: 2px solid var(--bs-primary);
+    border-radius: 50%;
+    background: var(--bs-body-bg);
+}
+
+.mg-timeline-marker::after {
+    content: "";
+    position: absolute;
+    inset: 0.2rem;
+    border-radius: 50%;
+    background: var(--bs-primary);
+}
+
+.mg-timeline-time {
+    display: block;
+    margin-bottom: 0.125rem;
+    color: var(--bs-secondary-color);
+    font-size: 0.75rem;
+}

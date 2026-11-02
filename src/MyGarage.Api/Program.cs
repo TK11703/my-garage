@@ -1,4 +1,5 @@
 using MyGarage.Api.Common;
+using MyGarage.Api.Lookups;
 using MyGarage.Api.SampleData;
 using MyGarage.Api.Users;
 using MyGarage.Api.Vehicles;
@@ -18,6 +19,7 @@ builder.Services.AddGarageProblemDetails();
 builder.Services.AddOpenApi();
 builder.Services.AddSampleData();
 builder.Services.AddGarageDatabase();
+builder.Services.AddLookups();
 builder.Services.AddVehicles();
 builder.Services.AddVehicleTags();
 builder.Services.AddJournalNotes();
@@ -37,6 +39,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapUsersEndpoints();
+app.MapLookupsEndpoints();
 app.MapVehiclesEndpoints();
 app.MapVehicleTagsEndpoints();
 app.MapJournalNotesEndpoints();

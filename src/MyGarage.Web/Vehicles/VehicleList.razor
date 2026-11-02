@@ -25,6 +25,7 @@ else if (vehicles is not null)
     else
     {
         <VehicleSearchCard Criteria="criteria" />
+        <VehicleFilterPanel Criteria="criteria" Options="filterOptions" />
 
         <section class="card border-0 shadow-sm mg-results" aria-label="Vehicles">
             <div class="card-header bg-transparent py-3">
@@ -75,6 +76,7 @@ else if (vehicles is not null)
 
 @code {
     private PagedResultDto<VehicleSummaryDto>? vehicles;
+    private VehicleFilterOptionsDto? filterOptions;
     private VehicleListCriteria criteria = VehicleListCriteria.None;
     private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
     private GarageApiFailure? failure;
@@ -85,6 +87,42 @@ else if (vehicles is not null)
 
     [Parameter, SupplyParameterFromQuery(Name = "q")]
     public string? Q { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "make")]
+    public string? Make { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "color")]
+    public string? Color { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "doors")]
+    public string? Doors { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "tag")]
+    public string? Tag { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "minMileage")]
+    public string? MinMileage { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "maxMileage")]
+    public string? MaxMileage { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "minYear")]
+    public string? MinYear { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "maxYear")]
+    public string? MaxYear { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "vehicleTypeId")]
+    public string? VehicleTypeId { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "fuelTypeId")]
+    public string? FuelTypeId { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "transmissionId")]
+    public string? TransmissionId { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "drivetrainId")]
+    public string? DrivetrainId { get; set; }
 
     private string Summary => vehicles!.TotalCount == 1 ? "1 vehicle found" : $"{vehicles.TotalCount} vehicles found";
 
@@ -100,7 +138,8 @@ else if (vehicles is not null)
 
     protected override async Task OnParametersSetAsync()
     {
-        criteria = VehicleListCriteria.FromQuery(Q, null, null, null, null, null, null);
+        criteria = VehicleListCriteria.FromQuery(
+            Q, Make, Color, Doors, Tag, MinMileage, MaxMileage, MinYear, MaxYear, VehicleTypeId, FuelTypeId, TransmissionId, DrivetrainId);
         var requestedPage = int.TryParse(Page, out var parsed) ? Math.Max(1, parsed) : 1;
         errors = new Dictionary<string, string[]>();
 
@@ -116,10 +155,28 @@ else if (vehicles is not null)
             }
 
             vehicles = result.Value;
+
+            if (vehicles is not null && (vehicles.TotalCount > 0 || criteria.HasAny))
+            {
+                await LoadFilterOptionsAsync();
+            }
         }
         catch (GarageApiException ex)
         {
             failure = ex.Failure;
+        }
+    }
+
+    // The filter choices are a convenience: without them the garage still shows and the number filters still work.
+    private async Task LoadFilterOptionsAsync()
+    {
+        try
+        {
+            filterOptions = (await Api.GetFilterOptionsAsync()).Value;
+        }
+        catch (GarageApiException)
+        {
+            filterOptions = null;
         }
     }
 }

@@ -43,7 +43,10 @@ public class SqlScriptStoreTests
         var migrations = new SqlScriptStore().List("Migrations");
 
         Assert.Equal(
-            ["0001_create_vehicles", "0002_create_vehicle_tags", "0003_create_journal_notes", "0004_create_vehicle_images"],
+            [
+                "0001_create_vehicles", "0002_create_vehicle_tags", "0003_create_journal_notes", "0004_create_vehicle_images",
+                "0005_create_lookup_items", "0006_add_vehicle_details", "0007_drop_vehicle_nickname", "0008_create_features",
+            ],
             migrations);
     }
 }

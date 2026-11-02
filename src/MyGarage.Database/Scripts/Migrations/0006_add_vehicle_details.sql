@@ -1,0 +1,17 @@
+ALTER TABLE vehicles
+    ADD COLUMN vin             varchar(17)   NULL CHECK (vin ~ '^[A-HJ-NPR-Z0-9]{17}$'),
+    ADD COLUMN year            smallint      NULL CHECK (year BETWEEN 1900 AND 2200),
+    ADD COLUMN vehicle_type_id uuid          NULL REFERENCES lookup_items (id) ON DELETE RESTRICT,
+    ADD COLUMN ownership       text          NULL CHECK (ownership IN ('purchased', 'leased')),
+    ADD COLUMN purchased_on    date          NULL,
+    ADD COLUMN lease_ends_on   date          NULL,
+    ADD COLUMN engine          varchar(100)  NULL,
+    ADD COLUMN horsepower      integer       NULL CHECK (horsepower BETWEEN 1 AND 3000),
+    ADD COLUMN fuel_type_id    uuid          NULL REFERENCES lookup_items (id) ON DELETE RESTRICT,
+    ADD COLUMN transmission_id uuid          NULL REFERENCES lookup_items (id) ON DELETE RESTRICT,
+    ADD COLUMN seats           smallint      NULL CHECK (seats BETWEEN 1 AND 20),
+    ADD COLUMN drivetrain_id   uuid          NULL REFERENCES lookup_items (id) ON DELETE RESTRICT,
+    ADD COLUMN wheel_size      numeric(3, 1) NULL CHECK (wheel_size BETWEEN 10 AND 30),
+    ADD COLUMN tire_size       varchar(20)   NULL,
+    ADD CONSTRAINT ck_vehicles_lease_requires_leased CHECK (lease_ends_on IS NULL OR COALESCE(ownership = 'leased', false)),
+    ADD CONSTRAINT ck_vehicles_lease_after_purchase CHECK (lease_ends_on IS NULL OR purchased_on IS NULL OR lease_ends_on >= purchased_on);
