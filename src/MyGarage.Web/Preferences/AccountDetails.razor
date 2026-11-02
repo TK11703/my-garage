@@ -1,11 +1,9 @@
 <section class="card border-0 shadow-sm mb-4" aria-labelledby="account-heading" data-testid="account-details">
     <div class="card-body">
         <h2 id="account-heading" class="h5">Account</h2>
-        <dl class="row mb-2">
-            <dt class="col-sm-3">Name</dt>
-            <dd class="col-sm-9 text-break">@Show(User?.DisplayName)</dd>
-            <dt class="col-sm-3">Email</dt>
-            <dd class="col-sm-9 text-break">@Show(User?.Email)</dd>
+        <dl class="row g-3 mb-2">
+            <ViewField Label="Name" Value="@Show(User?.DisplayName)" Column="col-sm-6" />
+            <ViewField Label="Email" Value="@Show(User?.Email)" Column="col-sm-6" />
         </dl>
         <p class="form-text mb-0">Your account details come from your sign-in and cannot be changed here.</p>
     </div>

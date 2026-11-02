@@ -6,13 +6,17 @@
 
     <EditForm EditContext="addContext" FormName="add-note" OnValidSubmit="AddAsync" data-testid="add-note" class="vstack gap-2 mb-4">
         <div>
-            <label for="note-body" class="form-label">New note</label>
-            <InputTextArea id="note-body" class="form-control" rows="3" maxlength="4000" @bind-Value="AddModel!.Body" />
+            <div class="form-floating">
+                <InputTextArea id="note-body" class="form-control" maxlength="4000" placeholder=" " @bind-Value="AddModel!.Body" />
+                <label for="note-body">New note</label>
+            </div>
             <ValidationMessage For="@(() => AddModel.Body)" id="note-body-error" class="invalid-feedback d-block" />
         </div>
         <div class="col-sm-8 col-md-6">
-            <label for="note-category" class="form-label">Category (optional)</label>
-            <InputText id="note-category" class="form-control" maxlength="40" @bind-Value="AddModel.Category" />
+            <div class="form-floating">
+                <InputText id="note-category" class="form-control" maxlength="40" placeholder=" " @bind-Value="AddModel.Category" />
+                <label for="note-category">Category (optional)</label>
+            </div>
             <ValidationMessage For="@(() => AddModel.Category)" id="note-category-error" class="invalid-feedback d-block" />
         </div>
         <div>

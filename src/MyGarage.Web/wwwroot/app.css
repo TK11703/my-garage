@@ -80,16 +80,25 @@ h1:focus {
     border-color: #929292;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-    color: var(--bs-secondary-color);
-    text-align: end;
-}
-
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-    text-align: start;
-}
 .note-body {
     white-space: pre-wrap;
+}
+
+/* Textareas have no intrinsic row height inside a floating label */
+.form-floating > textarea.form-control {
+    min-height: 7rem;
+}
+
+/* An empty date input shows its own format hint, so its label stays raised */
+.form-floating > input[type="date"] ~ label {
+    transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+    opacity: 0.65;
+}
+
+/* Read-only value laid out like the matching edit field: small label over the value */
+.mg-view-field {
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--bs-border-color);
 }
 
 .mg-crumb {
@@ -454,4 +463,9 @@ main:focus {
     margin-bottom: 0.125rem;
     color: var(--bs-secondary-color);
     font-size: 0.75rem;
+}
+
+/* An opened edit or delete panel takes the whole row instead of sitting beside its button */
+.mg-timeline details[open] {
+    flex: 1 0 100%;
 }

@@ -1,0 +1,18 @@
+<div class="@Column">
+    <div class="mg-view-field">
+        <dt class="small fw-normal text-body-secondary">@Label</dt>
+        <dd class="mb-0 text-break">@Value</dd>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string? Value { get; set; }
+
+    // Matches the column the same field takes on the edit form.
+    [Parameter]
+    public string Column { get; set; } = "col-sm-4";
+}

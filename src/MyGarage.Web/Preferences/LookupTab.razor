@@ -1,52 +1,66 @@
 @inject LookupsApiClient Api
 @inject NavigationManager Navigation
 
-<div id="@PaneId" class="tab-pane @(Active ? "show active" : null)" role="tabpanel" aria-labelledby="@($"{PaneId}-tab")" tabindex="0">
-    <h2 class="h5">@Label</h2>
+<div id="@PaneId" class="tab-pane card border-0 shadow-sm @(Active ? "show active" : null)" role="tabpanel" aria-labelledby="@($"{PaneId}-tab")" tabindex="0">
+    <h2 class="card-header h6 mb-0">@Label</h2>
 
-    @if (message is not null)
-    {
-        <div class="alert alert-warning" role="alert" data-testid="tab-message">@message</div>
-    }
-
-    <ul class="list-group mb-4">
-        @foreach (var item in Items)
+    <div class="card-body">
+        @if (message is not null)
         {
-            <li class="list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2 @(item.IsHidden ? "text-body-secondary" : null)"
-                data-testid="lookup-item" @key="item.Id">
-                <span class="d-flex flex-wrap align-items-center gap-2">
-                    <span class="text-break @(item.IsHidden ? "text-decoration-line-through" : null)" data-testid="item-name">@item.Name</span>
-                    <span class="badge text-bg-light border fw-normal" data-testid="origin-badge">@(item.IsDefault ? "Default" : "Yours")</span>
-                    @if (item.IsHidden)
-                    {
-                        <span class="badge text-bg-secondary fw-normal" data-testid="hidden-badge">Hidden</span>
-                    }
-                </span>
-                <form method="post" @formname="@($"toggle-{item.Id}")" @onsubmit="() => ToggleAsync(item)" data-testid="@($"toggle-{Slug}-{item.Id}")">
-                    <AntiforgeryToken />
-                    <button type="submit" class="btn btn-outline-secondary btn-sm" aria-label="@($"{(item.IsHidden ? "Show" : "Hide")} {item.Name}")">
-                        @(item.IsHidden ? "Show" : "Hide")
-                    </button>
-                </form>
-            </li>
+            <div class="alert alert-warning" role="alert" data-testid="tab-message">@message</div>
         }
-    </ul>
 
-    <EditForm EditContext="editContext" FormName="add" OnValidSubmit="AddAsync" data-testid="@($"add-lookup-{Slug}")" class="row g-2 align-items-end">
-        <div class="col-sm-8 col-md-6">
-            <label for="@($"{PaneId}-name")" class="form-label">Add a custom item</label>
-            <InputText id="@($"{PaneId}-name")" class="form-control" @bind-Value="Model!.Name" maxlength="30"
-                       aria-describedby="@(error is null ? null : $"{PaneId}-error")" />
+        <div class="row g-2 px-3 pb-2 fw-semibold small text-body-secondary" aria-hidden="true">
+            <div class="col-6">Name</div>
+            <div class="col-3">Item Type</div>
+            <div class="col-3">Item Status</div>
         </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-outline-primary">Add</button>
-        </div>
-    </EditForm>
+        <ul class="list-group">
+            @foreach (var item in Items)
+            {
+                <li class="list-group-item @(item.IsHidden ? "text-body-secondary" : null)" data-testid="lookup-item" @key="item.Id">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-6 text-break" data-testid="item-name">@item.Name</div>
+                        <div class="col-3" data-testid="item-type">@(item.IsDefault ? "Default" : "Custom")</div>
+                        <div class="col-3">
+                            <form method="post" @formname="@($"toggle-{item.Id}")" @onsubmit="() => ToggleAsync(item)" data-testid="@($"toggle-{Slug}-{item.Id}")">
+                                <AntiforgeryToken />
+                                <div class="form-check form-switch mb-0">
+                                    <input type="checkbox" role="switch" class="form-check-input" id="@($"switch-{item.Id}")" checked="@(!item.IsHidden)"
+                                           data-auto-submit aria-label="@($"Show {item.Name}")" />
+                                    <label class="form-check-label" for="@($"switch-{item.Id}")" data-testid="item-status">@(item.IsHidden ? "Hidden" : "Shown")</label>
+                                </div>
+                                <noscript><button type="submit" class="btn btn-outline-secondary btn-sm mt-1">Apply</button></noscript>
+                            </form>
+                        </div>
+                    </div>
+                </li>
+            }
+        </ul>
+    </div>
 
-    @if (error is not null)
-    {
-        <div id="@($"{PaneId}-error")" class="invalid-feedback d-block" role="alert">@error</div>
-    }
+    <div class="card-footer">
+        <EditForm EditContext="editContext" FormName="add" OnValidSubmit="AddAsync" data-testid="@($"add-lookup-{Slug}")" class="row g-2 align-items-center">
+            <div class="col-sm-8 col-md-6">
+                <div class="form-floating">
+                    <InputText id="@($"{PaneId}-name")" class="form-control" @bind-Value="Model!.Name" maxlength="30" placeholder="New item" required
+                               data-clear-error="@($"{PaneId}-error")"
+                               aria-describedby="@(error is null ? null : $"{PaneId}-error")" />
+                    <label for="@($"{PaneId}-name")">New item</label>
+                </div>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-outline-primary d-inline-flex align-items-center gap-2" title="Add a custom item to this list">
+                    <Icon Name="IconName.Plus" /> Add item
+                </button>
+            </div>
+        </EditForm>
+
+        @if (error is not null)
+        {
+            <div id="@($"{PaneId}-error")" class="invalid-feedback d-block" role="alert">@error</div>
+        }
+    </div>
 </div>
 
 @code {

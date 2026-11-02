@@ -17,28 +17,24 @@ else if (lookups is not null)
 {
     <TabNav Tabs="PreferencesTabs.All" Current="@activeTab" IdPrefix="lookup" />
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-body">
-            <div class="tab-content">
-                @* Each tab sits in its own form scope so its "add" form is told apart from the other tabs' (the scope must wrap the component). *@
-                <FormMappingScope Name="@($"lookup-{LookupKinds.VehicleTypes}")" Context="vehicleTypesScope">
-                    <LookupTab Slug="@LookupKinds.VehicleTypes" Label="Vehicle Types" Items="lookups.VehicleTypes"
-                               Active="@(activeTab == LookupKinds.VehicleTypes)" OnAttention="Attend" />
-                </FormMappingScope>
-                <FormMappingScope Name="@($"lookup-{LookupKinds.FuelTypes}")" Context="fuelTypesScope">
-                    <LookupTab Slug="@LookupKinds.FuelTypes" Label="Fuel Types" Items="lookups.FuelTypes"
-                               Active="@(activeTab == LookupKinds.FuelTypes)" OnAttention="Attend" />
-                </FormMappingScope>
-                <FormMappingScope Name="@($"lookup-{LookupKinds.Transmissions}")" Context="transmissionsScope">
-                    <LookupTab Slug="@LookupKinds.Transmissions" Label="Transmissions" Items="lookups.Transmissions"
-                               Active="@(activeTab == LookupKinds.Transmissions)" OnAttention="Attend" />
-                </FormMappingScope>
-                <FormMappingScope Name="@($"lookup-{LookupKinds.Drivetrains}")" Context="drivetrainsScope">
-                    <LookupTab Slug="@LookupKinds.Drivetrains" Label="Drivetrains" Items="lookups.Drivetrains"
-                               Active="@(activeTab == LookupKinds.Drivetrains)" OnAttention="Attend" />
-                </FormMappingScope>
-            </div>
-        </div>
+    <div class="tab-content">
+        @* Each tab sits in its own form scope so its "add" form is told apart from the other tabs' (the scope must wrap the component). *@
+        <FormMappingScope Name="@($"lookup-{LookupKinds.VehicleTypes}")" Context="vehicleTypesScope">
+            <LookupTab Slug="@LookupKinds.VehicleTypes" Label="Vehicle Types" Items="lookups.VehicleTypes"
+                       Active="@(activeTab == LookupKinds.VehicleTypes)" OnAttention="Attend" />
+        </FormMappingScope>
+        <FormMappingScope Name="@($"lookup-{LookupKinds.FuelTypes}")" Context="fuelTypesScope">
+            <LookupTab Slug="@LookupKinds.FuelTypes" Label="Fuel Types" Items="lookups.FuelTypes"
+                       Active="@(activeTab == LookupKinds.FuelTypes)" OnAttention="Attend" />
+        </FormMappingScope>
+        <FormMappingScope Name="@($"lookup-{LookupKinds.Transmissions}")" Context="transmissionsScope">
+            <LookupTab Slug="@LookupKinds.Transmissions" Label="Transmissions" Items="lookups.Transmissions"
+                       Active="@(activeTab == LookupKinds.Transmissions)" OnAttention="Attend" />
+        </FormMappingScope>
+        <FormMappingScope Name="@($"lookup-{LookupKinds.Drivetrains}")" Context="drivetrainsScope">
+            <LookupTab Slug="@LookupKinds.Drivetrains" Label="Drivetrains" Items="lookups.Drivetrains"
+                       Active="@(activeTab == LookupKinds.Drivetrains)" OnAttention="Attend" />
+        </FormMappingScope>
     </div>
 }
 

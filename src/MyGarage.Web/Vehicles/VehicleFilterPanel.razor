@@ -36,108 +36,132 @@
                 @if (Options is not null)
                 {
                     <div class="col-sm-6 col-lg-3">
-                        <label for="filter-make" class="form-label">Make</label>
-                        <select id="filter-make" name="make" form="vehicle-search" class="form-select">
+                        <div class="form-floating">
+                            <select id="filter-make" name="make" form="vehicle-search" class="form-select">
                             <option value="">Any</option>
                             @foreach (var make in Options.Makes)
                             {
                                 <option value="@make" selected="@Same(Criteria.Make, make)">@make</option>
                             }
                         </select>
+                            <label for="filter-make">Make</label>
+                        </div>
                     </div>
                     <div class="col-sm-6 col-lg-3">
-                        <label for="filter-color" class="form-label">Color</label>
-                        <select id="filter-color" name="color" form="vehicle-search" class="form-select">
+                        <div class="form-floating">
+                            <select id="filter-color" name="color" form="vehicle-search" class="form-select">
                             <option value="">Any</option>
                             @foreach (var color in Options.Colors)
                             {
                                 <option value="@color" selected="@Same(Criteria.Color, color)">@color</option>
                             }
                         </select>
+                            <label for="filter-color">Color</label>
+                        </div>
                     </div>
                 }
                 <div class="col-sm-6 col-lg-3">
-                    <label for="filter-doors" class="form-label">Doors</label>
-                    <select id="filter-doors" name="doors" form="vehicle-search" class="form-select">
+                    <div class="form-floating">
+                        <select id="filter-doors" name="doors" form="vehicle-search" class="form-select">
                         <option value="">Any</option>
                         @for (var doors = 1; doors <= 6; doors++)
                         {
                             <option value="@doors" selected="@(Criteria.Doors == doors)">@doors</option>
                         }
                     </select>
+                        <label for="filter-doors">Doors</label>
+                    </div>
                 </div>
                 @if (Options is not null)
                 {
                     <div class="col-sm-6 col-lg-3">
-                        <label for="filter-tag" class="form-label">Tag</label>
-                        <select id="filter-tag" name="tag" form="vehicle-search" class="form-select">
+                        <div class="form-floating">
+                            <select id="filter-tag" name="tag" form="vehicle-search" class="form-select">
                             <option value="">Any</option>
                             @foreach (var tag in Options.Tags)
                             {
                                 <option value="@tag" selected="@Same(Criteria.Tag, tag)">@tag</option>
                             }
                         </select>
+                            <label for="filter-tag">Tag</label>
+                        </div>
                     </div>
                     <div class="col-sm-6 col-lg-3">
-                        <label for="filter-vehicle-type" class="form-label">Vehicle type</label>
-                        <select id="filter-vehicle-type" name="vehicleTypeId" form="vehicle-search" class="form-select">
+                        <div class="form-floating">
+                            <select id="filter-vehicle-type" name="vehicleTypeId" form="vehicle-search" class="form-select">
                             <option value="">Any</option>
                             @foreach (var item in Options.VehicleTypes)
                             {
                                 <option value="@item.Id" selected="@(Criteria.VehicleTypeId == item.Id)">@item.Name</option>
                             }
                         </select>
+                            <label for="filter-vehicle-type">Vehicle type</label>
+                        </div>
                     </div>
                     <div class="col-sm-6 col-lg-3">
-                        <label for="filter-fuel-type" class="form-label">Fuel type</label>
-                        <select id="filter-fuel-type" name="fuelTypeId" form="vehicle-search" class="form-select">
+                        <div class="form-floating">
+                            <select id="filter-fuel-type" name="fuelTypeId" form="vehicle-search" class="form-select">
                             <option value="">Any</option>
                             @foreach (var item in Options.FuelTypes)
                             {
                                 <option value="@item.Id" selected="@(Criteria.FuelTypeId == item.Id)">@item.Name</option>
                             }
                         </select>
+                            <label for="filter-fuel-type">Fuel type</label>
+                        </div>
                     </div>
                     <div class="col-sm-6 col-lg-3">
-                        <label for="filter-transmission" class="form-label">Transmission</label>
-                        <select id="filter-transmission" name="transmissionId" form="vehicle-search" class="form-select">
+                        <div class="form-floating">
+                            <select id="filter-transmission" name="transmissionId" form="vehicle-search" class="form-select">
                             <option value="">Any</option>
                             @foreach (var item in Options.Transmissions)
                             {
                                 <option value="@item.Id" selected="@(Criteria.TransmissionId == item.Id)">@item.Name</option>
                             }
                         </select>
+                            <label for="filter-transmission">Transmission</label>
+                        </div>
                     </div>
                     <div class="col-sm-6 col-lg-3">
-                        <label for="filter-drivetrain" class="form-label">Drivetrain</label>
-                        <select id="filter-drivetrain" name="drivetrainId" form="vehicle-search" class="form-select">
+                        <div class="form-floating">
+                            <select id="filter-drivetrain" name="drivetrainId" form="vehicle-search" class="form-select">
                             <option value="">Any</option>
                             @foreach (var item in Options.Drivetrains)
                             {
                                 <option value="@item.Id" selected="@(Criteria.DrivetrainId == item.Id)">@item.Name</option>
                             }
                         </select>
+                            <label for="filter-drivetrain">Drivetrain</label>
+                        </div>
                     </div>
                 }
                 <div class="col-sm-6 col-lg-3">
-                    <label for="filter-min-mileage" class="form-label">Minimum mileage</label>
-                    <input id="filter-min-mileage" name="minMileage" form="vehicle-search" type="number" class="form-control" min="0" max="9999999" step="1"
+                    <div class="form-floating">
+                        <input id="filter-min-mileage" name="minMileage" form="vehicle-search" type="number" class="form-control" placeholder=" " min="0" max="9999999" step="1"
                            inputmode="numeric" value="@Format(Criteria.MinMileage)" />
+                        <label for="filter-min-mileage">Minimum mileage</label>
+                    </div>
                 </div>
                 <div class="col-sm-6 col-lg-3">
-                    <label for="filter-max-mileage" class="form-label">Maximum mileage</label>
-                    <input id="filter-max-mileage" name="maxMileage" form="vehicle-search" type="number" class="form-control" min="0" max="9999999" step="1"
+                    <div class="form-floating">
+                        <input id="filter-max-mileage" name="maxMileage" form="vehicle-search" type="number" class="form-control" placeholder=" " min="0" max="9999999" step="1"
                            inputmode="numeric" value="@Format(Criteria.MaxMileage)" />
+                        <label for="filter-max-mileage">Maximum mileage</label>
+                    </div>
                 </div>
                 <div class="col-sm-6 col-lg-3">
-                    <label for="filter-min-year" class="form-label">Minimum year</label>
-                    <input id="filter-min-year" name="minYear" form="vehicle-search" type="number" class="form-control" min="1900" max="2200" step="1"
+                    <div class="form-floating">
+                        <input id="filter-min-year" name="minYear" form="vehicle-search" type="number" class="form-control" placeholder=" " min="1900" max="2200" step="1"
                            inputmode="numeric" value="@Format(Criteria.MinYear)" />
+                        <label for="filter-min-year">Minimum year</label>
+                    </div>
                 </div>
                 <div class="col-sm-6 col-lg-3">
-                    <label for="filter-max-year" class="form-label">Maximum year</label>
-                    <input id="filter-max-year" name="maxYear" form="vehicle-search" type="number" class="form-control" min="1900" max="2200" step="1"
+                    <div class="form-floating">
+                        <input id="filter-max-year" name="maxYear" form="vehicle-search" type="number" class="form-control" placeholder=" " min="1900" max="2200" step="1"
                            inputmode="numeric" value="@Format(Criteria.MaxYear)" />
+                        <label for="filter-max-year">Maximum year</label>
+                    </div>
                 </div>
             </div>
             <button type="submit" form="vehicle-search" class="btn btn-primary mt-3">Apply</button>

@@ -57,51 +57,31 @@ else if (vehicle is not null)
     <div class="tab-content">
                 <div id="tab-details" class="tab-pane @PaneState("details", current)" role="tabpanel" aria-labelledby="tab-details-tab" tabindex="0">
                     <FieldGroup Id="basic" Title="Basic">
-                    <dl class="row mb-0" aria-label="Basic information">
-                        <dt class="col-sm-3">Year</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Number(vehicle.Year)</dd>
-                        <dt class="col-sm-3">Make</dt>
-                        <dd class="col-sm-9">@vehicle.Make</dd>
-                        <dt class="col-sm-3">Model</dt>
-                        <dd class="col-sm-9">@vehicle.Model</dd>
-                        <dt class="col-sm-3">Trim</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Text(vehicle.Trim)</dd>
-                        <dt class="col-sm-3">VIN</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Text(vehicle.Vin)</dd>
-                        <dt class="col-sm-3">Vehicle type</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Text(vehicle.VehicleType?.Name)</dd>
-                        <dt class="col-sm-3">Purchased or leased</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Ownership(vehicle.Ownership)</dd>
-                        <dt class="col-sm-3">@VehicleFormat.DateLabel(vehicle.Ownership)</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Date(vehicle.PurchasedOn)</dd>
-                        <dt class="col-sm-3">Date lease ends</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Date(vehicle.LeaseEndsOn)</dd>
-                        <dt class="col-sm-3">@VehicleFormat.MileageLabel(vehicle.Ownership)</dt>
-                        <dd class="col-sm-9">@VehicleFormat.MileageOrNotSet(vehicle.Mileage)</dd>
+                    <dl class="row g-3 mb-0" aria-label="Basic information">
+                        <ViewField Label="Year" Value="@VehicleFormat.Number(vehicle.Year)" />
+                        <ViewField Label="Make" Value="@vehicle.Make" />
+                        <ViewField Label="Model" Value="@vehicle.Model" />
+                        <ViewField Label="Trim" Value="@VehicleFormat.Text(vehicle.Trim)" />
+                        <ViewField Label="VIN" Value="@VehicleFormat.Text(vehicle.Vin)" />
+                        <ViewField Label="Vehicle type" Value="@VehicleFormat.Text(vehicle.VehicleType?.Name)" />
+                        <ViewField Label="Purchased or leased" Value="@VehicleFormat.Ownership(vehicle.Ownership)" />
+                        <ViewField Label="@VehicleFormat.DateLabel(vehicle.Ownership)" Value="@VehicleFormat.Date(vehicle.PurchasedOn)" />
+                        <ViewField Label="Date lease ends" Value="@VehicleFormat.Date(vehicle.LeaseEndsOn)" />
+                        <ViewField Label="@VehicleFormat.MileageLabel(vehicle.Ownership)" Value="@VehicleFormat.MileageOrNotSet(vehicle.Mileage)" />
                     </dl>
                     </FieldGroup>
                     <FieldGroup Id="specifications" Title="Specifications">
-                    <dl class="row mb-0" aria-label="Specifications">
-                        <dt class="col-sm-3">Engine</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Text(vehicle.Engine)</dd>
-                        <dt class="col-sm-3">Horsepower</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Horsepower(vehicle.Horsepower)</dd>
-                        <dt class="col-sm-3">Drivetrain</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Text(vehicle.Drivetrain?.Name)</dd>
-                        <dt class="col-sm-3">Color</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Text(vehicle.Color)</dd>
-                        <dt class="col-sm-3">Fuel type</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Text(vehicle.FuelType?.Name)</dd>
-                        <dt class="col-sm-3">Transmission</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Text(vehicle.Transmission?.Name)</dd>
-                        <dt class="col-sm-3">Seats</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Number(vehicle.Seats)</dd>
-                        <dt class="col-sm-3">Doors</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Number(vehicle.Doors)</dd>
-                        <dt class="col-sm-3">Wheel size</dt>
-                        <dd class="col-sm-9">@VehicleFormat.WheelSize(vehicle.WheelSize)</dd>
-                        <dt class="col-sm-3">Tire size</dt>
-                        <dd class="col-sm-9">@VehicleFormat.Text(vehicle.TireSize)</dd>
+                    <dl class="row g-3 mb-0" aria-label="Specifications">
+                        <ViewField Label="Engine" Value="@VehicleFormat.Text(vehicle.Engine)" />
+                        <ViewField Label="Horsepower" Value="@VehicleFormat.Horsepower(vehicle.Horsepower)" />
+                        <ViewField Label="Drivetrain" Value="@VehicleFormat.Text(vehicle.Drivetrain?.Name)" />
+                        <ViewField Label="Color" Value="@VehicleFormat.Text(vehicle.Color)" />
+                        <ViewField Label="Fuel type" Value="@VehicleFormat.Text(vehicle.FuelType?.Name)" />
+                        <ViewField Label="Transmission" Value="@VehicleFormat.Text(vehicle.Transmission?.Name)" />
+                        <ViewField Label="Seats" Value="@VehicleFormat.Number(vehicle.Seats)" Column="col-6 col-sm-3" />
+                        <ViewField Label="Doors" Value="@VehicleFormat.Number(vehicle.Doors)" Column="col-6 col-sm-3" />
+                        <ViewField Label="Wheel size" Value="@VehicleFormat.WheelSize(vehicle.WheelSize)" Column="col-6 col-sm-3" />
+                        <ViewField Label="Tire size" Value="@VehicleFormat.Text(vehicle.TireSize)" Column="col-6 col-sm-3" />
                     </dl>
                     </FieldGroup>
                 </div>

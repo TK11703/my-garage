@@ -99,7 +99,7 @@ public class PreferencesPageTests : VehicleTestContext
     }
 
     [Fact]
-    public void EachTabListsEveryItemIncludingHiddenOnesWithBadgesAndAHideOrShowButton()
+    public void EachTabIsACardWithTheNameInTheHeaderItemsInTheBodyAndAddInTheFooter()
     {
         Lookups = new LookupsDto
         {
@@ -113,12 +113,34 @@ public class PreferencesPageTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
+            var pane = cut.Find("#lookup-fuel-types");
+            Assert.Contains("card", pane.ClassList);
+            Assert.Equal("Fuel Types", pane.QuerySelector(":scope > .card-header")!.TextContent.Trim());
+            Assert.Equal(3, pane.QuerySelectorAll(":scope > .card-body [data-testid='lookup-item']").Length);
+            Assert.NotNull(pane.QuerySelector(":scope > .card-footer form[data-testid='add-lookup-fuel-types']"));
+
             var rows = cut.FindAll("#lookup-fuel-types [data-testid='lookup-item']");
-            Assert.Equal(3, rows.Count);
             Assert.Equal(["Gasoline", "Diesel", "Plug-in Hybrid"], rows.Select(row => row.QuerySelector("[data-testid='item-name']")!.TextContent.Trim()));
-            Assert.Equal(["Default", "Default", "Yours"], rows.Select(row => row.QuerySelector("[data-testid='origin-badge']")!.TextContent.Trim()));
-            Assert.Equal([false, true, false], rows.Select(row => row.QuerySelector("[data-testid='hidden-badge']") is not null));
-            Assert.Equal(["Hide Gasoline", "Show Diesel", "Hide Plug-in Hybrid"], rows.Select(row => row.QuerySelector("button[type='submit']")!.GetAttribute("aria-label")));
+            Assert.Equal(["Default", "Default", "Custom"], rows.Select(row => row.QuerySelector("[data-testid='item-type']")!.TextContent.Trim()));
+            Assert.Equal(["Shown", "Hidden", "Shown"], rows.Select(row => row.QuerySelector("[data-testid='item-status']")!.TextContent.Trim()));
+            Assert.Equal([true, false, true], rows.Select(row => row.QuerySelector("input[type='checkbox'][role='switch']")!.HasAttribute("checked")));
+            Assert.Equal(["Show Gasoline", "Show Diesel", "Show Plug-in Hybrid"], rows.Select(row => row.QuerySelector("input[role='switch']")!.GetAttribute("aria-label")));
+        });
+    }
+
+    [Fact]
+    public void HiddenItemsAreGreyedOutNotCrossedOut()
+    {
+        Lookups = new LookupsDto { VehicleTypes = [], FuelTypes = [Item("Gasoline"), Item("Diesel", isHidden: true)], Transmissions = [], Drivetrains = [] };
+
+        var cut = RenderPage();
+
+        cut.WaitForAssertion(() =>
+        {
+            var rows = cut.FindAll("#lookup-fuel-types [data-testid='lookup-item']");
+            Assert.DoesNotContain("text-body-secondary", rows[0].ClassList);
+            Assert.Contains("text-body-secondary", rows[1].ClassList);
+            Assert.Empty(cut.FindAll(".text-decoration-line-through"));
         });
     }
 
@@ -160,7 +182,9 @@ public class PreferencesPageTests : VehicleTestContext
                 var form = cut.Find($"#lookup-{slug} form[data-testid='add-lookup-{slug}']");
                 Assert.NotNull(form.QuerySelector($"label[for='lookup-{slug}-name']"));
                 Assert.Equal("30", form.QuerySelector($"input#lookup-{slug}-name")!.GetAttribute("maxlength"));
-                Assert.Equal("Add", form.QuerySelector("button[type='submit']")!.TextContent.Trim());
+                Assert.Equal("Add item", form.QuerySelector("button[type='submit']")!.TextContent.Trim());
+                Assert.NotNull(form.QuerySelector("button[type='submit'] svg.bi"));
+                Assert.False(string.IsNullOrWhiteSpace(form.QuerySelector("button[type='submit']")!.GetAttribute("title")));
             }
         });
     }

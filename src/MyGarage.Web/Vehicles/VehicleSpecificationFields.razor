@@ -1,84 +1,104 @@
 <div class="row g-3">
     <div class="col-sm-4">
-        <label for="engine" class="form-label">Engine</label>
-        <InputText id="engine" class="form-control" @bind-Value="Model.Engine" maxlength="100"
-                   aria-describedby="@VehicleFormFields.Described(Errors, "Engine")" />
+        <div class="form-floating">
+            <InputText id="engine" class="form-control" @bind-Value="Model.Engine" maxlength="100" placeholder=" "
+                       aria-describedby="@VehicleFormFields.Described(Errors, "Engine")" />
+            <label for="engine">Engine</label>
+        </div>
         <ValidationMessage For="@(() => Model.Engine)" id="engine-error" class="invalid-feedback d-block" />
     </div>
     <div class="col-sm-4">
-        <label for="horsepower" class="form-label">Horsepower</label>
-        <InputNumber id="horsepower" TValue="int?" class="form-control" @bind-Value="Model.Horsepower" min="1" max="3000" step="1" inputmode="numeric"
-                     aria-describedby="@VehicleFormFields.Described(Errors, "Horsepower")" />
+        <div class="form-floating">
+            <InputNumber id="horsepower" TValue="int?" class="form-control" @bind-Value="Model.Horsepower" min="1" max="3000" step="1" inputmode="numeric" placeholder=" "
+                         aria-describedby="@VehicleFormFields.Described(Errors, "Horsepower")" />
+            <label for="horsepower">Horsepower</label>
+        </div>
         <ValidationMessage For="@(() => Model.Horsepower)" id="horsepower-error" class="invalid-feedback d-block" />
     </div>
     <div class="col-sm-4">
-        <label for="drivetrain" class="form-label">Drivetrain</label>
-        <InputSelect id="drivetrain" TValue="Guid?" class="form-select" @bind-Value="Model.DrivetrainId"
-                     aria-describedby="@VehicleFormFields.Described(Errors, "DrivetrainId")">
-            <option value="">Not set</option>
-            @foreach (var item in Lookups.Drivetrains)
-            {
-                <option value="@item.Id">@item.Name</option>
-            }
-        </InputSelect>
+        <div class="form-floating">
+            <InputSelect id="drivetrain" TValue="Guid?" class="form-select" @bind-Value="Model.DrivetrainId"
+                         aria-describedby="@VehicleFormFields.Described(Errors, "DrivetrainId")">
+                <option value="">Not set</option>
+                @foreach (var item in Lookups.Drivetrains)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </InputSelect>
+            <label for="drivetrain">Drivetrain</label>
+        </div>
         <ValidationMessage For="@(() => Model.DrivetrainId)" id="drivetrainid-error" class="invalid-feedback d-block" />
     </div>
 </div>
 <div class="row g-3">
     <div class="col-sm-4">
-        <label for="color" class="form-label">Color</label>
-        <InputText id="color" class="form-control" @bind-Value="Model.Color" maxlength="30"
-                   aria-describedby="@VehicleFormFields.Described(Errors, "Color")" />
+        <div class="form-floating">
+            <InputText id="color" class="form-control" @bind-Value="Model.Color" maxlength="30" placeholder=" "
+                       aria-describedby="@VehicleFormFields.Described(Errors, "Color")" />
+            <label for="color">Color</label>
+        </div>
         <ValidationMessage For="@(() => Model.Color)" id="color-error" class="invalid-feedback d-block" />
     </div>
     <div class="col-sm-4">
-        <label for="fuel-type" class="form-label">Fuel type</label>
-        <InputSelect id="fuel-type" TValue="Guid?" class="form-select" @bind-Value="Model.FuelTypeId"
-                     aria-describedby="@VehicleFormFields.Described(Errors, "FuelTypeId")">
-            <option value="">Not set</option>
-            @foreach (var item in Lookups.FuelTypes)
-            {
-                <option value="@item.Id">@item.Name</option>
-            }
-        </InputSelect>
+        <div class="form-floating">
+            <InputSelect id="fuel-type" TValue="Guid?" class="form-select" @bind-Value="Model.FuelTypeId"
+                         aria-describedby="@VehicleFormFields.Described(Errors, "FuelTypeId")">
+                <option value="">Not set</option>
+                @foreach (var item in Lookups.FuelTypes)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </InputSelect>
+            <label for="fuel-type">Fuel type</label>
+        </div>
         <ValidationMessage For="@(() => Model.FuelTypeId)" id="fueltypeid-error" class="invalid-feedback d-block" />
     </div>
     <div class="col-sm-4">
-        <label for="transmission" class="form-label">Transmission</label>
-        <InputSelect id="transmission" TValue="Guid?" class="form-select" @bind-Value="Model.TransmissionId"
-                     aria-describedby="@VehicleFormFields.Described(Errors, "TransmissionId")">
-            <option value="">Not set</option>
-            @foreach (var item in Lookups.Transmissions)
-            {
-                <option value="@item.Id">@item.Name</option>
-            }
-        </InputSelect>
+        <div class="form-floating">
+            <InputSelect id="transmission" TValue="Guid?" class="form-select" @bind-Value="Model.TransmissionId"
+                         aria-describedby="@VehicleFormFields.Described(Errors, "TransmissionId")">
+                <option value="">Not set</option>
+                @foreach (var item in Lookups.Transmissions)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </InputSelect>
+            <label for="transmission">Transmission</label>
+        </div>
         <ValidationMessage For="@(() => Model.TransmissionId)" id="transmissionid-error" class="invalid-feedback d-block" />
     </div>
 </div>
 <div class="row g-3">
     <div class="col-6 col-sm-3">
-        <label for="seats" class="form-label">Seats</label>
-        <InputNumber id="seats" TValue="int?" class="form-control" @bind-Value="Model.Seats" min="1" max="20" step="1" inputmode="numeric"
-                     aria-describedby="@VehicleFormFields.Described(Errors, "Seats")" />
+        <div class="form-floating">
+            <InputNumber id="seats" TValue="int?" class="form-control" @bind-Value="Model.Seats" min="1" max="20" step="1" inputmode="numeric" placeholder=" "
+                         aria-describedby="@VehicleFormFields.Described(Errors, "Seats")" />
+            <label for="seats">Seats</label>
+        </div>
         <ValidationMessage For="@(() => Model.Seats)" id="seats-error" class="invalid-feedback d-block" />
     </div>
     <div class="col-6 col-sm-3">
-        <label for="doors" class="form-label">Doors</label>
-        <InputNumber id="doors" TValue="int?" class="form-control" @bind-Value="Model.Doors" min="1" max="6" step="1" inputmode="numeric"
-                     aria-describedby="@VehicleFormFields.Described(Errors, "Doors")" />
+        <div class="form-floating">
+            <InputNumber id="doors" TValue="int?" class="form-control" @bind-Value="Model.Doors" min="1" max="6" step="1" inputmode="numeric" placeholder=" "
+                         aria-describedby="@VehicleFormFields.Described(Errors, "Doors")" />
+            <label for="doors">Doors</label>
+        </div>
         <ValidationMessage For="@(() => Model.Doors)" id="doors-error" class="invalid-feedback d-block" />
     </div>
     <div class="col-6 col-sm-3">
-        <label for="wheel-size" class="form-label">Wheel size (in)</label>
-        <InputNumber id="wheel-size" TValue="decimal?" class="form-control" @bind-Value="Model.WheelSize" min="10" max="30" step="0.1" inputmode="decimal"
-                     aria-describedby="@VehicleFormFields.Described(Errors, "WheelSize")" />
+        <div class="form-floating">
+            <InputNumber id="wheel-size" TValue="decimal?" class="form-control" @bind-Value="Model.WheelSize" min="10" max="30" step="0.1" inputmode="decimal" placeholder=" "
+                         aria-describedby="@VehicleFormFields.Described(Errors, "WheelSize")" />
+            <label for="wheel-size">Wheel size (in)</label>
+        </div>
         <ValidationMessage For="@(() => Model.WheelSize)" id="wheelsize-error" class="invalid-feedback d-block" />
     </div>
     <div class="col-6 col-sm-3">
-        <label for="tire-size" class="form-label">Tire size</label>
-        <InputText id="tire-size" class="form-control" @bind-Value="Model.TireSize" maxlength="20"
-                   aria-describedby="@VehicleFormFields.Described(Errors, "TireSize")" />
+        <div class="form-floating">
+            <InputText id="tire-size" class="form-control" @bind-Value="Model.TireSize" maxlength="20" placeholder=" "
+                       aria-describedby="@VehicleFormFields.Described(Errors, "TireSize")" />
+            <label for="tire-size">Tire size</label>
+        </div>
         <ValidationMessage For="@(() => Model.TireSize)" id="tiresize-error" class="invalid-feedback d-block" />
     </div>
 </div>

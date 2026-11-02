@@ -4,12 +4,14 @@
 <section aria-labelledby="tags-heading">
     <h2 id="tags-heading" class="h5">Features</h2>
 
-    <EditForm EditContext="editContext" FormName="add-tag" OnValidSubmit="AddAsync" data-testid="add-tag" class="row g-2 align-items-end">
+    <EditForm EditContext="editContext" FormName="add-tag" OnValidSubmit="AddAsync" data-testid="add-tag" class="row g-2 align-items-center">
         <div class="col">
-            <label for="tag-name" class="form-label fw-semibold">Add a feature</label>
-            <InputText id="tag-name" class="form-control" @bind-Value="Model!.Name" maxlength="30" autocomplete="off"
-                       list="feature-options" data-suggest-url="/features/suggest"
-                       aria-describedby="@(error is null ? "tag-help" : "tag-help tag-error")" />
+            <div class="form-floating">
+                <InputText id="tag-name" class="form-control" @bind-Value="Model!.Name" maxlength="30" autocomplete="off" placeholder=" "
+                           list="feature-options" data-suggest-url="/features/suggest"
+                           aria-describedby="@(error is null ? "tag-help" : "tag-help tag-error")" />
+                <label for="tag-name">Add a feature</label>
+            </div>
             <datalist id="feature-options"></datalist>
         </div>
         <div class="col-auto">

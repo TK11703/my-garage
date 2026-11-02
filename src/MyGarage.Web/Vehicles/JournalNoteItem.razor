@@ -27,13 +27,17 @@
                     <summary class="btn btn-outline-secondary btn-sm">Edit</summary>
                     <EditForm EditContext="editContext" FormName="edit" OnValidSubmit="SaveAsync" class="vstack gap-2 mt-2">
                         <div>
-                            <label for="note-@Note.Id-body" class="form-label">Note</label>
-                            <InputTextArea id="@($"note-{Note.Id}-body")" class="form-control" rows="3" maxlength="4000" @bind-Value="EditModel!.Body" />
+                            <div class="form-floating">
+                                <InputTextArea id="@($"note-{Note.Id}-body")" class="form-control" maxlength="4000" placeholder=" " @bind-Value="EditModel!.Body" />
+                                <label for="note-@Note.Id-body">Note</label>
+                            </div>
                             <ValidationMessage For="@(() => EditModel.Body)" id="@($"note-{Note.Id}-body-error")" class="invalid-feedback d-block" />
                         </div>
                         <div>
-                            <label for="note-@Note.Id-category" class="form-label">Category (optional)</label>
-                            <InputText id="@($"note-{Note.Id}-category")" class="form-control" maxlength="40" @bind-Value="EditModel.Category" />
+                            <div class="form-floating">
+                                <InputText id="@($"note-{Note.Id}-category")" class="form-control" maxlength="40" placeholder=" " @bind-Value="EditModel.Category" />
+                                <label for="note-@Note.Id-category">Category (optional)</label>
+                            </div>
                             <ValidationMessage For="@(() => EditModel.Category)" id="@($"note-{Note.Id}-category-error")" class="invalid-feedback d-block" />
                         </div>
                         <div class="d-flex gap-2">
