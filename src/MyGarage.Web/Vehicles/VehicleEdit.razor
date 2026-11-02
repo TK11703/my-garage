@@ -64,7 +64,7 @@ else if (loaded && Model is not null)
     [Parameter]
     public Guid VehicleId { get; set; }
 
-    // Which tab to open: basic, specifications, media, or description.
+    // Which tab to open: details, media, or description.
     [Parameter, SupplyParameterFromQuery(Name = "tab")]
     public string? Tab { get; set; }
 

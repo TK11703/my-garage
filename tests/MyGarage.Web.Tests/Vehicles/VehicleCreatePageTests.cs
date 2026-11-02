@@ -52,15 +52,15 @@ public class VehicleCreatePageTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             var tabs = cut.FindAll("ul.mg-tabs[role='tablist'] button[role='tab']");
-            Assert.Equal(["Basic Info", "Specifications"], tabs.Select(tab => tab.TextContent.Trim()));
-            Assert.Equal(["tab-basic"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
+            Assert.Equal(["Details"], tabs.Select(tab => tab.TextContent.Trim()));
+            Assert.Equal(["tab-details"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
             Assert.Empty(cut.FindAll("#tab-media, #tab-description"));
             Assert.Equal(
                 ["year", "make", "model", "trim", "vin", "vehicle-type", "ownership", "purchased-on", "lease-ends-on", "mileage"],
-                cut.Find("#tab-basic").QuerySelectorAll("input[id], select[id]").Select(field => field.Id));
+                cut.Find("#group-basic").QuerySelectorAll("input[id], select[id]").Select(field => field.Id));
             Assert.Equal(
                 ["engine", "horsepower", "drivetrain", "color", "fuel-type", "transmission", "seats", "doors", "wheel-size", "tire-size"],
-                cut.Find("#tab-specifications").QuerySelectorAll("input[id], select[id]").Select(field => field.Id));
+                cut.Find("#group-specifications").QuerySelectorAll("input[id], select[id]").Select(field => field.Id));
         });
     }
 
@@ -76,7 +76,7 @@ public class VehicleCreatePageTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             Assert.Contains("Horsepower must be between", cut.Find("#horsepower-error").TextContent);
-            Assert.Equal(["tab-specifications"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
+            Assert.Equal(["tab-details"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
         });
     }
 
@@ -90,8 +90,8 @@ public class VehicleCreatePageTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            Assert.Contains("Mileage must be between", cut.Find("#tab-basic #mileage-error").TextContent);
-            Assert.Equal(["tab-basic"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
+            Assert.Contains("Mileage must be between", cut.Find("#group-basic #mileage-error").TextContent);
+            Assert.Equal(["tab-details"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
         });
     }
 

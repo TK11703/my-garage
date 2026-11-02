@@ -1,0 +1,19 @@
+<section id="group-@Id" class="card border-0 shadow-sm mb-3" aria-labelledby="@HeadingId">
+    <h2 id="@HeadingId" class="card-header h6 mb-0">@Title</h2>
+    <div class="card-body">
+        @ChildContent
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = default!;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string HeadingId => $"group-{Id}-title";
+}

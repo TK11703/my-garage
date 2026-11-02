@@ -78,7 +78,7 @@ public class VehicleFormTests : VehicleTestContext
     {
         var cut = RenderForm(tabbed: true);
 
-        var ids = cut.Find("#tab-basic").QuerySelectorAll("input[id], select[id]").Select(field => field.Id);
+        var ids = cut.Find("#group-basic").QuerySelectorAll("input[id], select[id]").Select(field => field.Id);
         Assert.Equal(
             ["year", "make", "model", "trim", "vin", "vehicle-type", "ownership", "purchased-on", "lease-ends-on", "mileage"],
             ids);
@@ -89,7 +89,7 @@ public class VehicleFormTests : VehicleTestContext
     {
         var cut = RenderForm(tabbed: true);
 
-        var ids = cut.Find("#tab-specifications").QuerySelectorAll("input[id], select[id]").Select(field => field.Id);
+        var ids = cut.Find("#group-specifications").QuerySelectorAll("input[id], select[id]").Select(field => field.Id);
         Assert.Equal(
             ["engine", "horsepower", "drivetrain", "color", "fuel-type", "transmission", "seats", "doors", "wheel-size", "tire-size"],
             ids);
@@ -108,14 +108,14 @@ public class VehicleFormTests : VehicleTestContext
     {
         var cut = RenderForm(tabbed: true);
 
-        var rows = cut.Find("#tab-basic").QuerySelectorAll("div.row.g-3")
+        var rows = cut.Find("#group-basic").QuerySelectorAll("div.row.g-3")
             .Select(row => row.QuerySelectorAll("input[id], select[id]").Select(field => field.Id).ToList())
             .ToList();
         Assert.Equal(
             [["year", "make", "model"], ["trim", "vin", "vehicle-type"], ["ownership", "purchased-on", "lease-ends-on"], ["mileage"]],
             rows);
         Assert.All(
-            cut.Find("#tab-basic").QuerySelectorAll("div.row.g-3 > div"),
+            cut.Find("#group-basic").QuerySelectorAll("div.row.g-3 > div"),
             column => Assert.Contains("col-sm-4", column.ClassList));
     }
 
@@ -124,7 +124,7 @@ public class VehicleFormTests : VehicleTestContext
     {
         var cut = RenderForm(tabbed: true);
 
-        var rows = cut.Find("#tab-specifications").QuerySelectorAll("div.row.g-3").ToList();
+        var rows = cut.Find("#group-specifications").QuerySelectorAll("div.row.g-3").ToList();
         Assert.Equal(
             [["engine", "horsepower", "drivetrain"], ["color", "fuel-type", "transmission"], ["seats", "doors", "wheel-size", "tire-size"]],
             rows.Select(row => row.QuerySelectorAll("input[id], select[id]").Select(field => field.Id).ToList()).ToList());
@@ -204,9 +204,9 @@ public class VehicleFormTests : VehicleTestContext
     {
         var cut = RenderForm(tabbed: true);
 
-        var row = cut.Find("#tab-basic input#mileage").Closest("div.row")!;
+        var row = cut.Find("#group-basic input#mileage").Closest("div.row")!;
         Assert.Single(row.Children);
-        Assert.Empty(cut.Find("#tab-specifications").QuerySelectorAll("#mileage, label[for='mileage']"));
+        Assert.Empty(cut.Find("#group-specifications").QuerySelectorAll("#mileage, label[for='mileage']"));
     }
 
     [Theory]
@@ -281,12 +281,12 @@ public class VehicleFormTests : VehicleTestContext
     }
 
     [Theory]
-    [InlineData("Vin", "vin-error", "tab-basic")]
-    [InlineData("LeaseEndsOn", "leaseendson-error", "tab-basic")]
-    [InlineData("Mileage", "mileage-error", "tab-basic")]
-    [InlineData("Horsepower", "horsepower-error", "tab-specifications")]
-    [InlineData("WheelSize", "wheelsize-error", "tab-specifications")]
-    [InlineData("FuelTypeId", "fueltypeid-error", "tab-specifications")]
+    [InlineData("Vin", "vin-error", "tab-details")]
+    [InlineData("LeaseEndsOn", "leaseendson-error", "tab-details")]
+    [InlineData("Mileage", "mileage-error", "tab-details")]
+    [InlineData("Horsepower", "horsepower-error", "tab-details")]
+    [InlineData("WheelSize", "wheelsize-error", "tab-details")]
+    [InlineData("FuelTypeId", "fueltypeid-error", "tab-details")]
     public void ApiErrors_ShowNextToTheFieldAndOpenTheTabHoldingThem(string property, string errorId, string expectedPane)
     {
         var cut = RenderForm(tabbed: true, errors: new Dictionary<string, string[]> { [property] = ["Something is wrong."] });
@@ -300,7 +300,7 @@ public class VehicleFormTests : VehicleTestContext
     {
         var cut = RenderForm(tabbed: true, errors: new Dictionary<string, string[]> { ["Horsepower"] = ["bad"], ["Year"] = ["bad"] });
 
-        Assert.Equal(["tab-basic"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
+        Assert.Equal(["tab-details"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
     }
 
     [Fact]

@@ -54,8 +54,8 @@ public class VehicleDetailPageTests : VehicleTestContext
         {
             var tabs = cut.Find("ul.mg-tabs");
             Assert.Null(tabs.Closest(".card"));
-            Assert.Equal(4, tabs.QuerySelectorAll("button svg.bi[aria-hidden='true']").Length);
-            Assert.NotNull(cut.Find("#tab-basic").Closest(".card"));
+            Assert.Equal(3, tabs.QuerySelectorAll("button svg.bi[aria-hidden='true']").Length);
+            Assert.NotNull(cut.Find("#group-basic").Closest(".card"));
             Assert.NotNull(cut.Find("#tab-description").Closest(".card"));
         });
     }
@@ -76,7 +76,7 @@ public class VehicleDetailPageTests : VehicleTestContext
     }
 
     [Fact]
-    public void ShowsFourTabsWithBasicInfoActiveByDefault()
+    public void ShowsThreeTabsWithDetailsActiveByDefault()
     {
         RegisterApi(_ => Json(Detail(vehicleId)));
 
@@ -85,17 +85,17 @@ public class VehicleDetailPageTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             var tabs = cut.FindAll("ul.mg-tabs[role='tablist'] button[role='tab']");
-            Assert.Equal(["Basic Info", "Specifications", "Media", "Description"], tabs.Select(tab => tab.TextContent.Trim()));
-            Assert.Equal(["true", "false", "false", "false"], tabs.Select(tab => tab.GetAttribute("aria-selected")));
-            Assert.Equal(["tab-basic"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
+            Assert.Equal(["Details", "Media", "Description"], tabs.Select(tab => tab.TextContent.Trim()));
+            Assert.Equal(["true", "false", "false"], tabs.Select(tab => tab.GetAttribute("aria-selected")));
+            Assert.Equal(["tab-details"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
         });
     }
 
     [Theory]
-    [InlineData("specifications", "tab-specifications")]
+    [InlineData("details", "tab-details")]
     [InlineData("media", "tab-media")]
     [InlineData("description", "tab-description")]
-    [InlineData("zzz", "tab-basic")]
+    [InlineData("zzz", "tab-details")]
     public void TabQuery_SelectsTheActiveTabAndIgnoresUnknownValues(string tab, string expectedPane)
     {
         RegisterApi(_ => Json(Detail(vehicleId)));
@@ -115,7 +115,7 @@ public class VehicleDetailPageTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            var basic = cut.Find("#tab-basic");
+            var basic = cut.Find("#group-basic");
             Assert.Equal(
                 ["Year", "Make", "Model", "Trim", "VIN", "Vehicle type", "Purchased or leased", "Date purchased or leased", "Date lease ends", "Mileage on Date purchased or leased"],
                 basic.QuerySelectorAll("dt").Select(dt => dt.TextContent.Trim()));
@@ -123,7 +123,7 @@ public class VehicleDetailPageTests : VehicleTestContext
                 ["2020", "Ford", "F-150", "XLT", "Not set", "Not set", "Not set", "Not set", "Not set", "42,000 mi"],
                 basic.QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()));
 
-            var specifications = cut.Find("#tab-specifications");
+            var specifications = cut.Find("#group-specifications");
             Assert.Equal(
                 ["Engine", "Horsepower", "Drivetrain", "Color", "Fuel type", "Transmission", "Seats", "Doors", "Wheel size", "Tire size"],
                 specifications.QuerySelectorAll("dt").Select(dt => dt.TextContent.Trim()));
@@ -150,13 +150,13 @@ public class VehicleDetailPageTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            var basic = cut.Find("#tab-basic");
+            var basic = cut.Find("#group-basic");
             var labels = basic.QuerySelectorAll("dt").Select(dt => dt.TextContent.Trim()).ToList();
             Assert.Equal(dateLabel, labels[7]);
             Assert.Equal(mileageLabel, labels[9]);
             Assert.Equal("Mar 15, 2024", basic.QuerySelectorAll("dd")[7].TextContent.Trim());
             Assert.Equal("42,000 mi", basic.QuerySelectorAll("dd")[9].TextContent.Trim());
-            Assert.DoesNotContain(cut.Find("#tab-specifications").QuerySelectorAll("dt"), dt => dt.TextContent.Contains("Mileage", StringComparison.Ordinal));
+            Assert.DoesNotContain(cut.Find("#group-specifications").QuerySelectorAll("dt"), dt => dt.TextContent.Contains("Mileage", StringComparison.Ordinal));
         });
     }
 
@@ -169,7 +169,7 @@ public class VehicleDetailPageTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            var labels = cut.Find("#tab-basic").QuerySelectorAll("dt").Select(dt => dt.TextContent.Trim()).ToList();
+            var labels = cut.Find("#group-basic").QuerySelectorAll("dt").Select(dt => dt.TextContent.Trim()).ToList();
             Assert.DoesNotContain("Name", labels);
             Assert.DoesNotContain("Date purchased", labels);
             Assert.Contains("Date purchased or leased", labels);
@@ -187,8 +187,8 @@ public class VehicleDetailPageTests : VehicleTestContext
         {
             var prompt = cut.Find("[data-testid='missing-year']");
             Assert.Contains("year", prompt.TextContent, StringComparison.OrdinalIgnoreCase);
-            Assert.Equal($"/vehicles/{vehicleId}/edit?tab=basic", prompt.QuerySelector("a")!.GetAttribute("href"));
-            Assert.Equal("Not set", cut.Find("#tab-basic").QuerySelectorAll("dd")[0].TextContent.Trim());
+            Assert.Equal($"/vehicles/{vehicleId}/edit?tab=details", prompt.QuerySelector("a")!.GetAttribute("href"));
+            Assert.Equal("Not set", cut.Find("#group-basic").QuerySelectorAll("dd")[0].TextContent.Trim());
             Assert.Equal("Ford F-150", cut.Find("h1").TextContent);
         });
     }
@@ -216,8 +216,8 @@ public class VehicleDetailPageTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            Assert.Contains("42,000 mi", cut.Find("#tab-basic").QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()));
-            var values = cut.Find("#tab-specifications").QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()).ToList();
+            Assert.Contains("42,000 mi", cut.Find("#group-basic").QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()));
+            var values = cut.Find("#group-specifications").QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()).ToList();
             Assert.DoesNotContain("42,000 mi", values);
             Assert.Contains("Blue", values);
             Assert.Contains("4", values);
@@ -235,10 +235,10 @@ public class VehicleDetailPageTests : VehicleTestContext
         {
             Assert.Equal(
                 ["2019", "Subaru", "Outback", "Limited", "1HGCM82633A004352", "Wagon", "Leased", "Mar 15, 2024", "Mar 14, 2027", "42,000 mi"],
-                cut.Find("#tab-basic").QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()));
+                cut.Find("#group-basic").QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()));
             Assert.Equal(
                 ["2.5L flat-4", "182 hp", "AWD", "Blue", "Gasoline", "Automatic", "5", "4", "17.5 in", "225/60R17"],
-                cut.Find("#tab-specifications").QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()));
+                cut.Find("#group-specifications").QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()));
         });
     }
 
@@ -251,7 +251,7 @@ public class VehicleDetailPageTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            var row = cut.Find("#tab-description > div.row.g-4");
+            var row = cut.Find("#tab-description div.row.g-4");
             var columns = row.Children.ToList();
             Assert.Equal(2, columns.Count);
             Assert.All(columns, column => Assert.Contains("col-lg-6", column.ClassList));

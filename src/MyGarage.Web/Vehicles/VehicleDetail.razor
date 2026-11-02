@@ -48,16 +48,15 @@ else if (vehicle is not null)
     @if (vehicle.Year is null)
     {
         <div class="alert alert-warning" role="alert" data-testid="missing-year">
-            This vehicle has no year yet. <a class="alert-link" href="/vehicles/@VehicleId/edit?tab=basic">Add the year</a> to complete its details.
+            This vehicle has no year yet. <a class="alert-link" href="/vehicles/@VehicleId/edit?tab=details">Add the year</a> to complete its details.
         </div>
     }
 
     <VehicleTabNav Current="@current" />
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-body">
-            <div class="tab-content">
-                <div id="tab-basic" class="tab-pane @PaneState("basic", current)" role="tabpanel" aria-labelledby="tab-basic-tab" tabindex="0">
+    <div class="tab-content">
+                <div id="tab-details" class="tab-pane @PaneState("details", current)" role="tabpanel" aria-labelledby="tab-details-tab" tabindex="0">
+                    <FieldGroup Id="basic" Title="Basic">
                     <dl class="row mb-0" aria-label="Basic information">
                         <dt class="col-sm-3">Year</dt>
                         <dd class="col-sm-9">@VehicleFormat.Number(vehicle.Year)</dd>
@@ -80,8 +79,8 @@ else if (vehicle is not null)
                         <dt class="col-sm-3">@VehicleFormat.MileageLabel(vehicle.Ownership)</dt>
                         <dd class="col-sm-9">@VehicleFormat.MileageOrNotSet(vehicle.Mileage)</dd>
                     </dl>
-                </div>
-                <div id="tab-specifications" class="tab-pane @PaneState("specifications", current)" role="tabpanel" aria-labelledby="tab-specifications-tab" tabindex="0">
+                    </FieldGroup>
+                    <FieldGroup Id="specifications" Title="Specifications">
                     <dl class="row mb-0" aria-label="Specifications">
                         <dt class="col-sm-3">Engine</dt>
                         <dd class="col-sm-9">@VehicleFormat.Text(vehicle.Engine)</dd>
@@ -104,22 +103,25 @@ else if (vehicle is not null)
                         <dt class="col-sm-3">Tire size</dt>
                         <dd class="col-sm-9">@VehicleFormat.Text(vehicle.TireSize)</dd>
                     </dl>
+                    </FieldGroup>
                 </div>
-                <div id="tab-media" class="tab-pane @PaneState("media", current)" role="tabpanel" aria-labelledby="tab-media-tab" tabindex="0">
-                    <VehicleGalleryView VehicleId="VehicleId" VehicleName="@vehicle.Name" Images="vehicle.Images" />
+                <div id="tab-media" class="tab-pane card border-0 shadow-sm @PaneState("media", current)" role="tabpanel" aria-labelledby="tab-media-tab" tabindex="0">
+                    <div class="card-body">
+                        <VehicleGalleryView VehicleId="VehicleId" VehicleName="@vehicle.Name" Images="vehicle.Images" />
+                    </div>
                 </div>
-                <div id="tab-description" class="tab-pane @PaneState("description", current)" role="tabpanel" aria-labelledby="tab-description-tab" tabindex="0">
-                    <div class="row g-4">
-                        <div class="col-lg-6">
-                            <VehicleTagsView VehicleId="VehicleId" Tags="vehicle.Tags" />
-                        </div>
-                        <div class="col-lg-6">
-                            <VehicleJournalView VehicleId="VehicleId" NotesPage="journalPage" />
+                <div id="tab-description" class="tab-pane card border-0 shadow-sm @PaneState("description", current)" role="tabpanel" aria-labelledby="tab-description-tab" tabindex="0">
+                    <div class="card-body">
+                        <div class="row g-4">
+                            <div class="col-lg-6">
+                                <VehicleTagsView VehicleId="VehicleId" Tags="vehicle.Tags" />
+                            </div>
+                            <div class="col-lg-6">
+                                <VehicleJournalView VehicleId="VehicleId" NotesPage="journalPage" />
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
     </div>
 
 }
@@ -132,7 +134,7 @@ else if (vehicle is not null)
     [Parameter]
     public Guid VehicleId { get; set; }
 
-    // Which tab to open: basic, specifications, media, or description.
+    // Which tab to open: details, media, or description.
     [Parameter, SupplyParameterFromQuery(Name = "tab")]
     public string? Tab { get; set; }
 

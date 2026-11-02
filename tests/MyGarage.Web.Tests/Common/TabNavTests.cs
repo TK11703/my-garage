@@ -61,13 +61,13 @@ public class TabNavTests : BunitContext
     }
 
     [Fact]
-    public void VehicleTabNav_StillRendersTheFourVehicleTabs()
+    public void VehicleTabNav_StillRendersTheThreeVehicleTabs()
     {
         var cut = Render<VehicleTabNav>(parameters => parameters.Add(nav => nav.Current, "media"));
 
         var buttons = cut.FindAll("ul.mg-tabs[role='tablist'] button[role='tab']");
-        Assert.Equal(["Basic Info", "Specifications", "Media", "Description"], buttons.Select(button => button.TextContent.Trim()));
-        Assert.Equal(["#tab-basic", "#tab-specifications", "#tab-media", "#tab-description"], buttons.Select(button => button.GetAttribute("data-bs-target")));
-        Assert.Equal(["false", "false", "true", "false"], buttons.Select(button => button.GetAttribute("aria-selected")));
+        Assert.Equal(["Details", "Media", "Description"], buttons.Select(button => button.TextContent.Trim()));
+        Assert.Equal(["#tab-details", "#tab-media", "#tab-description"], buttons.Select(button => button.GetAttribute("data-bs-target")));
+        Assert.Equal(["false", "true", "false"], buttons.Select(button => button.GetAttribute("aria-selected")));
     }
 }
