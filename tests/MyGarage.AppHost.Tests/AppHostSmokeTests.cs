@@ -3,6 +3,8 @@ using System.Net.Sockets;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 
 namespace MyGarage.AppHost.Tests;
 
@@ -43,6 +45,37 @@ public class AppHostSmokeTests
         await app.ResourceNotifications.WaitForResourceHealthyAsync("blobs", cts.Token);
         await app.ResourceNotifications.WaitForResourceHealthyAsync("api", cts.Token);
         await app.ResourceNotifications.WaitForResourceHealthyAsync("web", cts.Token);
+    }
+
+    [Fact]
+    public async Task Api_CreatesThePrivateEmailIntakeContainerOnceHealthy()
+    {
+        using var cts = new CancellationTokenSource(StartupTimeout);
+
+        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.MyGarage_AppHost>(
+            [
+                "AzureAd:TenantId=11111111-1111-1111-1111-111111111111",
+                "AzureAd:Web:ClientId=22222222-2222-2222-2222-222222222222",
+                "AzureAd:Web:ClientSecret=test-secret",
+                "AzureAd:Api:ClientId=33333333-3333-3333-3333-333333333333",
+                "AzureAd:Api:Scope=access_as_user",
+                $"Web:HttpsPort={GetFreePort()}",
+            ],
+            (options, _) => options.DisableDashboard = true,
+            cts.Token);
+
+        await using var app = await appHost.BuildAsync(cts.Token);
+        await app.StartAsync(cts.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("api", cts.Token);
+
+        var connectionString = await app.GetConnectionStringAsync("blobs", cts.Token);
+        var container = new BlobServiceClient(connectionString).GetBlobContainerClient("email-intake");
+        while (!await container.ExistsAsync(cts.Token))
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(500), cts.Token);
+        }
+
+        Assert.Equal(PublicAccessType.None, (await container.GetPropertiesAsync(cancellationToken: cts.Token)).Value.PublicAccess ?? PublicAccessType.None);
     }
 
     [Fact]

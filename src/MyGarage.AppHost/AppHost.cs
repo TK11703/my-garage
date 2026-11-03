@@ -34,6 +34,17 @@ var api = builder.AddProject<Projects.MyGarage_Api>("api")
     .WithEnvironment("AzureAd__Api__Scope", apiScope)
     .WithHttpHealthCheck("/health");
 
+// Email extraction is optional: without these settings the API still runs and attachments become manual-entry drafts.
+if (builder.Configuration["EmailIntake:Extraction:Endpoint"] is { Length: > 0 } extractionEndpoint)
+{
+    api.WithEnvironment("EmailIntake__Extraction__Endpoint", extractionEndpoint);
+}
+
+if (builder.Configuration["EmailIntake:Extraction:Deployment"] is { Length: > 0 } extractionDeployment)
+{
+    api.WithEnvironment("EmailIntake__Extraction__Deployment", extractionDeployment);
+}
+
 builder.AddProject<Projects.MyGarage_Web>("web")
     .WithReference(api)
     .WaitFor(api)

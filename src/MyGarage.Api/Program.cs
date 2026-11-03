@@ -1,13 +1,17 @@
 using MyGarage.Api.Common;
+using MyGarage.Api.Drafts;
+using MyGarage.Api.EmailIntake;
 using MyGarage.Api.FuelEnergyEntries;
 using MyGarage.Api.Inspections;
 using MyGarage.Api.Insurance;
 using MyGarage.Api.Lookups;
+using MyGarage.Api.Notifications;
 using MyGarage.Api.Registrations;
 using MyGarage.Api.SampleData;
 using MyGarage.Api.ServiceRecords;
 using MyGarage.Api.Taxes;
 using MyGarage.Api.Users;
+using MyGarage.Api.VehicleDocuments;
 using MyGarage.Api.Vehicles;
 using MyGarage.Api.Vehicles.Images;
 using MyGarage.Api.Vehicles.JournalNotes;
@@ -36,6 +40,11 @@ builder.Services.AddInspections();
 builder.Services.AddRegistrations();
 builder.Services.AddInsurance();
 builder.Services.AddTaxes();
+builder.Services.AddEmailIntake();
+builder.Services.AddEmailHistory();
+builder.Services.AddDrafts();
+builder.Services.AddNotifications();
+builder.Services.AddVehicleDocuments();
 
 var app = builder.Build();
 
@@ -43,7 +52,12 @@ app.UseGarageProblemDetails();
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
+
+// After authentication so the limiter can partition by the calling app, and before authorization so floods are counted.
+app.UseRateLimiter();
 app.UseAuthorization();
+app.UseMiddleware<UserProfileTracker>();
+app.UseBodySizeLimit();
 
 if (app.Environment.IsDevelopment())
 {
@@ -62,6 +76,11 @@ app.MapInspectionsEndpoints();
 app.MapRegistrationsEndpoints();
 app.MapInsuranceEndpoints();
 app.MapTaxesEndpoints();
+app.MapEmailIntakeEndpoints();
+app.MapEmailHistoryEndpoints();
+app.MapDraftsEndpoints();
+app.MapNotificationsEndpoints();
+app.MapVehicleDocumentsEndpoints();
 app.MapSampleDataEndpoints();
 app.MapDefaultEndpoints();
 

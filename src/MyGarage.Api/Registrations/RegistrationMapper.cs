@@ -17,6 +17,7 @@ public static class RegistrationMapper
             ExpirationDate = record.ExpirationDate,
             CreatedAt = record.CreatedAt,
             UpdatedAt = record.UpdatedAt,
+            FromEmail = record.FromEmail,
         };
 
     public static PagedResultDto<RegistrationDto> ToPageDto(PagedResult<RegistrationRecord> page) =>

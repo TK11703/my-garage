@@ -35,6 +35,7 @@ public static class FuelEnergyEntryMapper
             TotalCost = record.TotalCost,
             CreatedAt = record.CreatedAt,
             UpdatedAt = record.UpdatedAt,
+            FromEmail = record.FromEmail,
         };
 
     public static PagedResultDto<FuelEnergyEntryDto> ToPageDto(PagedResult<FuelEnergyEntryRecord> page) =>

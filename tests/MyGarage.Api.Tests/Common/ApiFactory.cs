@@ -8,6 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using MyGarage.Api.EmailIntake.Extraction;
+using MyGarage.Database.EmailIntake;
+using MyGarage.Database.VehicleDocuments;
 using MyGarage.Database.VehicleImages;
 using Npgsql;
 
@@ -18,6 +21,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     private string connectionString = string.Empty;
     private BlobServiceClient blobService = null!;
     private readonly string blobContainerName = $"api-{Guid.NewGuid():N}";
+    private readonly string intakeContainerName = $"intake-{Guid.NewGuid():N}";
+    private readonly string documentContainerName = $"documents-{Guid.NewGuid():N}";
 
     // Runs before the host is built, so the configuration below can use the database and storage created here.
     async Task IAsyncLifetime.InitializeAsync()
@@ -31,6 +36,18 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     // The blob container this factory's API writes images to.
     public BlobContainerClient ImageContainer => blobService.GetBlobContainerClient(blobContainerName);
 
+    // This factory's own containers for email attachments and kept documents, so parallel test classes never share one.
+    public string IntakeContainerName => intakeContainerName;
+
+    public string DocumentContainerName => documentContainerName;
+
+    public BlobContainerClient IntakeContainer => blobService.GetBlobContainerClient(intakeContainerName);
+
+    public BlobContainerClient DocumentContainer => blobService.GetBlobContainerClient(documentContainerName);
+
+    // Replaces the AI extractor for every request this factory serves.
+    public FakeDraftExtractor Extractor { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
@@ -41,6 +58,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
                 ["AzureAd:TenantId"] = TestJwt.TenantId,
                 ["AzureAd:Api:ClientId"] = TestJwt.ApiClientId,
                 ["AzureAd:Api:Scope"] = TestJwt.Scope,
+                // The polling loop would race the tests; they call SubmissionProcessor.ProcessOnceAsync themselves.
+                ["EmailIntake:Processing:Enabled"] = "false",
+                // Tests call DraftExpiryService.RunOnceAsync themselves so a background run never expires their seeded drafts.
+                ["Drafts:Expiry:Enabled"] = "false",
             }));
 
         builder.ConfigureServices(services =>
@@ -50,8 +71,14 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
             services.RemoveAll<IVehicleImageBlobStore>();
             services.AddSingleton<IVehicleImageBlobStore>(_ => new AzureBlobVehicleImageStore(blobService, blobContainerName));
+            services.RemoveAll<IIntakeBlobStore>();
+            services.AddSingleton<IIntakeBlobStore>(_ => new AzureBlobIntakeStore(blobService, intakeContainerName));
+            services.RemoveAll<IVehicleDocumentBlobStore>();
+            services.AddSingleton<IVehicleDocumentBlobStore>(_ => new AzureBlobVehicleDocumentStore(blobService, documentContainerName, intakeContainerName));
             services.RemoveAll<BlobServiceClient>();
             services.AddSingleton(_ => blobService);
+            services.RemoveAll<IDraftExtractor>();
+            services.AddSingleton<IDraftExtractor>(Extractor);
 
             // Real JWT validation runs; only the key source is swapped so no call reaches the real identity provider.
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
@@ -78,9 +105,53 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         return client;
     }
 
-    // A client authenticated as the user with the given object id.
-    public HttpClient CreateClientForUser(string oid) =>
-        CreateClientWithToken(TestJwt.Create(claims: new Dictionary<string, object> { ["oid"] = oid }));
+    // A client authenticated as the user with the given object id (and, when given, the email claim).
+    public HttpClient CreateClientForUser(string oid, string? email = null)
+    {
+        var claims = new Dictionary<string, object> { ["oid"] = oid };
+        if (email is not null)
+        {
+            claims["email"] = email;
+        }
+
+        return CreateClientWithToken(TestJwt.Create(claims: claims));
+    }
+
+    // A client authenticated as an app (no user, no scp) holding the given app roles; like Entra, an empty set omits the claim.
+    public HttpClient CreateClientForApp(IEnumerable<string> roles, string appId = TestJwt.WorkflowAppId)
+    {
+        var claims = new Dictionary<string, object> { ["oid"] = appId, ["azp"] = appId };
+        var roleArray = roles.ToArray();
+        if (roleArray.Length > 0)
+        {
+            claims["roles"] = roleArray;
+        }
+
+        return CreateClientWithToken(TestJwt.Create(scope: null, includeUserClaims: false, claims: claims));
+    }
+
+    // A client authenticated as the trusted email workflow: roles claim Email.Ingest and no scp.
+    public HttpClient CreateClientForWorkflow() => CreateClientForApp([TestJwt.EmailIngestRole]);
+
+    // A valid token that carries neither the Email.Ingest role nor the access_as_user scope.
+    public HttpClient CreateClientWithNeitherRoleNorScope() => CreateClientForApp([]);
+
+    // Runs one parameterized statement directly against this factory's database (test seeding and assertions).
+    public async Task<object?> ExecuteScalarAsync(string sql, params (string Name, object? Value)[] parameters)
+    {
+        _ = Services;
+
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand(sql, connection);
+        foreach (var (name, value) in parameters)
+        {
+            command.Parameters.AddWithValue(name, value ?? DBNull.Value);
+        }
+
+        var result = await command.ExecuteScalarAsync();
+        return result is DBNull ? null : result;
+    }
 
     // Seeds a tag (finding or creating the shared feature) directly so search tests do not depend on the tag endpoints.
     public async Task InsertTagAsync(Guid vehicleId, string name)
@@ -160,21 +231,31 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await command.ExecuteNonQueryAsync();
     }
 
-    // Removes every vehicle (and, by cascade, its tags, notes, and image rows), the shared feature catalog, every user's lookup items and choices (never the defaults), and every stored image file.
+    // Removes every vehicle (and, by cascade, its tags, notes, image rows, and detached drafts), the shared feature catalog, every user's lookup items and choices (never the defaults), every user profile and email submission (and, by cascade, their attachments, drafts, and notifications), and every stored image, attachment, and document file.
     public async Task ResetDataAsync()
     {
         // Starting the host applies the migrations and creates the blob container, so both exist before they are cleared.
         _ = Services;
+        Extractor.Reset();
 
         await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync();
         await using var command = new NpgsqlCommand(
-            "TRUNCATE TABLE vehicles, features CASCADE; DELETE FROM lookup_item_hidden; DELETE FROM lookup_items WHERE owner_id IS NOT NULL;", connection);
+            "TRUNCATE TABLE vehicles, features, user_profiles, email_submissions CASCADE; DELETE FROM lookup_item_hidden; DELETE FROM lookup_items WHERE owner_id IS NOT NULL;", connection);
         await command.ExecuteNonQueryAsync();
 
-        await foreach (var blob in ImageContainer.GetBlobsAsync())
+        foreach (var container in new[] { ImageContainer, IntakeContainer, DocumentContainer })
         {
-            await ImageContainer.DeleteBlobIfExistsAsync(blob.Name);
+            // The email containers are created by hosted services, so one may not exist yet.
+            if (!await container.ExistsAsync())
+            {
+                continue;
+            }
+
+            await foreach (var blob in container.GetBlobsAsync())
+            {
+                await container.DeleteBlobIfExistsAsync(blob.Name);
+            }
         }
     }
 }

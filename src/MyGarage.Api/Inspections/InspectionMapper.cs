@@ -34,6 +34,7 @@ public static class InspectionMapper
             NextDueDate = record.NextDueDate,
             CreatedAt = record.CreatedAt,
             UpdatedAt = record.UpdatedAt,
+            FromEmail = record.FromEmail,
         };
 
     public static PagedResultDto<InspectionDto> ToPageDto(PagedResult<InspectionRecord> page) =>
