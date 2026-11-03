@@ -20,4 +20,6 @@ public sealed class ServiceRecordDto
     public required DateTimeOffset CreatedAt { get; init; }
 
     public required DateTimeOffset UpdatedAt { get; init; }
+
+    public bool FromEmail { get; init; }
 }

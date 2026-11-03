@@ -22,7 +22,7 @@ public sealed class InsurancePolicyRepository(NpgsqlDataSource dataSource, SqlSc
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return await connection.QuerySingleOrDefaultAsync<InsurancePolicyRecord>(new CommandDefinition(
             scripts.Get("Insurance/Insert"),
-            new { Id = id, VehicleId = vehicleId, OwnerId = ownerId, StartDate = startDate, EndDate = endDate, Duration = duration, Cost = cost, Now = now },
+            new { Id = id, VehicleId = vehicleId, OwnerId = ownerId, StartDate = startDate, EndDate = endDate, Duration = duration, Cost = cost, Now = now, FromEmail = false },
             cancellationToken: cancellationToken));
     }
 

@@ -30,6 +30,7 @@ public sealed class ServiceRecordRepository(NpgsqlDataSource dataSource, SqlScri
                 OdometerReading = odometerReading,
                 ShopOrPerson = shopOrPerson,
                 Now = now,
+                FromEmail = false,
             },
             cancellationToken: cancellationToken));
 

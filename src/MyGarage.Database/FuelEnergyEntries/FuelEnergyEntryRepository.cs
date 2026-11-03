@@ -23,7 +23,7 @@ public sealed class FuelEnergyEntryRepository(NpgsqlDataSource dataSource, SqlSc
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return await connection.QuerySingleOrDefaultAsync<FuelEnergyEntryRecord>(new CommandDefinition(
             scripts.Get("FuelEnergyEntries/Insert"),
-            new { Id = id, VehicleId = vehicleId, OwnerId = ownerId, Kind = kind, EntryDate = entryDate, UnitPrice = unitPrice, Quantity = quantity, TotalCost = totalCost, Now = now },
+            new { Id = id, VehicleId = vehicleId, OwnerId = ownerId, Kind = kind, EntryDate = entryDate, UnitPrice = unitPrice, Quantity = quantity, TotalCost = totalCost, Now = now, FromEmail = false },
             cancellationToken: cancellationToken));
     }
 

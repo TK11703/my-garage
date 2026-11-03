@@ -22,15 +22,16 @@ public class MigrationRunnerTests(PostgresFixture postgres)
         var tables = (await connection.QueryAsync<string>(
             "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")).ToHashSet();
         Assert.Superset(
-            new HashSet<string> { "vehicles", "vehicle_tags", "features", "journal_notes", "vehicle_images", "lookup_items", "lookup_item_hidden", "service_records", "service_line_items", "service_line_item_parts", "fuel_energy_entries", "inspections", "registrations", "insurance_policies", "taxes", "schema_migrations" },
+            new HashSet<string> { "vehicles", "vehicle_tags", "features", "journal_notes", "vehicle_images", "lookup_items", "lookup_item_hidden", "service_records", "service_line_items", "service_line_item_parts", "fuel_energy_entries", "inspections", "registrations", "insurance_policies", "taxes", "user_profiles", "email_submissions", "email_attachments", "maintenance_drafts", "notifications", "vehicle_documents", "schema_migrations" },
             tables);
 
         var ledger = (await connection.QueryAsync<(string ScriptId, string Checksum, DateTime AppliedAt)>(
             "SELECT script_id AS ScriptId, checksum AS Checksum, applied_at AS AppliedAt FROM schema_migrations ORDER BY script_id")).ToList();
-        Assert.Equal(11, ledger.Count);
+        Assert.Equal(12, ledger.Count);
         Assert.Equal("0009_create_service_records", ledger[8].ScriptId);
         Assert.Equal("0010_add_vehicle_latest_odometer", ledger[9].ScriptId);
         Assert.Equal("0011_create_maintenance_records", ledger[10].ScriptId);
+        Assert.Equal("0012_create_email_intake", ledger[11].ScriptId);
         Assert.Equal("0001_create_vehicles", ledger[0].ScriptId);
         Assert.Equal("0005_create_lookup_items", ledger[4].ScriptId);
         Assert.Equal("0006_add_vehicle_details", ledger[5].ScriptId);
@@ -49,7 +50,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
         await runner.RunAsync();
 
         await using var connection = await dataSource.OpenConnectionAsync();
-        Assert.Equal(11, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
+        Assert.Equal(12, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
     }
 
     [Fact]
@@ -79,7 +80,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
             CreateRunner(dataSource).RunAsync());
 
         await using var connection = await dataSource.OpenConnectionAsync();
-        Assert.Equal(11, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
+        Assert.Equal(12, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
     }
 
     [Theory]
@@ -513,11 +514,366 @@ public class MigrationRunnerTests(PostgresFixture postgres)
             "VALUES (gen_random_uuid(), 'o', 'm', 'x', gen_random_uuid(), now(), now(), 'o', 'o')"));
     }
 
+    private static readonly Dictionary<string, string[]> EmailIntakeColumns = new()
+    {
+        ["user_profiles"] = ["owner_id", "email", "display_name", "first_seen_at", "last_seen_at"],
+        ["email_submissions"] =
+        [
+            "id", "message_id", "status", "arrived_at", "received_at", "owner_id", "sender", "subject", "body_text", "attempt_count",
+            "next_attempt_at", "locked_until", "failure_reason", "skipped_attachments", "content_purged_at",
+        ],
+        ["email_attachments"] = ["id", "submission_id", "owner_id", "file_name", "content_type", "size_bytes", "sha256", "created_at"],
+        ["maintenance_drafts"] =
+        [
+            "id", "owner_id", "submission_id", "attachment_id", "state", "kind", "vehicle_id", "vehicle_match", "confidence", "proposal",
+            "notes", "created_record_kind", "created_record_id", "created_at", "expires_at", "decided_at",
+        ],
+        ["notifications"] = ["id", "owner_id", "kind", "draft_id", "title", "created_at", "read_at"],
+        ["vehicle_documents"] = ["id", "vehicle_id", "file_name", "content_type", "size_bytes", "source_kind", "source_record_id", "created_at", "created_by"],
+    };
+
+    private static readonly Dictionary<string, string[]> EmailIntakeIndexes = new()
+    {
+        ["user_profiles"] = ["ix_user_profiles_email"],
+        ["email_submissions"] = ["ix_email_submissions_queue", "ix_email_submissions_owner"],
+        ["email_attachments"] = ["ix_email_attachments_owner_hash"],
+        ["maintenance_drafts"] = ["ix_maintenance_drafts_owner_open", "ix_maintenance_drafts_expiry", "ix_maintenance_drafts_submission"],
+        ["notifications"] = ["ix_notifications_owner", "ix_notifications_unread"],
+        ["vehicle_documents"] = ["ix_vehicle_documents_vehicle"],
+    };
+
+    private static readonly string[] RecordTables =
+        ["service_records", "fuel_energy_entries", "inspections", "registrations", "insurance_policies", "taxes"];
+
+    [Fact]
+    public async Task Migration0012_CreatesTheEmailIntakeTablesWithTheirColumnsAndIndexes()
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+
+        foreach (var (table, columns) in EmailIntakeColumns)
+        {
+            Assert.Equal(columns.ToHashSet(), await ColumnsAsync(connection, table));
+            Assert.Superset(EmailIntakeIndexes[table].ToHashSet(), await IndexesAsync(connection, table));
+        }
+    }
+
+    [Fact]
+    public async Task Migration0012_AddsFromEmailToTheSixRecordTables_AndExistingRowsReadFalse()
+    {
+        await using var dataSource = await postgres.CreateDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var scripts = new SqlScriptStore();
+        await ApplyAsync(connection, scripts, AllMigrations[..11]);
+        var vehicleId = await InsertVehicleAsync(connection);
+        await InsertOneRowInEachRecordTableAsync(connection, vehicleId);
+
+        await ApplyAsync(connection, scripts, AllMigrations[11]);
+
+        foreach (var table in RecordTables)
+        {
+            var column = await connection.QuerySingleAsync<(string DataType, string IsNullable, string? Default)>(
+                "SELECT data_type AS DataType, is_nullable AS IsNullable, column_default AS Default FROM information_schema.columns " +
+                "WHERE table_schema = 'public' AND table_name = @table AND column_name = 'from_email'", new { table });
+            Assert.Equal("boolean", column.DataType);
+            Assert.Equal("NO", column.IsNullable);
+            Assert.Equal("false", column.Default);
+            Assert.Equal(1, await connection.ExecuteScalarAsync<int>($"SELECT count(*) FROM {table} WHERE from_email = false"));
+            Assert.Equal(1, await connection.ExecuteScalarAsync<int>($"SELECT count(*) FROM {table}"));
+        }
+
+        // A row inserted by code that does not know the column also reads false.
+        await InsertOneRowInEachRecordTableAsync(connection, vehicleId);
+        foreach (var table in RecordTables)
+        {
+            Assert.Equal(2, await connection.ExecuteScalarAsync<int>($"SELECT count(*) FROM {table} WHERE from_email = false"));
+        }
+    }
+
+    [Fact]
+    public async Task Migration0012_ChangesNoOtherExistingTable()
+    {
+        await using var dataSource = await postgres.CreateDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var scripts = new SqlScriptStore();
+        await ApplyAsync(connection, scripts, AllMigrations[..11]);
+        var before = await ColumnDefinitionsAsync(connection);
+
+        await ApplyAsync(connection, scripts, AllMigrations[11]);
+        var after = await ColumnDefinitionsAsync(connection);
+
+        var added = after.Except(before).Select(definition => definition.Split('|')).ToList();
+        Assert.All(added, parts => Assert.True(
+            EmailIntakeColumns.ContainsKey(parts[1]) || (parts[0] == "from_email" && RecordTables.Contains(parts[1])),
+            $"Unexpected change to {parts[1]}.{parts[0]}"));
+        Assert.Equal(RecordTables.Length, added.Count(parts => parts[0] == "from_email"));
+        Assert.Empty(before.Except(after));
+    }
+
+    [Fact]
+    public async Task Schema_EmailSubmissions_RejectDuplicateMessageIdsAndOutOfRangeValues()
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+
+        await InsertSubmissionAsync(connection, "message-1");
+
+        await Assert.ThrowsAsync<PostgresException>(() => InsertSubmissionAsync(connection, "message-1"));
+        await Assert.ThrowsAsync<PostgresException>(() => InsertSubmissionAsync(connection, new string('m', 513)));
+        await Assert.ThrowsAsync<PostgresException>(() => InsertSubmissionAsync(connection, "message-2", status: "done"));
+        await Assert.ThrowsAsync<PostgresException>(() => connection.ExecuteAsync(
+            "INSERT INTO email_submissions (id, message_id, status, arrived_at, body_text, next_attempt_at) VALUES (gen_random_uuid(), 'big', 'queued', now(), repeat('x', 100001), now())"));
+
+        await InsertSubmissionAsync(connection, new string('m', 512));
+        foreach (var status in new[] { "queued", "processing", "ready", "not_applicable", "not_accepted", "failed" })
+        {
+            await InsertSubmissionAsync(connection, $"status-{status}", status);
+        }
+    }
+
+    [Theory]
+    [InlineData("text/plain", 10)]
+    [InlineData("application/pdf", 0)]
+    [InlineData("application/pdf", 10485761)]
+    public async Task Schema_EmailAttachments_RejectUnsupportedTypesAndSizes(string contentType, int size)
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var submissionId = await InsertSubmissionAsync(connection, "m1");
+
+        await Assert.ThrowsAsync<PostgresException>(() => InsertAttachmentAsync(connection, submissionId, contentType, size));
+    }
+
+    [Fact]
+    public async Task Schema_EmailAttachments_AcceptTheBoundaries()
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var submissionId = await InsertSubmissionAsync(connection, "m1");
+
+        await InsertAttachmentAsync(connection, submissionId, "application/pdf", 1);
+        await InsertAttachmentAsync(connection, submissionId, "image/webp", 10485760);
+        await InsertAttachmentAsync(connection, submissionId, "image/jpeg", 100);
+        await InsertAttachmentAsync(connection, submissionId, "image/png", 100);
+    }
+
+    [Theory]
+    [InlineData("state", "'open'")]
+    [InlineData("kind", "'oil_change'")]
+    [InlineData("vehicle_match", "'guess'")]
+    [InlineData("confidence", "1.01")]
+    [InlineData("confidence", "-0.01")]
+    public async Task Schema_MaintenanceDrafts_RejectInvalidValues(string column, string value)
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var submissionId = await InsertSubmissionAsync(connection, "m1");
+        var values = new Dictionary<string, string> { ["state"] = "'needs_review'", ["kind"] = "'service_record'", ["vehicle_match"] = "'none'", ["confidence"] = "0.5" };
+        values[column] = value;
+
+        await Assert.ThrowsAsync<PostgresException>(() => connection.ExecuteAsync(
+            "INSERT INTO maintenance_drafts (id, owner_id, submission_id, state, kind, vehicle_match, confidence, created_at, expires_at) " +
+            $"VALUES (gen_random_uuid(), 'o', @submissionId, {values["state"]}, {values["kind"]}, {values["vehicle_match"]}, {values["confidence"]}, now(), now())",
+            new { submissionId }));
+    }
+
+    [Fact]
+    public async Task Schema_MaintenanceDrafts_AcceptNullKindAndConfidenceAndEveryKindAndState()
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var submissionId = await InsertSubmissionAsync(connection, "m1");
+
+        await InsertDraftAsync(connection, submissionId, kind: null, state: "manual_entry", confidence: null);
+        foreach (var kind in new[] { "service_record", "fuel", "energy", "inspection", "registration", "insurance", "tax" })
+        {
+            await InsertDraftAsync(connection, submissionId, kind: kind);
+        }
+
+        foreach (var state in new[] { "needs_review", "manual_entry", "included", "discarded", "expired" })
+        {
+            await InsertDraftAsync(connection, submissionId, state: state);
+        }
+
+        foreach (var match in new[] { "vin", "description", "only_vehicle", "none" })
+        {
+            await InsertDraftAsync(connection, submissionId, vehicleMatch: match);
+        }
+
+        await InsertDraftAsync(connection, submissionId, confidence: 0m);
+        await InsertDraftAsync(connection, submissionId, confidence: 1m);
+        Assert.Equal("{}", await connection.ExecuteScalarAsync<string>("SELECT proposal::text FROM maintenance_drafts LIMIT 1"));
+    }
+
+    [Fact]
+    public async Task Schema_Notifications_RejectUnknownKinds()
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+
+        await Assert.ThrowsAsync<PostgresException>(() => connection.ExecuteAsync(
+            "INSERT INTO notifications (id, owner_id, kind, title, created_at) VALUES (gen_random_uuid(), 'o', 'other', 't', now())"));
+        await connection.ExecuteAsync(
+            "INSERT INTO notifications (id, owner_id, kind, title, created_at) VALUES (gen_random_uuid(), 'o', 'draft_ready', 't', now())");
+    }
+
+    [Theory]
+    [InlineData("text/plain", 10)]
+    [InlineData("application/pdf", 0)]
+    [InlineData("application/pdf", 10485761)]
+    public async Task Schema_VehicleDocuments_RejectUnsupportedTypesAndSizes(string contentType, int size)
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var vehicleId = await InsertVehicleAsync(connection);
+
+        await Assert.ThrowsAsync<PostgresException>(() => InsertDocumentAsync(connection, vehicleId, contentType, size));
+    }
+
+    [Fact]
+    public async Task Schema_VehicleDocuments_AcceptTheBoundaries()
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var vehicleId = await InsertVehicleAsync(connection);
+
+        await InsertDocumentAsync(connection, vehicleId, "application/pdf", 1);
+        await InsertDocumentAsync(connection, vehicleId, "image/png", 10485760);
+    }
+
+    [Fact]
+    public async Task Schema_DeletingAVehicle_CascadesToDocumentsAndDetachesDrafts()
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var vehicleId = await InsertVehicleAsync(connection);
+        var submissionId = await InsertSubmissionAsync(connection, "m1");
+        await InsertDocumentAsync(connection, vehicleId, "application/pdf", 10);
+        var draftId = await InsertDraftAsync(connection, submissionId, vehicleId: vehicleId);
+
+        await connection.ExecuteAsync("DELETE FROM vehicles WHERE id = @vehicleId", new { vehicleId });
+
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM vehicle_documents"));
+        Assert.Null(await connection.ExecuteScalarAsync<Guid?>("SELECT vehicle_id FROM maintenance_drafts WHERE id = @draftId", new { draftId }));
+        Assert.Equal(1, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM maintenance_drafts"));
+    }
+
+    [Fact]
+    public async Task Schema_DeletingASubmission_CascadesToAttachmentsAndDrafts_AndADraftToItsNotifications()
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var submissionId = await InsertSubmissionAsync(connection, "m1");
+        var attachmentId = await InsertAttachmentAsync(connection, submissionId, "application/pdf", 10);
+        var draftId = await InsertDraftAsync(connection, submissionId, attachmentId: attachmentId);
+        await InsertNotificationAsync(connection, draftId);
+
+        await connection.ExecuteAsync("DELETE FROM email_submissions WHERE id = @submissionId", new { submissionId });
+
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM email_attachments"));
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM maintenance_drafts"));
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM notifications"));
+    }
+
+    [Fact]
+    public async Task Schema_DeletingADraft_CascadesToItsNotifications_AndAnAttachmentDetachesItsDraft()
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var submissionId = await InsertSubmissionAsync(connection, "m1");
+        var attachmentId = await InsertAttachmentAsync(connection, submissionId, "image/png", 10);
+        var firstDraft = await InsertDraftAsync(connection, submissionId);
+        var secondDraft = await InsertDraftAsync(connection, submissionId, attachmentId: attachmentId);
+        await InsertNotificationAsync(connection, firstDraft);
+
+        await connection.ExecuteAsync("DELETE FROM maintenance_drafts WHERE id = @firstDraft", new { firstDraft });
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM notifications"));
+
+        await connection.ExecuteAsync("DELETE FROM email_attachments WHERE id = @attachmentId", new { attachmentId });
+        Assert.Null(await connection.ExecuteScalarAsync<Guid?>("SELECT attachment_id FROM maintenance_drafts WHERE id = @secondDraft", new { secondDraft }));
+    }
+
+    private static async Task<List<string>> ColumnDefinitionsAsync(NpgsqlConnection connection) =>
+        [.. await connection.QueryAsync<string>(
+            "SELECT column_name || '|' || table_name || '|' || data_type || '|' || is_nullable || '|' || coalesce(column_default, '') " +
+            "FROM information_schema.columns WHERE table_schema = 'public'")];
+
+    private static async Task InsertOneRowInEachRecordTableAsync(NpgsqlConnection connection, Guid vehicleId)
+    {
+        const string audit = "now(), now(), 'o', 'o'";
+        await connection.ExecuteAsync(
+            "INSERT INTO service_records (id, vehicle_id, date_serviced, odometer_reading, created_at, updated_at, created_by, updated_by) " +
+            "VALUES (gen_random_uuid(), @vehicleId, '2026-05-01', 100, " + audit + ")", new { vehicleId });
+        await connection.ExecuteAsync(
+            "INSERT INTO fuel_energy_entries (id, vehicle_id, kind, entry_date, unit_price, quantity, total_cost, created_at, updated_at, created_by, updated_by) " +
+            "VALUES (gen_random_uuid(), @vehicleId, 'fuel', '2026-05-01', 3.459, 12.345, 42.70, " + audit + ")", new { vehicleId });
+        await connection.ExecuteAsync(
+            "INSERT INTO inspections (id, vehicle_id, inspection_type, inspection_date, cost, created_at, updated_at, created_by, updated_by) " +
+            "VALUES (gen_random_uuid(), @vehicleId, 'safety', '2026-05-01', 25, " + audit + ")", new { vehicleId });
+        await connection.ExecuteAsync(
+            "INSERT INTO registrations (id, vehicle_id, state, cost, expiration_date, created_at, updated_at, created_by, updated_by) " +
+            "VALUES (gen_random_uuid(), @vehicleId, 'WA', 78.75, '2027-05-01', " + audit + ")", new { vehicleId });
+        await connection.ExecuteAsync(
+            "INSERT INTO insurance_policies (id, vehicle_id, start_date, end_date, duration, cost, created_at, updated_at, created_by, updated_by) " +
+            "VALUES (gen_random_uuid(), @vehicleId, '2026-01-01', '2027-01-01', 'annual', 1240, " + audit + ")", new { vehicleId });
+        await connection.ExecuteAsync(
+            "INSERT INTO taxes (id, vehicle_id, tax_type, amount, recurrence, created_at, updated_at, created_by, updated_by) " +
+            "VALUES (gen_random_uuid(), @vehicleId, 'purchase', 1850, 'once', " + audit + ")", new { vehicleId });
+    }
+
+    private static async Task<Guid> InsertSubmissionAsync(NpgsqlConnection connection, string messageId, string status = "queued")
+    {
+        var id = Guid.NewGuid();
+        await connection.ExecuteAsync(
+            "INSERT INTO email_submissions (id, message_id, status, arrived_at, next_attempt_at) VALUES (@id, @messageId, @status, now(), now())",
+            new { id, messageId, status });
+        return id;
+    }
+
+    private static async Task<Guid> InsertAttachmentAsync(NpgsqlConnection connection, Guid submissionId, string contentType, int size)
+    {
+        var id = Guid.NewGuid();
+        await connection.ExecuteAsync(
+            "INSERT INTO email_attachments (id, submission_id, owner_id, file_name, content_type, size_bytes, sha256, created_at) " +
+            "VALUES (@id, @submissionId, 'o', 'f.bin', @contentType, @size, repeat('a', 64), now())",
+            new { id, submissionId, contentType, size });
+        return id;
+    }
+
+    private static async Task<Guid> InsertDraftAsync(
+        NpgsqlConnection connection,
+        Guid submissionId,
+        string? kind = "service_record",
+        string state = "needs_review",
+        string vehicleMatch = "none",
+        decimal? confidence = 0.5m,
+        Guid? vehicleId = null,
+        Guid? attachmentId = null)
+    {
+        var id = Guid.NewGuid();
+        await connection.ExecuteAsync(
+            "INSERT INTO maintenance_drafts (id, owner_id, submission_id, attachment_id, state, kind, vehicle_id, vehicle_match, confidence, created_at, expires_at) " +
+            "VALUES (@id, 'o', @submissionId, @attachmentId, @state, @kind, @vehicleId, @vehicleMatch, @confidence, now(), now() + interval '30 days')",
+            new { id, submissionId, attachmentId, state, kind, vehicleId, vehicleMatch, confidence });
+        return id;
+    }
+
+    private static Task InsertNotificationAsync(NpgsqlConnection connection, Guid draftId) =>
+        connection.ExecuteAsync(
+            "INSERT INTO notifications (id, owner_id, kind, draft_id, title, created_at) VALUES (gen_random_uuid(), 'o', 'draft_ready', @draftId, 't', now())",
+            new { draftId });
+
+    private static Task InsertDocumentAsync(NpgsqlConnection connection, Guid vehicleId, string contentType, int size) =>
+        connection.ExecuteAsync(
+            "INSERT INTO vehicle_documents (id, vehicle_id, file_name, content_type, size_bytes, created_at, created_by) " +
+            "VALUES (gen_random_uuid(), @vehicleId, 'f.bin', @contentType, @size, now(), 'o')",
+            new { vehicleId, contentType, size });
+
     private static readonly string[] AllMigrations =
     [
         "0001_create_vehicles", "0002_create_vehicle_tags", "0003_create_journal_notes", "0004_create_vehicle_images",
         "0005_create_lookup_items", "0006_add_vehicle_details", "0007_drop_vehicle_nickname", "0008_create_features",
-        "0009_create_service_records", "0010_add_vehicle_latest_odometer", "0011_create_maintenance_records",
+        "0009_create_service_records", "0010_add_vehicle_latest_odometer", "0011_create_maintenance_records", "0012_create_email_intake",
     ];
 
     private static async Task ApplyAsync(NpgsqlConnection connection, SqlScriptStore scripts, params string[] migrations)

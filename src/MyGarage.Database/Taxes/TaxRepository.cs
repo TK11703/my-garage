@@ -21,7 +21,7 @@ public sealed class TaxRepository(NpgsqlDataSource dataSource, SqlScriptStore sc
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return await connection.QuerySingleOrDefaultAsync<TaxRecord>(new CommandDefinition(
             scripts.Get("Taxes/Insert"),
-            new { Id = id, VehicleId = vehicleId, OwnerId = ownerId, TaxType = taxType, Amount = amount, Recurrence = recurrence, Now = now },
+            new { Id = id, VehicleId = vehicleId, OwnerId = ownerId, TaxType = taxType, Amount = amount, Recurrence = recurrence, Now = now, FromEmail = false },
             cancellationToken: cancellationToken));
     }
 
