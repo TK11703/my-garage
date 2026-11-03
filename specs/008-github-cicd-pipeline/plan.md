@@ -21,7 +21,7 @@ Add two GitHub Actions workflows and a small set of tracked infrastructure asset
 
 **Language/Version**: C# 14 / .NET 10 (unchanged; SDK `10.0.403` pinned by `global.json`). New artifacts: GitHub Actions YAML, Bicep, PowerShell 7.
 
-**Primary Dependencies**: no new NuGet packages (Npgsql and Azure.Core are already referenced). GitHub Actions `actions/checkout`, `actions/setup-dotnet`, `actions/upload-artifact`, `azure/login` (all pinned by commit SHA, kept current by Dependabot). Azure CLI and Bicep CLI (preinstalled on `ubuntu-latest`), .NET SDK container publishing (`-t:PublishContainer`), GitHub CLI for the one-time scripts.
+**Primary Dependencies**: no new NuGet packages beyond one explicit pin: `Azure.Identity` 1.21.0 (already a transitive dependency of `Aspire.Azure.Storage.Blobs`) is now referenced by `MyGarage.Api` because on a clean restore the transitive 1.17.2 duplicated types that `Azure.Core` 1.62 also contains, which broke the Release build (CS0433) that CI runs; 1.21.0 removes the duplication. Npgsql is already referenced. GitHub Actions `actions/checkout`, `actions/setup-dotnet`, `actions/upload-artifact`, `azure/login` (all pinned by commit SHA, kept current by Dependabot). Azure CLI and Bicep CLI (preinstalled on `ubuntu-latest`), .NET SDK container publishing (`-t:PublishContainer`), GitHub CLI for the one-time scripts.
 
 **Storage**: existing shared PostgreSQL flexible server `accpsqlshared` (new database `mygarage`, owned by the Entra principal `id-mygarage-api`); one new Standard LRS StorageV2 account in `rg-platform` for the private blob containers `vehicle-images`, `email-intake`, `vehicle-documents`.
 
