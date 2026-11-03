@@ -1,0 +1,58 @@
+<div class="accordion-item border rounded overflow-hidden" data-testid="accordion-fuel">
+    <h2 class="accordion-header">
+        <button class="accordion-button @(Expanded ? null : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#maintenance-fuel"
+                aria-expanded="@(Expanded ? "true" : "false")" aria-controls="maintenance-fuel">
+            <span class="fw-semibold" data-testid="fuel-count">Charging and Fueling@(entries is null ? null : $" ({entries.TotalCount})")</span>
+            @if (latestEntry is { } latest)
+            {
+                <span class="ms-3 small text-body-secondary" data-testid="fuel-last">Last entry @DisplayFormat.Date(latest)</span>
+            }
+        </button>
+    </h2>
+    <div id="maintenance-fuel" class="accordion-collapse collapse @(Expanded ? "show" : null)">
+        <div class="accordion-body">
+            <FuelEnergyEntryList VehicleId="VehicleId" Entries="entries" Failure="failure"
+                                 ReturnUrl="@TabHref(Page)" HrefFor="@(p => TabHref(p))" />
+        </div>
+    </div>
+</div>
+
+@code {
+    private PagedResultDto<FuelEnergyEntryDto>? entries;
+    private DateOnly? latestEntry;
+    private GarageApiFailure? failure;
+
+    [Inject]
+    private FuelEnergyEntriesApiClient Api { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    // The page of entries to show (1-based).
+    [Parameter]
+    public int Page { get; set; } = 1;
+
+    // Whether this accordion item starts open.
+    [Parameter]
+    public bool Expanded { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            var result = await Api.ListAsync(VehicleId, Math.Max(1, Page));
+            entries = result.Value;
+
+            // The newest entry is first on page 1, so a later page needs that page too.
+            var firstPage = entries is { Page: > 1, TotalCount: > 0 } ? (await Api.ListAsync(VehicleId, 1)).Value : entries;
+            latestEntry = firstPage?.Items.Count > 0 ? firstPage.Items[0].EntryDate : null;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private string TabHref(int page) =>
+        MaintenanceLinks.TabHref(VehicleId, MaintenanceSection.Fuel, MaintenanceList.Fuel, page);
+}

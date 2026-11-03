@@ -1,25 +1,26 @@
 using System.Net;
 using Bunit;
 using MyGarage.Shared.ServiceRecords;
-using MyGarage.Web.ServiceRecords;
+using MyGarage.Web.Maintenance;
 using MyGarage.Web.Tests.Vehicles;
 
-namespace MyGarage.Web.Tests.ServiceRecords;
+namespace MyGarage.Web.Tests.Maintenance;
 
 public class MaintenanceViewTests : VehicleTestContext
 {
     private readonly Guid vehicleId = Guid.NewGuid();
 
-    private IRenderedComponent<MaintenanceView> RenderView(int recordsPage = 1)
+    private IRenderedComponent<MaintenanceView> RenderView(int recordsPage = 1, MaintenanceSection section = MaintenanceSection.Records)
     {
         RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
         return Render<MaintenanceView>(parameters => parameters
             .Add(view => view.VehicleId, vehicleId)
+            .Add(view => view.Section, section)
             .Add(view => view.RecordsPage, recordsPage));
     }
 
     [Fact]
-    public void RendersAnAccordionWithServiceRecordsInspectionsAndFuelData_InThatOrder()
+    public void RendersAnAccordionWithServiceRecordsChargingAndFuelingAndTheComplianceItem_InThatOrder()
     {
         ServiceRecords = ServiceRecordsPage([]);
 
@@ -30,8 +31,11 @@ public class MaintenanceViewTests : VehicleTestContext
             var buttons = cut.FindAll(".accordion-item .accordion-header button");
             Assert.Equal(3, buttons.Count);
             Assert.StartsWith("Service Records", buttons[0].TextContent.Trim());
-            Assert.Equal("Inspections", buttons[1].TextContent.Trim());
-            Assert.Equal("Charging and Fueling", buttons[2].TextContent.Trim());
+            Assert.StartsWith("Charging and Fueling", buttons[1].TextContent.Trim());
+            Assert.StartsWith("Inspections, Registrations, Insurance, and Taxes", buttons[2].TextContent.Trim());
+            Assert.NotNull(cut.Find("[data-testid='accordion-service-records']"));
+            Assert.NotNull(cut.Find("[data-testid='accordion-fuel']"));
+            Assert.NotNull(cut.Find("[data-testid='accordion-compliance']"));
         });
     }
 
@@ -64,22 +68,30 @@ public class MaintenanceViewTests : VehicleTestContext
             }
 
             Assert.Contains("show", cut.Find("#maintenance-service-records").ClassList);
-            Assert.DoesNotContain("show", cut.Find("#maintenance-inspections").ClassList);
-            Assert.DoesNotContain("show", cut.Find("#maintenance-fuel-data").ClassList);
+            Assert.DoesNotContain("show", cut.Find("#maintenance-fuel").ClassList);
+            Assert.DoesNotContain("show", cut.Find("#maintenance-compliance").ClassList);
         });
     }
 
-    [Fact]
-    public void InspectionsAndFuelData_ArePlaceholders()
+    [Theory]
+    [InlineData(MaintenanceSection.Records, "maintenance-service-records")]
+    [InlineData(MaintenanceSection.Fuel, "maintenance-fuel")]
+    [InlineData(MaintenanceSection.Compliance, "maintenance-compliance")]
+    public void TheSectionParameter_OpensOnlyThatItem(MaintenanceSection section, string openId)
     {
-        ServiceRecords = ServiceRecordsPage([]);
-
-        var cut = RenderView();
+        var cut = RenderView(section: section);
 
         cut.WaitForAssertion(() =>
         {
-            Assert.Contains("future update", cut.Find("#maintenance-inspections .accordion-body").TextContent);
-            Assert.Contains("future update", cut.Find("#maintenance-fuel-data .accordion-body").TextContent);
+            var open = cut.FindAll(".accordion-collapse.show");
+            Assert.Single(open);
+            Assert.Equal(openId, open[0].Id);
+            foreach (var button in cut.FindAll(".accordion-header button"))
+            {
+                var expanded = button.GetAttribute("data-bs-target") == "#" + openId;
+                Assert.Equal(expanded ? "true" : "false", button.GetAttribute("aria-expanded"));
+                Assert.Equal(expanded, !button.ClassList.Contains("collapsed"));
+            }
         });
     }
 

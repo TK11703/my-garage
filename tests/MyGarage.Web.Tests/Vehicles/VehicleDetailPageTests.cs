@@ -84,7 +84,7 @@ public class VehicleDetailPageTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
             Assert.Contains(
-                "This also removes its tags, journal notes, service records, and pictures and cannot be undone.",
+                "This also removes its tags, journal notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, and pictures and cannot be undone.",
                 cut.Find("[data-testid='delete-vehicle']").TextContent));
     }
 
@@ -639,7 +639,7 @@ public class VehicleDetailPageTests : VehicleTestContext
             var section = cut.Find("details[data-testid='delete-vehicle']");
             Assert.False(section.HasAttribute("open"));
             Assert.Contains("Delete 2020 Ford F-150?", section.TextContent);
-            Assert.Contains("tags, journal notes, service records, and pictures", section.TextContent);
+            Assert.Contains("tags, journal notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, and pictures", section.TextContent);
             Assert.Equal($"/vehicles/{vehicleId}", cut.Find("details[data-testid='delete-vehicle'] a").GetAttribute("href"));
         });
     }

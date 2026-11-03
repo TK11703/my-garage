@@ -1,0 +1,39 @@
+@* Display only: the parent loads the page of insurance policies. *@
+<EntryListBlock TItem="InsurancePolicyDto" Items="Entries?.Items" TotalCount="Entries?.TotalCount ?? 0" Page="Entries?.Page ?? 1" TotalPages="Entries?.TotalPages ?? 1"
+                HrefFor="HrefFor" Failure="Failure" ReturnUrl="@ReturnUrl" EmptyMessage="No insurance yet. Add the first policy for this vehicle." ListTestId="insurance-list">
+    <AddActions>
+        <a class="btn btn-primary d-inline-flex align-items-center gap-2" href="/vehicles/@VehicleId/insurance/new" data-testid="add-insurance">
+            <Icon Name="IconName.Plus" /> Add insurance
+        </a>
+    </AddActions>
+    <RowTemplate Context="entry">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2" data-testid="insurance-policy">
+            <div class="fw-semibold" data-testid="entry-span">@InsurancePolicyFormat.Span(entry.StartDate, entry.EndDate)</div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="fw-semibold" data-testid="entry-cost">@InsurancePolicyFormat.CostWithFrequency(entry.Cost, entry.Duration)</span>
+                <a class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" href="/vehicles/@VehicleId/insurance/@entry.Id/edit"
+                   data-testid="edit-entry" aria-label="@InsurancePolicyFormat.EditName(entry)" title="@InsurancePolicyFormat.EditName(entry)">
+                    <Icon Name="IconName.Pencil" /> Edit
+                </a>
+            </div>
+        </div>
+    </RowTemplate>
+</EntryListBlock>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    [Parameter]
+    public PagedResultDto<InsurancePolicyDto>? Entries { get; set; }
+
+    [Parameter]
+    public GarageApiFailure? Failure { get; set; }
+
+    // App-relative page to come back to after signing in again.
+    [Parameter]
+    public string ReturnUrl { get; set; } = "/";
+
+    [Parameter, EditorRequired]
+    public Func<int, string> HrefFor { get; set; } = _ => "#";
+}

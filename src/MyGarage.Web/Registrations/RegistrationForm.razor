@@ -1,0 +1,92 @@
+﻿<MaintenanceFormCard FormId="@FormName" SubmitText="@SubmitText" SubmitTitle="@SubmitTitle" CancelHref="@CancelHref" Delete="Delete">
+    <EditForm EditContext="editContext" id="@FormName" FormName="@FormName" OnValidSubmit="OnSubmit" class="vstack gap-3">
+        <div class="row g-3">
+            <div class="col-sm-6 col-lg-4">
+                <div class="form-floating">
+                    <InputSelect id="state" TValue="string" class="form-select" @bind-Value="Model.State"
+                                 aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "State")">
+                        <option value="">Choose a state</option>
+                        @foreach (var state in UsStates.All)
+                        {
+                            <option value="@state.Code">@state.Name (@state.Code)</option>
+                        }
+                    </InputSelect>
+                    <label for="state">State<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <ValidationMessage For="@(() => Model.State)" id="state-error" class="invalid-feedback d-block" />
+            </div>
+            <div class="col-sm-6 col-lg-4">
+                <div class="form-floating">
+                    <InputNumber id="cost" TValue="decimal?" class="form-control" @bind-Value="Model.Cost" min="0" max="9999999.99" step="0.01" inputmode="decimal" placeholder=" "
+                                 aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "Cost")" />
+                    <label for="cost">Cost<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <ValidationMessage For="@(() => Model.Cost)" id="cost-error" class="invalid-feedback d-block" />
+            </div>
+            <div class="col-sm-6 col-lg-4">
+                <div class="form-floating">
+                    <InputDate id="expiration-date" TValue="DateOnly?" class="form-control" @bind-Value="Model.ExpirationDate" placeholder=" "
+                               aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "ExpirationDate")" />
+                    <label for="expiration-date">Expiration date<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <ValidationMessage For="@(() => Model.ExpirationDate)" id="expirationdate-error" class="invalid-feedback d-block" />
+            </div>
+        </div>
+    </EditForm>
+</MaintenanceFormCard>
+
+@code {
+    private static readonly string[] Fields = ["State", "Cost", "ExpirationDate"];
+
+    private EditContext editContext = default!;
+    private ValidationMessageStore messages = default!;
+    private RegistrationFormModel? contextModel;
+
+    [Parameter, EditorRequired]
+    public RegistrationFormModel Model { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string FormName { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string SubmitText { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string SubmitTitle { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string CancelHref { get; set; } = default!;
+
+    // Validation errors returned by the API, keyed by property name.
+    [Parameter]
+    public IReadOnlyDictionary<string, string[]> Errors { get; set; } = new Dictionary<string, string[]>();
+
+    [Parameter, EditorRequired]
+    public EventCallback OnSubmit { get; set; }
+
+    // The Delete control for the card footer; only the edit page passes it.
+    [Parameter]
+    public RenderFragment? Delete { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(contextModel, Model))
+        {
+            contextModel = Model;
+            editContext = new EditContext(Model);
+            messages = new ValidationMessageStore(editContext);
+            editContext.OnValidationRequested += (_, _) => messages.Clear();
+        }
+
+        messages.Clear();
+        foreach (var field in Fields)
+        {
+            if (Errors.FirstOrDefault(pair => string.Equals(pair.Key, field, StringComparison.OrdinalIgnoreCase)).Value is { Length: > 0 } fieldErrors)
+            {
+                messages.Add(editContext.Field(field), fieldErrors);
+            }
+        }
+
+        editContext.NotifyValidationStateChanged();
+    }
+}

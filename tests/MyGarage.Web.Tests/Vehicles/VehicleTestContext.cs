@@ -9,8 +9,13 @@ using MyGarage.Shared.ServiceRecords;
 using MyGarage.Shared.Users;
 using MyGarage.Shared.Vehicles;
 using MyGarage.Web.Common;
+using MyGarage.Web.FuelEnergyEntries;
+using MyGarage.Web.Inspections;
+using MyGarage.Web.Insurance;
+using MyGarage.Web.Registrations;
 using MyGarage.Web.Lookups;
 using MyGarage.Web.ServiceRecords;
+using MyGarage.Web.Taxes;
 using MyGarage.Web.Vehicles;
 
 namespace MyGarage.Web.Tests.Vehicles;
@@ -31,6 +36,18 @@ public abstract class VehicleTestContext : BunitContext
 
     // When set, GET /api/vehicles/{id}/service-records answers with this status instead of the page.
     protected HttpStatusCode? ServiceRecordsFailure { get; set; }
+
+    // Answered to GET /api/vehicles/{id}/<segment> for the new Maintenance lists (fuel-energy-entries, inspections,
+    // registrations, insurance, taxes); a segment with no entry answers with an empty page.
+    protected Dictionary<string, object> MaintenanceLists { get; } = [];
+
+    // When a segment is present, its list answers with this status instead of the page.
+    protected Dictionary<string, HttpStatusCode> MaintenanceListFailures { get; } = [];
+
+    // Takes precedence over MaintenanceLists for a segment, for tests that answer by page.
+    protected Dictionary<string, Func<HttpRequestMessage, HttpResponseMessage>> MaintenanceListResponders { get; } = [];
+
+    private static readonly string[] MaintenanceSegments = ["fuel-energy-entries", "inspections", "registrations", "insurance", "taxes"];
 
     // Answered to GET /api/vehicles/filter-options.
     protected VehicleFilterOptionsDto FilterOptions { get; set; } = new() { Makes = [], Colors = [], Tags = [] };
@@ -107,12 +124,35 @@ public abstract class VehicleTestContext : BunitContext
                 return ServiceRecordsFailure is { } recordsFailure ? new HttpResponseMessage(recordsFailure) : Json(ServiceRecords);
             }
 
+            if (request.Method == HttpMethod.Get && MaintenanceSegments.Contains(request.RequestUri.AbsolutePath.Split('/')[^1]))
+            {
+                var segment = request.RequestUri.AbsolutePath.Split('/')[^1];
+                if (MaintenanceListResponders.TryGetValue(segment, out var responder))
+                {
+                    return responder(request);
+                }
+
+                if (MaintenanceListFailures.TryGetValue(segment, out var listFailure))
+                {
+                    return new HttpResponseMessage(listFailure);
+                }
+
+                return MaintenanceLists.TryGetValue(segment, out var page)
+                    ? Json(page)
+                    : Json(new { items = Array.Empty<object>(), page = 1, pageSize = 10, totalCount = 0, totalPages = 0 });
+            }
+
             return respond(request);
         });
         Services.AddSingleton(new VehiclesApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
         Services.AddSingleton(new LookupsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
         Services.AddSingleton(new GarageApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
         Services.AddSingleton(new ServiceRecordsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
+        Services.AddSingleton(new FuelEnergyEntriesApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
+        Services.AddSingleton(new InspectionsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
+        Services.AddSingleton(new RegistrationsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
+        Services.AddSingleton(new InsuranceApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
+        Services.AddSingleton(new TaxesApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
     }
 
     private static LookupsDto WithoutHidden(LookupsDto lookups) =>

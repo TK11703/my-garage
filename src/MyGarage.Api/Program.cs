@@ -1,7 +1,12 @@
 using MyGarage.Api.Common;
+using MyGarage.Api.FuelEnergyEntries;
+using MyGarage.Api.Inspections;
+using MyGarage.Api.Insurance;
 using MyGarage.Api.Lookups;
+using MyGarage.Api.Registrations;
 using MyGarage.Api.SampleData;
 using MyGarage.Api.ServiceRecords;
+using MyGarage.Api.Taxes;
 using MyGarage.Api.Users;
 using MyGarage.Api.Vehicles;
 using MyGarage.Api.Vehicles.Images;
@@ -26,6 +31,11 @@ builder.Services.AddVehicleTags();
 builder.Services.AddJournalNotes();
 builder.Services.AddVehicleImages();
 builder.Services.AddServiceRecords();
+builder.Services.AddFuelEnergyEntries();
+builder.Services.AddInspections();
+builder.Services.AddRegistrations();
+builder.Services.AddInsurance();
+builder.Services.AddTaxes();
 
 var app = builder.Build();
 
@@ -47,6 +57,11 @@ app.MapVehicleTagsEndpoints();
 app.MapJournalNotesEndpoints();
 app.MapVehicleImagesEndpoints();
 app.MapServiceRecordsEndpoints();
+app.MapFuelEnergyEntriesEndpoints();
+app.MapInspectionsEndpoints();
+app.MapRegistrationsEndpoints();
+app.MapInsuranceEndpoints();
+app.MapTaxesEndpoints();
 app.MapSampleDataEndpoints();
 app.MapDefaultEndpoints();
 

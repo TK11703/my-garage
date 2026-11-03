@@ -23,6 +23,18 @@ public class VehicleCreatePageTests : VehicleTestContext
     }
 
     [Fact]
+    public void PrimaryButtonIsSaveWithASaveIcon()
+    {
+        RegisterApi(_ => Json(Detail()));
+
+        var cut = Render<VehicleCreate>();
+
+        var save = cut.Find("button[type='submit']");
+        Assert.Equal("Save", save.TextContent.Trim());
+        Assert.NotNull(save.QuerySelector("svg.bi[aria-hidden='true']"));
+    }
+
+    [Fact]
     public void Form_HasLabeledInputsForEveryField()
     {
         RegisterApi(_ => Json(Detail()));

@@ -21,7 +21,7 @@ else if (notFound)
 }
 else if (record is not null && vehicleName is not null)
 {
-    var title = $"Service record {ServiceRecordFormat.Date(record.DateServiced)}";
+    var title = $"Service record {DisplayFormat.Date(record.DateServiced)}";
 
     <PageHeader Title="@title"
                 Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(vehicleName, TabHref), new Crumb(title) })">
@@ -52,7 +52,7 @@ else if (record is not null && vehicleName is not null)
 
     <FieldGroup Id="service-record" Title="Service record">
         <dl class="row g-3 mb-0" aria-label="Service record">
-            <ViewField Label="Date serviced" Value="@ServiceRecordFormat.Date(record.DateServiced)" />
+            <ViewField Label="Date serviced" Value="@DisplayFormat.Date(record.DateServiced)" />
             <ViewField Label="Odometer reading" Value="@ServiceRecordFormat.Odometer(record.OdometerReading)" />
             <ViewField Label="Shop name or person" Value="@ServiceRecordFormat.ShopOrNotSet(record.ShopOrPerson)" />
         </dl>
@@ -78,7 +78,7 @@ else if (record is not null && vehicleName is not null)
         </a>
 
         <p class="fs-5 fw-semibold mt-3 mb-0">
-            Total cost: <span data-testid="total-cost">@ServiceRecordFormat.Money(record.TotalCost)</span>
+            Total cost: <span data-testid="total-cost">@DisplayFormat.Money(record.TotalCost)</span>
         </p>
     </FieldGroup>
 }

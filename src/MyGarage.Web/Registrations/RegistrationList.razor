@@ -1,0 +1,42 @@
+@* Display only: the parent loads the page of registrations. *@
+<EntryListBlock TItem="RegistrationDto" Items="Entries?.Items" TotalCount="Entries?.TotalCount ?? 0" Page="Entries?.Page ?? 1" TotalPages="Entries?.TotalPages ?? 1"
+                HrefFor="HrefFor" Failure="Failure" ReturnUrl="@ReturnUrl" EmptyMessage="No registrations yet. Add the first registration for this vehicle." ListTestId="registration-list">
+    <AddActions>
+        <a class="btn btn-primary d-inline-flex align-items-center gap-2" href="/vehicles/@VehicleId/registrations/new" data-testid="add-registration">
+            <Icon Name="IconName.Plus" /> Add registration
+        </a>
+    </AddActions>
+    <RowTemplate Context="entry">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2" data-testid="registration">
+            <div>
+                <div class="fw-semibold" data-testid="entry-state">@RegistrationFormat.StateDisplay(entry.State)</div>
+                <div class="small text-body-secondary" data-testid="entry-expires">@RegistrationFormat.Expires(entry.ExpirationDate)</div>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="fw-semibold" data-testid="entry-cost">@DisplayFormat.Money(entry.Cost)</span>
+                <a class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" href="/vehicles/@VehicleId/registrations/@entry.Id/edit"
+                   data-testid="edit-entry" aria-label="@RegistrationFormat.EditName(entry)" title="@RegistrationFormat.EditName(entry)">
+                    <Icon Name="IconName.Pencil" /> Edit
+                </a>
+            </div>
+        </div>
+    </RowTemplate>
+</EntryListBlock>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    [Parameter]
+    public PagedResultDto<RegistrationDto>? Entries { get; set; }
+
+    [Parameter]
+    public GarageApiFailure? Failure { get; set; }
+
+    // App-relative page to come back to after signing in again.
+    [Parameter]
+    public string ReturnUrl { get; set; } = "/";
+
+    [Parameter, EditorRequired]
+    public Func<int, string> HrefFor { get; set; } = _ => "#";
+}

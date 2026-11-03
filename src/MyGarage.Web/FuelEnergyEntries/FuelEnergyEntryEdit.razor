@@ -1,0 +1,110 @@
+@page "/vehicles/{VehicleId:guid}/fuel-energy-entries/{EntryId:guid}/edit"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject VehiclesApiClient VehiclesApi
+@inject FuelEnergyEntriesApiClient Api
+@inject NavigationManager Navigation
+
+<MaintenancePage Title="@Title" VehicleId="VehicleId" VehicleName="@vehicleName" Section="MaintenanceSection.Fuel"
+                 Failure="failure" ReturnUrl="@EditHref"
+                 NotFound="notFound" NotFoundTitle="Entry not found" NotFoundMessage="This entry could not be found.">
+    @if (loaded && Model is not null)
+    {
+        <FuelEnergyEntryForm Model="Model" FormName="update-fuel-energy-entry" SubmitText="Save changes" SubmitTitle="Save your changes"
+                             CancelHref="@MaintenanceLinks.TabHref(VehicleId, MaintenanceSection.Fuel)" Errors="errors" OnSubmit="SubmitAsync">
+            <Delete>
+                <DeleteEntryPanel Noun="@FuelEnergyEntryFormat.Noun(storedKind)" FormName="delete-fuel-energy-entry" TestId="delete-fuel-energy-entry"
+                                  KeepHref="@EditHref" OnDelete="DeleteAsync" />
+            </Delete>
+        </FuelEnergyEntryForm>
+    }
+</MaintenancePage>
+
+@code {
+    private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
+    private GarageApiFailure? failure;
+    private string? vehicleName;
+    private bool notFound;
+    // A posted Model exists before the stored entry loads, so Model alone can't gate the form.
+    private bool loaded;
+    private FuelEnergyKind storedKind;
+
+    [Parameter]
+    public Guid VehicleId { get; set; }
+
+    [Parameter]
+    public Guid EntryId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "update-fuel-energy-entry")]
+    private FuelEnergyEntryFormModel? Model { get; set; }
+
+    private string EditHref => $"/vehicles/{VehicleId}/fuel-energy-entries/{EntryId}/edit";
+
+    private string Title => storedKind == FuelEnergyKind.Energy ? "Edit charge" : "Edit fuel entry";
+
+    // The stored entry is loaded on every request; a posted form takes precedence over it.
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var vehicle = await VehiclesApi.GetAsync(VehicleId);
+            var result = vehicle.IsNotFound ? null : await Api.GetAsync(VehicleId, EntryId);
+            if (vehicle.IsNotFound || result!.IsNotFound)
+            {
+                notFound = true;
+                return;
+            }
+
+            storedKind = result.Value!.Kind;
+            Model ??= FuelEnergyEntryFormModel.From(result.Value);
+            vehicleName = vehicle.Value!.Name;
+            loaded = true;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        failure = null;
+        try
+        {
+            var result = await Api.UpdateAsync(VehicleId, EntryId, Model!.ToRequest());
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo(MaintenanceLinks.TabHref(VehicleId, MaintenanceSection.Fuel));
+                return;
+            }
+
+            if (result.IsNotFound)
+            {
+                notFound = true;
+                return;
+            }
+
+            errors = result.Errors;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        try
+        {
+            var result = await Api.DeleteAsync(VehicleId, EntryId);
+            if (result.IsSuccess || result.IsNotFound)
+            {
+                Navigation.NavigateTo(MaintenanceLinks.TabHref(VehicleId, MaintenanceSection.Fuel));
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+}

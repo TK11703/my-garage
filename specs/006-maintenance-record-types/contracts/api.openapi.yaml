@@ -1,0 +1,676 @@
+openapi: 3.1.0
+info:
+  title: My Garage API - Maintenance Records (Charging and Fueling, Inspections, Registrations, Insurance, Taxes)
+  version: 1.0.0
+  description: >-
+    Five flat, vehicle-owned record kinds. Extends the vehicles API (specs/002-vehicle-tracking/contracts/api.openapi.yaml and
+    specs/004-expanded-vehicle-details/contracts/api.openapi.yaml) and follows the conventions of the service records API
+    (specs/005-service-records/contracts/api.openapi.yaml). The owner is always derived from the validated access token;
+    no request carries an owner or user id. A vehicle or entry that does not exist, belongs to another user, or is reached
+    through a vehicle other than its own is reported as 404. Lists are paged (default 10, maximum 50), newest first, and a page
+    past the last is answered with the last page (the returned `page` is the page served). Amounts are in a single currency.
+    Every endpoint has the same status codes: 200 (201 for create with a Location header, 204 for delete), 400 validation
+    problem, 401, 403, 404. Enumerations are sent as their PascalCase names.
+servers:
+  - url: https+http://api
+security:
+  - bearer: [access_as_user]
+paths:
+  /api/vehicles/{vehicleId}/fuel-energy-entries:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+    get:
+      operationId: listFuelEnergyEntries
+      summary: Page of the vehicle's fuel and charging entries, newest entry date first (ties newest created first).
+      tags: [FuelEnergyEntries]
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PageSize10" }
+      responses:
+        "200":
+          description: A page of entries.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FuelEnergyEntryPage" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      operationId: createFuelEnergyEntry
+      summary: Add a fuel entry or a charging entry to the vehicle.
+      tags: [FuelEnergyEntries]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FuelEnergyEntryRequest" }
+      responses:
+        "201":
+          description: Created. `totalCost` is the value entered, or price x amount rounded to the cent when it was omitted.
+          headers:
+            Location: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FuelEnergyEntryDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/{vehicleId}/fuel-energy-entries/{entryId}:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+      - { $ref: "#/components/parameters/EntryId" }
+    get:
+      operationId: getFuelEnergyEntry
+      summary: One fuel or charging entry.
+      tags: [FuelEnergyEntries]
+      responses:
+        "200":
+          description: The entry.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FuelEnergyEntryDto" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      operationId: updateFuelEnergyEntry
+      summary: Replace the entry's values.
+      tags: [FuelEnergyEntries]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FuelEnergyEntryRequest" }
+      responses:
+        "200":
+          description: The updated entry.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FuelEnergyEntryDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    delete:
+      operationId: deleteFuelEnergyEntry
+      summary: Delete the entry.
+      tags: [FuelEnergyEntries]
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/{vehicleId}/inspections:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+    get:
+      operationId: listInspections
+      summary: Page of the vehicle's inspections, newest inspection date first (ties newest created first).
+      tags: [Inspections]
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PageSize10" }
+      responses:
+        "200":
+          description: A page of inspections.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InspectionPage" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      operationId: createInspection
+      summary: Add an inspection to the vehicle.
+      tags: [Inspections]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InspectionRequest" }
+      responses:
+        "201":
+          description: Created.
+          headers:
+            Location: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InspectionDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/{vehicleId}/inspections/{entryId}:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+      - { $ref: "#/components/parameters/EntryId" }
+    get:
+      operationId: getInspection
+      summary: One inspection.
+      tags: [Inspections]
+      responses:
+        "200":
+          description: The inspection.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InspectionDto" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      operationId: updateInspection
+      summary: Replace the inspection's values.
+      tags: [Inspections]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InspectionRequest" }
+      responses:
+        "200":
+          description: The updated inspection.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InspectionDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    delete:
+      operationId: deleteInspection
+      summary: Delete the inspection.
+      tags: [Inspections]
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/{vehicleId}/registrations:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+    get:
+      operationId: listRegistrations
+      summary: Page of the vehicle's registrations, latest expiration date first (ties newest created first).
+      tags: [Registrations]
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PageSize10" }
+      responses:
+        "200":
+          description: A page of registrations.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RegistrationPage" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      operationId: createRegistration
+      summary: Add a registration to the vehicle.
+      tags: [Registrations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RegistrationRequest" }
+      responses:
+        "201":
+          description: Created.
+          headers:
+            Location: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RegistrationDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/{vehicleId}/registrations/{entryId}:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+      - { $ref: "#/components/parameters/EntryId" }
+    get:
+      operationId: getRegistration
+      summary: One registration.
+      tags: [Registrations]
+      responses:
+        "200":
+          description: The registration.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RegistrationDto" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      operationId: updateRegistration
+      summary: Replace the registration's values.
+      tags: [Registrations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RegistrationRequest" }
+      responses:
+        "200":
+          description: The updated registration.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RegistrationDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    delete:
+      operationId: deleteRegistration
+      summary: Delete the registration.
+      tags: [Registrations]
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/{vehicleId}/insurance:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+    get:
+      operationId: listInsurancePolicies
+      summary: Page of the vehicle's insurance entries, latest end date first (ties newest created first).
+      tags: [Insurance]
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PageSize10" }
+      responses:
+        "200":
+          description: A page of insurance entries.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InsurancePolicyPage" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      operationId: createInsurancePolicy
+      summary: Add an insurance entry to the vehicle.
+      tags: [Insurance]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InsurancePolicyRequest" }
+      responses:
+        "201":
+          description: Created.
+          headers:
+            Location: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InsurancePolicyDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/{vehicleId}/insurance/{entryId}:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+      - { $ref: "#/components/parameters/EntryId" }
+    get:
+      operationId: getInsurancePolicy
+      summary: One insurance entry.
+      tags: [Insurance]
+      responses:
+        "200":
+          description: The insurance entry.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InsurancePolicyDto" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      operationId: updateInsurancePolicy
+      summary: Replace the insurance entry's values.
+      tags: [Insurance]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InsurancePolicyRequest" }
+      responses:
+        "200":
+          description: The updated insurance entry.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InsurancePolicyDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    delete:
+      operationId: deleteInsurancePolicy
+      summary: Delete the insurance entry.
+      tags: [Insurance]
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/{vehicleId}/taxes:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+    get:
+      operationId: listTaxes
+      summary: Page of the vehicle's taxes, most recently added first.
+      tags: [Taxes]
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PageSize10" }
+      responses:
+        "200":
+          description: A page of taxes.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TaxPage" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      operationId: createTax
+      summary: Add a tax to the vehicle.
+      tags: [Taxes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TaxRequest" }
+      responses:
+        "201":
+          description: Created.
+          headers:
+            Location: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TaxDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/vehicles/{vehicleId}/taxes/{entryId}:
+    parameters:
+      - { $ref: "#/components/parameters/VehicleId" }
+      - { $ref: "#/components/parameters/EntryId" }
+    get:
+      operationId: getTax
+      summary: One tax.
+      tags: [Taxes]
+      responses:
+        "200":
+          description: The tax.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TaxDto" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      operationId: updateTax
+      summary: Replace the tax's values.
+      tags: [Taxes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TaxRequest" }
+      responses:
+        "200":
+          description: The updated tax.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TaxDto" }
+        "400": { $ref: "#/components/responses/ValidationProblem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    delete:
+      operationId: deleteTax
+      summary: Delete the tax.
+      tags: [Taxes]
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+components:
+  securitySchemes:
+    bearer:
+      type: oauth2
+      description: Microsoft Entra ID access token; the owner id comes from its validated claims.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://login.microsoftonline.com/common/oauth2/v2.0/authorize
+          tokenUrl: https://login.microsoftonline.com/common/oauth2/v2.0/token
+          scopes:
+            access_as_user: Access My Garage as the signed-in user.
+  parameters:
+    VehicleId: { name: vehicleId, in: path, required: true, schema: { type: string, format: uuid } }
+    EntryId: { name: entryId, in: path, required: true, schema: { type: string, format: uuid } }
+    Page: { name: page, in: query, required: false, schema: { type: integer, minimum: 1, default: 1 } }
+    PageSize10: { name: pageSize, in: query, required: false, description: Default 10, maximum 50., schema: { type: integer, minimum: 1, maximum: 50, default: 10 } }
+  responses:
+    Problem:
+      description: RFC 9457 problem details.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ProblemDetails" }
+    ValidationProblem:
+      description: Validation failed; `errors` is keyed by field name (for example `entryDate`, `unitPrice`).
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ValidationProblemDetails" }
+  schemas:
+    ProblemDetails:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+    ValidationProblemDetails:
+      allOf:
+        - { $ref: "#/components/schemas/ProblemDetails" }
+        - type: object
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items: { type: string }
+    Money:
+      type: number
+      format: decimal
+      minimum: 0
+      maximum: 9999999.99
+      description: At most two decimal places.
+    PageEnvelope:
+      type: object
+      required: [page, pageSize, totalCount, totalPages]
+      properties:
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalCount: { type: integer }
+        totalPages: { type: integer }
+    FuelEnergyKind:
+      type: string
+      enum: [Fuel, Energy]
+      description: Fuel is priced per gallon and measured in gallons; Energy is priced per kWh and measured in kWh delivered.
+    FuelEnergyEntryRequest:
+      type: object
+      required: [kind, entryDate, unitPrice, quantity]
+      properties:
+        kind: { $ref: "#/components/schemas/FuelEnergyKind" }
+        entryDate: { type: string, format: date, description: "Not in the future (UTC date); not before 1900-01-01." }
+        unitPrice: { type: number, format: decimal, minimum: 0, maximum: 9999.9999, description: "Price per gallon or per kWh; at most four decimal places." }
+        quantity: { type: number, format: decimal, minimum: 0.001, maximum: 99999.999, description: "Total gallons or kWh delivered; at most three decimal places." }
+        totalCost:
+          oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }]
+          description: Total or total session cost. When omitted, price x amount rounded to the cent (rejected if that exceeds the maximum). A value given is kept as entered.
+    FuelEnergyEntryDto:
+      type: object
+      required: [id, vehicleId, kind, entryDate, unitPrice, quantity, totalCost, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        vehicleId: { type: string, format: uuid }
+        kind: { $ref: "#/components/schemas/FuelEnergyKind" }
+        entryDate: { type: string, format: date }
+        unitPrice: { type: number, format: decimal }
+        quantity: { type: number, format: decimal }
+        totalCost: { $ref: "#/components/schemas/Money" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    FuelEnergyEntryPage:
+      allOf:
+        - { $ref: "#/components/schemas/PageEnvelope" }
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/FuelEnergyEntryDto" }
+    InspectionType:
+      type: string
+      enum: [Safety, Emissions]
+    InspectionRequest:
+      type: object
+      required: [type, inspectionDate, cost]
+      properties:
+        type: { $ref: "#/components/schemas/InspectionType" }
+        inspectionDate: { type: string, format: date, description: "Not in the future (UTC date); not before 1900-01-01." }
+        cost: { $ref: "#/components/schemas/Money" }
+        nextDueDate: { type: [string, "null"], format: date, description: "Optional; not earlier than inspectionDate and not after 2100-12-31." }
+    InspectionDto:
+      type: object
+      required: [id, vehicleId, type, inspectionDate, cost, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        vehicleId: { type: string, format: uuid }
+        type: { $ref: "#/components/schemas/InspectionType" }
+        inspectionDate: { type: string, format: date }
+        cost: { $ref: "#/components/schemas/Money" }
+        nextDueDate: { type: [string, "null"], format: date }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    InspectionPage:
+      allOf:
+        - { $ref: "#/components/schemas/PageEnvelope" }
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/InspectionDto" }
+    UsState:
+      type: string
+      description: Two-letter postal code of one of the 50 states or DC (for example `WA`, `DC`).
+      pattern: "^[A-Z]{2}$"
+    RegistrationRequest:
+      type: object
+      required: [state, cost, expirationDate]
+      properties:
+        state: { $ref: "#/components/schemas/UsState" }
+        cost: { $ref: "#/components/schemas/Money" }
+        expirationDate: { type: string, format: date, description: "Between 1900-01-01 and 2100-12-31; may be in the past." }
+    RegistrationDto:
+      type: object
+      required: [id, vehicleId, state, cost, expirationDate, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        vehicleId: { type: string, format: uuid }
+        state: { $ref: "#/components/schemas/UsState" }
+        cost: { $ref: "#/components/schemas/Money" }
+        expirationDate: { type: string, format: date }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    RegistrationPage:
+      allOf:
+        - { $ref: "#/components/schemas/PageEnvelope" }
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/RegistrationDto" }
+    InsuranceDuration:
+      type: string
+      enum: [Monthly, BiAnnual, Annual]
+      description: How often the premium is paid. BiAnnual means twice a year.
+    InsurancePolicyRequest:
+      type: object
+      required: [startDate, endDate, duration, cost]
+      description: Only these three values are stored for insurance.
+      properties:
+        startDate: { type: string, format: date, description: "Between 1900-01-01 and 2100-12-31; may be in the past." }
+        endDate: { type: string, format: date, description: "Between 1900-01-01 and 2100-12-31; must be later than startDate." }
+        duration: { $ref: "#/components/schemas/InsuranceDuration" }
+        cost: { $ref: "#/components/schemas/Money" }
+    InsurancePolicyDto:
+      type: object
+      required: [id, vehicleId, startDate, endDate, duration, cost, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        vehicleId: { type: string, format: uuid }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        duration: { $ref: "#/components/schemas/InsuranceDuration" }
+        cost: { $ref: "#/components/schemas/Money", description: The premium paid each time (per the duration), not the policy total. }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    InsurancePolicyPage:
+      allOf:
+        - { $ref: "#/components/schemas/PageEnvelope" }
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/InsurancePolicyDto" }
+    TaxType:
+      type: string
+      enum: [PersonalProperty, Lease, Purchase]
+    TaxRecurrence:
+      type: string
+      enum: [Once, Monthly, BiAnnual, Annual]
+      description: BiAnnual means twice a year.
+    TaxRequest:
+      type: object
+      required: [type, amount, recurrence]
+      properties:
+        type: { $ref: "#/components/schemas/TaxType" }
+        amount: { type: number, format: decimal, minimum: 0.01, maximum: 9999999.99, description: At most two decimal places. }
+        recurrence: { $ref: "#/components/schemas/TaxRecurrence" }
+    TaxDto:
+      type: object
+      required: [id, vehicleId, type, amount, recurrence, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        vehicleId: { type: string, format: uuid }
+        type: { $ref: "#/components/schemas/TaxType" }
+        amount: { type: number, format: decimal }
+        recurrence: { $ref: "#/components/schemas/TaxRecurrence" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    TaxPage:
+      allOf:
+        - { $ref: "#/components/schemas/PageEnvelope" }
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/TaxDto" }

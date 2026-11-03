@@ -1,0 +1,97 @@
+﻿<MaintenanceFormCard FormId="@FormName" SubmitText="@SubmitText" SubmitTitle="@SubmitTitle" CancelHref="@CancelHref" Delete="Delete">
+    <EditForm EditContext="editContext" id="@FormName" FormName="@FormName" OnValidSubmit="OnSubmit" class="vstack gap-3">
+        <div class="row g-3">
+            <div class="col-sm-6 col-lg-4">
+                <div class="form-floating">
+                    <InputSelect id="tax-type" TValue="TaxType?" class="form-select" @bind-Value="Model.Type"
+                                 aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "Type")">
+                        <option value="">Choose a type</option>
+                        <option value="@TaxType.PersonalProperty">Personal Property</option>
+                        <option value="@TaxType.Lease">Lease</option>
+                        <option value="@TaxType.Purchase">Purchase</option>
+                    </InputSelect>
+                    <label for="tax-type">Type<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <ValidationMessage For="@(() => Model.Type)" id="type-error" class="invalid-feedback d-block" />
+            </div>
+            <div class="col-sm-6 col-lg-4">
+                <div class="form-floating">
+                    <InputNumber id="amount" TValue="decimal?" class="form-control" @bind-Value="Model.Amount" min="0.01" max="9999999.99" step="0.01" inputmode="decimal" placeholder=" "
+                                 aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "Amount")" />
+                    <label for="amount">Amount<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <ValidationMessage For="@(() => Model.Amount)" id="amount-error" class="invalid-feedback d-block" />
+            </div>
+            <div class="col-sm-6 col-lg-4">
+                <div class="form-floating">
+                    <InputSelect id="recurrence" TValue="TaxRecurrence?" class="form-select" @bind-Value="Model.Recurrence"
+                                 aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "Recurrence")">
+                        <option value="">Choose how often</option>
+                        <option value="@TaxRecurrence.Once">Once</option>
+                        <option value="@TaxRecurrence.Monthly">Monthly</option>
+                        <option value="@TaxRecurrence.BiAnnual">Bi-Annual (twice a year)</option>
+                        <option value="@TaxRecurrence.Annual">Annual</option>
+                    </InputSelect>
+                    <label for="recurrence">Recurrence<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <ValidationMessage For="@(() => Model.Recurrence)" id="recurrence-error" class="invalid-feedback d-block" />
+            </div>
+        </div>
+    </EditForm>
+</MaintenanceFormCard>
+
+@code {
+    private static readonly string[] Fields = ["Type", "Amount", "Recurrence"];
+
+    private EditContext editContext = default!;
+    private ValidationMessageStore messages = default!;
+    private TaxFormModel? contextModel;
+
+    [Parameter, EditorRequired]
+    public TaxFormModel Model { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string FormName { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string SubmitText { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string SubmitTitle { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string CancelHref { get; set; } = default!;
+
+    // Validation errors returned by the API, keyed by property name.
+    [Parameter]
+    public IReadOnlyDictionary<string, string[]> Errors { get; set; } = new Dictionary<string, string[]>();
+
+    [Parameter, EditorRequired]
+    public EventCallback OnSubmit { get; set; }
+
+    // The Delete control for the card footer; only the edit page passes it.
+    [Parameter]
+    public RenderFragment? Delete { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(contextModel, Model))
+        {
+            contextModel = Model;
+            editContext = new EditContext(Model);
+            messages = new ValidationMessageStore(editContext);
+            editContext.OnValidationRequested += (_, _) => messages.Clear();
+        }
+
+        messages.Clear();
+        foreach (var field in Fields)
+        {
+            if (Errors.FirstOrDefault(pair => string.Equals(pair.Key, field, StringComparison.OrdinalIgnoreCase)).Value is { Length: > 0 } fieldErrors)
+            {
+                messages.Add(editContext.Field(field), fieldErrors);
+            }
+        }
+
+        editContext.NotifyValidationStateChanged();
+    }
+}

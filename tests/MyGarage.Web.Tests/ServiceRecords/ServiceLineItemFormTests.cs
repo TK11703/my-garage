@@ -105,17 +105,46 @@ public class ServiceLineItemFormTests : VehicleTestContext
         {
             var card = cut.Find("form[data-testid='line-item-form'] section.card");
             var visible = card.QuerySelectorAll("[data-pricing-section]:not([hidden])").ToList();
-            Assert.Equal(["Flat Cost"], visible.Where(section => section.ClassList.Contains("card-header")).Select(section => section.TextContent.Trim()));
-            Assert.Single(visible, section => section.ClassList.Contains("card-body"));
-            Assert.Contains("flat-cost", visible.Single(section => section.ClassList.Contains("card-body")).InnerHtml);
-            Assert.Contains("did not get a breakdown", visible.Single(section => section.ClassList.Contains("card-body")).TextContent);
+            var shown = Assert.Single(visible);
+            Assert.Equal("Flat Cost", shown.QuerySelector("h3")!.TextContent.Trim());
+            Assert.Contains("flat-cost", shown.InnerHtml);
+            Assert.Contains("did not get a breakdown", shown.TextContent);
 
-            var hidden = card.QuerySelectorAll("[data-pricing-section][hidden]").ToList();
-            Assert.Equal(["Labor and Parts"], hidden.Where(section => section.ClassList.Contains("card-header")).Select(section => section.TextContent.Trim()));
-            Assert.NotNull(hidden.Single(section => section.ClassList.Contains("card-body")).QuerySelector("input#labor-hours"));
+            var hidden = Assert.Single(card.QuerySelectorAll("[data-pricing-section][hidden]"));
+            Assert.Equal("Labor and Parts", hidden.QuerySelector("h3")!.TextContent.Trim());
+            Assert.NotNull(hidden.QuerySelector("input#labor-hours"));
 
+            Assert.Empty(card.QuerySelectorAll(".card-header"));
             Assert.Single(cut.FindAll(".card-footer"));
             Assert.Equal(["Flat Cost", "Labor and Parts"], cut.FindAll("fieldset .form-check-label").Select(label => label.TextContent.Trim()));
+        });
+    }
+
+    [Fact]
+    public void Add_RequiredNoteIsTheFirstThingInTheCardBody_NotInTheFooter()
+    {
+        var cut = RenderCreate();
+
+        cut.WaitForAssertion(() =>
+        {
+            var body = cut.Find("section.card > .card-body");
+            Assert.Equal("* Required", body.FirstElementChild!.TextContent.Trim());
+            Assert.DoesNotContain("Required", cut.Find("section.card > .card-footer").TextContent);
+        });
+    }
+
+    [Fact]
+    public void Add_WholeFormIsInOneCardBody_AndWhatWasDoneIsFullWidth()
+    {
+        var cut = RenderCreate();
+
+        cut.WaitForAssertion(() =>
+        {
+            var body = cut.Find("section.card > .card-body");
+            Assert.NotNull(body.QuerySelector("input#line-description"));
+            Assert.NotNull(body.QuerySelector("fieldset input#pricing-flat"));
+            Assert.NotNull(body.QuerySelector("input#flat-cost"));
+            Assert.Empty(cut.FindAll("form [class*='col-lg-8']"));
         });
     }
 
@@ -146,9 +175,9 @@ public class ServiceLineItemFormTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            var visible = cut.FindAll("section.card [data-pricing-section]:not([hidden])");
-            Assert.Equal(["Labor and Parts"], visible.Where(section => section.ClassList.Contains("card-header")).Select(section => section.TextContent.Trim()));
-            Assert.NotNull(visible.Single(section => section.ClassList.Contains("card-body")).QuerySelector("input#labor-hours"));
+            var visible = Assert.Single(cut.FindAll("section.card [data-pricing-section]:not([hidden])"));
+            Assert.Equal("Labor and Parts", visible.QuerySelector("h3")!.TextContent.Trim());
+            Assert.NotNull(visible.QuerySelector("input#labor-hours"));
         });
     }
 

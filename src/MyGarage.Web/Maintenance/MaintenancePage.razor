@@ -1,0 +1,72 @@
+@* The frame shared by the Maintenance add and edit pages: header, trail, and the failure and not-found states. *@
+@if (Failure is not null)
+{
+    <PageHeader Title="@Title" Trail="@(new[] { new Crumb("Vehicles") })" />
+
+    <ApiFailureAlert Failure="Failure.Value" ReturnUrl="@ReturnUrl"
+                     NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+}
+else if (NotFound)
+{
+    <PageHeader Title="@NotFoundTitle" Trail="@(new[] { new Crumb("Vehicles") })" />
+
+    <EmptyState Variant="EmptyStateVariant.NoMatch" Message="@NotFoundMessage"
+                ActionText="Back to Maintenance" ActionHref="@MaintenanceLinks.TabHref(VehicleId, Section)" />
+}
+else if (VehicleName is not null)
+{
+    <PageHeader Title="@Title"
+                Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(VehicleName, MaintenanceLinks.TabHref(VehicleId, Section)), new Crumb(Title) })" />
+
+    <div class="row">
+        <div class="col-lg-10">
+            @ChildContent
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    // Null until the vehicle has loaded.
+    [Parameter]
+    public string? VehicleName { get; set; }
+
+    // The Maintenance item the page belongs to; the trail and the not-found link return to it.
+    [Parameter]
+    public MaintenanceSection Section { get; set; }
+
+    [Parameter]
+    public GarageApiFailure? Failure { get; set; }
+
+    // App-relative page to come back to after signing in again.
+    [Parameter]
+    public string ReturnUrl { get; set; } = "/";
+
+    [Parameter]
+    public bool NotFound { get; set; }
+
+    [Parameter]
+    public string NotFoundTitle { get; set; } = "Not found";
+
+    [Parameter]
+    public string NotFoundMessage { get; set; } = "This could not be found.";
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (NotFound && HttpContext is { Response.HasStarted: false })
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+        }
+    }
+}

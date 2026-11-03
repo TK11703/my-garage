@@ -1,33 +1,33 @@
-<EditForm EditContext="editContext" FormName="@FormName" OnValidSubmit="OnSubmit" class="vstack gap-3">
-    <div class="row g-3">
-        <div class="col-sm-4">
-            <div class="form-floating">
-                <InputDate id="date-serviced" TValue="DateOnly?" class="form-control" @bind-Value="Model.DateServiced" placeholder=" "
-                           aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "DateServiced")" />
-                <label for="date-serviced">Date serviced<span class="text-danger" aria-hidden="true"> *</span></label>
+<MaintenanceFormCard FormId="@FormName" SubmitText="@SubmitText" SubmitTitle="Save this service record" CancelHref="@CancelHref">
+    <EditForm EditContext="editContext" id="@FormName" FormName="@FormName" OnValidSubmit="OnSubmit" class="vstack gap-3">
+        <div class="row g-3">
+            <div class="col-sm-4">
+                <div class="form-floating">
+                    <InputDate id="date-serviced" TValue="DateOnly?" class="form-control" @bind-Value="Model.DateServiced" placeholder=" "
+                               aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "DateServiced")" />
+                    <label for="date-serviced">Date serviced<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <ValidationMessage For="@(() => Model.DateServiced)" id="dateserviced-error" class="invalid-feedback d-block" />
             </div>
-            <ValidationMessage For="@(() => Model.DateServiced)" id="dateserviced-error" class="invalid-feedback d-block" />
-        </div>
-        <div class="col-sm-4">
-            <div class="form-floating">
-                <InputNumber id="odometer-reading" TValue="int?" class="form-control" @bind-Value="Model.OdometerReading" min="0" max="9999999" step="1" inputmode="numeric" placeholder=" "
-                             aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "OdometerReading")" />
-                <label for="odometer-reading">Odometer reading (mi)<span class="text-danger" aria-hidden="true"> *</span></label>
+            <div class="col-sm-4">
+                <div class="form-floating">
+                    <InputNumber id="odometer-reading" TValue="int?" class="form-control" @bind-Value="Model.OdometerReading" min="0" max="9999999" step="1" inputmode="numeric" placeholder=" "
+                                 aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "OdometerReading")" />
+                    <label for="odometer-reading">Odometer reading (mi)<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <ValidationMessage For="@(() => Model.OdometerReading)" id="odometerreading-error" class="invalid-feedback d-block" />
             </div>
-            <ValidationMessage For="@(() => Model.OdometerReading)" id="odometerreading-error" class="invalid-feedback d-block" />
-        </div>
-        <div class="col-sm-4">
-            <div class="form-floating">
-                <InputText id="shop-or-person" class="form-control" @bind-Value="Model.ShopOrPerson" maxlength="100" placeholder=" "
-                           aria-describedby="@VehicleFormFields.Described(Errors, "ShopOrPerson")" />
-                <label for="shop-or-person">Shop name or person</label>
+            <div class="col-sm-4">
+                <div class="form-floating">
+                    <InputText id="shop-or-person" class="form-control" @bind-Value="Model.ShopOrPerson" maxlength="100" placeholder=" "
+                               aria-describedby="@VehicleFormFields.Described(Errors, "ShopOrPerson")" />
+                    <label for="shop-or-person">Shop name or person</label>
+                </div>
+                <ValidationMessage For="@(() => Model.ShopOrPerson)" id="shoporperson-error" class="invalid-feedback d-block" />
             </div>
-            <ValidationMessage For="@(() => Model.ShopOrPerson)" id="shoporperson-error" class="invalid-feedback d-block" />
         </div>
-    </div>
-    <VehicleFormActions SubmitText="@SubmitText" CancelHref="@CancelHref" SubmitIcon="IconName.Save"
-                        SubmitTitle="Save this service record" CancelTitle="Cancel and return without saving" />
-</EditForm>
+    </EditForm>
+</MaintenanceFormCard>
 
 @code {
     private static readonly string[] Fields = ["DateServiced", "OdometerReading", "ShopOrPerson"];

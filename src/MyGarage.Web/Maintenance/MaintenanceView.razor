@@ -1,0 +1,37 @@
+@* No data-bs-parent on the items, so each one opens and closes on its own. *@
+<div class="accordion vstack gap-3" id="maintenance-accordion" data-testid="maintenance-accordion">
+    <ServiceRecordsSection VehicleId="VehicleId" Page="RecordsPage" Expanded="@(Section == MaintenanceSection.Records)" />
+
+    <FuelSection VehicleId="VehicleId" Page="FuelPage" Expanded="@(Section == MaintenanceSection.Fuel)" />
+
+    <ComplianceSection VehicleId="VehicleId" Expanded="@(Section == MaintenanceSection.Compliance)" InspectionsPage="InspectionsPage"
+                       RegistrationsPage="RegistrationsPage" InsurancePage="InsurancePage" TaxesPage="TaxesPage" />
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    // Which accordion item starts open.
+    [Parameter]
+    public MaintenanceSection Section { get; set; } = MaintenanceSection.Records;
+
+    // Each list pages on its own query value (1-based).
+    [Parameter]
+    public int RecordsPage { get; set; } = 1;
+
+    [Parameter]
+    public int FuelPage { get; set; } = 1;
+
+    [Parameter]
+    public int InspectionsPage { get; set; } = 1;
+
+    [Parameter]
+    public int RegistrationsPage { get; set; } = 1;
+
+    [Parameter]
+    public int InsurancePage { get; set; } = 1;
+
+    [Parameter]
+    public int TaxesPage { get; set; } = 1;
+}

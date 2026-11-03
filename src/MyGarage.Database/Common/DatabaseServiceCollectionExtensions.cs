@@ -1,8 +1,13 @@
 using Microsoft.Extensions.DependencyInjection;
+using MyGarage.Database.FuelEnergyEntries;
+using MyGarage.Database.Inspections;
+using MyGarage.Database.Insurance;
 using MyGarage.Database.JournalNotes;
 using MyGarage.Database.Lookups;
+using MyGarage.Database.Registrations;
 using MyGarage.Database.ServiceRecords;
 using MyGarage.Database.Tags;
+using MyGarage.Database.Taxes;
 using MyGarage.Database.VehicleImages;
 using MyGarage.Database.Vehicles;
 
@@ -21,6 +26,11 @@ public static class DatabaseServiceCollectionExtensions
         services.AddSingleton<VehicleTagRepository>();
         services.AddSingleton<JournalNoteRepository>();
         services.AddSingleton<ServiceRecordRepository>();
+        services.AddSingleton<FuelEnergyEntryRepository>();
+        services.AddSingleton<InspectionRepository>();
+        services.AddSingleton<RegistrationRepository>();
+        services.AddSingleton<InsurancePolicyRepository>();
+        services.AddSingleton<TaxRepository>();
         services.AddSingleton<IVehicleImageBlobStore, AzureBlobVehicleImageStore>();
         services.AddSingleton<VehicleImageRepository>();
 

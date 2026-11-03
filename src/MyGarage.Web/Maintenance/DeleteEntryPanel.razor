@@ -1,0 +1,33 @@
+@* A confirmation panel for deleting one Maintenance entry; submitting the form calls OnDelete. *@
+<details class="position-relative" data-testid="@TestId">
+    <summary class="btn btn-outline-danger d-inline-flex align-items-center gap-2" title="@($"Delete this {Noun}")">
+        <Icon Name="IconName.Trash" /> Delete
+    </summary>
+    <div class="alert alert-danger mg-confirm-panel start-0 shadow" role="alert">
+        <p>Delete this @Noun? This cannot be undone.</p>
+        <form method="post" @formname="@FormName" @onsubmit="OnDelete" class="d-flex flex-wrap gap-2">
+            <AntiforgeryToken />
+            <button type="submit" class="btn btn-danger">Yes, delete</button>
+            <a class="btn btn-outline-secondary" href="@KeepHref">Keep</a>
+        </form>
+    </div>
+</details>
+
+@code {
+    // What is being deleted, in lower case, for example "fuel entry".
+    [Parameter, EditorRequired]
+    public string Noun { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string FormName { get; set; } = string.Empty;
+
+    // Where the Keep button returns to; the edit page itself.
+    [Parameter, EditorRequired]
+    public string KeepHref { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public EventCallback OnDelete { get; set; }
+
+    [Parameter]
+    public string TestId { get; set; } = "delete-entry";
+}

@@ -121,6 +121,64 @@ public class UiStandardConformanceTests
         Assert.Contains("aria-label=\"@($\"Delete {Line.Description}\")\"", row);
     }
 
+    private static readonly string[] MaintenanceFolders = ["FuelEnergyEntries", "Inspections", "Registrations", "Insurance", "Taxes", "Maintenance"];
+
+    private static List<string> MaintenanceSources() =>
+        [.. Sources.Where(path => MaintenanceFolders.Any(folder => path.Contains($"{Path.DirectorySeparatorChar}{folder}{Path.DirectorySeparatorChar}")))];
+
+    [Fact]
+    public void TheMaintenanceSourcesAreScanned_AndUseNoTablesScriptsMarkupOrInlineStyles()
+    {
+        var sources = MaintenanceSources();
+
+        // Five features with a form, create, edit, and list each, plus the six shared Maintenance components.
+        Assert.True(sources.Count >= 26, $"Only {sources.Count} Maintenance sources were found.");
+        foreach (var path in sources)
+        {
+            var source = File.ReadAllText(path);
+            Assert.DoesNotMatch(new Regex("<table[\\s>]"), source);
+            Assert.DoesNotMatch(new Regex("<script|jquery", RegexOptions.IgnoreCase), source);
+            Assert.DoesNotMatch(new Regex("MarkupString"), source);
+            Assert.DoesNotMatch(new Regex("\\sstyle=\"", RegexOptions.IgnoreCase), source);
+        }
+    }
+
+    [Fact]
+    public void EveryMaintenanceFormFieldHasALabel()
+    {
+        var forms = MaintenanceSources().Where(path => path.EndsWith("Form.razor", StringComparison.Ordinal)).ToList();
+
+        Assert.Equal(5, forms.Count);
+        foreach (var path in forms)
+        {
+            var source = File.ReadAllText(path);
+            var fields = Regex.Matches(source, "<Input(?:Text|Number|Date|Select)\\b[^>]*?\\bid=\"([^\"]+)\"")
+                .Select(match => match.Groups[1].Value)
+                .ToList();
+
+            Assert.NotEmpty(fields);
+            foreach (var id in fields)
+            {
+                Assert.True(source.Contains($"<label for=\"{id}\"", StringComparison.Ordinal), $"{Path.GetFileName(path)}: no label for {id}");
+            }
+        }
+    }
+
+    [Fact]
+    public void EveryMaintenanceEditLinkIsNamedAfterWhatItEdits()
+    {
+        var lists = MaintenanceSources().Where(path => path.EndsWith("List.razor", StringComparison.Ordinal)).ToList();
+
+        Assert.Equal(5, lists.Count);
+        foreach (var path in lists)
+        {
+            var source = File.ReadAllText(path);
+            Assert.Contains("data-testid=\"edit-entry\"", source);
+            Assert.Contains("aria-label=\"@", source);
+            Assert.Contains("btn btn-sm", source);
+        }
+    }
+
     [Fact]
     public void LookupListsAreNotTables()
     {

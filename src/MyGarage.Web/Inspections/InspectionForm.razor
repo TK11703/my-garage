@@ -1,0 +1,98 @@
+﻿<MaintenanceFormCard FormId="@FormName" SubmitText="@SubmitText" SubmitTitle="@SubmitTitle" CancelHref="@CancelHref" Delete="Delete">
+    <EditForm EditContext="editContext" id="@FormName" FormName="@FormName" OnValidSubmit="OnSubmit" class="vstack gap-3">
+        <div class="row g-3">
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <InputSelect id="inspection-type" TValue="InspectionType?" class="form-select" @bind-Value="Model.Type"
+                                 aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "Type")">
+                        <option value="">Choose a type</option>
+                        <option value="@InspectionType.Safety">Safety</option>
+                        <option value="@InspectionType.Emissions">Emissions</option>
+                    </InputSelect>
+                    <label for="inspection-type">Type<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <ValidationMessage For="@(() => Model.Type)" id="type-error" class="invalid-feedback d-block" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <InputDate id="inspection-date" TValue="DateOnly?" class="form-control" @bind-Value="Model.InspectionDate" placeholder=" "
+                               aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "InspectionDate")" />
+                    <label for="inspection-date">Date<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <ValidationMessage For="@(() => Model.InspectionDate)" id="inspectiondate-error" class="invalid-feedback d-block" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <InputNumber id="cost" TValue="decimal?" class="form-control" @bind-Value="Model.Cost" min="0" max="9999999.99" step="0.01" inputmode="decimal" placeholder=" "
+                                 aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "Cost")" />
+                    <label for="cost">Cost<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <ValidationMessage For="@(() => Model.Cost)" id="cost-error" class="invalid-feedback d-block" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <InputDate id="next-due-date" TValue="DateOnly?" class="form-control" @bind-Value="Model.NextDueDate" placeholder=" "
+                               aria-describedby="@VehicleFormFields.Described(Errors, "NextDueDate")" />
+                    <label for="next-due-date">Next due date</label>
+                </div>
+                <ValidationMessage For="@(() => Model.NextDueDate)" id="nextduedate-error" class="invalid-feedback d-block" />
+            </div>
+        </div>
+    </EditForm>
+</MaintenanceFormCard>
+
+@code {
+    private static readonly string[] Fields = ["Type", "InspectionDate", "Cost", "NextDueDate"];
+
+    private EditContext editContext = default!;
+    private ValidationMessageStore messages = default!;
+    private InspectionFormModel? contextModel;
+
+    [Parameter, EditorRequired]
+    public InspectionFormModel Model { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string FormName { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string SubmitText { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string SubmitTitle { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string CancelHref { get; set; } = default!;
+
+    // Validation errors returned by the API, keyed by property name.
+    [Parameter]
+    public IReadOnlyDictionary<string, string[]> Errors { get; set; } = new Dictionary<string, string[]>();
+
+    [Parameter, EditorRequired]
+    public EventCallback OnSubmit { get; set; }
+
+    // The Delete control for the card footer; only the edit page passes it.
+    [Parameter]
+    public RenderFragment? Delete { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(contextModel, Model))
+        {
+            contextModel = Model;
+            editContext = new EditContext(Model);
+            messages = new ValidationMessageStore(editContext);
+            editContext.OnValidationRequested += (_, _) => messages.Clear();
+        }
+
+        messages.Clear();
+        foreach (var field in Fields)
+        {
+            if (Errors.FirstOrDefault(pair => string.Equals(pair.Key, field, StringComparison.OrdinalIgnoreCase)).Value is { Length: > 0 } fieldErrors)
+            {
+                messages.Add(editContext.Field(field), fieldErrors);
+            }
+        }
+
+        editContext.NotifyValidationStateChanged();
+    }
+}

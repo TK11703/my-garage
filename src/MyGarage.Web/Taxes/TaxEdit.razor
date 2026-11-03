@@ -1,0 +1,106 @@
+@page "/vehicles/{VehicleId:guid}/taxes/{EntryId:guid}/edit"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject VehiclesApiClient VehiclesApi
+@inject TaxesApiClient Api
+@inject NavigationManager Navigation
+
+<MaintenancePage Title="Edit tax" VehicleId="VehicleId" VehicleName="@vehicleName" Section="MaintenanceSection.Compliance"
+                 Failure="failure" ReturnUrl="@EditHref"
+                 NotFound="notFound" NotFoundTitle="Tax not found" NotFoundMessage="This tax could not be found.">
+    @if (loaded && Model is not null)
+    {
+        <TaxForm Model="Model" FormName="update-tax" SubmitText="Save changes" SubmitTitle="Save your changes"
+                 CancelHref="@MaintenanceLinks.TabHref(VehicleId, MaintenanceSection.Compliance)" Errors="errors" OnSubmit="SubmitAsync">
+            <Delete>
+                <DeleteEntryPanel Noun="tax" FormName="delete-tax" TestId="delete-tax"
+                                  KeepHref="@EditHref" OnDelete="DeleteAsync" />
+            </Delete>
+        </TaxForm>
+    }
+</MaintenancePage>
+
+@code {
+    private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
+    private GarageApiFailure? failure;
+    private string? vehicleName;
+    private bool notFound;
+    // A posted Model exists before the stored tax loads, so Model alone can't gate the form.
+    private bool loaded;
+
+    [Parameter]
+    public Guid VehicleId { get; set; }
+
+    [Parameter]
+    public Guid EntryId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "update-tax")]
+    private TaxFormModel? Model { get; set; }
+
+    private string EditHref => $"/vehicles/{VehicleId}/taxes/{EntryId}/edit";
+
+    // The stored tax is loaded on every request; a posted form takes precedence over it.
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var vehicle = await VehiclesApi.GetAsync(VehicleId);
+            var result = vehicle.IsNotFound ? null : await Api.GetAsync(VehicleId, EntryId);
+            if (vehicle.IsNotFound || result!.IsNotFound)
+            {
+                notFound = true;
+                return;
+            }
+
+            Model ??= TaxFormModel.From(result.Value!);
+            vehicleName = vehicle.Value!.Name;
+            loaded = true;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        failure = null;
+        try
+        {
+            var result = await Api.UpdateAsync(VehicleId, EntryId, Model!.ToRequest());
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo(MaintenanceLinks.TabHref(VehicleId, MaintenanceSection.Compliance));
+                return;
+            }
+
+            if (result.IsNotFound)
+            {
+                notFound = true;
+                return;
+            }
+
+            errors = result.Errors;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        try
+        {
+            var result = await Api.DeleteAsync(VehicleId, EntryId);
+            if (result.IsSuccess || result.IsNotFound)
+            {
+                Navigation.NavigateTo(MaintenanceLinks.TabHref(VehicleId, MaintenanceSection.Compliance));
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+}

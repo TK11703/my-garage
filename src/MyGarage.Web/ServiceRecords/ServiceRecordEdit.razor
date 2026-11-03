@@ -73,7 +73,7 @@ else if (loaded && Model is not null)
 
             Model ??= ServiceRecordFormModel.From(result.Value!);
             vehicleName = vehicle.Value!.Name;
-            storedTitle = $"Service record {ServiceRecordFormat.Date(result.Value!.DateServiced)}";
+            storedTitle = $"Service record {DisplayFormat.Date(result.Value!.DateServiced)}";
             loaded = true;
         }
         catch (GarageApiException ex)

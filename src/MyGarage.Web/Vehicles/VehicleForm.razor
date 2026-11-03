@@ -3,9 +3,10 @@
     <div class="row">
         <div class="col-lg-8">
             <EditForm EditContext="editContext" FormName="@FormName" OnValidSubmit="OnSubmit" class="vstack gap-3">
+                <p class="form-text mb-0">* Required</p>
                 <VehicleBasicFields Model="Model" Errors="Errors" Lookups="Lookups" />
                 <VehicleSpecificationFields Model="Model" Errors="Errors" Lookups="Lookups" />
-                <VehicleFormActions SubmitText="@SubmitText" CancelHref="@CancelHref" />
+                <VehicleFormActions SubmitText="@SubmitText" CancelHref="@CancelHref" SubmitIcon="IconName.Save" />
             </EditForm>
         </div>
     </div>
@@ -20,6 +21,7 @@ else
         <div class="tab-content">
             <div id="tab-details" class="tab-pane @PaneState("details", current)" role="tabpanel" aria-labelledby="tab-details-tab" tabindex="0">
                 <FieldGroup Id="basic" Title="Basic">
+                    <p class="form-text mb-2">* Required</p>
                     <div class="row">
                         <div class="col-lg-10 vstack gap-3">
                             <VehicleBasicFields Model="Model" Errors="Errors" Lookups="Lookups" />
@@ -33,7 +35,7 @@ else
                         </div>
                     </div>
                 </FieldGroup>
-                <VehicleFormActions SubmitText="@SubmitText" CancelHref="@CancelHref" />
+                <VehicleFormActions SubmitText="@SubmitText" CancelHref="@CancelHref" SubmitIcon="IconName.Save" />
             </div>
         </div>
     </EditForm>
