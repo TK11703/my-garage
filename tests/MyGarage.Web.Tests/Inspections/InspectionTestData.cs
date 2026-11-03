@@ -11,7 +11,8 @@ public static class InspectionTestData
         InspectionType type = InspectionType.Safety,
         DateOnly? date = null,
         decimal cost = 25.50m,
-        DateOnly? nextDueDate = null) =>
+        DateOnly? nextDueDate = null,
+        bool fromEmail = false) =>
         new()
         {
             Id = id ?? Guid.NewGuid(),
@@ -20,6 +21,7 @@ public static class InspectionTestData
             InspectionDate = date ?? new DateOnly(2026, 5, 1),
             Cost = cost,
             NextDueDate = nextDueDate,
+            FromEmail = fromEmail,
             CreatedAt = new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
             UpdatedAt = new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
         };

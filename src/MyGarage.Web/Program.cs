@@ -1,13 +1,16 @@
 using MyGarage.Web.Authentication;
 using MyGarage.Web.Common;
 using MyGarage.Web.Components;
+using MyGarage.Web.Drafts;
 using MyGarage.Web.FuelEnergyEntries;
 using MyGarage.Web.Inspections;
 using MyGarage.Web.Insurance;
 using MyGarage.Web.Registrations;
 using MyGarage.Web.Lookups;
+using MyGarage.Web.Notifications;
 using MyGarage.Web.ServiceRecords;
 using MyGarage.Web.Taxes;
+using MyGarage.Web.VehicleDocuments;
 using MyGarage.Web.Vehicles;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,6 +43,13 @@ builder.Services.AddHttpClient<InsuranceApiClient>(client => client.BaseAddress 
     .AddHttpMessageHandler<ApiAccessTokenHandler>();
 builder.Services.AddHttpClient<TaxesApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
     .AddHttpMessageHandler<ApiAccessTokenHandler>();
+builder.Services.AddHttpClient<DraftsApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
+    .AddHttpMessageHandler<ApiAccessTokenHandler>();
+builder.Services.AddHttpClient<NotificationsApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
+    .AddHttpMessageHandler<ApiAccessTokenHandler>();
+builder.Services.AddHttpClient<VehicleDocumentsApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
+    .AddHttpMessageHandler<ApiAccessTokenHandler>();
+builder.Services.AddSingleton(TimeProvider.System);
 
 var app = builder.Build();
 
@@ -61,6 +71,8 @@ app.UseAntiforgery();
 app.MapStaticAssets().AllowAnonymous();
 app.MapAuthenticationEndpoints();
 app.MapVehicleImageEndpoints();
+app.MapDraftAttachmentEndpoints();
+app.MapDocumentContentEndpoints();
 app.MapFeatureSuggestionEndpoints();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

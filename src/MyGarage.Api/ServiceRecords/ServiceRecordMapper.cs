@@ -16,6 +16,7 @@ public static class ServiceRecordMapper
             ShopOrPerson = record.ShopOrPerson,
             LineItemCount = record.LineItemCount,
             TotalCost = record.TotalCost,
+            FromEmail = record.FromEmail,
         };
 
     public static ServiceRecordDto ToDto(ServiceRecordDetailRecord detail) =>
@@ -30,6 +31,7 @@ public static class ServiceRecordMapper
             TotalCost = detail.Record.TotalCost,
             CreatedAt = detail.Record.CreatedAt,
             UpdatedAt = detail.Record.UpdatedAt,
+            FromEmail = detail.Record.FromEmail,
         };
 
     public static ServiceLineItemDto ToLineItemDto(ServiceLineItemRecord line) =>

@@ -56,6 +56,46 @@ internal static class ApiCalls
         }
     }
 
+    // Streams a private file from the API; null when it does not exist for this user.
+    public static async Task<ImageDownload?> OpenAsync(HttpClient http, string path, CancellationToken cancellationToken)
+    {
+        HttpResponseMessage? response = null;
+        try
+        {
+            response = await http.SendAsync(new HttpRequestMessage(HttpMethod.Get, path), HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+            if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            {
+                throw new GarageApiException(GarageApiFailure.NotAccepted);
+            }
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                response.Dispose();
+                return null;
+            }
+
+            response.EnsureSuccessStatusCode();
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+            return new ImageDownload(response, contentType, await response.Content.ReadAsStreamAsync(cancellationToken));
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException)
+        {
+            response?.Dispose();
+            throw new GarageApiException(GarageApiFailure.Unavailable);
+        }
+        catch (GarageApiException)
+        {
+            response?.Dispose();
+            throw;
+        }
+        catch (MicrosoftIdentityWebChallengeUserException)
+        {
+            response?.Dispose();
+            throw new GarageApiException(GarageApiFailure.NotAccepted);
+        }
+    }
+
     private static async Task<IReadOnlyDictionary<string, string[]>> ReadErrorsAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         var problem = await response.Content.ReadFromJsonAsync<ProblemBody>(cancellationToken);

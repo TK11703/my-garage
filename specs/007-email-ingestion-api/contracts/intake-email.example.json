@@ -1,0 +1,21 @@
+{
+  "messageId": "<CAKx9nQ3dealer-receipt-2026-11-03@mail.example.com>",
+  "receivedAt": "2026-11-03T14:22:05Z",
+  "from": "owner@example.com",
+  "subject": "Fwd: Your service invoice from Contoso Auto",
+  "bodyText": "Forwarding the invoice from today's oil change.",
+  "attachments": [
+    {
+      "fileName": "invoice-48213.pdf",
+      "contentType": "application/pdf",
+      "isInline": false,
+      "contentBase64": "JVBERi0xLjcKJcfsj6IK..."
+    },
+    {
+      "fileName": "logo.png",
+      "contentType": "image/png",
+      "isInline": true,
+      "contentBase64": "iVBORw0KGgoAAAANSUhEUg..."
+    }
+  ]
+}

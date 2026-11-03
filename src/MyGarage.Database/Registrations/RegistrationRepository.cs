@@ -21,7 +21,7 @@ public sealed class RegistrationRepository(NpgsqlDataSource dataSource, SqlScrip
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return await connection.QuerySingleOrDefaultAsync<RegistrationRecord>(new CommandDefinition(
             scripts.Get("Registrations/Insert"),
-            new { Id = id, VehicleId = vehicleId, OwnerId = ownerId, State = state, Cost = cost, ExpirationDate = expirationDate, Now = now },
+            new { Id = id, VehicleId = vehicleId, OwnerId = ownerId, State = state, Cost = cost, ExpirationDate = expirationDate, Now = now, FromEmail = false },
             cancellationToken: cancellationToken));
     }
 

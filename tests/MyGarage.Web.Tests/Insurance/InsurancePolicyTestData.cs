@@ -11,7 +11,8 @@ public static class InsurancePolicyTestData
         DateOnly? startDate = null,
         DateOnly? endDate = null,
         InsuranceDuration duration = InsuranceDuration.Annual,
-        decimal cost = 1240m) =>
+        decimal cost = 1240m,
+        bool fromEmail = false) =>
         new()
         {
             Id = id ?? Guid.NewGuid(),
@@ -20,6 +21,7 @@ public static class InsurancePolicyTestData
             EndDate = endDate ?? new DateOnly(2027, 5, 1),
             Duration = duration,
             Cost = cost,
+            FromEmail = fromEmail,
             CreatedAt = new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
             UpdatedAt = new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
         };

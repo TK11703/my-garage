@@ -55,6 +55,7 @@ public static class TaxMapper
             Recurrence = FromStoredRecurrence(record.Recurrence),
             CreatedAt = record.CreatedAt,
             UpdatedAt = record.UpdatedAt,
+            FromEmail = record.FromEmail,
         };
 
     public static PagedResultDto<TaxDto> ToPageDto(PagedResult<TaxRecord> page) =>

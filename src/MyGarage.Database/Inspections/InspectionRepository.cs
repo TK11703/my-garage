@@ -22,7 +22,7 @@ public sealed class InspectionRepository(NpgsqlDataSource dataSource, SqlScriptS
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return await connection.QuerySingleOrDefaultAsync<InspectionRecord>(new CommandDefinition(
             scripts.Get("Inspections/Insert"),
-            new { Id = id, VehicleId = vehicleId, OwnerId = ownerId, InspectionType = inspectionType, InspectionDate = inspectionDate, Cost = cost, NextDueDate = nextDueDate, Now = now },
+            new { Id = id, VehicleId = vehicleId, OwnerId = ownerId, InspectionType = inspectionType, InspectionDate = inspectionDate, Cost = cost, NextDueDate = nextDueDate, Now = now, FromEmail = false },
             cancellationToken: cancellationToken));
     }
 

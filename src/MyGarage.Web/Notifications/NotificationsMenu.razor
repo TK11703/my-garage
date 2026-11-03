@@ -1,0 +1,166 @@
+@implements IDisposable
+@inject NotificationsApiClient Api
+@inject TimeProvider Time
+@inject NavigationManager Navigation
+@inject ILogger<NotificationsMenu> Logger
+
+@* The bell: a badge with the unread count, the latest notifications, and a way to the drafts.
+   The page loads it once; while the circuit is interactive it also refreshes itself every minute. *@
+<div class="dropdown" data-testid="notifications-menu">
+    <button type="button" class="btn mg-nav-btn position-relative" aria-label="@ToggleLabel"
+            data-bs-toggle="dropdown" aria-expanded="false">
+        <Icon Name="IconName.Bell" Size="20" />
+        @if (unread > 0)
+        {
+            <span class="badge rounded-pill text-bg-warning position-absolute top-0 start-100 translate-middle" data-testid="notification-badge" aria-hidden="true">@NotificationFormat.Badge(unread)</span>
+        }
+    </button>
+    <div class="dropdown-menu dropdown-menu-end p-3 mg-menu">
+        @if (failed)
+        {
+            <p class="mb-0 text-body-secondary">Notifications are not available right now.</p>
+        }
+        else if (items.Count == 0)
+        {
+            <p class="mb-0 text-body-secondary">You have no notifications.</p>
+        }
+        else
+        {
+            <ul class="list-unstyled vstack gap-2 mb-0">
+                @foreach (var item in items)
+                {
+                    <li @key="item.Id" data-testid="notification">
+                        @if (item.DraftId is { } draftId)
+                        {
+                            <a class="d-block text-decoration-none text-reset" href="/drafts/@draftId">
+                                <span class="@(item.IsRead ? null : "fw-semibold")">
+                                    @if (!item.IsRead)
+                                    {
+                                        <span class="visually-hidden">Unread: </span>
+                                    }
+                                    @item.Title
+                                </span>
+                                <span class="d-block small text-body-secondary">@NotificationFormat.Relative(item.CreatedAt, Time.GetUtcNow())</span>
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="@(item.IsRead ? null : "fw-semibold")">@item.Title</span>
+                            <span class="d-block small text-body-secondary">@NotificationFormat.Relative(item.CreatedAt, Time.GetUtcNow())</span>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+
+        @if (unread > 0)
+        {
+            <hr class="dropdown-divider" />
+            <form method="post" @formname="mark-all-read" @onsubmit="MarkAllReadAsync" data-testid="mark-all-read">
+                <AntiforgeryToken />
+                <button type="submit" class="btn btn-link btn-sm p-0">Mark all as read</button>
+            </form>
+        }
+    </div>
+</div>
+
+@code {
+    private static readonly TimeSpan RefreshEvery = TimeSpan.FromSeconds(60);
+    private const int Latest = 5;
+
+    private ITimer? timer;
+    private int unread;
+    private IReadOnlyList<NotificationDto> items = [];
+    private bool failed;
+    private bool refreshing;
+    private bool disposed;
+
+    // Reports the unread and awaiting-review counts each time they are loaded, so the account menu can show them.
+    [Parameter]
+    public EventCallback<UnreadCountDto> OnCountLoaded { get; set; }
+
+    private string ToggleLabel => unread > 0 ? $"Notifications, {unread} unread" : "Notifications";
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    // Not called for a statically rendered page, so only an interactive bell keeps a timer.
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            timer = Time.CreateTimer(_ => _ = InvokeAsync(RefreshAsync), null, RefreshEvery, RefreshEvery);
+        }
+    }
+
+    // A failure leaves the bell usable with no badge; it is never worth interrupting the page for.
+    private async Task LoadAsync()
+    {
+        try
+        {
+            var count = (await Api.GetUnreadCountAsync()).Value;
+            var latest = (await Api.ListAsync(Latest)).Value;
+            unread = count?.Unread ?? 0;
+            items = latest is null ? [] : [.. latest.Take(Latest)];
+            failed = false;
+
+            if (count is not null)
+            {
+                await OnCountLoaded.InvokeAsync(count);
+            }
+        }
+        catch (GarageApiException)
+        {
+            unread = 0;
+            items = [];
+            failed = true;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Token problems and timeouts are not API answers, but they must not take the page down either.
+            Logger.LogWarning(ex, "Notifications could not be loaded.");
+            unread = 0;
+            items = [];
+            failed = true;
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (disposed || refreshing)
+        {
+            return;
+        }
+
+        refreshing = true;
+        try
+        {
+            await LoadAsync();
+            StateHasChanged();
+        }
+        finally
+        {
+            refreshing = false;
+        }
+    }
+
+    private async Task MarkAllReadAsync()
+    {
+        try
+        {
+            await Api.MarkAllReadAsync();
+        }
+        catch (GarageApiException)
+        {
+            // The list below says what is still unread.
+        }
+
+        await LoadAsync();
+        Navigation.NavigateTo(Navigation.Uri);
+    }
+
+    public void Dispose()
+    {
+        disposed = true;
+        timer?.Dispose();
+    }
+}

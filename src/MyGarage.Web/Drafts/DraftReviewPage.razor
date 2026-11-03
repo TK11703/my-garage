@@ -1,0 +1,470 @@
+@page "/drafts/{DraftId:guid}"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject DraftsApiClient Api
+@inject NavigationManager Navigation
+
+@if (failure is not null)
+{
+    <PageHeader Title="Review draft" Trail="@(new[] { new Crumb("Maintenance Drafts") })" />
+
+    <ApiFailureAlert Failure="failure.Value" ReturnUrl="@($"/drafts/{DraftId}")"
+                     NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+}
+else if (notFound)
+{
+    <PageHeader Title="Draft not found" Trail="@(new[] { new Crumb("Maintenance Drafts") })" />
+
+    <EmptyState Variant="EmptyStateVariant.NoMatch" Message="This draft could not be found."
+                ActionText="Back to drafts" ActionHref="/drafts" />
+}
+else if (draft is not null)
+{
+    <PageHeader Title="Review draft" Trail="@(new[] { new Crumb("Maintenance Drafts", "/drafts"), new Crumb("Review draft") })" />
+
+    @if (ReadOnlyMessage is { } readOnly)
+    {
+        <div class="alert alert-info" role="status" data-testid="draft-decided">
+            @readOnly <a class="alert-link" href="/drafts">Back to maintenance drafts</a>
+        </div>
+    }
+    else if (Model is not null)
+    {
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <section class="card border-0 shadow-sm" data-testid="original" aria-labelledby="original-heading">
+                    <div class="card-header">
+                        <h2 id="original-heading" class="h5 mb-0">Original</h2>
+                    </div>
+                    <div class="card-body vstack gap-3">
+                        @if (draft.Email is { } email)
+                        {
+                            <dl class="vstack gap-2 mb-0" aria-label="Email details" data-testid="email-details">
+                                <div>
+                                    <dt class="small fw-normal text-body-secondary">From</dt>
+                                    <dd class="mb-0 text-break" data-testid="email-sender">@(email.Sender ?? DisplayFormat.NotSet)</dd>
+                                </div>
+                                <div>
+                                    <dt class="small fw-normal text-body-secondary">Subject</dt>
+                                    <dd class="mb-0 text-break" data-testid="email-subject">@(email.Subject ?? DisplayFormat.NotSet)</dd>
+                                </div>
+                                <div>
+                                    <dt class="small fw-normal text-body-secondary">Arrived</dt>
+                                    <dd class="mb-0" data-testid="email-arrived">@DraftFormat.Arrived(email.ArrivedAt)</dd>
+                                </div>
+                            </dl>
+                        }
+
+                        @if (draft.HasAttachment && IsPdf)
+                        {
+                            <iframe src="/drafts/@DraftId/attachment" title="Original document from the email"
+                                    class="w-100 border rounded mg-original-frame" data-testid="original-pdf"></iframe>
+                        }
+                        else if (draft.HasAttachment && IsImage)
+                        {
+                            <img src="/drafts/@DraftId/attachment" alt="Original image from the email" class="img-fluid border rounded" data-testid="original-image" />
+                        }
+                        else if (!draft.HasAttachment)
+                        {
+                            <p class="text-body-secondary mb-0" data-testid="text-source-note">This draft was read from the text of the email, so there is no file to show.</p>
+                        }
+
+                        @if (draft.HasAttachment)
+                        {
+                            <div>
+                                <a class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-2" href="/drafts/@DraftId/attachment"
+                                   download="@draft.Source.FileName" data-testid="download-original" title="Download the original file">
+                                    <Icon Name="IconName.FileText" /> Download
+                                </a>
+                            </div>
+                        }
+
+                        <p class="small text-body-secondary mb-0">This draft is removed on @DisplayFormat.Date(DateOnly.FromDateTime(draft.ExpiresAt.UtcDateTime)) unless you save or discard it first.</p>
+                    </div>
+                </section>
+            </div>
+
+            <div class="col-lg-6">
+                <section class="card border-0 shadow-sm" aria-labelledby="proposal-heading">
+                    <div class="card-header">
+                        <h2 id="proposal-heading" class="h5 mb-0">Proposed record</h2>
+                    </div>
+                    <div class="card-body vstack gap-3">
+                        @if (!string.IsNullOrWhiteSpace(draft.Notes))
+                        {
+                            <p class="text-body-secondary mb-0" data-testid="draft-notes">@draft.Notes</p>
+                        }
+
+                        <p class="form-text mb-0">* Required</p>
+
+                        <CompatibilityPanel Compatibility="compatibility" SaveFailed="saveFailed" />
+
+                        <EditForm Model="Model" FormName="review-draft" OnSubmit="SubmitAsync" class="vstack gap-3" data-testid="review-form">
+                            @* Pressing Enter in a field submits the form with the first button, so that one only checks. *@
+                            <button type="submit" name="action" value="check" class="visually-hidden" tabindex="-1" aria-hidden="true" formnovalidate>Check</button>
+
+                            <div class="row g-3">
+                                <div class="col-sm-8">
+                                    <div class="form-floating">
+                                        <select id="kind" name="Model.KindValue" class="form-select" aria-required="true" aria-describedby="kind-help"
+                                                @onchange="@(e => Model.KindValue = e.Value?.ToString())">
+                                            <option value="" selected="@(Model.Kind is null)">Choose a record type</option>
+                                            @foreach (var kind in DraftFormat.Kinds)
+                                            {
+                                                <option value="@DraftFormat.KindValue(kind)" selected="@(Model.Kind == kind)">@DraftFormat.KindLabel(kind)</option>
+                                            }
+                                        </select>
+                                        <label for="kind">Record type<span class="text-danger" aria-hidden="true"> *</span></label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 d-flex align-items-center">
+                                    <button type="submit" name="action" value="change-kind" class="btn btn-outline-secondary" formnovalidate
+                                            data-testid="change-kind" title="Show the form for the record type you chose">Change type</button>
+                                </div>
+                                <div id="kind-help" class="form-text">After choosing a different type, select Change type. The date, odometer, shop, and cost carry over where they fit.</div>
+                            </div>
+
+                            <div>
+                                <div class="form-floating">
+                                    <select id="vehicle" name="Model.VehicleId" class="form-select" aria-required="true" aria-describedby="@(vehicleError is null ? "vehicle-match" : "vehicle-error")"
+                                            @onchange="@(e => Model.VehicleId = Guid.TryParse(e.Value?.ToString(), out var chosen) ? chosen : null)">
+                                        <option value="" selected="@(Model.VehicleId is null)">Choose a vehicle</option>
+                                        @foreach (var candidate in draft.Vehicle.Candidates)
+                                        {
+                                            <option value="@candidate.VehicleId" selected="@(Model.VehicleId == candidate.VehicleId)">@candidate.Name</option>
+                                        }
+                                    </select>
+                                    <label for="vehicle">Vehicle<span class="text-danger" aria-hidden="true"> *</span></label>
+                                </div>
+                                @if (vehicleError is not null)
+                                {
+                                    <div id="vehicle-error" class="invalid-feedback d-block">@vehicleError</div>
+                                }
+                                <div id="vehicle-match" class="form-text" data-testid="vehicle-match">@VehicleNote</div>
+                            </div>
+
+                            @switch (Model.Kind)
+                            {
+                                case null:
+                                    <p class="text-body-secondary mb-0">Choose a record type above to enter the details.</p>
+                                    break;
+                                case DraftKind.ServiceRecord:
+                                    <ServiceRecordProposalEditor Model="Model.Service" FieldErrors="fieldErrors" />
+                                    break;
+                                default:
+                                    <KindProposalFields Model="Model" FieldErrors="fieldErrors" />
+                                    break;
+                            }
+
+                            @if (draft.HasAttachment)
+                            {
+                                <div>
+                                    <div class="form-check">
+                                        <input id="keep-original" name="Model.KeepOriginal" type="checkbox" class="form-check-input" value="true"
+                                               checked="@Model.KeepOriginal" aria-describedby="keep-original-help"
+                                               @onchange="@(e => Model.KeepOriginal = e.Value is true)" />
+                                        <label class="form-check-label" for="keep-original">Keep the original file with this record</label>
+                                    </div>
+                                    <div id="keep-original-help" class="form-text">The file is stored privately under Documents on this vehicle's Maintenance tab, apart from vehicle pictures.</div>
+                                </div>
+                            }
+
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="submit" name="action" value="save" class="btn btn-primary d-inline-flex align-items-center gap-2"
+                                        data-testid="save-record" title="Save this record" disabled="@(!CanSave)">
+                                    <Icon Name="IconName.Save" /> Save record
+                                </button>
+                                <button type="submit" name="action" value="check" class="btn btn-outline-secondary" formnovalidate
+                                        data-testid="check-again" title="Check the details again after changing them">Check again</button>
+                                <a class="btn btn-outline-secondary" href="/drafts" title="Leave this draft for later">Back to drafts</a>
+                            </div>
+                        </EditForm>
+
+                        <details class="position-relative" data-testid="discard-draft">
+                            <summary class="btn btn-outline-danger d-inline-flex align-items-center gap-2" title="Discard this draft">
+                                <Icon Name="IconName.Trash" /> Discard
+                            </summary>
+                            <div class="alert alert-danger mg-confirm-panel start-0 shadow" role="alert">
+                                <p>Discard this draft? The email's file and text are removed and this cannot be undone.</p>
+                                <form method="post" @formname="discard-draft" @onsubmit="DiscardAsync" class="d-flex flex-wrap gap-2">
+                                    <AntiforgeryToken />
+                                    <button type="submit" class="btn btn-danger">Yes, discard this draft</button>
+                                    <a class="btn btn-outline-secondary" href="/drafts/@DraftId">Keep draft</a>
+                                </form>
+                            </div>
+                        </details>
+                    </div>
+                </section>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private MaintenanceDraftDto? draft;
+    private CompatibilityDto? compatibility;
+    private GarageApiFailure? failure;
+    private bool notFound;
+    private bool alreadyDecided;
+    private bool saveFailed;
+    private string? vehicleError;
+    private IReadOnlyDictionary<string, string> fieldErrors = new Dictionary<string, string>();
+    private IReadOnlyDictionary<string, string[]> saveErrors = new Dictionary<string, string[]>();
+
+    [Parameter]
+    public Guid DraftId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "review-draft")]
+    private DraftReviewFormModel? Model { get; set; }
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private bool IsPdf => string.Equals(draft?.Source.ContentType, "application/pdf", StringComparison.OrdinalIgnoreCase);
+
+    private bool IsImage => draft?.Source.ContentType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) == true;
+
+    private bool CanSave => compatibility?.IsAcceptable == true;
+
+    // Why the draft cannot be edited, or null while it is still waiting for review.
+    private string? ReadOnlyMessage =>
+        alreadyDecided ? "This draft was already decided."
+        : draft?.State switch
+        {
+            DraftState.Included => "This draft was already included as a record.",
+            DraftState.Discarded => "This draft was discarded.",
+            DraftState.Expired => "This draft has expired and its content was removed.",
+            _ => null,
+        };
+
+    private string VehicleNote =>
+        Model?.VehicleId is null ? DraftFormat.MatchNote(VehicleMatch.None)
+        : Model.VehicleId == draft?.Vehicle.VehicleId ? DraftFormat.MatchNote(draft.Vehicle.Match)
+        : "You chose this vehicle.";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await Api.GetAsync(DraftId);
+            if (result.IsNotFound || result.Value is null)
+            {
+                MarkNotFound();
+                return;
+            }
+
+            draft = result.Value;
+            if (draft.State is DraftState.NeedsReview or DraftState.ManualEntry)
+            {
+                Model ??= DraftReviewFormModel.From(draft);
+                compatibility = draft.Compatibility;
+                ShowFieldErrors();
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    // The button that submitted the form names the action; a form posted without one only checks.
+    private string PostedAction =>
+        HttpContext is { Request.HasFormContentType: true } context && context.Request.Form.TryGetValue("action", out var action) ? action.ToString() : "check";
+
+    private async Task SubmitAsync()
+    {
+        if (draft is null || Model is null)
+        {
+            return;
+        }
+
+        saveFailed = false;
+        vehicleError = null;
+        saveErrors = new Dictionary<string, string[]>();
+
+        try
+        {
+            var action = PostedAction.Split(':');
+            switch (action[0])
+            {
+                case "save":
+                    await SaveAsync();
+                    return;
+                case "change-kind":
+                    await ChangeKindAsync();
+                    return;
+                case "add-line":
+                    Model.Service.AddLine();
+                    break;
+                case "remove-line" when action.Length == 2 && int.TryParse(action[1], out var line):
+                    Model.Service.RemoveLine(line);
+                    break;
+                case "add-part" when action.Length == 2 && int.TryParse(action[1], out var addLine):
+                    Model.Service.AddPart(addLine);
+                    break;
+                case "remove-part" when action.Length == 3 && int.TryParse(action[1], out var partLine) && int.TryParse(action[2], out var part):
+                    Model.Service.RemovePart(partLine, part);
+                    break;
+            }
+
+            await CheckAsync();
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task CheckAsync()
+    {
+        var result = await Api.CheckCompatibilityAsync(DraftId, Model!.ToProposal());
+        if (result.IsNotFound)
+        {
+            MarkNotFound();
+            return;
+        }
+
+        compatibility = result.Value ?? compatibility;
+        ShowFieldErrors();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (Model!.VehicleId is not { } vehicleId)
+        {
+            vehicleError = "Choose a vehicle.";
+            saveFailed = true;
+            return;
+        }
+
+        var request = new AcceptDraftRequest { VehicleId = vehicleId, Proposal = Model.ToProposal(), KeepOriginal = Model.KeepOriginal && draft!.HasAttachment };
+        var result = await Api.AcceptAsync(DraftId, request);
+
+        switch (result.Outcome)
+        {
+            case ApiOutcome.Success when result.Value is { } accepted:
+                Navigation.NavigateTo($"{MaintenanceLinks.TabHref(accepted.VehicleId, DraftFormat.SectionFor(accepted.Kind))}&saved=draft");
+                return;
+            case ApiOutcome.NotFound:
+                MarkNotFound();
+                return;
+            case ApiOutcome.Conflict:
+                alreadyDecided = true;
+                return;
+            case ApiOutcome.Invalid:
+                saveFailed = true;
+                saveErrors = result.Errors;
+                if (result.FirstError("VehicleId") is { } vehicleMessage)
+                {
+                    vehicleError = vehicleMessage;
+                }
+
+                await CheckAsync();
+                return;
+        }
+    }
+
+    private async Task ChangeKindAsync()
+    {
+        var chosenVehicle = Model!.VehicleId;
+        var keepOriginal = Model.KeepOriginal;
+        var result = await Api.ChangeKindAsync(DraftId, Model.Kind);
+
+        switch (result.Outcome)
+        {
+            case ApiOutcome.NotFound:
+                MarkNotFound();
+                return;
+            case ApiOutcome.Conflict:
+                alreadyDecided = true;
+                return;
+        }
+
+        if (result.Value is { } changed)
+        {
+            draft = changed;
+            Model = DraftReviewFormModel.From(changed.Proposal, changed.Kind, chosenVehicle ?? changed.Vehicle.VehicleId, keepOriginal);
+            compatibility = changed.Compatibility;
+            ShowFieldErrors();
+        }
+    }
+
+    private async Task DiscardAsync()
+    {
+        try
+        {
+            var result = await Api.DiscardAsync(DraftId);
+            switch (result.Outcome)
+            {
+                case ApiOutcome.Success:
+                    Navigation.NavigateTo("/drafts");
+                    return;
+                case ApiOutcome.NotFound:
+                    MarkNotFound();
+                    return;
+                case ApiOutcome.Conflict:
+                    alreadyDecided = true;
+                    return;
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    // What the check found and what a refused save reported, keyed the way the editors look them up.
+    private void ShowFieldErrors()
+    {
+        var errors = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (compatibility is not null)
+        {
+            foreach (var field in compatibility.Fields.Where(field => field.Status != CompatibilityStatus.Ok && !string.IsNullOrWhiteSpace(field.Message)))
+            {
+                errors.TryAdd(field.Path, field.Message!);
+            }
+        }
+
+        foreach (var (key, messages) in saveErrors)
+        {
+            if (messages.Length > 0 && ToPath(key) is { } path)
+            {
+                errors[path] = messages[0];
+            }
+        }
+
+        fieldErrors = errors;
+    }
+
+    // Proposal.ServiceRecord.LineItems[1].Parts[0].UnitPrice becomes serviceRecord.lineItems[1].parts[0].unitPrice.
+    private static string? ToPath(string key)
+    {
+        const string prefix = "Proposal.";
+        if (!key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var segments = key[prefix.Length..].Split('.').Select(segment => segment.Length == 0 ? segment : char.ToLowerInvariant(segment[0]) + segment[1..]).ToArray();
+        if (segments.Length == 2)
+        {
+            segments[1] = segments[1] switch
+            {
+                "entryDate" when segments[0] == "fuelEnergy" => "date",
+                "inspectionDate" when segments[0] == "inspection" => "date",
+                var other => other,
+            };
+        }
+
+        return string.Join('.', segments);
+    }
+
+    private void MarkNotFound()
+    {
+        notFound = true;
+        if (HttpContext is { Response.HasStarted: false })
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+        }
+    }
+}

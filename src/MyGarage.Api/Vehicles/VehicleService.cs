@@ -1,6 +1,7 @@
 using MyGarage.Api.Vehicles.Images;
 using MyGarage.Api.Vehicles.Tags;
 using MyGarage.Database.Tags;
+using MyGarage.Database.VehicleDocuments;
 using MyGarage.Database.VehicleImages;
 using MyGarage.Database.Vehicles;
 using MyGarage.Shared.Vehicles;
@@ -11,6 +12,7 @@ public sealed class VehicleService(
     VehicleRepository vehicles,
     VehicleTagRepository tags,
     VehicleImageRepository images,
+    VehicleDocumentRepository documents,
     TimeProvider timeProvider)
 {
     // PostgreSQL stores microseconds, so the value returned after a write must not carry finer ticks.
@@ -53,7 +55,7 @@ public sealed class VehicleService(
         return await GetAsync(ownerId, vehicleId, cancellationToken);
     }
 
-    // The vehicle and its image rows go first; the image files are then removed (best effort, a failure leaves private orphans).
+    // The vehicle and its image and document rows go first (drafts stay, detached); the files are then removed (best effort, a failure leaves private orphans).
     public async Task<bool> DeleteAsync(string ownerId, Guid vehicleId, CancellationToken cancellationToken)
     {
         if (!await vehicles.DeleteAsync(ownerId, vehicleId, cancellationToken))
@@ -62,6 +64,7 @@ public sealed class VehicleService(
         }
 
         await images.DeleteBlobsForVehicleAsync(vehicleId);
+        await documents.DeleteBlobsForVehicleAsync(vehicleId);
         return true;
     }
 

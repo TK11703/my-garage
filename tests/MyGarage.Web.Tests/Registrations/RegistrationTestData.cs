@@ -10,7 +10,8 @@ public static class RegistrationTestData
         Guid? id = null,
         string state = "WA",
         decimal cost = 78.75m,
-        DateOnly? expirationDate = null) =>
+        DateOnly? expirationDate = null,
+        bool fromEmail = false) =>
         new()
         {
             Id = id ?? Guid.NewGuid(),
@@ -18,6 +19,7 @@ public static class RegistrationTestData
             State = state,
             Cost = cost,
             ExpirationDate = expirationDate ?? new DateOnly(2027, 5, 1),
+            FromEmail = fromEmail,
             CreatedAt = new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
             UpdatedAt = new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
         };

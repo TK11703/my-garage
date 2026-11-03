@@ -22,4 +22,6 @@ public sealed record InsurancePolicyRecord
     public string CreatedBy { get; init; } = string.Empty;
 
     public string UpdatedBy { get; init; } = string.Empty;
+
+    public bool FromEmail { get; init; }
 }

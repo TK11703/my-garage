@@ -98,7 +98,9 @@ success, validation failure, and not-found/error paths. UI components with logic
   Bootstrap MUST be pinned to a 5.3.x version; other CSS frameworks MUST NOT be introduced.
 - **Authentication/Authorization**: Microsoft Entra ID via OpenID Connect for `MyGarage.Web` and JWT
   bearer validation for `MyGarage.Api`. Every endpoint MUST require authorization unless the spec
-  explicitly justifies an anonymous endpoint. Secrets MUST NOT be committed to source control.
+  explicitly justifies an anonymous endpoint. An endpoint called by a trusted service rather than an end
+  user MUST require a dedicated Entra app role and MUST refuse user tokens; user endpoints MUST refuse
+  app-only tokens. Secrets MUST NOT be committed to source control.
 - **Observability**: Structured logging (`ILogger`/Serilog) and OpenTelemetry tracing and metrics
   MUST be enabled in `MyGarage.Api` and `MyGarage.Web`. Logs MUST NOT contain sensitive user,
   vehicle, or service-record data or credentials.
@@ -109,6 +111,14 @@ success, validation failure, and not-found/error paths. UI components with logic
   enforced server-side, with owner-specific SQL queries scoped by the authenticated owner ID.
   Every service-record operation, including access by service-record ID, MUST verify ownership
   through its parent vehicle. Changes MUST be attributable to an authenticated user.
+  *Trusted service intake exception*: an endpoint called only by an authenticated trusted service (see
+  Authentication/Authorization) MAY use a caller-supplied lookup key, such as an email sender address, to
+  find the owning user, provided that (a) the caller is authorized by its dedicated app role; (b) the key
+  is never treated as proof of ownership and never authorizes any other operation; (c) a key that matches
+  no user or more than one user creates nothing and discloses nothing about users to the caller; (d) the
+  intake creates only pending items that the owner must explicitly approve before any vehicle or record
+  is created or changed; and (e) approval and every later operation derive ownership from the owner's
+  validated claims.
 - **Dependencies**: New third-party packages MUST be justified in the feature plan. An ORM other
   than Dapper, or a UI framework other than Blazor/Bootstrap, is prohibited without a
   constitution amendment.
@@ -138,4 +148,4 @@ redefinitions, MINOR for added principles/sections or materially expanded guidan
 clarifications and wording fixes. Every pull request and review MUST verify compliance with this
 constitution, and Spec Kit plans MUST pass a Constitution Check against it before design begins.
 
-**Version**: 1.2.0 | **Ratified**: 2026-10-23 | **Last Amended**: 2026-11-01
+**Version**: 1.3.0 | **Ratified**: 2026-10-23 | **Last Amended**: 2026-11-03

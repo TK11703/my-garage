@@ -27,6 +27,8 @@ public static class SerilogExtensions
                 .ReadFrom.Services(services)
                 .Enrich.FromLogContext()
                 .WriteTo.Console(),
+            // Each host gets its own logger, so one host starting (or stopping) never replaces the static logger another host writes through.
+            preserveStaticLogger: true,
             writeToProviders: true);
 
         return builder;

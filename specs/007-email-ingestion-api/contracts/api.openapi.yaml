@@ -1,0 +1,640 @@
+openapi: 3.1.0
+info:
+  title: My Garage API - Email ingestion, drafts, notifications, documents
+  version: 0.7.0
+  description: >
+    Additions for feature 007. The intake endpoint is called only by the external Logic App (app role
+    Email.Ingest). All other endpoints are called by the Web app on behalf of a signed-in user (scope
+    access_as_user) and are scoped to that user. Errors are RFC 9457 ProblemDetails.
+servers:
+  - url: https://localhost:7001
+security:
+  - userAccess: []
+tags:
+  - name: EmailIntake
+  - name: Drafts
+  - name: Notifications
+  - name: VehicleDocuments
+
+paths:
+  /api/intake/emails:
+    post:
+      tags: [EmailIntake]
+      operationId: IntakeEmail
+      summary: Hand over one transformed email.
+      description: >
+        Machine-to-machine only. Answers 202 with the same body whether the sender matched a user, did not
+        match, or the message id was seen before; processing happens after the acknowledgement. Returns 503
+        with Retry-After when storage is temporarily unavailable so the workflow retries.
+      security:
+        - workflowAppRole: [Email.Ingest]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/IntakeEmailRequest' }
+            examples:
+              dealerInvoice:
+                summary: Forwarded dealer invoice with a PDF and an inline logo
+                externalValue: intake-email.example.json
+      responses:
+        '202':
+          description: Received.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IntakeAcknowledgement' }
+        '400': { $ref: '#/components/responses/ValidationProblem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '413': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/Problem' }
+        '503': { $ref: '#/components/responses/Problem' }
+
+  /api/drafts:
+    get:
+      tags: [Drafts]
+      operationId: ListDrafts
+      summary: Page of the caller's drafts awaiting review, newest first.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 10 } }
+      responses:
+        '200':
+          description: A page of draft summaries.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PagedDrafts' }
+        '400': { $ref: '#/components/responses/ValidationProblem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+
+  /api/drafts/{draftId}:
+    parameters:
+      - { name: draftId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Drafts]
+      operationId: GetDraft
+      summary: One draft with its proposal, vehicle suggestions, and compatibility result.
+      description: Opening a draft marks its notification as read.
+      responses:
+        '200':
+          description: The draft.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MaintenanceDraft' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+
+  /api/drafts/{draftId}/compatibility:
+    parameters:
+      - { name: draftId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Drafts]
+      operationId: CheckDraftCompatibility
+      summary: Check an edited proposal without saving anything.
+      description: Runs the same validators as the manual forms and returns found, missing, and invalid fields.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DraftProposal' }
+      responses:
+        '200':
+          description: The compatibility result.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Compatibility' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+
+  /api/drafts/{draftId}/kind:
+    parameters:
+      - { name: draftId, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [Drafts]
+      operationId: ChangeDraftKind
+      summary: Re-present the draft as another record kind, carrying over fields that fit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangeDraftKindRequest' }
+      responses:
+        '200':
+          description: The updated draft.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MaintenanceDraft' }
+        '400': { $ref: '#/components/responses/ValidationProblem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+
+  /api/drafts/{draftId}/accept:
+    parameters:
+      - { name: draftId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Drafts]
+      operationId: AcceptDraft
+      summary: Create the record from the (possibly edited) proposal.
+      description: >
+        Atomic: the record (with line items and parts for a service record), the draft state, and the kept
+        document row are committed together. The vehicle must belong to the caller. Fails with 400 when the
+        proposal does not pass the same validation as the manual form, and 409 when the draft was already decided.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AcceptDraftRequest' }
+      responses:
+        '201':
+          description: Record created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AcceptedDraft' }
+        '400': { $ref: '#/components/responses/ValidationProblem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '503': { $ref: '#/components/responses/Problem' }
+
+  /api/drafts/{draftId}/discard:
+    parameters:
+      - { name: draftId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Drafts]
+      operationId: DiscardDraft
+      summary: Discard the draft; removes its details, notification, and stored attachment.
+      responses:
+        '204': { description: Discarded. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+
+  /api/drafts/{draftId}/attachment:
+    parameters:
+      - { name: draftId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Drafts]
+      operationId: GetDraftAttachment
+      summary: The original PDF or image, streamed from private storage.
+      responses:
+        '200':
+          description: File bytes with the detected content type and nosniff.
+          content:
+            application/pdf: { schema: { type: string, format: binary } }
+            image/jpeg: { schema: { type: string, format: binary } }
+            image/png: { schema: { type: string, format: binary } }
+            image/webp: { schema: { type: string, format: binary } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '503': { $ref: '#/components/responses/Problem' }
+
+  /api/emails:
+    get:
+      tags: [Drafts]
+      operationId: ListEmailHistory
+      summary: What happened to the emails attributed to the caller, newest first.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 10 } }
+      responses:
+        '200':
+          description: A page of history entries.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PagedEmailHistory' }
+        '400': { $ref: '#/components/responses/ValidationProblem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+
+  /api/notifications:
+    get:
+      tags: [Notifications]
+      operationId: ListNotifications
+      summary: The caller's latest notifications, newest first.
+      parameters:
+        - { name: unreadOnly, in: query, schema: { type: boolean, default: false } }
+        - { name: take, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 5 } }
+      responses:
+        '200':
+          description: Notifications.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Notification' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+
+  /api/notifications/unread-count:
+    get:
+      tags: [Notifications]
+      operationId: GetUnreadCount
+      summary: Unread notifications and drafts awaiting review (cheap enough to poll).
+      responses:
+        '200':
+          description: Counts.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UnreadCount' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+
+  /api/notifications/{notificationId}/read:
+    parameters:
+      - { name: notificationId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Notifications]
+      operationId: MarkNotificationRead
+      summary: Mark one notification read.
+      responses:
+        '204': { description: Marked. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+
+  /api/notifications/read-all:
+    post:
+      tags: [Notifications]
+      operationId: MarkAllNotificationsRead
+      summary: Mark all of the caller's notifications read.
+      responses:
+        '204': { description: Marked. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+
+  /api/vehicles/{vehicleId}/documents:
+    parameters:
+      - { name: vehicleId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [VehicleDocuments]
+      operationId: ListVehicleDocuments
+      summary: Originals the user kept for this vehicle (not vehicle pictures), newest first.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 10 } }
+      responses:
+        '200':
+          description: A page of documents.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PagedDocuments' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+
+  /api/vehicles/{vehicleId}/documents/{documentId}/content:
+    parameters:
+      - { name: vehicleId, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: documentId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [VehicleDocuments]
+      operationId: GetVehicleDocumentContent
+      summary: Document bytes streamed from private storage.
+      responses:
+        '200':
+          description: File bytes.
+          content:
+            application/pdf: { schema: { type: string, format: binary } }
+            image/jpeg: { schema: { type: string, format: binary } }
+            image/png: { schema: { type: string, format: binary } }
+            image/webp: { schema: { type: string, format: binary } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '503': { $ref: '#/components/responses/Problem' }
+
+  /api/vehicles/{vehicleId}/documents/{documentId}:
+    parameters:
+      - { name: vehicleId, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: documentId, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [VehicleDocuments]
+      operationId: DeleteVehicleDocument
+      summary: Delete a kept document and its file. The record it was kept with is unchanged.
+      responses:
+        '204': { description: Deleted. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '503': { $ref: '#/components/responses/Problem' }
+
+components:
+  securitySchemes:
+    userAccess:
+      type: oauth2
+      description: Entra access token with the access_as_user scope (delegated).
+      flows:
+        authorizationCode:
+          authorizationUrl: https://login.microsoftonline.com/common/oauth2/v2.0/authorize
+          tokenUrl: https://login.microsoftonline.com/common/oauth2/v2.0/token
+          scopes:
+            access_as_user: Call the API as the signed-in user.
+    workflowAppRole:
+      type: oauth2
+      description: Entra client-credentials token whose roles claim contains Email.Ingest.
+      flows:
+        clientCredentials:
+          tokenUrl: https://login.microsoftonline.com/common/oauth2/v2.0/token
+          scopes:
+            Email.Ingest: Hand over email submissions.
+
+  responses:
+    Problem:
+      description: RFC 9457 problem details.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    ValidationProblem:
+      description: Validation failed; errors are keyed by field path.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ValidationProblemDetails' }
+
+  schemas:
+    ProblemDetails:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+    ValidationProblemDetails:
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items: { type: string }
+
+    IntakeEmailRequest:
+      type: object
+      required: [messageId, receivedAt, from, subject, bodyText]
+      properties:
+        messageId: { type: string, minLength: 1, maxLength: 512, description: Unique per email; the idempotency key. }
+        receivedAt: { type: string, format: date-time }
+        from: { type: string, format: email, maxLength: 320, description: Sender address; matched to a user, never trusted as proof of ownership. }
+        subject: { type: string, maxLength: 500 }
+        bodyText: { type: string, maxLength: 100000, description: Plain text; the workflow converts HTML to text. }
+        attachments:
+          type: array
+          maxItems: 10
+          description: At most 5 non-inline attachments, 10 MB each and 15 MB in total after decoding.
+          items: { $ref: '#/components/schemas/IntakeAttachment' }
+    IntakeAttachment:
+      type: object
+      required: [fileName, contentBase64]
+      properties:
+        fileName: { type: string, maxLength: 255 }
+        contentType: { type: string, description: Informational only; the type is decided from the file bytes. }
+        isInline: { type: boolean, default: false, description: Inline images such as signature logos are ignored. }
+        contentBase64: { type: string, contentEncoding: base64 }
+    IntakeAcknowledgement:
+      type: object
+      required: [submissionId, status]
+      properties:
+        submissionId: { type: string, format: uuid }
+        status: { type: string, enum: [received] }
+
+    DraftKind:
+      type: string
+      enum: [service_record, fuel, energy, inspection, registration, insurance, tax]
+    DraftState:
+      type: string
+      enum: [needs_review, manual_entry, included, discarded, expired]
+    VehicleMatch:
+      type: string
+      enum: [vin, description, only_vehicle, none]
+
+    DraftProposal:
+      type: object
+      description: >
+        Exactly the section for `kind` is populated; sections reuse the existing request shapes. The top-level `kind`
+        is snake_case (DraftKind), but the enums inside the sections reuse the existing feature 005/006 JSON names,
+        which are PascalCase (for example `BiAnnual`, `PersonalProperty`).
+      properties:
+        kind: { $ref: '#/components/schemas/DraftKind' }
+        serviceRecord:
+          type: object
+          properties:
+            dateServiced: { type: string, format: date }
+            odometerReading: { type: integer, minimum: 0, maximum: 9999999 }
+            shopOrPerson: { type: string, maxLength: 100 }
+            lineItems:
+              type: array
+              items:
+                type: object
+                properties:
+                  description: { type: string, maxLength: 200 }
+                  flatCost: { type: number, description: Mutually exclusive with laborHours/laborRate. }
+                  laborHours: { type: number }
+                  laborRate: { type: number }
+                  parts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name: { type: string, maxLength: 100 }
+                        quantity: { type: number }
+                        unitPrice: { type: number }
+        fuelEnergy:
+          type: object
+          properties:
+            kind: { type: string, enum: [Fuel, Energy] }
+            date: { type: string, format: date }
+            unitPrice: { type: number }
+            quantity: { type: number }
+            totalCost: { type: number, description: Calculated from price and quantity when empty. }
+        inspection:
+          type: object
+          properties:
+            type: { type: string, enum: [Safety, Emissions] }
+            date: { type: string, format: date }
+            cost: { type: number }
+            nextDueDate: { type: string, format: date }
+        registration:
+          type: object
+          properties:
+            state: { type: string, pattern: '^[A-Z]{2}$' }
+            cost: { type: number }
+            expirationDate: { type: string, format: date }
+        insurance:
+          type: object
+          properties:
+            startDate: { type: string, format: date }
+            endDate: { type: string, format: date }
+            duration: { type: string, enum: [Monthly, BiAnnual, Annual] }
+            cost: { type: number }
+        tax:
+          type: object
+          properties:
+            type: { type: string, enum: [PersonalProperty, Lease, Purchase] }
+            amount: { type: number }
+            recurrence: { type: string, enum: [Once, Monthly, BiAnnual, Annual] }
+
+    Compatibility:
+      type: object
+      required: [kind, isAcceptable, fields]
+      properties:
+        kind: { $ref: '#/components/schemas/DraftKind' }
+        isAcceptable: { type: boolean, description: True only when no field is missing or invalid. }
+        fields:
+          type: array
+          items:
+            type: object
+            required: [path, status]
+            properties:
+              path: { type: string, example: serviceRecord.lineItems[1].parts[0].unitPrice }
+              status: { type: string, enum: [ok, missing, invalid] }
+              message: { type: string }
+        warnings:
+          type: array
+          items: { type: string }
+
+    VehicleSuggestion:
+      type: object
+      properties:
+        vehicleId: { type: string, format: uuid }
+        name: { type: string }
+        match: { $ref: '#/components/schemas/VehicleMatch' }
+
+    MaintenanceDraft:
+      type: object
+      required: [id, state, proposal, compatibility, expiresAt]
+      properties:
+        id: { type: string, format: uuid }
+        state: { $ref: '#/components/schemas/DraftState' }
+        proposal: { $ref: '#/components/schemas/DraftProposal' }
+        vehicle:
+          type: object
+          properties:
+            vehicleId: { type: string, format: uuid, nullable: true }
+            match: { $ref: '#/components/schemas/VehicleMatch' }
+            candidates:
+              type: array
+              description: The caller's own vehicles, for the picker.
+              items: { $ref: '#/components/schemas/VehicleSuggestion' }
+        source:
+          type: object
+          properties:
+            kind: { type: string, enum: [text, attachment] }
+            fileName: { type: string }
+            contentType: { type: string }
+            sizeBytes: { type: integer }
+        email:
+          type: object
+          description: Shown while content is retained; untrusted text, render escaped.
+          properties:
+            arrivedAt: { type: string, format: date-time }
+            sender: { type: string }
+            subject: { type: string }
+        compatibility: { $ref: '#/components/schemas/Compatibility' }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        notes: { type: string }
+        hasAttachment: { type: boolean }
+        expiresAt: { type: string, format: date-time }
+    DraftSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        state: { $ref: '#/components/schemas/DraftState' }
+        kind: { $ref: '#/components/schemas/DraftKind' }
+        vehicleName: { type: string, nullable: true }
+        arrivedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        headlineTotal: { type: number, nullable: true }
+    PagedDrafts:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/DraftSummary' } }
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalCount: { type: integer }
+        totalPages: { type: integer }
+
+    ChangeDraftKindRequest:
+      type: object
+      required: [kind]
+      properties:
+        kind: { $ref: '#/components/schemas/DraftKind' }
+    AcceptDraftRequest:
+      type: object
+      required: [vehicleId, proposal]
+      properties:
+        vehicleId: { type: string, format: uuid }
+        proposal: { $ref: '#/components/schemas/DraftProposal' }
+        keepOriginal: { type: boolean, default: false, description: Keep the attachment as a vehicle document linked to the new record. }
+    AcceptedDraft:
+      type: object
+      properties:
+        kind: { $ref: '#/components/schemas/DraftKind' }
+        vehicleId: { type: string, format: uuid }
+        recordId: { type: string, format: uuid }
+        documentId: { type: string, format: uuid, nullable: true }
+
+    EmailHistoryItem:
+      type: object
+      properties:
+        submissionId: { type: string, format: uuid }
+        arrivedAt: { type: string, format: date-time }
+        outcome: { type: string, enum: [awaiting_review, included, discarded, expired, not_applicable, failed] }
+        records:
+          type: array
+          items:
+            type: object
+            properties:
+              kind: { $ref: '#/components/schemas/DraftKind' }
+              vehicleId: { type: string, format: uuid }
+              recordId: { type: string, format: uuid }
+    PagedEmailHistory:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/EmailHistoryItem' } }
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalCount: { type: integer }
+        totalPages: { type: integer }
+
+    Notification:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [draft_ready] }
+        title: { type: string }
+        draftId: { type: string, format: uuid, nullable: true }
+        createdAt: { type: string, format: date-time }
+        isRead: { type: boolean }
+    UnreadCount:
+      type: object
+      properties:
+        unread: { type: integer }
+        draftsAwaitingReview: { type: integer }
+
+    VehicleDocument:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        fileName: { type: string }
+        contentType: { type: string }
+        sizeBytes: { type: integer }
+        sourceKind: { $ref: '#/components/schemas/DraftKind' }
+        sourceRecordId: { type: string, format: uuid, nullable: true }
+        createdAt: { type: string, format: date-time }
+    PagedDocuments:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/VehicleDocument' } }
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalCount: { type: integer }
+        totalPages: { type: integer }

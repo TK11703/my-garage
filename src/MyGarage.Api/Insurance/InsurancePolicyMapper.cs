@@ -36,6 +36,7 @@ public static class InsurancePolicyMapper
             Cost = record.Cost,
             CreatedAt = record.CreatedAt,
             UpdatedAt = record.UpdatedAt,
+            FromEmail = record.FromEmail,
         };
 
     public static PagedResultDto<InsurancePolicyDto> ToPageDto(PagedResult<InsurancePolicyRecord> page) =>

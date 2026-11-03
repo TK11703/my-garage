@@ -1,0 +1,205 @@
+@using System.Globalization
+
+@* The service record section of a draft: record details, line items with their parts, and running totals.
+   Everything posts as a normal form; the add and remove buttons submit it with the action to take, so no script is needed. *@
+<div class="vstack gap-3" data-testid="service-editor">
+    <div class="row g-3">
+        <div class="col-sm-4">
+            <div class="form-floating">
+                <input id="serviceRecord-dateServiced" name="@(NamePrefix).DateServiced" type="date" class="form-control" placeholder=" "
+                       @bind="Model.DateServiced" @bind:format="yyyy-MM-dd" aria-required="true" aria-describedby="@Described("serviceRecord.dateServiced")" />
+                <label for="serviceRecord-dateServiced">Date serviced<span class="text-danger" aria-hidden="true"> *</span></label>
+            </div>
+            <FieldError Path="serviceRecord.dateServiced" Errors="FieldErrors" />
+        </div>
+        <div class="col-sm-4">
+            <div class="form-floating">
+                <input id="serviceRecord-odometerReading" name="@(NamePrefix).OdometerReading" type="number" class="form-control" placeholder=" "
+                       min="0" max="9999999" step="1" inputmode="numeric" @bind="Model.OdometerReading" @bind:culture="CultureInfo.InvariantCulture"
+                       aria-required="true" aria-describedby="@Described("serviceRecord.odometerReading")" />
+                <label for="serviceRecord-odometerReading">Odometer reading (mi)<span class="text-danger" aria-hidden="true"> *</span></label>
+            </div>
+            <FieldError Path="serviceRecord.odometerReading" Errors="FieldErrors" />
+        </div>
+        <div class="col-sm-4">
+            <div class="form-floating">
+                <input id="serviceRecord-shopOrPerson" name="@(NamePrefix).ShopOrPerson" type="text" class="form-control" placeholder=" "
+                       maxlength="100" @bind="Model.ShopOrPerson" aria-describedby="@Described("serviceRecord.shopOrPerson")" />
+                <label for="serviceRecord-shopOrPerson">Shop name or person</label>
+            </div>
+            <FieldError Path="serviceRecord.shopOrPerson" Errors="FieldErrors" />
+        </div>
+    </div>
+    <input type="hidden" name="@(NamePrefix).DocumentTotal" value="@(Model.DocumentTotal?.ToString(CultureInfo.InvariantCulture))" />
+
+    <section class="vstack gap-3" aria-labelledby="line-items-heading">
+        <h3 id="line-items-heading" class="h6 mb-0">Line items</h3>
+        <FieldError Path="serviceRecord.lineItems" Errors="FieldErrors" />
+
+        @if (Model.Lines.Count == 0)
+        {
+            <p class="text-body-secondary mb-0" data-testid="no-lines">No line items found. Add one below.</p>
+        }
+
+        @for (var row = 0; row < Model.Lines.Count; row++)
+        {
+            var index = row;
+            var line = Model.Lines[index];
+            var prefix = $"serviceRecord-lineItems-{index}";
+            var linePath = $"serviceRecord.lineItems[{index}]";
+
+            <section id="@prefix" class="card" data-testid="line-item" aria-label="Line item @(index + 1)">
+                <div class="card-body vstack gap-3">
+                    <FieldError Path="@linePath" Errors="FieldErrors" />
+
+                    <div>
+                        <div class="form-floating">
+                            <input id="@(prefix)-description" name="@(NamePrefix).Lines[@index].Description" type="text" class="form-control" placeholder=" "
+                                   maxlength="200" @bind="line.Description" aria-required="true" aria-describedby="@Described($"{linePath}.description")" />
+                            <label for="@(prefix)-description">What was done<span class="text-danger" aria-hidden="true"> *</span></label>
+                        </div>
+                        <FieldError Path="@($"{linePath}.description")" Errors="FieldErrors" />
+                    </div>
+
+                    <div data-pricing-scope class="vstack gap-3">
+                        <fieldset>
+                            <legend class="h6 mb-2">Pricing for line item @(index + 1)</legend>
+                            <div class="d-flex flex-wrap gap-3" role="radiogroup" aria-label="Pricing method for line item @(index + 1)">
+                                <div class="form-check">
+                                    <input id="@(prefix)-pricing-flat" name="@(NamePrefix).Lines[@index].Pricing" type="radio" class="form-check-input" value="@nameof(PricingMode.Flat)" data-pricing-choice
+                                           checked="@(line.Pricing == PricingMode.Flat)" @onchange="@(() => line.Pricing = PricingMode.Flat)" />
+                                    <label class="form-check-label" for="@(prefix)-pricing-flat">Flat cost</label>
+                                </div>
+                                <div class="form-check">
+                                    <input id="@(prefix)-pricing-breakdown" name="@(NamePrefix).Lines[@index].Pricing" type="radio" class="form-check-input" value="@nameof(PricingMode.Breakdown)" data-pricing-choice
+                                           checked="@(line.Pricing == PricingMode.Breakdown)" @onchange="@(() => line.Pricing = PricingMode.Breakdown)" />
+                                    <label class="form-check-label" for="@(prefix)-pricing-breakdown">Labor and parts</label>
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <div role="group" aria-label="Flat cost" data-pricing-section="@nameof(PricingMode.Flat)" hidden="@(line.Pricing != PricingMode.Flat)">
+                            <div class="col-sm-6 col-lg-4">
+                                <div class="form-floating">
+                                    <input id="@(prefix)-flatCost" name="@(NamePrefix).Lines[@index].FlatCost" type="number" class="form-control" placeholder=" "
+                                           min="0" max="9999999.99" step="0.01" inputmode="decimal" @bind="line.FlatCost" @bind:culture="CultureInfo.InvariantCulture"
+                                           aria-describedby="@Described($"{linePath}.flatCost")" />
+                                    <label for="@(prefix)-flatCost">Flat cost ($)</label>
+                                </div>
+                                <FieldError Path="@($"{linePath}.flatCost")" Errors="FieldErrors" />
+                            </div>
+                        </div>
+
+                        <div role="group" aria-label="Labor and parts" class="vstack gap-3" data-pricing-section="@nameof(PricingMode.Breakdown)" hidden="@(line.Pricing != PricingMode.Breakdown)">
+                            <div class="row g-3">
+                                <div class="col-sm-6 col-lg-4">
+                                    <div class="form-floating">
+                                        <input id="@(prefix)-laborHours" name="@(NamePrefix).Lines[@index].LaborHours" type="number" class="form-control" placeholder=" "
+                                               min="0.01" max="999.99" step="0.01" inputmode="decimal" @bind="line.LaborHours" @bind:culture="CultureInfo.InvariantCulture"
+                                               aria-describedby="@Described($"{linePath}.laborHours")" />
+                                        <label for="@(prefix)-laborHours">Labor hours</label>
+                                    </div>
+                                    <FieldError Path="@($"{linePath}.laborHours")" Errors="FieldErrors" />
+                                </div>
+                                <div class="col-sm-6 col-lg-4">
+                                    <div class="form-floating">
+                                        <input id="@(prefix)-laborRate" name="@(NamePrefix).Lines[@index].LaborRate" type="number" class="form-control" placeholder=" "
+                                               min="0" max="99999.99" step="0.01" inputmode="decimal" @bind="line.LaborRate" @bind:culture="CultureInfo.InvariantCulture"
+                                               aria-describedby="@Described($"{linePath}.laborRate")" />
+                                        <label for="@(prefix)-laborRate">Hourly rate ($)</label>
+                                    </div>
+                                    <FieldError Path="@($"{linePath}.laborRate")" Errors="FieldErrors" />
+                                </div>
+                            </div>
+
+                            <h4 class="h6 mb-0">Parts</h4>
+                            @for (var partRow = 0; partRow < line.Parts.Count; partRow++)
+                            {
+                                var part = partRow;
+                                var item = line.Parts[part];
+                                var partPrefix = $"{prefix}-parts-{part}";
+                                var partPath = $"{linePath}.parts[{part}]";
+
+                                <div class="row g-2 align-items-start" data-testid="part-row">
+                                    <div class="col-12 col-md-4">
+                                        <div class="form-floating">
+                                            <input id="@(partPrefix)-name" name="@(NamePrefix).Lines[@index].Parts[@part].Name" type="text" class="form-control" placeholder=" "
+                                                   maxlength="100" @bind="item.Name" aria-describedby="@Described($"{partPath}.name")" />
+                                            <label for="@(partPrefix)-name">Part name</label>
+                                        </div>
+                                        <FieldError Path="@($"{partPath}.name")" Errors="FieldErrors" />
+                                    </div>
+                                    <div class="col-6 col-md-2">
+                                        <div class="form-floating">
+                                            <input id="@(partPrefix)-quantity" name="@(NamePrefix).Lines[@index].Parts[@part].Quantity" type="number" class="form-control" placeholder=" "
+                                                   min="0.01" max="9999.99" step="0.01" inputmode="decimal" @bind="item.Quantity" @bind:culture="CultureInfo.InvariantCulture"
+                                                   aria-describedby="@Described($"{partPath}.quantity")" />
+                                            <label for="@(partPrefix)-quantity">Quantity</label>
+                                        </div>
+                                        <FieldError Path="@($"{partPath}.quantity")" Errors="FieldErrors" />
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <div class="form-floating">
+                                            <input id="@(partPrefix)-unitPrice" name="@(NamePrefix).Lines[@index].Parts[@part].UnitPrice" type="number" class="form-control" placeholder=" "
+                                                   min="0" max="9999999.99" step="0.01" inputmode="decimal" @bind="item.UnitPrice" @bind:culture="CultureInfo.InvariantCulture"
+                                                   aria-describedby="@Described($"{partPath}.unitPrice")" />
+                                            <label for="@(partPrefix)-unitPrice">Price per part</label>
+                                        </div>
+                                        <FieldError Path="@($"{partPath}.unitPrice")" Errors="FieldErrors" />
+                                    </div>
+                                    <div class="col-12 col-md-3 d-flex flex-wrap align-items-center justify-content-between gap-2 pt-md-3">
+                                        <span class="text-body-secondary" data-testid="part-total">@DisplayFormat.Money(ProposalLineForm.PartTotal(item))</span>
+                                        <button type="submit" name="action" value="remove-part:@index:@part" class="btn btn-sm btn-outline-danger" formnovalidate
+                                                aria-label="Remove part @(part + 1) from line item @(index + 1)">Remove</button>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (line.Parts.Count < ServiceProposalForm.MaxParts)
+                            {
+                                <div>
+                                    <button type="submit" name="action" value="add-part:@index" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1" formnovalidate
+                                            aria-label="Add part to line item @(index + 1)">
+                                        <Icon Name="IconName.Plus" /> Add part
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <span class="fw-semibold">Line total <span data-testid="line-total">@DisplayFormat.Money(line.Total)</span></span>
+                    <button type="submit" name="action" value="remove-line:@index" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1" formnovalidate
+                            aria-label="Remove line item @(index + 1)">
+                        <Icon Name="IconName.Trash" /> Remove
+                    </button>
+                </div>
+            </section>
+        }
+
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            @if (Model.Lines.Count < ServiceProposalForm.MaxLines)
+            {
+                <button type="submit" name="action" value="add-line" class="btn btn-outline-primary d-inline-flex align-items-center gap-2" formnovalidate>
+                    <Icon Name="IconName.Plus" /> Add line item
+                </button>
+            }
+            <span class="fw-semibold ms-auto">Line items total <span data-testid="proposal-total">@DisplayFormat.Money(Model.Total)</span></span>
+        </div>
+    </section>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public ServiceProposalForm Model { get; set; } = default!;
+
+    // Posted name of the section: the form model's property that holds it.
+    [Parameter]
+    public string NamePrefix { get; set; } = "Model.Service";
+
+    // Messages for fields, keyed by compatibility path such as serviceRecord.odometerReading.
+    [Parameter]
+    public IReadOnlyDictionary<string, string> FieldErrors { get; set; } = new Dictionary<string, string>();
+
+    private string? Described(string path) => FieldErrors.ContainsKey(path) ? $"{DraftFormat.FieldId(path)}-error" : null;
+}

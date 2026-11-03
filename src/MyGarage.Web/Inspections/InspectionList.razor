@@ -12,6 +12,10 @@
                 <div class="d-flex flex-wrap align-items-center gap-2">
                     <span class="fw-semibold" data-testid="entry-date">@DisplayFormat.Date(entry.InspectionDate)</span>
                     <span class="badge @(entry.Type == InspectionType.Safety ? "text-bg-secondary" : "text-bg-success")" data-testid="entry-type">@InspectionFormat.TypeLabel(entry.Type)</span>
+                    @if (entry.FromEmail)
+                    {
+                        <span class="badge text-bg-info fw-normal" data-testid="from-email">From email</span>
+                    }
                 </div>
                 <div class="small text-body-secondary" data-testid="entry-next-due">@InspectionFormat.NextDue(entry.NextDueDate)</div>
             </div>

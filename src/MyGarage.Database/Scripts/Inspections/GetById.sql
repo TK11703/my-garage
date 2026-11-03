@@ -1,4 +1,4 @@
-SELECT i.id, i.vehicle_id, i.inspection_type, i.inspection_date, i.cost, i.next_due_date, i.created_at, i.updated_at, i.created_by, i.updated_by
+SELECT i.id, i.vehicle_id, i.inspection_type, i.inspection_date, i.cost, i.next_due_date, i.created_at, i.updated_at, i.created_by, i.updated_by, i.from_email
 FROM inspections i
 JOIN vehicles v ON v.id = i.vehicle_id
 WHERE i.id = @EntryId

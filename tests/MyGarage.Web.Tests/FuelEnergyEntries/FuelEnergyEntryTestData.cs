@@ -12,7 +12,8 @@ public static class FuelEnergyEntryTestData
         DateOnly? date = null,
         decimal unitPrice = 3.459m,
         decimal quantity = 12.345m,
-        decimal totalCost = 42.70m) =>
+        decimal totalCost = 42.70m,
+        bool fromEmail = false) =>
         new()
         {
             Id = id ?? Guid.NewGuid(),
@@ -22,6 +23,7 @@ public static class FuelEnergyEntryTestData
             UnitPrice = unitPrice,
             Quantity = quantity,
             TotalCost = totalCost,
+            FromEmail = fromEmail,
             CreatedAt = new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
             UpdatedAt = new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
         };

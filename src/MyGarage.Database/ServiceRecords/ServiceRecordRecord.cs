@@ -23,4 +23,7 @@ public sealed record ServiceRecordRecord
     public string CreatedBy { get; init; } = string.Empty;
 
     public string UpdatedBy { get; init; } = string.Empty;
+
+    // True when the record was created by accepting an emailed draft.
+    public bool FromEmail { get; init; }
 }

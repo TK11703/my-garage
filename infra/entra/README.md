@@ -7,7 +7,7 @@ configuration in the AppHost user-secrets, so `aspire run` can start both servic
 
 | Registration | Purpose | Key settings |
 |---|---|---|
-| `MyGarage API` | Protected backend API | Single tenant, Application ID URI `api://<client-id>`, delegated scope `access_as_user`, access token version 2 |
+| `MyGarage API` | Protected backend API | Single tenant, Application ID URI `api://<client-id>`, delegated scope `access_as_user`, app role `Email.Ingest` (for the email-intake workflow), optional access-token claim `email`, access token version 2 |
 | `MyGarage Web` | Blazor web app (OpenID Connect, authorization code flow) | Single tenant, redirect URIs `https://localhost:<port>/signin-oidc` and `https://localhost:<port>/signout-callback-oidc`, delegated permission on the API scope, a client secret |
 
 It also creates the service principals, and tries to grant tenant-wide admin consent for the web app's permission on the API.
@@ -62,6 +62,37 @@ aspire run
 | `-RotateSecret` | off | Creates a new web client secret even if one is stored |
 | `-WhatIf` | off | Reports what would change and exits |
 
+## Email intake workflow (Logic App)
+
+The script creates the `Email.Ingest` app role on `MyGarage API` and adds the `email` optional claim to its access tokens (the API matches an
+email's sender to a user by the `email` claim, falling back to `preferred_username`). Users become matchable after their next sign-in.
+The script does not create the workflow's identity. To let the Logic App call `POST /api/intake/emails`:
+
+1. Give the Logic App a system-assigned managed identity (or use a dedicated app registration with a certificate or secret kept outside the repository).
+2. Assign the role to that identity's service principal:
+
+   ```powershell
+   $api = Get-MgServicePrincipal -Filter "appId eq '<api-client-id>'"
+   $role = $api.AppRoles | Where-Object Value -eq 'Email.Ingest'
+   New-MgServicePrincipalAppRoleAssignment -ServicePrincipalId <workflow-principal-id> `
+       -PrincipalId <workflow-principal-id> -ResourceId $api.Id -AppRoleId $role.Id
+   ```
+
+3. In the Logic App HTTP action use authentication type *Managed identity*, audience `api://<api-client-id>`, method `POST`, header `Content-Type: application/json`, and the body described in
+   `specs/007-email-ingestion-api/contracts/intake-email.example.json`. The endpoint answers `202` for every valid call; retry on `429` and `503`
+   (honor `Retry-After`) and do not retry on `400`, `401`, `403`, or `413`.
+
+The API refuses user tokens on the intake endpoint, and refuses the workflow's token on every other endpoint.
+
+### Reading attachments with AI
+
+The API reads PDF and image attachments with an Azure OpenAI deployment that accepts PDF and image input (Responses API, structured output).
+Configure `EmailIntake:Extraction:Endpoint` (for example `https://<resource>.openai.azure.com`) and `EmailIntake:Extraction:Deployment` (the deployment name)
+in the AppHost user-secrets (they are passed to the API) or as API settings, and give the API's identity (your developer account locally, a managed identity in Azure)
+the `Cognitive Services OpenAI User` role on the resource. No key is used. Without these settings extraction is disabled and attachments reach the user as
+manual-entry drafts. The identity also needs `Storage Blob Data Contributor` on the storage account that holds the `email-intake` and `vehicle-documents` containers;
+turn on Microsoft Defender for Storage on that account to scan uploads for malware.
+
 ## Idempotence
 
 Running the script again finds the registrations by display name and brings them back to the expected state:
@@ -69,7 +100,8 @@ Running the script again finds the registrations by display name and brings them
 - no duplicate registrations, service principals, scopes, or grants are created;
 - redirect URIs are added, never removed;
 - the web client secret is kept unless none is stored for the current web app or `-RotateSecret` is passed;
-- the web app's required permissions are set to the API scope (other permissions already on the app are kept).
+- the web app's required permissions are set to the API scope (other permissions already on the app are kept);
+- the `Email.Ingest` role keeps its id and the `email` claim is added once (other roles and claims already on the API app are kept).
 
 If more than one registration has the same display name the script stops and asks you to remove the duplicates.
 

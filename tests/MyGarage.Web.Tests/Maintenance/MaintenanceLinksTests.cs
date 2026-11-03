@@ -13,6 +13,7 @@ public class MaintenanceLinksTests
     [Theory]
     [InlineData(MaintenanceSection.Fuel, "&section=fuel")]
     [InlineData(MaintenanceSection.Compliance, "&section=compliance")]
+    [InlineData(MaintenanceSection.Documents, "&section=documents")]
     public void OtherSectionsAreAdded(MaintenanceSection section, string suffix) =>
         Assert.Equal($"/vehicles/{Vehicle}?tab=service-records{suffix}", MaintenanceLinks.TabHref(Vehicle, section));
 
@@ -23,6 +24,7 @@ public class MaintenanceLinksTests
     [InlineData(MaintenanceSection.Compliance, MaintenanceList.Registrations, "&section=compliance&registrationsPage=3")]
     [InlineData(MaintenanceSection.Compliance, MaintenanceList.Insurance, "&section=compliance&insurancePage=3")]
     [InlineData(MaintenanceSection.Compliance, MaintenanceList.Taxes, "&section=compliance&taxesPage=3")]
+    [InlineData(MaintenanceSection.Documents, MaintenanceList.Documents, "&section=documents&documentsPage=3")]
     public void APageAboveOneAddsItsOwnParameter(MaintenanceSection section, MaintenanceList list, string suffix) =>
         Assert.Equal($"/vehicles/{Vehicle}?tab=service-records{suffix}", MaintenanceLinks.TabHref(Vehicle, section, list, 3));
 
@@ -33,6 +35,7 @@ public class MaintenanceLinksTests
     [Theory]
     [InlineData("fuel", MaintenanceSection.Fuel)]
     [InlineData("compliance", MaintenanceSection.Compliance)]
+    [InlineData("documents", MaintenanceSection.Documents)]
     [InlineData("records", MaintenanceSection.Records)]
     [InlineData(null, MaintenanceSection.Records)]
     [InlineData("", MaintenanceSection.Records)]

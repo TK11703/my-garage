@@ -1,0 +1,106 @@
+@* How well a proposal fits the record it would become: every checked field as ok, missing, or invalid, plus advisory warnings. *@
+<section id="compatibility" class="card border-0 shadow-sm" data-testid="compatibility" aria-live="polite" aria-labelledby="compatibility-heading">
+    <div class="card-body vstack gap-2">
+        <h2 id="compatibility-heading" class="h5 mb-0" tabindex="-1" autofocus="@SaveFailed">Compatibility</h2>
+
+        @if (SaveFailed)
+        {
+            <div class="alert alert-danger mb-0" role="alert" data-testid="compatibility-save-failed">
+                This draft could not be saved. Fix the items marked below and save again.
+            </div>
+        }
+
+        @if (Compatibility is null)
+        {
+            <p class="mb-0 text-body-secondary">Not checked yet.</p>
+        }
+        else
+        {
+            <p class="fw-semibold mb-0 @(Compatibility.IsAcceptable ? "text-success" : "text-danger-emphasis")" data-testid="compatibility-summary">@Summary</p>
+
+            @if (Compatibility.Warnings.Count > 0)
+            {
+                <div class="alert alert-warning mb-0" role="status">
+                    <ul class="mb-0 ps-3">
+                        @foreach (var warning in Compatibility.Warnings)
+                        {
+                            <li data-testid="compatibility-warning">@warning</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            <ul class="list-group list-group-flush" data-testid="compatibility-fields">
+                @foreach (var field in Ordered)
+                {
+                    <li class="list-group-item px-0" data-testid="compatibility-field" data-status="@StatusValue(field.Status)">
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <span class="badge @BadgeClass(field.Status)" data-testid="compatibility-status">@StatusText(field.Status)</span>
+                            <a href="#@DraftFormat.FieldId(field.Path)">@DraftFormat.FieldLabel(field.Path)</a>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(field.Message))
+                        {
+                            <div class="small text-body-secondary" data-testid="compatibility-message">@field.Message</div>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public CompatibilityDto? Compatibility { get; set; }
+
+    // True after a save was refused, so the panel announces why.
+    [Parameter]
+    public bool SaveFailed { get; set; }
+
+    // Problems first, then what is fine; each group keeps the order the check gave.
+    private IEnumerable<CompatibilityFieldDto> Ordered =>
+        Compatibility is null ? [] : Compatibility.Fields.OrderBy(item => item.Status == CompatibilityStatus.Ok);
+
+    private string Summary
+    {
+        get
+        {
+            if (Compatibility is null || Compatibility.IsAcceptable)
+            {
+                return "Ready to save";
+            }
+
+            var problems = Compatibility.Fields.Count(item => item.Status != CompatibilityStatus.Ok);
+            return problems switch
+            {
+                0 => "Not ready to save",
+                1 => "1 thing needs attention",
+                _ => $"{problems} things need attention",
+            };
+        }
+    }
+
+    private static string StatusValue(CompatibilityStatus status) =>
+        status switch
+        {
+            CompatibilityStatus.Missing => "missing",
+            CompatibilityStatus.Invalid => "invalid",
+            _ => "ok",
+        };
+
+    private static string StatusText(CompatibilityStatus status) =>
+        status switch
+        {
+            CompatibilityStatus.Missing => "Missing",
+            CompatibilityStatus.Invalid => "Invalid",
+            _ => "OK",
+        };
+
+    private static string BadgeClass(CompatibilityStatus status) =>
+        status switch
+        {
+            CompatibilityStatus.Missing => "text-bg-warning",
+            CompatibilityStatus.Invalid => "text-bg-danger",
+            _ => "text-bg-success",
+        };
+}

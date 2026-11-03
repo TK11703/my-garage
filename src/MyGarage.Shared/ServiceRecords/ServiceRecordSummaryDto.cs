@@ -13,4 +13,6 @@ public sealed class ServiceRecordSummaryDto
     public required int LineItemCount { get; init; }
 
     public required decimal TotalCost { get; init; }
+
+    public bool FromEmail { get; init; }
 }

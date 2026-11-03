@@ -1,0 +1,222 @@
+@using System.Globalization
+
+@* The fields of every record type except a service record. Like the service record editor, it posts as a normal form. *@
+@switch (Model.Kind)
+{
+    case DraftKind.Fuel or DraftKind.Energy:
+        var labels = FuelEnergyEntryFormat.Labels(Model.Kind == DraftKind.Energy ? FuelEnergyKind.Energy : FuelEnergyKind.Fuel);
+        <div class="row g-3" data-testid="fuel-fields">
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <input id="fuelEnergy-date" name="Model.Fuel.Date" type="date" class="form-control" placeholder=" "
+                           @bind="Model.Fuel.Date" @bind:format="yyyy-MM-dd" aria-required="true" aria-describedby="@Described("fuelEnergy.date")" />
+                    <label for="fuelEnergy-date">@labels.Date<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <FieldError Path="fuelEnergy.date" Errors="FieldErrors" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <input id="fuelEnergy-unitPrice" name="Model.Fuel.UnitPrice" type="number" class="form-control" placeholder=" "
+                           min="0" max="9999.9999" step="0.0001" inputmode="decimal" @bind="Model.Fuel.UnitPrice" @bind:culture="CultureInfo.InvariantCulture"
+                           aria-required="true" aria-describedby="@Described("fuelEnergy.unitPrice")" />
+                    <label for="fuelEnergy-unitPrice">@labels.Price<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <FieldError Path="fuelEnergy.unitPrice" Errors="FieldErrors" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <input id="fuelEnergy-quantity" name="Model.Fuel.Quantity" type="number" class="form-control" placeholder=" "
+                           min="0.001" max="99999.999" step="0.001" inputmode="decimal" @bind="Model.Fuel.Quantity" @bind:culture="CultureInfo.InvariantCulture"
+                           aria-required="true" aria-describedby="@Described("fuelEnergy.quantity")" />
+                    <label for="fuelEnergy-quantity">@labels.Quantity<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <FieldError Path="fuelEnergy.quantity" Errors="FieldErrors" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <input id="fuelEnergy-totalCost" name="Model.Fuel.TotalCost" type="number" class="form-control" placeholder=" "
+                           min="0" max="9999999.99" step="0.01" inputmode="decimal" @bind="Model.Fuel.TotalCost" @bind:culture="CultureInfo.InvariantCulture"
+                           aria-describedby="@Described("fuelEnergy.totalCost")" />
+                    <label for="fuelEnergy-totalCost">@labels.Total</label>
+                </div>
+                <FieldError Path="fuelEnergy.totalCost" Errors="FieldErrors" />
+            </div>
+        </div>
+        break;
+
+    case DraftKind.Inspection:
+        <div class="row g-3" data-testid="inspection-fields">
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <select id="inspection-type" name="Model.Inspection.Type" class="form-select" aria-required="true"
+                            @onchange="@(e => Model.Inspection.Type = Parse<InspectionType>(e))" aria-describedby="@Described("inspection.type")">
+                        <option value="" selected="@(Model.Inspection.Type is null)">Choose a type</option>
+                        <option value="@InspectionType.Safety" selected="@(Model.Inspection.Type == InspectionType.Safety)">Safety</option>
+                        <option value="@InspectionType.Emissions" selected="@(Model.Inspection.Type == InspectionType.Emissions)">Emissions</option>
+                    </select>
+                    <label for="inspection-type">Type<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <FieldError Path="inspection.type" Errors="FieldErrors" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <input id="inspection-date" name="Model.Inspection.Date" type="date" class="form-control" placeholder=" "
+                           @bind="Model.Inspection.Date" @bind:format="yyyy-MM-dd" aria-required="true" aria-describedby="@Described("inspection.date")" />
+                    <label for="inspection-date">Date<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <FieldError Path="inspection.date" Errors="FieldErrors" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <input id="inspection-cost" name="Model.Inspection.Cost" type="number" class="form-control" placeholder=" "
+                           min="0" max="9999999.99" step="0.01" inputmode="decimal" @bind="Model.Inspection.Cost" @bind:culture="CultureInfo.InvariantCulture"
+                           aria-required="true" aria-describedby="@Described("inspection.cost")" />
+                    <label for="inspection-cost">Cost<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <FieldError Path="inspection.cost" Errors="FieldErrors" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <input id="inspection-nextDueDate" name="Model.Inspection.NextDueDate" type="date" class="form-control" placeholder=" "
+                           @bind="Model.Inspection.NextDueDate" @bind:format="yyyy-MM-dd" aria-describedby="@Described("inspection.nextDueDate")" />
+                    <label for="inspection-nextDueDate">Next due date</label>
+                </div>
+                <FieldError Path="inspection.nextDueDate" Errors="FieldErrors" />
+            </div>
+        </div>
+        break;
+
+    case DraftKind.Registration:
+        <div class="row g-3" data-testid="registration-fields">
+            <div class="col-sm-6 col-lg-4">
+                <div class="form-floating">
+                    <select id="registration-state" name="Model.Registration.State" class="form-select" aria-required="true"
+                            @onchange="@(e => Model.Registration.State = e.Value?.ToString())" aria-describedby="@Described("registration.state")">
+                        <option value="" selected="@string.IsNullOrEmpty(Model.Registration.State)">Choose a state</option>
+                        @foreach (var state in UsStates.All)
+                        {
+                            <option value="@state.Code" selected="@(Model.Registration.State == state.Code)">@state.Name (@state.Code)</option>
+                        }
+                    </select>
+                    <label for="registration-state">State<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <FieldError Path="registration.state" Errors="FieldErrors" />
+            </div>
+            <div class="col-sm-6 col-lg-4">
+                <div class="form-floating">
+                    <input id="registration-cost" name="Model.Registration.Cost" type="number" class="form-control" placeholder=" "
+                           min="0" max="9999999.99" step="0.01" inputmode="decimal" @bind="Model.Registration.Cost" @bind:culture="CultureInfo.InvariantCulture"
+                           aria-required="true" aria-describedby="@Described("registration.cost")" />
+                    <label for="registration-cost">Cost<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <FieldError Path="registration.cost" Errors="FieldErrors" />
+            </div>
+            <div class="col-sm-6 col-lg-4">
+                <div class="form-floating">
+                    <input id="registration-expirationDate" name="Model.Registration.ExpirationDate" type="date" class="form-control" placeholder=" "
+                           @bind="Model.Registration.ExpirationDate" @bind:format="yyyy-MM-dd" aria-required="true" aria-describedby="@Described("registration.expirationDate")" />
+                    <label for="registration-expirationDate">Expiration date<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <FieldError Path="registration.expirationDate" Errors="FieldErrors" />
+            </div>
+        </div>
+        break;
+
+    case DraftKind.Insurance:
+        <div class="row g-3" data-testid="insurance-fields">
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <input id="insurance-startDate" name="Model.Insurance.StartDate" type="date" class="form-control" placeholder=" "
+                           @bind="Model.Insurance.StartDate" @bind:format="yyyy-MM-dd" aria-required="true" aria-describedby="@Described("insurance.startDate")" />
+                    <label for="insurance-startDate">Start date<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <FieldError Path="insurance.startDate" Errors="FieldErrors" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <input id="insurance-endDate" name="Model.Insurance.EndDate" type="date" class="form-control" placeholder=" "
+                           @bind="Model.Insurance.EndDate" @bind:format="yyyy-MM-dd" aria-required="true" aria-describedby="@Described("insurance.endDate")" />
+                    <label for="insurance-endDate">End date<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <FieldError Path="insurance.endDate" Errors="FieldErrors" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <select id="insurance-duration" name="Model.Insurance.Duration" class="form-select" aria-required="true"
+                            @onchange="@(e => Model.Insurance.Duration = Parse<InsuranceDuration>(e))" aria-describedby="@Described("insurance.duration")">
+                        <option value="" selected="@(Model.Insurance.Duration is null)">Choose how often</option>
+                        <option value="@InsuranceDuration.Monthly" selected="@(Model.Insurance.Duration == InsuranceDuration.Monthly)">Monthly</option>
+                        <option value="@InsuranceDuration.BiAnnual" selected="@(Model.Insurance.Duration == InsuranceDuration.BiAnnual)">Bi-Annual (twice a year)</option>
+                        <option value="@InsuranceDuration.Annual" selected="@(Model.Insurance.Duration == InsuranceDuration.Annual)">Annual</option>
+                    </select>
+                    <label for="insurance-duration">Duration<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <FieldError Path="insurance.duration" Errors="FieldErrors" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <input id="insurance-cost" name="Model.Insurance.Cost" type="number" class="form-control" placeholder=" "
+                           min="0" max="9999999.99" step="0.01" inputmode="decimal" @bind="Model.Insurance.Cost" @bind:culture="CultureInfo.InvariantCulture"
+                           aria-required="true" aria-describedby="@Described("insurance.cost")" />
+                    <label for="insurance-cost">Cost<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <FieldError Path="insurance.cost" Errors="FieldErrors" />
+            </div>
+        </div>
+        break;
+
+    case DraftKind.Tax:
+        <div class="row g-3" data-testid="tax-fields">
+            <div class="col-sm-6 col-lg-4">
+                <div class="form-floating">
+                    <select id="tax-type" name="Model.Tax.Type" class="form-select" aria-required="true"
+                            @onchange="@(e => Model.Tax.Type = Parse<TaxType>(e))" aria-describedby="@Described("tax.type")">
+                        <option value="" selected="@(Model.Tax.Type is null)">Choose a type</option>
+                        <option value="@TaxType.PersonalProperty" selected="@(Model.Tax.Type == TaxType.PersonalProperty)">Personal Property</option>
+                        <option value="@TaxType.Lease" selected="@(Model.Tax.Type == TaxType.Lease)">Lease</option>
+                        <option value="@TaxType.Purchase" selected="@(Model.Tax.Type == TaxType.Purchase)">Purchase</option>
+                    </select>
+                    <label for="tax-type">Type<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <FieldError Path="tax.type" Errors="FieldErrors" />
+            </div>
+            <div class="col-sm-6 col-lg-4">
+                <div class="form-floating">
+                    <input id="tax-amount" name="Model.Tax.Amount" type="number" class="form-control" placeholder=" "
+                           min="0.01" max="9999999.99" step="0.01" inputmode="decimal" @bind="Model.Tax.Amount" @bind:culture="CultureInfo.InvariantCulture"
+                           aria-required="true" aria-describedby="@Described("tax.amount")" />
+                    <label for="tax-amount">Amount<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <FieldError Path="tax.amount" Errors="FieldErrors" />
+            </div>
+            <div class="col-sm-6 col-lg-4">
+                <div class="form-floating">
+                    <select id="tax-recurrence" name="Model.Tax.Recurrence" class="form-select" aria-required="true"
+                            @onchange="@(e => Model.Tax.Recurrence = Parse<TaxRecurrence>(e))" aria-describedby="@Described("tax.recurrence")">
+                        <option value="" selected="@(Model.Tax.Recurrence is null)">Choose how often</option>
+                        <option value="@TaxRecurrence.Once" selected="@(Model.Tax.Recurrence == TaxRecurrence.Once)">Once</option>
+                        <option value="@TaxRecurrence.Monthly" selected="@(Model.Tax.Recurrence == TaxRecurrence.Monthly)">Monthly</option>
+                        <option value="@TaxRecurrence.BiAnnual" selected="@(Model.Tax.Recurrence == TaxRecurrence.BiAnnual)">Bi-Annual (twice a year)</option>
+                        <option value="@TaxRecurrence.Annual" selected="@(Model.Tax.Recurrence == TaxRecurrence.Annual)">Annual</option>
+                    </select>
+                    <label for="tax-recurrence">Recurrence<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <FieldError Path="tax.recurrence" Errors="FieldErrors" />
+            </div>
+        </div>
+        break;
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public DraftReviewFormModel Model { get; set; } = default!;
+
+    // Messages for fields, keyed by compatibility path such as inspection.date.
+    [Parameter]
+    public IReadOnlyDictionary<string, string> FieldErrors { get; set; } = new Dictionary<string, string>();
+
+    private string? Described(string path) => FieldErrors.ContainsKey(path) ? $"{DraftFormat.FieldId(path)}-error" : null;
+
+    private static T? Parse<T>(ChangeEventArgs e) where T : struct, Enum =>
+        Enum.TryParse<T>(e.Value?.ToString(), ignoreCase: true, out var value) && Enum.IsDefined(value) ? value : null;
+}

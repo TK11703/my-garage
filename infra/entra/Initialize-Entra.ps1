@@ -6,7 +6,8 @@
 .DESCRIPTION
     Idempotent: running it again finds the existing registrations and brings them back to the expected state.
     It creates (or updates):
-      * "<NamePrefix> API"  - single tenant, Application ID URI api://<clientId>, delegated scope access_as_user, token version 2
+      * "<NamePrefix> API"  - single tenant, Application ID URI api://<clientId>, delegated scope access_as_user, app role Email.Ingest
+        (for the email-intake workflow; assign it to the workflow's identity), optional access-token claim email, token version 2
       * "<NamePrefix> Web"  - single tenant, web redirect URIs for https://localhost:<WebPort>, delegated permission on the API scope
     and tries to grant tenant-wide admin consent for that permission.
     The web client secret is created only when none is stored for the current web app (or with -RotateSecret) and is written
@@ -46,11 +47,12 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $ScopeName = 'access_as_user'
+$IngestRoleName = 'Email.Ingest'
 $apiName = "$NamePrefix API"
 $webName = "$NamePrefix Web"
 $webOrigin = "https://localhost:$WebPort"
 $desiredRedirectUris = @("$webOrigin/signin-oidc", "$webOrigin/signout-callback-oidc")
-$appSelect = '$select=id,appId,displayName,identifierUris,api,web,requiredResourceAccess'
+$appSelect = '$select=id,appId,displayName,identifierUris,api,web,requiredResourceAccess,appRoles,optionalClaims'
 
 function Invoke-Graph {
     param([string] $Method, [string] $Path, $Body = $null, [string[]] $Query = @())
@@ -154,7 +156,7 @@ try {
 
     if ($WhatIfPreference) {
         Write-Host "What if: tenant $TenantId, AppHost '$script:projectPath'" -ForegroundColor Cyan
-        Write-Host ("  {0,-22} {1}" -f $apiName, $(if ($apiApp) { 'exists - scope, identifier URI and token version would be verified' } else { 'would be created' }))
+        Write-Host ("  {0,-22} {1}" -f $apiName, $(if ($apiApp) { 'exists - scope, app role Email.Ingest, email claim, identifier URI and token version would be verified' } else { 'would be created' }))
         Write-Host ("  {0,-22} {1}" -f $webName, $(if ($webApp) { 'exists - redirect URIs and API permission would be verified' } else { 'would be created' }))
         $missingUris = $desiredRedirectUris | Where-Object { $_ -notin @($webApp.web.redirectUris) }
         Write-Host "  Redirect URIs to add : $(if ($missingUris) { $missingUris -join ', ' } else { 'none' })"
@@ -187,9 +189,32 @@ try {
     }
     $scopes = @($existingScopes | Where-Object { $_ -and $_.value -ne $ScopeName }) + $scope
 
+    # App role for the machine-to-machine email intake; the id is kept when the role already exists.
+    $existingRoles = @($apiApp.appRoles)
+    $existingRole = $existingRoles | Where-Object { $_.value -eq $IngestRoleName } | Select-Object -First 1
+    $role = @{
+        id                 = $(if ($existingRole) { $existingRole.id } else { [guid]::NewGuid().ToString() })
+        value              = $IngestRoleName
+        displayName        = 'Hand over email submissions'
+        description        = 'Allows an automated workflow to hand over email submissions to the My Garage API.'
+        allowedMemberTypes = @('Application')
+        isEnabled          = $true
+    }
+    $roles = @($existingRoles | Where-Object { $_ -and $_.value -ne $IngestRoleName }) + $role
+
+    # The email claim lets the API match a user to the sender address of an email.
+    $accessClaims = @($apiApp.optionalClaims.accessToken | Where-Object { $_ -and $_.name -ne 'email' }) + @{ name = 'email'; essential = $false }
+    $optionalClaims = @{
+        idToken     = @($apiApp.optionalClaims.idToken | Where-Object { $_ })
+        accessToken = $accessClaims
+        saml2Token  = @($apiApp.optionalClaims.saml2Token | Where-Object { $_ })
+    }
+
     Invoke-Graph PATCH "/applications/$($apiApp.id)" @{
         identifierUris = @("api://$($apiApp.appId)")
         api            = @{ requestedAccessTokenVersion = 2; oauth2PermissionScopes = $scopes }
+        appRoles       = $roles
+        optionalClaims = $optionalClaims
     } | Out-Null
     $apiSp = Initialize-ServicePrincipal $apiApp.appId
 

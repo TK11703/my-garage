@@ -179,6 +179,69 @@ public class UiStandardConformanceTests
         }
     }
 
+    private static readonly string[] EmailIntakeFolders = ["Drafts", "Notifications", "VehicleDocuments"];
+
+    private static List<string> EmailIntakeSources() =>
+        [.. Sources.Where(path => EmailIntakeFolders.Any(folder => path.Contains($"{Path.DirectorySeparatorChar}{folder}{Path.DirectorySeparatorChar}")))];
+
+    [Fact]
+    public void TheEmailIntakeSourcesAreScanned_AndUseNoTablesScriptsMarkupOrInlineStyles()
+    {
+        var sources = EmailIntakeSources();
+
+        // The list and review pages, the service record editor, the other kinds' fields, the compatibility panel,
+        // the notifications menu, and the documents section.
+        Assert.True(sources.Count >= 7, $"Only {sources.Count} email intake sources were found.");
+        foreach (var path in sources)
+        {
+            var source = File.ReadAllText(path);
+            Assert.DoesNotMatch(new Regex("<table[\\s>]"), source);
+            Assert.DoesNotMatch(new Regex("<script|jquery", RegexOptions.IgnoreCase), source);
+            Assert.DoesNotMatch(new Regex("MarkupString"), source);
+            Assert.DoesNotMatch(new Regex("\\sstyle=\"", RegexOptions.IgnoreCase), source);
+            Assert.DoesNotMatch(new Regex("<h1[\\s>]"), source);
+        }
+    }
+
+    [Fact]
+    public void EveryEmailIntakeFormControlHasALabel()
+    {
+        var controls = 0;
+        foreach (var path in EmailIntakeSources())
+        {
+            var source = File.ReadAllText(path);
+            foreach (Match match in Regex.Matches(source, "<(?:input|select)\\b[^>]*?\\bid=\"([^\"]+)\"[^>]*>"))
+            {
+                if (match.Value.Contains("type=\"hidden\"", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                controls++;
+                var id = match.Groups[1].Value;
+                Assert.True(
+                    Regex.IsMatch(source, $"<label\\b[^>]*\\bfor=\"{Regex.Escape(id)}\""),
+                    $"{Path.GetFileName(path)}: no label for {id}");
+            }
+        }
+
+        Assert.True(controls >= 20, $"Only {controls} form controls were found.");
+    }
+
+    [Fact]
+    public void EveryEmailIntakeIconOnlyControlHasAnAccessibleName()
+    {
+        // A button or link with an icon and no text must say what it does.
+        foreach (var path in EmailIntakeSources())
+        {
+            var source = File.ReadAllText(path);
+            foreach (Match match in Regex.Matches(source, "<(button|a)\\b([^>]*)>\\s*<Icon\\b[^>]*/>\\s*</\\1>"))
+            {
+                Assert.Contains("aria-label=", match.Groups[2].Value);
+            }
+        }
+    }
+
     [Fact]
     public void LookupListsAreNotTables()
     {

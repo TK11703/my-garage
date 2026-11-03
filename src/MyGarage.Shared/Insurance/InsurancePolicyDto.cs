@@ -17,4 +17,6 @@ public sealed class InsurancePolicyDto
     public required DateTimeOffset CreatedAt { get; init; }
 
     public required DateTimeOffset UpdatedAt { get; init; }
+
+    public bool FromEmail { get; init; }
 }

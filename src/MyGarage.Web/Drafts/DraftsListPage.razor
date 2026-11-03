@@ -1,0 +1,146 @@
+@page "/drafts"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject DraftsApiClient Api
+
+<PageHeader Title="Maintenance Drafts" Trail="@(new[] { new Crumb("Maintenance Drafts") })" />
+
+@* Plain links: the app is statically rendered, so each tab is its own page load. *@
+<ul class="nav mg-tabs mb-3" data-testid="drafts-tabs">
+    <li class="nav-item">
+        <a class="nav-link @(IsHistory ? null : "active")" href="@PageHref(1)" aria-current="@(IsHistory ? null : "page")">Awaiting review</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(IsHistory ? "active" : null)" href="@HistoryHref(1)" aria-current="@(IsHistory ? "page" : null)">History</a>
+    </li>
+</ul>
+
+@if (failure is not null)
+{
+    <ApiFailureAlert Failure="failure.Value" ReturnUrl="@(IsHistory ? HistoryHref(CurrentPage) : PageHref(CurrentPage))"
+                     NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+}
+else if (IsHistory && history is not null)
+{
+    <section data-testid="drafts-history">
+        <div class="card border-0 shadow-sm"><div class="card-body">
+        @if (history.TotalCount == 0)
+        {
+            <EmptyState Message="No emails yet. Emails you forward to your My Garage mailbox appear here." />
+        }
+        else
+        {
+            <ul class="list-group" data-testid="history-list">
+                @foreach (var item in history.Items)
+                {
+                    <li @key="item.SubmissionId" class="list-group-item" data-testid="history-item">
+                        <span class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <span data-testid="history-arrived">@DraftFormat.Arrived(item.ArrivedAt)</span>
+                            <span class="badge @DraftFormat.OutcomeBadgeClass(item.Outcome)" data-testid="history-outcome">@DraftFormat.OutcomeLabel(item.Outcome)</span>
+                        </span>
+                        @if (item.Records.Count > 0)
+                        {
+                            <span class="d-flex flex-wrap gap-3 small mt-2">
+                                @foreach (var record in item.Records)
+                                {
+                                    <a data-testid="history-record" href="@MaintenanceLinks.TabHref(record.VehicleId, DraftFormat.SectionFor(record.Kind))">@DraftFormat.KindLabel(record.Kind)</a>
+                                }
+                            </span>
+                        }
+                    </li>
+                }
+            </ul>
+
+            <Pager Page="history.Page" TotalPages="history.TotalPages" HrefFor="HistoryHref" />
+        }
+        </div></div>
+    </section>
+}
+else if (!IsHistory && drafts is not null)
+{
+    <section data-testid="drafts-awaiting">
+        <div class="card border-0 shadow-sm"><div class="card-body">
+        @if (drafts.TotalCount == 0)
+        {
+            <EmptyState Message="No drafts waiting. Forward a service invoice or receipt to your My Garage mailbox." />
+        }
+        else
+        {
+            <ul class="list-group" data-testid="draft-list">
+                @foreach (var draft in drafts.Items)
+                {
+                    <li @key="draft.Id" class="list-group-item list-group-item-action p-0" data-testid="draft">
+                        <a class="d-block text-decoration-none text-reset p-3" href="/drafts/@draft.Id">
+                            <span class="d-flex flex-wrap justify-content-between gap-2">
+                                <span class="d-flex flex-wrap align-items-center gap-2">
+                                    <span class="fw-semibold" data-testid="draft-kind">@DraftFormat.KindLabelOrChoose(draft.Kind)</span>
+                                    @if (draft.State == DraftState.ManualEntry)
+                                    {
+                                        <span class="badge text-bg-warning" data-testid="draft-state">Needs details</span>
+                                    }
+                                </span>
+                                @if (draft.HeadlineTotal is { } total)
+                                {
+                                    <span class="fw-semibold" data-testid="draft-total">@DisplayFormat.Money(total)</span>
+                                }
+                            </span>
+                            <span class="d-flex flex-wrap gap-3 small text-body-secondary">
+                                <span data-testid="draft-vehicle">@(draft.VehicleName ?? "No vehicle chosen")</span>
+                                <span data-testid="draft-arrived">Arrived @DisplayFormat.Date(DateOnly.FromDateTime(draft.ArrivedAt.UtcDateTime))</span>
+                                <span data-testid="draft-expires">Expires @DisplayFormat.Date(DateOnly.FromDateTime(draft.ExpiresAt.UtcDateTime))</span>
+                            </span>
+                        </a>
+                    </li>
+                }
+            </ul>
+
+            <Pager Page="drafts.Page" TotalPages="drafts.TotalPages" HrefFor="PageHref" />
+        }
+        </div></div>
+    </section>
+}
+
+@code {
+    private PagedResultDto<MaintenanceDraftSummaryDto>? drafts;
+    private PagedResultDto<EmailHistoryItemDto>? history;
+    private GarageApiFailure? failure;
+
+    // Read as text: a bad query value must mean the first page, not a binding error.
+    [Parameter, SupplyParameterFromQuery(Name = "page")]
+    public string? Page { get; set; }
+
+    // "history" opens the History tab; anything else is the drafts awaiting review.
+    [Parameter, SupplyParameterFromQuery(Name = "tab")]
+    public string? Tab { get; set; }
+
+    private bool IsHistory => Tab == "history";
+
+    private int CurrentPage => int.TryParse(Page, out var parsed) ? Math.Max(1, parsed) : 1;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        failure = null;
+        try
+        {
+            if (IsHistory)
+            {
+                var result = await Api.ListEmailHistoryAsync(CurrentPage);
+                history = result.Value ?? new PagedResultDto<EmailHistoryItemDto> { Items = [], Page = 1, PageSize = 10, TotalCount = 0, TotalPages = 0 };
+            }
+            else
+            {
+                var result = await Api.ListAsync(CurrentPage);
+                drafts = result.Value ?? new PagedResultDto<MaintenanceDraftSummaryDto> { Items = [], Page = 1, PageSize = 10, TotalCount = 0, TotalPages = 0 };
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    // The first page keeps a clean address.
+    private static string PageHref(int page) => page <= 1 ? "/drafts" : $"/drafts?page={page}";
+
+    private static string HistoryHref(int page) => page <= 1 ? "/drafts?tab=history" : $"/drafts?tab=history&page={page}";
+}

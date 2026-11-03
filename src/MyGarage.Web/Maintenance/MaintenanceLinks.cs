@@ -6,6 +6,7 @@ public enum MaintenanceSection
     Records,
     Fuel,
     Compliance,
+    Documents,
 }
 
 // Each list on the Maintenance tab pages on its own query value.
@@ -17,6 +18,7 @@ public enum MaintenanceList
     Registrations,
     Insurance,
     Taxes,
+    Documents,
 }
 
 public static class MaintenanceLinks
@@ -44,6 +46,7 @@ public static class MaintenanceLinks
         {
             "fuel" => MaintenanceSection.Fuel,
             "compliance" => MaintenanceSection.Compliance,
+            "documents" => MaintenanceSection.Documents,
             _ => MaintenanceSection.Records,
         };
 
@@ -55,6 +58,7 @@ public static class MaintenanceLinks
         {
             MaintenanceSection.Fuel => "fuel",
             MaintenanceSection.Compliance => "compliance",
+            MaintenanceSection.Documents => "documents",
             _ => "records",
         };
 
@@ -66,6 +70,7 @@ public static class MaintenanceLinks
             MaintenanceList.Inspections => "inspectionsPage",
             MaintenanceList.Registrations => "registrationsPage",
             MaintenanceList.Insurance => "insurancePage",
+            MaintenanceList.Documents => "documentsPage",
             _ => "taxesPage",
         };
 }

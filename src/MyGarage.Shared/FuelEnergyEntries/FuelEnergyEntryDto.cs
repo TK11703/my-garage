@@ -19,4 +19,7 @@ public sealed class FuelEnergyEntryDto
     public required DateTimeOffset CreatedAt { get; init; }
 
     public required DateTimeOffset UpdatedAt { get; init; }
+
+    // True when the entry was created from an emailed draft.
+    public bool FromEmail { get; init; }
 }

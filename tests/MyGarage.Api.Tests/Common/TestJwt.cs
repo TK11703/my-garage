@@ -10,6 +10,8 @@ public static class TestJwt
     public const string ApiClientId = "33333333-3333-3333-3333-333333333333";
     public const string Issuer = $"https://login.test/{TenantId}/v2.0";
     public const string Scope = "access_as_user";
+    public const string EmailIngestRole = "Email.Ingest";
+    public const string WorkflowAppId = "44444444-4444-4444-4444-444444444444";
 
     public static readonly SymmetricSecurityKey SigningKey = new(Encoding.UTF8.GetBytes("unit-test-signing-key-0123456789-abcdef"));
 
@@ -21,20 +23,22 @@ public static class TestJwt
         string? scope = Scope,
         TimeSpan? expiresIn = null,
         bool signWithOtherKey = false,
-        IDictionary<string, object>? claims = null)
+        IDictionary<string, object>? claims = null,
+        bool includeUserClaims = true)
     {
         var now = DateTime.UtcNow;
         var lifetime = expiresIn ?? TimeSpan.FromHours(1);
         var notBefore = lifetime < TimeSpan.Zero ? now + lifetime - TimeSpan.FromHours(1) : now;
 
-        var payload = new Dictionary<string, object>
+        var payload = new Dictionary<string, object> { ["tid"] = TenantId };
+        if (includeUserClaims)
         {
-            ["oid"] = "oid-1234",
-            ["sub"] = "sub-5678",
-            ["name"] = "Alice Garage",
-            ["preferred_username"] = "alice@contoso.test",
-            ["tid"] = TenantId,
-        };
+            payload["oid"] = "oid-1234";
+            payload["sub"] = "sub-5678";
+            payload["name"] = "Alice Garage";
+            payload["preferred_username"] = "alice@contoso.test";
+        }
+
         if (scope is not null)
         {
             payload["scp"] = scope;
