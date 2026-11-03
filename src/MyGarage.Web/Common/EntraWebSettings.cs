@@ -17,6 +17,9 @@ public sealed class EntraWebSettings
         public string ClientId { get; init; } = string.Empty;
 
         public string ClientSecret { get; init; } = string.Empty;
+
+        // In Azure the web app proves its identity with this managed identity's federated credential instead of a secret.
+        public string ManagedIdentityClientId { get; init; } = string.Empty;
     }
 
     public sealed class ApiSection
@@ -33,7 +36,10 @@ public sealed class EntraWebSettings
         var missing = new List<string>();
         if (string.IsNullOrWhiteSpace(settings.TenantId)) missing.Add($"{SectionName}:TenantId");
         if (string.IsNullOrWhiteSpace(settings.Web.ClientId)) missing.Add($"{SectionName}:Web:ClientId");
-        if (string.IsNullOrWhiteSpace(settings.Web.ClientSecret)) missing.Add($"{SectionName}:Web:ClientSecret");
+        if (string.IsNullOrWhiteSpace(settings.Web.ClientSecret) && string.IsNullOrWhiteSpace(settings.Web.ManagedIdentityClientId))
+        {
+            missing.Add($"{SectionName}:Web:ClientSecret");
+        }
         if (string.IsNullOrWhiteSpace(settings.Api.ClientId)) missing.Add($"{SectionName}:Api:ClientId");
         if (string.IsNullOrWhiteSpace(settings.Api.Scope)) missing.Add($"{SectionName}:Api:Scope");
 

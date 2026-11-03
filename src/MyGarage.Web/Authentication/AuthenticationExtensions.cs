@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Identity.Abstractions;
 using Microsoft.Identity.Web;
 using MyGarage.Web.Common;
 
@@ -21,7 +22,21 @@ public static class AuthenticationExtensions
                 options.Instance = "https://login.microsoftonline.com/";
                 options.TenantId = settings.TenantId;
                 options.ClientId = settings.Web.ClientId;
-                options.ClientSecret = settings.Web.ClientSecret;
+                if (string.IsNullOrWhiteSpace(settings.Web.ManagedIdentityClientId))
+                {
+                    options.ClientSecret = settings.Web.ClientSecret;
+                }
+                else
+                {
+                    options.ClientCredentials =
+                    [
+                        new CredentialDescription
+                        {
+                            SourceType = CredentialSource.SignedAssertionFromManagedIdentity,
+                            ManagedIdentityClientId = settings.Web.ManagedIdentityClientId,
+                        },
+                    ];
+                }
                 options.CallbackPath = "/signin-oidc";
                 options.SignedOutCallbackPath = "/signout-callback-oidc";
             })

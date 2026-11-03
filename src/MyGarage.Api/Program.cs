@@ -1,3 +1,4 @@
+using Azure.Identity;
 using MyGarage.Api.Common;
 using MyGarage.Api.Drafts;
 using MyGarage.Api.EmailIntake;
@@ -22,7 +23,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 builder.AddEntraApiAuthentication();
-builder.AddNpgsqlDataSource("garagedb");
+builder.AddNpgsqlDataSource("garagedb", configureDataSourceBuilder: dataSource =>
+    EntraDatabaseAuthentication.Configure(dataSource, builder.Configuration, new DefaultAzureCredential()));
 builder.AddAzureBlobServiceClient("blobs");
 
 builder.Services.AddGarageProblemDetails();
