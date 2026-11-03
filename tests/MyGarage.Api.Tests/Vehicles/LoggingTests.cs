@@ -12,6 +12,7 @@ using MyGarage.Shared.Vehicles;
 namespace MyGarage.Api.Tests.Vehicles;
 
 // FR-018: logs never carry vehicle details, search text, tags, journal text, captions, file names, or image bytes.
+[Collection("Logging")]
 public class LoggingTests(ApiFactory factory) : IClassFixture<ApiFactory>, IAsyncLifetime
 {
     private static readonly string[] Markers =
