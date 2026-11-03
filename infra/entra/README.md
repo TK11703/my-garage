@@ -60,7 +60,24 @@ aspire run
 | `-NamePrefix` | `MyGarage` | Display-name prefix of the two registrations |
 | `-AppHostProject` | `src/MyGarage.AppHost` | Project whose user-secrets receive the values |
 | `-RotateSecret` | off | Creates a new web client secret even if one is stored |
+| `-WebBaseUri` | none | Public address of the deployed web app; redirect URIs become `<uri>/signin-oidc` and `<uri>/signout-callback-oidc` instead of the localhost ones |
+| `-GitHubEnvironment` | none | Writes `AZURE_TENANT_ID`, `API_ENTRA_CLIENT_ID`, `API_ENTRA_SCOPE`, and `WEB_ENTRA_CLIENT_ID` as variables of this GitHub environment instead of the AppHost user-secrets (which are then not read or written) |
+| `-ManagedIdentityPrincipalId` | none | Object id of a user-assigned managed identity; the web registration gets the federated credential `mygarage-web-managed-identity` for it and no client secret is created |
+| `-Repository` | `TK11703/my-garage` | Repository that owns the GitHub environment |
 | `-WhatIf` | off | Reports what would change and exits |
+
+## Registrations for the deployed environment
+
+The deployed app uses its own registrations, separate from the local ones. `infra/azure/Initialize-Azure.ps1` runs the script like this:
+
+```powershell
+./infra/entra/Initialize-Entra.ps1 -NamePrefix 'MyGarage Azure' `
+    -WebBaseUri https://ca-web-mygarage.<default domain of cae-shared> `
+    -ManagedIdentityPrincipalId <principal id of id-mygarage-web> `
+    -GitHubEnvironment production
+```
+
+It creates `MyGarage Azure API` and `MyGarage Azure Web`, adds a federated identity credential (issuer `https://login.microsoftonline.com/<tenant>/v2.0`, subject the managed identity's principal id, audience `api://AzureADTokenExchange`) to the web registration, and stores no client secret anywhere. The local registrations `MyGarage API` and `MyGarage Web` are not touched.
 
 ## Email intake workflow (Logic App)
 

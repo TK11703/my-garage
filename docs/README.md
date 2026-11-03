@@ -21,6 +21,7 @@ Each feature is specified under [`specs/`](../specs) (spec, plan, research, data
 | `005-service-records` | Service records with line items and parts |
 | `006-maintenance-record-types` | Fuel and charging, inspections, registrations, insurance, and taxes |
 | `007-email-ingestion-api` | Email ingestion: a trusted workflow hands over forwarded emails, the app proposes draft records, and the owner reviews them |
+| `008-github-cicd-pipeline` | GitHub Actions CI/CD: verification on every pull request, automatic deployment to the shared Azure Container Apps environment, Bicep, one-time setup scripts, and the email-intake Logic App script (see [infra/README.md](../infra/README.md)) |
 
 ### Email ingestion (feature 007)
 

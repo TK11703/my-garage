@@ -1,0 +1,31 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    uses: ./.github/workflows/verify.yml
+
+  # The one required status check: it reports on every pull request, including documentation-only ones.
+  verify:
+    needs: checks
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: The checks must have succeeded
+        env:
+          RESULT: ${{ needs.checks.result }}
+        run: |
+          echo "Checks result: $RESULT"
+          [ "$RESULT" = "success" ]

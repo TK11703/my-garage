@@ -1,0 +1,211 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: Full commit SHA to deploy (default is the selected ref); use an earlier commit to roll back
+        type: string
+        default: ''
+      dryRun:
+        description: Stop after the what-if, change nothing
+        type: boolean
+        default: false
+      allowNonMain:
+        description: Rehearsals only, allow a commit that is not on main (blocked by the environment once it is restricted to main)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+      tag: ${{ steps.commit.outputs.tag }}
+      deployable: ${{ steps.commit.outputs.deployable }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: commit
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REQUESTED: ${{ inputs.commit }}
+          ALLOW_NON_MAIN: ${{ inputs.allowNonMain }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          $requested = if ($env:REQUESTED) { $env:REQUESTED.Trim() } else { (git rev-parse HEAD).Trim() }
+          $sha = (git rev-parse --verify --quiet "$requested^{commit}")
+          if (-not $sha) { throw "'$requested' does not resolve to a commit." }
+          $sha = $sha.Trim()
+          if ($sha -notmatch '^[0-9a-f]{40}$') { throw "Commit '$sha' is not a full 40-character SHA." }
+
+          git fetch --quiet origin main
+          git merge-base --is-ancestor $sha origin/main
+          if ($LASTEXITCODE -ne 0 -and $env:ALLOW_NON_MAIN -ne 'true') {
+            throw "Commit $sha is not reachable from main; only main can be deployed."
+          }
+
+          # A push that changed only documentation does not need a new release; a manual run always deploys.
+          $deployable = $true
+          if ($env:EVENT_NAME -eq 'push' -and $env:BEFORE -match '[1-9a-f]') {
+            $files = @(git diff --name-only $env:BEFORE $sha)
+            $deployable = [bool]($files | Where-Object { $_ -notmatch '^(docs|specs|\.specify)/' -and $_ -notmatch '\.md$' })
+          }
+
+          "sha=$sha" >> $env:GITHUB_OUTPUT
+          "tag=sha-$sha" >> $env:GITHUB_OUTPUT
+          "deployable=$($deployable.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          Write-Host "Commit $sha, tag sha-$sha, deployable=$deployable"
+
+  verify:
+    needs: resolve
+    if: needs.resolve.outputs.deployable == 'true'
+    uses: ./.github/workflows/verify.yml
+    with:
+      ref: ${{ needs.resolve.outputs.sha }}
+      full: true
+
+  build-images:
+    needs: [resolve, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Sign in to the registry
+        run: az acr login --name acccrshared
+      - name: Publish the images once per commit
+        shell: bash
+        env:
+          TAG: ${{ needs.resolve.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ "${#TAG}" -ne 44 ]; then echo "Unexpected image tag length."; exit 1; fi
+          if az acr manifest show --registry acccrshared --name "mygarage/api:$TAG" > /dev/null 2>&1 \
+             && az acr manifest show --registry acccrshared --name "mygarage/web:$TAG" > /dev/null 2>&1; then
+            echo "Both images already exist for $TAG; reusing them."
+            exit 0
+          fi
+          publish() {
+            dotnet publish "src/$1/$1.csproj" -c Release -t:PublishContainer \
+              -p:ContainerRegistry=acccrshared.azurecr.io \
+              -p:ContainerRepository="mygarage/$2" \
+              -p:ContainerImageTags="$TAG"
+          }
+          publish MyGarage.Api api
+          publish MyGarage.Web web
+
+  deploy:
+    needs: [resolve, build-images]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      IMAGE_TAG: ${{ needs.resolve.outputs.tag }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      API_ENTRA_CLIENT_ID: ${{ vars.API_ENTRA_CLIENT_ID }}
+      API_ENTRA_SCOPE: ${{ vars.API_ENTRA_SCOPE }}
+      WEB_ENTRA_CLIENT_ID: ${{ vars.WEB_ENTRA_CLIENT_ID }}
+      EXTRACTION_ENDPOINT: ${{ vars.EXTRACTION_ENDPOINT }}
+      EXTRACTION_DEPLOYMENT: ${{ vars.EXTRACTION_DEPLOYMENT }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+      - uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: What-if
+        id: whatif
+        shell: bash
+        run: |
+          set -euo pipefail
+          az deployment group what-if --resource-group rg-apps \
+            --template-file infra/bicep/main.bicep --parameters infra/bicep/main.bicepparam \
+            --no-pretty-print --only-show-errors > whatif.json
+          for type in Create Modify Delete; do
+            echo "${type,,}=$(jq "[.changes[] | select(.changeType == \"$type\")] | length" whatif.json)" >> "$GITHUB_OUTPUT"
+          done
+          if [ "$(jq '[.changes[] | select(.changeType == "Delete")] | length' whatif.json)" != "0" ]; then
+            echo "The what-if lists a deletion; the deployment never deletes resources. Review the template."
+            exit 1
+          fi
+      - name: Deploy
+        id: deploy
+        if: ${{ !inputs.dryRun }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          az deployment group create --resource-group rg-apps --mode Incremental \
+            --name "mygarage-${IMAGE_TAG:4:12}" \
+            --template-file infra/bicep/main.bicep --parameters infra/bicep/main.bicepparam \
+            --query properties.outputs --only-show-errors -o json > outputs.json
+          echo "api=$(jq -r .apiAddress.value outputs.json)" >> "$GITHUB_OUTPUT"
+          echo "web=$(jq -r .webAddress.value outputs.json)" >> "$GITHUB_OUTPUT"
+      - name: Health check
+        id: health
+        if: ${{ !inputs.dryRun }}
+        shell: pwsh
+        env:
+          API_ADDRESS: ${{ steps.deploy.outputs.api }}
+          WEB_ADDRESS: ${{ steps.deploy.outputs.web }}
+        run: ./.github/scripts/Test-Health.ps1 -ApiAddress $env:API_ADDRESS -WebAddress $env:WEB_ADDRESS -ExpectedTag $env:IMAGE_TAG
+      - name: Run summary
+        if: always()
+        shell: bash
+        env:
+          SHA: ${{ needs.resolve.outputs.sha }}
+          DRY_RUN: ${{ inputs.dryRun }}
+          MANUAL: ${{ github.event_name == 'workflow_dispatch' && inputs.commit != '' }}
+          CREATE: ${{ steps.whatif.outputs.create }}
+          MODIFY: ${{ steps.whatif.outputs.modify }}
+          DELETE: ${{ steps.whatif.outputs.delete }}
+          API: ${{ steps.deploy.outputs.api }}
+          WEB: ${{ steps.deploy.outputs.web }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
+          HEALTH_OUTCOME: ${{ steps.health.outcome }}
+        run: |
+          {
+            echo "### Deployment"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Commit | \`$SHA\` |"
+            echo "| Image tag | \`$IMAGE_TAG\` |"
+            echo "| Verification | passed (the deployment only starts after it) |"
+            echo "| What-if | ${CREATE:-0} to create, ${MODIFY:-0} to modify, ${DELETE:-0} to delete |"
+            echo "| Mode | $([ "$DRY_RUN" = "true" ] && echo "dry run, nothing deployed" || echo "deploy")$([ "$MANUAL" = "true" ] && echo ", manual run of a chosen commit") |"
+            echo "| Deployment | ${DEPLOY_OUTCOME:-skipped} |"
+            echo "| Health check | ${HEALTH_OUTCOME:-skipped} |"
+            if [ -n "${API:-}" ]; then echo "| API address | $API |"; fi
+            if [ -n "${WEB:-}" ]; then echo "| Web address | $WEB |"; fi
+          } >> "$GITHUB_STEP_SUMMARY"

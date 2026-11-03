@@ -1,0 +1,111 @@
+name: verify
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Commit to verify; empty means the caller's commit
+        type: string
+        default: ''
+      full:
+        description: Verify everything regardless of which files changed (used before a deployment)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+      bicep: ${{ steps.diff.outputs.bicep }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+      - id: diff
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          FULL: ${{ inputs.full }}
+        run: |
+          $head = (git rev-parse HEAD).Trim()
+          $base = if ($env:EVENT_NAME -eq 'pull_request') { $env:BASE_SHA } else { (git rev-parse "$head~1" 2>$null) }
+          if ($base -and ($env:EVENT_NAME -eq 'pull_request')) { $base = (git merge-base $base $head).Trim() }
+          $files = if ($base) { @(git diff --name-only $base $head) } else { @() }
+          # Without a comparison base (first commit, shallow history), verify everything.
+          $all = (-not $base) -or ($env:FULL -eq 'true')
+          $code = $all -or [bool]($files | Where-Object { $_ -notmatch '^(docs|specs|\.specify)/' -and $_ -notmatch '\.md$' })
+          $bicep = $all -or [bool]($files | Where-Object { $_ -match '^infra/bicep/' })
+          "code=$($code.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          "bicep=$($bicep.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          Write-Host "Changed files: $($files.Count); code=$code; bicep=$bicep"
+
+  build-test:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Docker must be available for the Testcontainers and AppHost suites
+        run: docker info --format '{{.ServerVersion}}'
+      - name: Restore
+        run: dotnet restore MyGarage.slnx
+      - name: Build (warnings are errors)
+        run: dotnet build MyGarage.slnx -c Release --no-restore
+      - name: Test
+        run: >
+          dotnet test MyGarage.slnx -c Release --no-build
+          --logger "trx;LogFileName=results.trx" --results-directory TestResults
+      - name: Summarise test results
+        if: always()
+        shell: pwsh
+        run: ./.github/scripts/Write-TestSummary.ps1 -ResultsPath TestResults
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: test-results
+          path: TestResults
+          retention-days: 14
+          if-no-files-found: ignore
+
+  bicep:
+    needs: changes
+    if: needs.changes.outputs.bicep == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+      - name: Compile and lint
+        shell: bash
+        run: |
+          if [ ! -f infra/bicep/main.bicep ]; then
+            echo "infra/bicep/main.bicep does not exist yet; nothing to check."
+            exit 0
+          fi
+          az bicep build --file infra/bicep/main.bicep --stdout > /dev/null
+          az bicep lint --file infra/bicep/main.bicep
+
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+      - name: No secret in the delivery files
+        shell: pwsh
+        run: ./.github/scripts/Test-NoSecrets.ps1
