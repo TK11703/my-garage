@@ -84,7 +84,7 @@ public class VehicleDetailPageTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
             Assert.Contains(
-                "This also removes its tags, journal notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, and pictures and cannot be undone.",
+                "This also removes its tags, journal notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, pictures, and kept documents and cannot be undone.",
                 cut.Find("[data-testid='delete-vehicle']").TextContent));
     }
 
@@ -118,6 +118,34 @@ public class VehicleDetailPageTests : VehicleTestContext
         var cut = RenderDetail();
 
         cut.WaitForAssertion(() => Assert.Equal([expectedPane], cut.FindAll(".tab-pane.active").Select(pane => pane.Id)));
+    }
+
+    [Fact]
+    public void ARecordSavedFromAnEmailDraft_IsConfirmedAtTheTopOfTheVehicle()
+    {
+        RegisterApi(_ => Json(Detail(vehicleId)));
+        NavigateTo($"/vehicles/{vehicleId}?tab=service-records&saved=draft");
+
+        var cut = RenderDetail();
+
+        cut.WaitForAssertion(() =>
+        {
+            var alert = cut.Find("[data-testid='draft-saved']");
+            Assert.Equal("status", alert.GetAttribute("role"));
+            Assert.Contains("saved from your email draft", alert.TextContent);
+        });
+    }
+
+    [Fact]
+    public void WithoutTheSavedMarker_NoConfirmationIsShown()
+    {
+        RegisterApi(_ => Json(Detail(vehicleId)));
+        NavigateTo($"/vehicles/{vehicleId}?saved=other");
+
+        var cut = RenderDetail();
+
+        cut.WaitForElement(".tab-content");
+        Assert.Empty(cut.FindAll("[data-testid='draft-saved']"));
     }
 
     [Fact]
@@ -639,7 +667,7 @@ public class VehicleDetailPageTests : VehicleTestContext
             var section = cut.Find("details[data-testid='delete-vehicle']");
             Assert.False(section.HasAttribute("open"));
             Assert.Contains("Delete 2020 Ford F-150?", section.TextContent);
-            Assert.Contains("tags, journal notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, and pictures", section.TextContent);
+            Assert.Contains("tags, journal notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, pictures, and kept documents", section.TextContent);
             Assert.Equal($"/vehicles/{vehicleId}", cut.Find("details[data-testid='delete-vehicle'] a").GetAttribute("href"));
         });
     }

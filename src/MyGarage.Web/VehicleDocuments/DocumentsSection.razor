@@ -1,0 +1,121 @@
+@inject VehicleDocumentsApiClient Api
+@inject NavigationManager Navigation
+
+<div class="accordion-item border rounded overflow-hidden" data-testid="accordion-documents">
+    <h2 class="accordion-header">
+        <button class="accordion-button @(Expanded ? null : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#maintenance-documents"
+                aria-expanded="@(Expanded ? "true" : "false")" aria-controls="maintenance-documents">
+            <span class="fw-semibold" data-testid="documents-count">Documents@(documents is null ? null : $" ({documents.TotalCount})")</span>
+        </button>
+    </h2>
+    <div id="maintenance-documents" class="accordion-collapse collapse @(Expanded ? "show" : null)">
+        <div class="accordion-body">
+            @if (failure is not null)
+            {
+                <ApiFailureAlert Failure="failure.Value" ReturnUrl="@TabHref(Page)"
+                                 NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+            }
+            else if (documents is not null)
+            {
+                @if (documents.TotalCount == 0)
+                {
+                    <EmptyState Compact="true" Message="No documents kept yet." />
+                }
+                else
+                {
+                    <ul class="list-group" data-testid="document-list">
+                        @foreach (var document in documents.Items)
+                        {
+                            <li @key="document.Id" class="list-group-item" data-testid="document">
+                                <FormMappingScope Name="@($"document-{document.Id}")" Context="mappingContext">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                                        <div>
+                                            <div class="fw-semibold text-break" data-testid="document-name">@document.FileName</div>
+                                            <div class="d-flex flex-wrap gap-3 small text-body-secondary">
+                                                <span data-testid="document-type">@DocumentFormat.TypeLabel(document.ContentType)</span>
+                                                <span data-testid="document-size">@DocumentFormat.Size(document.SizeBytes)</span>
+                                                <span data-testid="document-source">@DocumentFormat.Source(document.SourceKind)</span>
+                                                <span data-testid="document-kept">@DocumentFormat.KeptOn(document)</span>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex flex-wrap align-items-start gap-2">
+                                            <a class="btn btn-sm btn-outline-secondary" href="/vehicles/@VehicleId/documents/@document.Id" target="_blank" rel="noopener noreferrer"
+                                               data-testid="view-document" aria-label="@($"View {document.FileName}")" title="Open the file in a new tab">View</a>
+                                            <details class="position-relative" data-testid="delete-document">
+                                                <summary class="btn btn-sm btn-outline-danger" aria-label="@($"Delete {document.FileName}")" title="Delete this document">Delete</summary>
+                                                <div class="alert alert-danger mg-confirm-panel shadow" role="alert">
+                                                    <p>Delete this document? This cannot be undone.</p>
+                                                    <form method="post" @formname="delete" @onsubmit="() => DeleteAsync(document.Id)" class="d-flex flex-wrap gap-2">
+                                                        <AntiforgeryToken />
+                                                        <button type="submit" class="btn btn-danger btn-sm">Yes, delete this document</button>
+                                                        <a class="btn btn-outline-secondary btn-sm" href="@TabHref(Page)">Keep document</a>
+                                                    </form>
+                                                </div>
+                                            </details>
+                                        </div>
+                                    </div>
+                                    @if (messageFor == document.Id)
+                                    {
+                                        <div class="alert alert-warning mt-2 mb-0" role="alert">@message</div>
+                                    }
+                                </FormMappingScope>
+                            </li>
+                        }
+                    </ul>
+
+                    <Pager Page="documents.Page" TotalPages="documents.TotalPages" HrefFor="@(p => TabHref(p))" />
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private PagedResultDto<VehicleDocumentDto>? documents;
+    private GarageApiFailure? failure;
+    private Guid? messageFor;
+    private string? message;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    // The page of documents to show (1-based).
+    [Parameter]
+    public int Page { get; set; } = 1;
+
+    // Whether this accordion item starts open.
+    [Parameter]
+    public bool Expanded { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        failure = null;
+        try
+        {
+            var result = await Api.ListAsync(VehicleId, Math.Max(1, Page));
+            documents = result.Value ?? new PagedResultDto<VehicleDocumentDto> { Items = [], Page = 1, PageSize = 10, TotalCount = 0, TotalPages = 0 };
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task DeleteAsync(Guid documentId)
+    {
+        messageFor = null;
+        try
+        {
+            await Api.DeleteAsync(VehicleId, documentId);
+            Navigation.NavigateTo(MaintenanceLinks.TabHref(VehicleId, MaintenanceSection.Documents));
+        }
+        catch (GarageApiException ex)
+        {
+            messageFor = documentId;
+            message = ex.Failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable;
+        }
+    }
+
+    private string TabHref(int page) =>
+        MaintenanceLinks.TabHref(VehicleId, MaintenanceSection.Documents, MaintenanceList.Documents, page);
+}

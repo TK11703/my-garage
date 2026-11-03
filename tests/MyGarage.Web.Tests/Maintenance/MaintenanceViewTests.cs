@@ -2,6 +2,11 @@ using System.Net;
 using Bunit;
 using MyGarage.Shared.ServiceRecords;
 using MyGarage.Web.Maintenance;
+using MyGarage.Web.Tests.FuelEnergyEntries;
+using MyGarage.Web.Tests.Inspections;
+using MyGarage.Web.Tests.Insurance;
+using MyGarage.Web.Tests.Registrations;
+using MyGarage.Web.Tests.Taxes;
 using MyGarage.Web.Tests.Vehicles;
 
 namespace MyGarage.Web.Tests.Maintenance;
@@ -20,7 +25,7 @@ public class MaintenanceViewTests : VehicleTestContext
     }
 
     [Fact]
-    public void RendersAnAccordionWithServiceRecordsChargingAndFuelingAndTheComplianceItem_InThatOrder()
+    public void RendersAnAccordionWithServiceRecordsChargingAndFuelingTheComplianceItemAndDocuments_InThatOrder()
     {
         ServiceRecords = ServiceRecordsPage([]);
 
@@ -29,13 +34,15 @@ public class MaintenanceViewTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             var buttons = cut.FindAll(".accordion-item .accordion-header button");
-            Assert.Equal(3, buttons.Count);
+            Assert.Equal(4, buttons.Count);
             Assert.StartsWith("Service Records", buttons[0].TextContent.Trim());
             Assert.StartsWith("Charging and Fueling", buttons[1].TextContent.Trim());
             Assert.StartsWith("Inspections, Registrations, Insurance, and Taxes", buttons[2].TextContent.Trim());
+            Assert.StartsWith("Documents", buttons[3].TextContent.Trim());
             Assert.NotNull(cut.Find("[data-testid='accordion-service-records']"));
             Assert.NotNull(cut.Find("[data-testid='accordion-fuel']"));
             Assert.NotNull(cut.Find("[data-testid='accordion-compliance']"));
+            Assert.NotNull(cut.Find("[data-testid='accordion-documents']"));
         });
     }
 
@@ -77,6 +84,7 @@ public class MaintenanceViewTests : VehicleTestContext
     [InlineData(MaintenanceSection.Records, "maintenance-service-records")]
     [InlineData(MaintenanceSection.Fuel, "maintenance-fuel")]
     [InlineData(MaintenanceSection.Compliance, "maintenance-compliance")]
+    [InlineData(MaintenanceSection.Documents, "maintenance-documents")]
     public void TheSectionParameter_OpensOnlyThatItem(MaintenanceSection section, string openId)
     {
         var cut = RenderView(section: section);
@@ -258,6 +266,73 @@ public class MaintenanceViewTests : VehicleTestContext
             Assert.NotNull(cut.Find("[role='alert']"));
             Assert.Empty(cut.FindAll("[data-testid='service-record']"));
             Assert.NotNull(cut.Find("[data-testid='add-service-record']"));
+        });
+    }
+
+    [Fact]
+    public void TheDocumentsItem_ShowsItsEmptyStateAndHeader()
+    {
+        ServiceRecords = ServiceRecordsPage([]);
+
+        var cut = RenderView();
+
+        cut.WaitForAssertion(() =>
+        {
+            var item = cut.Find("[data-testid='accordion-documents']");
+            Assert.Contains("No documents kept yet.", item.TextContent);
+            Assert.StartsWith("Documents", item.QuerySelector(".accordion-header button")!.TextContent.Trim());
+        });
+    }
+
+    [Fact]
+    public void TheDocumentsPage_UsesItsOwnPageParameter()
+    {
+        ServiceRecords = ServiceRecordsPage([]);
+        MaintenanceLists["documents"] = new
+        {
+            items = new[] { new { id = Guid.NewGuid(), fileName = "invoice.pdf", contentType = "application/pdf", sizeBytes = 1000, createdAt = DateTimeOffset.UtcNow } },
+            page = 2,
+            pageSize = 10,
+            totalCount = 25,
+            totalPages = 3,
+        };
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
+
+        var cut = Render<MaintenanceView>(parameters => parameters
+            .Add(view => view.VehicleId, vehicleId)
+            .Add(view => view.Section, MaintenanceSection.Documents)
+            .Add(view => view.DocumentsPage, 2));
+
+        cut.WaitForAssertion(() =>
+        {
+            var next = cut.Find("#maintenance-documents [data-testid='pager-next'] a");
+            Assert.Equal($"/vehicles/{vehicleId}?tab=service-records&section=documents&documentsPage=3", next.GetAttribute("href"));
+        });
+    }
+
+    [Fact]
+    public void RowsFromAnEmail_ShowAFromEmailBadgeInEachOfTheSixLists()
+    {
+        ServiceRecords = ServiceRecordsPage([RecordSummary(fromEmail: true), RecordSummary(fromEmail: false)]);
+        MaintenanceLists["fuel-energy-entries"] = FuelEnergyEntryTestData.FuelPage([FuelEnergyEntryTestData.Entry(fromEmail: true), FuelEnergyEntryTestData.Entry()]);
+        MaintenanceLists["inspections"] = InspectionTestData.InspectionPage([InspectionTestData.Entry(fromEmail: true), InspectionTestData.Entry()]);
+        MaintenanceLists["registrations"] = RegistrationTestData.RegistrationPage([RegistrationTestData.Entry(fromEmail: true), RegistrationTestData.Entry()]);
+        MaintenanceLists["insurance"] = InsurancePolicyTestData.InsurancePage([InsurancePolicyTestData.Entry(fromEmail: true), InsurancePolicyTestData.Entry()]);
+        MaintenanceLists["taxes"] = TaxTestData.TaxPage([TaxTestData.Entry(fromEmail: true), TaxTestData.Entry()]);
+
+        var cut = RenderView();
+
+        cut.WaitForAssertion(() =>
+        {
+            foreach (var list in new[] { "service-record-list", "fuel-energy-entry-list", "inspection-list", "registration-list", "insurance-list", "tax-list" })
+            {
+                var rows = cut.FindAll($"[data-testid='{list}'] > li");
+                Assert.Equal(2, rows.Count);
+                var badge = Assert.Single(rows[0].QuerySelectorAll("[data-testid='from-email']"));
+                Assert.Equal("From email", badge.TextContent.Trim());
+                Assert.Contains("badge", badge.ClassList);
+                Assert.Empty(rows[1].QuerySelectorAll("[data-testid='from-email']"));
+            }
         });
     }
 }

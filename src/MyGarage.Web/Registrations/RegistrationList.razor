@@ -9,7 +9,13 @@
     <RowTemplate Context="entry">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2" data-testid="registration">
             <div>
-                <div class="fw-semibold" data-testid="entry-state">@RegistrationFormat.StateDisplay(entry.State)</div>
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="fw-semibold" data-testid="entry-state">@RegistrationFormat.StateDisplay(entry.State)</span>
+                    @if (entry.FromEmail)
+                    {
+                        <span class="badge text-bg-info fw-normal" data-testid="from-email">From email</span>
+                    }
+                </div>
                 <div class="small text-body-secondary" data-testid="entry-expires">@RegistrationFormat.Expires(entry.ExpirationDate)</div>
             </div>
             <div class="d-flex align-items-center gap-3">

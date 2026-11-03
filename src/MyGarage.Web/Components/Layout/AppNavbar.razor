@@ -29,15 +29,7 @@
                         <Icon Name="IconName.Search" Size="20" />
                     </button>
 
-                    <div class="dropdown">
-                        <button type="button" class="btn mg-nav-btn" aria-label="Notifications"
-                                data-bs-toggle="dropdown" aria-expanded="false">
-                            <Icon Name="IconName.Bell" Size="20" />
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-end p-3 mg-menu">
-                            <p class="mb-0 text-body-secondary">You have no notifications.</p>
-                        </div>
-                    </div>
+                    <NotificationsMenu OnCountLoaded="OnCountLoaded" />
                 }
 
                 <div class="dropdown">
@@ -72,6 +64,16 @@
                         <ul class="dropdown-menu dropdown-menu-end mg-menu">
                             <li><span class="dropdown-item-text fw-semibold text-break">@displayName</span></li>
                             <li><a class="dropdown-item" href="/vehicles">My Vehicles</a></li>
+                            <li>
+                                <a class="dropdown-item d-flex justify-content-between align-items-center gap-3" href="/drafts">
+                                    Drafts
+                                    @if (draftsAwaitingReview > 0)
+                                    {
+                                        <span class="badge text-bg-secondary" data-testid="account-drafts-count" aria-hidden="true">@draftsAwaitingReview</span>
+                                        <span class="visually-hidden">@draftsAwaitingReview awaiting review</span>
+                                    }
+                                </a>
+                            </li>
                             <li><a class="dropdown-item" href="/preferences">Preferences</a></li>
                             <li><hr class="dropdown-divider" /></li>
                             <li>
@@ -96,6 +98,10 @@
     private bool isSignedIn;
     private string displayName = ClaimsPrincipalExtensions.NeutralName;
     private string initials = string.Empty;
+    private int draftsAwaitingReview;
+
+    // The notifications menu reports the counts it loads, so the account menu can show how many drafts wait.
+    private void OnCountLoaded(UnreadCountDto count) => draftsAwaitingReview = count.DraftsAwaitingReview;
 
     protected override async Task OnInitializedAsync()
     {

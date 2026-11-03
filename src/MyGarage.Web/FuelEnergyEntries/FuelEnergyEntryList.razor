@@ -15,6 +15,10 @@
                 <div class="d-flex flex-wrap align-items-center gap-2">
                     <span class="fw-semibold" data-testid="entry-date">@DisplayFormat.Date(entry.EntryDate)</span>
                     <span class="badge @(entry.Kind == FuelEnergyKind.Fuel ? "text-bg-secondary" : "text-bg-success")" data-testid="entry-kind">@FuelEnergyEntryFormat.KindLabel(entry.Kind)</span>
+                    @if (entry.FromEmail)
+                    {
+                        <span class="badge text-bg-info fw-normal" data-testid="from-email">From email</span>
+                    }
                 </div>
                 <div class="small text-body-secondary" data-testid="entry-detail">@FuelEnergyEntryFormat.Detail(entry)</div>
             </div>

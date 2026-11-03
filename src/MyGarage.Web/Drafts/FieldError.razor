@@ -1,0 +1,16 @@
+@* A field's message from the check or from a refused save, tied to the field by id for screen readers. *@
+@if (Message is not null)
+{
+    <div id="@(DraftFormat.FieldId(Path))-error" class="invalid-feedback d-block">@Message</div>
+}
+
+@code {
+    // Compatibility path of the field, for example serviceRecord.odometerReading.
+    [Parameter, EditorRequired]
+    public string Path { get; set; } = string.Empty;
+
+    [Parameter]
+    public IReadOnlyDictionary<string, string>? Errors { get; set; }
+
+    private string? Message => Errors is not null && Errors.TryGetValue(Path, out var message) ? message : null;
+}

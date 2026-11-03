@@ -9,13 +9,16 @@ using MyGarage.Shared.ServiceRecords;
 using MyGarage.Shared.Users;
 using MyGarage.Shared.Vehicles;
 using MyGarage.Web.Common;
+using MyGarage.Web.Drafts;
 using MyGarage.Web.FuelEnergyEntries;
 using MyGarage.Web.Inspections;
 using MyGarage.Web.Insurance;
 using MyGarage.Web.Registrations;
 using MyGarage.Web.Lookups;
+using MyGarage.Web.Notifications;
 using MyGarage.Web.ServiceRecords;
 using MyGarage.Web.Taxes;
+using MyGarage.Web.VehicleDocuments;
 using MyGarage.Web.Vehicles;
 
 namespace MyGarage.Web.Tests.Vehicles;
@@ -38,7 +41,7 @@ public abstract class VehicleTestContext : BunitContext
     protected HttpStatusCode? ServiceRecordsFailure { get; set; }
 
     // Answered to GET /api/vehicles/{id}/<segment> for the new Maintenance lists (fuel-energy-entries, inspections,
-    // registrations, insurance, taxes); a segment with no entry answers with an empty page.
+    // registrations, insurance, taxes, documents); a segment with no entry answers with an empty page.
     protected Dictionary<string, object> MaintenanceLists { get; } = [];
 
     // When a segment is present, its list answers with this status instead of the page.
@@ -47,7 +50,7 @@ public abstract class VehicleTestContext : BunitContext
     // Takes precedence over MaintenanceLists for a segment, for tests that answer by page.
     protected Dictionary<string, Func<HttpRequestMessage, HttpResponseMessage>> MaintenanceListResponders { get; } = [];
 
-    private static readonly string[] MaintenanceSegments = ["fuel-energy-entries", "inspections", "registrations", "insurance", "taxes"];
+    private static readonly string[] MaintenanceSegments = ["fuel-energy-entries", "inspections", "registrations", "insurance", "taxes", "documents"];
 
     // Answered to GET /api/vehicles/filter-options.
     protected VehicleFilterOptionsDto FilterOptions { get; set; } = new() { Makes = [], Colors = [], Tags = [] };
@@ -153,6 +156,9 @@ public abstract class VehicleTestContext : BunitContext
         Services.AddSingleton(new RegistrationsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
         Services.AddSingleton(new InsuranceApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
         Services.AddSingleton(new TaxesApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
+        Services.AddSingleton(new DraftsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
+        Services.AddSingleton(new NotificationsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
+        Services.AddSingleton(new VehicleDocumentsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
     }
 
     private static LookupsDto WithoutHidden(LookupsDto lookups) =>
@@ -241,7 +247,7 @@ public abstract class VehicleTestContext : BunitContext
     }
 
     protected static ServiceRecordSummaryDto RecordSummary(
-        DateOnly? date = null, int odometer = 45_000, string? shop = "Joe's Garage", int lineItems = 0, decimal total = 0m) =>
+        DateOnly? date = null, int odometer = 45_000, string? shop = "Joe's Garage", int lineItems = 0, decimal total = 0m, bool fromEmail = false) =>
         new()
         {
             Id = Guid.NewGuid(),
@@ -250,6 +256,7 @@ public abstract class VehicleTestContext : BunitContext
             ShopOrPerson = shop,
             LineItemCount = lineItems,
             TotalCost = total,
+            FromEmail = fromEmail,
         };
 
     protected static PagedResultDto<ServiceRecordSummaryDto> ServiceRecordsPage(

@@ -6,6 +6,8 @@
 
     <ComplianceSection VehicleId="VehicleId" Expanded="@(Section == MaintenanceSection.Compliance)" InspectionsPage="InspectionsPage"
                        RegistrationsPage="RegistrationsPage" InsurancePage="InsurancePage" TaxesPage="TaxesPage" />
+
+    <DocumentsSection VehicleId="VehicleId" Page="DocumentsPage" Expanded="@(Section == MaintenanceSection.Documents)" />
 </div>
 
 @code {
@@ -34,4 +36,7 @@
 
     [Parameter]
     public int TaxesPage { get; set; } = 1;
+
+    [Parameter]
+    public int DocumentsPage { get; set; } = 1;
 }

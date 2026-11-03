@@ -10,7 +10,8 @@ public static class TaxTestData
         Guid? id = null,
         TaxType type = TaxType.PersonalProperty,
         decimal amount = 312.40m,
-        TaxRecurrence recurrence = TaxRecurrence.Annual) =>
+        TaxRecurrence recurrence = TaxRecurrence.Annual,
+        bool fromEmail = false) =>
         new()
         {
             Id = id ?? Guid.NewGuid(),
@@ -18,6 +19,7 @@ public static class TaxTestData
             Type = type,
             Amount = amount,
             Recurrence = recurrence,
+            FromEmail = fromEmail,
             CreatedAt = new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
             UpdatedAt = new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
         };

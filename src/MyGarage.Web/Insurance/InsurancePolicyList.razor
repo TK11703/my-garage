@@ -8,7 +8,13 @@
     </AddActions>
     <RowTemplate Context="entry">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2" data-testid="insurance-policy">
-            <div class="fw-semibold" data-testid="entry-span">@InsurancePolicyFormat.Span(entry.StartDate, entry.EndDate)</div>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="fw-semibold" data-testid="entry-span">@InsurancePolicyFormat.Span(entry.StartDate, entry.EndDate)</span>
+                @if (entry.FromEmail)
+                {
+                    <span class="badge text-bg-info fw-normal" data-testid="from-email">From email</span>
+                }
+            </div>
             <div class="d-flex align-items-center gap-3">
                 <span class="fw-semibold" data-testid="entry-cost">@InsurancePolicyFormat.CostWithFrequency(entry.Cost, entry.Duration)</span>
                 <a class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" href="/vehicles/@VehicleId/insurance/@entry.Id/edit"

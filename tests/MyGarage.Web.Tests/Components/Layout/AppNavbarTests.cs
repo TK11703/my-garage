@@ -1,9 +1,14 @@
+using System.Net;
+using System.Net.Http.Json;
 using System.Security.Claims;
 using Bunit;
 using Bunit.TestDoubles;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.DependencyInjection;
+using MyGarage.Shared.Notifications;
 using MyGarage.Web.Components.Layout;
+using MyGarage.Web.Notifications;
+using MyGarage.Web.Tests.Common;
 
 namespace MyGarage.Web.Tests.Components.Layout;
 
@@ -15,10 +20,31 @@ internal sealed class FakeAntiforgeryStateProvider : AntiforgeryStateProvider
 public class AppNavbarTests : BunitContext
 {
     private readonly BunitAuthorizationContext auth;
+    private UnreadCountDto unread = new() { Unread = 0, DraftsAwaitingReview = 0 };
+    private HttpStatusCode? notificationsFailure;
+
+    private sealed class StubHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(respond(request));
+    }
 
     public AppNavbarTests()
     {
         Services.AddSingleton<AntiforgeryStateProvider, FakeAntiforgeryStateProvider>();
+        Services.AddSingleton<TimeProvider>(new ManualTimeProvider(new DateTimeOffset(2026, 11, 3, 12, 0, 0, TimeSpan.Zero)));
+        var handler = new StubHandler(request =>
+        {
+            if (notificationsFailure is { } status)
+            {
+                return new HttpResponseMessage(status);
+            }
+
+            return request.RequestUri!.AbsolutePath == "/api/notifications/unread-count"
+                ? new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(unread) }
+                : new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(Array.Empty<NotificationDto>()) };
+        });
+        Services.AddSingleton(new NotificationsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
         auth = AddAuthorization();
         auth.SetAuthorized("ignored");
         auth.SetClaims(new Claim("name", "Ada Lovelace"));
@@ -96,17 +122,36 @@ public class AppNavbarTests : BunitContext
     }
 
     [Fact]
-    public void NotificationsMenuSaysThereAreNoneAndShowsNoBadge()
+    public void TheStaticBellIsReplacedByTheNotificationsMenu()
     {
         var cut = Render<AppNavbar>();
 
-        var toggle = cut.Find("button[aria-label='Notifications']");
-        Assert.Equal("dropdown", toggle.GetAttribute("data-bs-toggle"));
-        Assert.Equal("false", toggle.GetAttribute("aria-expanded"));
+        cut.WaitForAssertion(() =>
+        {
+            var toggle = cut.Find("button[aria-label='Notifications']");
+            Assert.Equal("dropdown", toggle.GetAttribute("data-bs-toggle"));
+            Assert.Equal("false", toggle.GetAttribute("aria-expanded"));
 
-        var menu = toggle.ParentElement!.QuerySelector(".dropdown-menu")!;
-        Assert.Contains("You have no notifications.", menu.TextContent);
-        Assert.Empty(cut.FindAll(".badge"));
+            var menu = toggle.ParentElement!.QuerySelector(".dropdown-menu")!;
+            Assert.Contains("You have no notifications.", menu.TextContent);
+            Assert.Empty(menu.QuerySelectorAll("a[href='/drafts']"));
+            Assert.Empty(cut.FindAll(".badge"));
+            Assert.NotNull(cut.Find("[data-testid='notifications-menu']"));
+        });
+    }
+
+    [Fact]
+    public void UnreadNotifications_AppearAsABadgeOnTheBell()
+    {
+        unread = new UnreadCountDto { Unread = 3, DraftsAwaitingReview = 4 };
+
+        var cut = Render<AppNavbar>();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("Notifications, 3 unread", cut.Find("button[data-bs-toggle='dropdown'][aria-label^='Notifications']").GetAttribute("aria-label"));
+            Assert.Equal("3", cut.Find("[data-testid='notification-badge']").TextContent.Trim());
+        });
     }
 
     [Fact]
@@ -124,7 +169,7 @@ public class AppNavbarTests : BunitContext
     }
 
     [Fact]
-    public void ProfileMenuShowsInitialsNameMyVehiclesPreferencesAndSignOut()
+    public void ProfileMenuShowsInitialsNameMyVehiclesEmailDraftsPreferencesAndSignOut()
     {
         var cut = Render<AppNavbar>();
 
@@ -137,7 +182,7 @@ public class AppNavbarTests : BunitContext
         Assert.Equal("My Vehicles", menu.QuerySelector("a[href='/vehicles']")!.TextContent.Trim());
         Assert.Equal("Preferences", menu.QuerySelector("a[href='/preferences']")!.TextContent.Trim());
         Assert.Equal(
-            ["Ada Lovelace", "My Vehicles", "Preferences", "Sign out"],
+            ["Ada Lovelace", "My Vehicles", "Drafts", "Preferences", "Sign out"],
             menu.QuerySelectorAll(".dropdown-item, .dropdown-item-text").Select(item => item.TextContent.Trim()));
         Assert.NotNull(menu.QuerySelector(".dropdown-divider"));
 
@@ -148,6 +193,51 @@ public class AppNavbarTests : BunitContext
         var signOut = form.QuerySelector("button[type='submit']")!;
         Assert.Equal("Sign out", signOut.TextContent.Trim());
         Assert.Contains("dropdown-item", signOut.ClassName);
+    }
+
+    [Fact]
+    public void TheDraftsEntry_LinksToTheList_AndShowsTheAwaitingReviewCount()
+    {
+        unread = new UnreadCountDto { Unread = 1, DraftsAwaitingReview = 4 };
+
+        var cut = Render<AppNavbar>();
+
+        cut.WaitForAssertion(() =>
+        {
+            var entry = cut.Find(".dropdown-menu a.dropdown-item[href='/drafts']");
+            Assert.StartsWith("Drafts", entry.TextContent.Trim());
+            var count = entry.QuerySelector("[data-testid='account-drafts-count']")!;
+            Assert.Equal("4", count.TextContent.Trim());
+            Assert.Contains("4 awaiting review", entry.TextContent);
+        });
+    }
+
+    [Fact]
+    public void TheEmailDraftsEntry_ShowsNoCountWhenNothingIsWaiting()
+    {
+        var cut = Render<AppNavbar>();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.NotNull(cut.Find(".dropdown-menu a.dropdown-item[href='/drafts']"));
+            Assert.Empty(cut.FindAll("[data-testid='account-drafts-count']"));
+        });
+    }
+
+    [Fact]
+    public void WhenTheNotificationsApiFails_TheBarStillRenders_WithNoBadgeAndNoCount()
+    {
+        notificationsFailure = HttpStatusCode.InternalServerError;
+
+        var cut = Render<AppNavbar>();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.NotNull(cut.Find("button[aria-label='Notifications']"));
+            Assert.Empty(cut.FindAll("[data-testid='notification-badge']"));
+            Assert.Empty(cut.FindAll("[data-testid='account-drafts-count']"));
+            Assert.NotNull(cut.Find("button[aria-label='Account menu for Ada Lovelace']"));
+        });
     }
 
     [Fact]

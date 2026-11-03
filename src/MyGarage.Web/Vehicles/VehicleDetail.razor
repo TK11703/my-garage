@@ -31,7 +31,7 @@ else if (vehicle is not null)
                         <Icon Name="IconName.Trash" /> Delete
                     </summary>
                     <div class="alert alert-danger mg-confirm-panel shadow" role="alert">
-                        <p>Delete @vehicle.Name? This also removes its tags, journal notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, and pictures and cannot be undone.</p>
+                        <p>Delete @vehicle.Name? This also removes its tags, journal notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, pictures, and kept documents and cannot be undone.</p>
                         <form method="post" @formname="delete-vehicle" @onsubmit="DeleteAsync" class="d-flex flex-wrap gap-2">
                             <AntiforgeryToken />
                             <button type="submit" class="btn btn-danger">Yes, delete this vehicle</button>
@@ -44,6 +44,11 @@ else if (vehicle is not null)
     </PageHeader>
 
     var current = VehicleTabs.Normalize(Tab);
+
+    @if (Saved == "draft")
+    {
+        <div class="alert alert-success" role="status" data-testid="draft-saved">The record was saved from your email draft.</div>
+    }
 
     @if (vehicle.Year is null)
     {
@@ -103,7 +108,7 @@ else if (vehicle is not null)
                     <MaintenanceView VehicleId="VehicleId" Section="MaintenanceLinks.ParseSection(Section)" RecordsPage="recordsPage"
                                      FuelPage="MaintenanceLinks.ParsePage(FuelPage)" InspectionsPage="MaintenanceLinks.ParsePage(InspectionsPage)"
                                      RegistrationsPage="MaintenanceLinks.ParsePage(RegistrationsPage)" InsurancePage="MaintenanceLinks.ParsePage(InsurancePage)"
-                                     TaxesPage="MaintenanceLinks.ParsePage(TaxesPage)" />
+                                     TaxesPage="MaintenanceLinks.ParsePage(TaxesPage)" DocumentsPage="MaintenanceLinks.ParsePage(DocumentsPage)" />
                 </div>
     </div>
 
@@ -152,6 +157,13 @@ else if (vehicle is not null)
 
     [Parameter, SupplyParameterFromQuery(Name = "taxesPage")]
     public string? TaxesPage { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "documentsPage")]
+    public string? DocumentsPage { get; set; }
+
+    // Set to "draft" when a record was just saved from an email draft.
+    [Parameter, SupplyParameterFromQuery(Name = "saved")]
+    public string? Saved { get; set; }
 
     private static string PaneState(string id, string current) => id == current ? "show active" : string.Empty;
 
