@@ -67,8 +67,10 @@ jobs:
       - name: Trust the development certificate
         # The AppHost tests health-check the apps over HTTPS, which fails on an untrusted certificate.
         run: |
-          dotnet dev-certs https --trust
-          echo "SSL_CERT_DIR=$HOME/.aspnet/dev-certs/trust:/usr/lib/ssl/certs" >> "$GITHUB_ENV"
+          export SSL_CERT_DIR="$HOME/.aspnet/dev-certs/trust:/usr/lib/ssl/certs"
+          # Exit code 4 only warns that SSL_CERT_DIR must name the trust folder, which the next line does for later steps.
+          dotnet dev-certs https --trust || true
+          echo "SSL_CERT_DIR=$SSL_CERT_DIR" >> "$GITHUB_ENV"
       - name: Test
         run: >
           dotnet test MyGarage.slnx -c Release --no-build
