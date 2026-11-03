@@ -116,3 +116,24 @@ jobs:
       - name: No secret in the delivery files
         shell: pwsh
         run: ./.github/scripts/Test-NoSecrets.ps1
+
+  migrations:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Applied migrations are never edited, renamed, or deleted
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          base=$(git merge-base "$BASE_SHA" HEAD)
+          changed=$(git diff --name-status --diff-filter=MDR "$base" HEAD -- src/MyGarage.Database/Scripts/Migrations)
+          if [ -n "$changed" ]; then
+            echo "$changed"
+            echo "Applied migration scripts must not be edited, renamed, or deleted; add a new numbered migration instead."
+            exit 1
+          fi
+          echo "No existing migration script was changed."

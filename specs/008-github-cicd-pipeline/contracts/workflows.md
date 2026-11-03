@@ -15,6 +15,7 @@ Jobs (runner `ubuntu-latest`, timeout 30 minutes each):
 | `changes` | always | Compares the commit with its base and outputs `code` (anything outside docs and `.specify`/`specs`), `bicep` (`infra/bicep/**`) | never |
 | `build-test` | `code == true` | `actions/setup-dotnet` from `global.json`; `dotnet build MyGarage.slnx -c Release` (warnings are errors via `Directory.Build.props`); `dotnet test MyGarage.slnx -c Release --no-build --logger trx` for the four test projects; runs `Write-TestSummary.ps1`; uploads TRX files | build warning or error, any failing test, Docker unavailable |
 | `bicep` | `bicep == true` | `az bicep build` and `az bicep lint` on `infra/bicep/main.bicep` (skipped message when the file does not exist yet) | any compile error or lint error |
+| `migrations` | pull requests only | Compares the pull request with its merge base and fails when any existing file under `src/MyGarage.Database/Scripts/Migrations/` was modified, renamed, or deleted (new numbered scripts are fine); the database tests only detect a changed checksum in an already-migrated database, so this is what enforces FR-003 for edits | an applied migration script was changed |
 
 The reusable workflow has no gate job of its own: a calling job succeeds only when every called job succeeded or was skipped. The required status check name is **`verify`**, a job in `ci.yml` (see below), because a check reported by a reusable workflow is named `<caller job> / <called job>`.
 
