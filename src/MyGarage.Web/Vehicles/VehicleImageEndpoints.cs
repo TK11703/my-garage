@@ -83,7 +83,9 @@ public static class VehicleImageEndpoints
         try
         {
             await using var stream = file.OpenReadStream();
-            var outcome = await api.UploadImageAsync(vehicleId, stream, Path.GetFileName(file.FileName), file.ContentType, caption, cancellationToken);
+            // Browsers on Windows send backslash paths, which Path.GetFileName only understands on Windows.
+            var fileName = Path.GetFileName(file.FileName.Replace('\\', '/'));
+            var outcome = await api.UploadImageAsync(vehicleId, stream, fileName, file.ContentType, caption, cancellationToken);
             return Redirect(vehicleId, outcome switch
             {
                 ImageUploadOutcome.Uploaded => Status.Uploaded,

@@ -65,9 +65,10 @@ jobs:
       - name: Build (warnings are errors)
         run: dotnet build MyGarage.slnx -c Release --no-restore
       - name: Test
+        # One test project at a time: the container-based suites starve each other on a two-core runner.
         run: >
-          dotnet test MyGarage.slnx -c Release --no-build
-          --logger "trx;LogFileName=results.trx" --results-directory TestResults
+          dotnet test MyGarage.slnx -c Release --no-build -m:1
+          --logger trx --results-directory TestResults
       - name: Summarise test results
         if: always()
         shell: pwsh
