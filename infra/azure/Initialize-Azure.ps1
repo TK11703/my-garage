@@ -34,6 +34,10 @@
 .PARAMETER WhatIf
     Reports what would change without changing anything.
 
+.PARAMETER TemporaryFirewallRule
+    Adds a PostgreSQL firewall rule for this machine's public IP for the database step and removes it again afterwards.
+    Use it when the server does not already allow this machine.
+
 .EXAMPLE
     az login
     gh auth login
@@ -46,7 +50,8 @@ param(
     [string] $ResourceGroup = 'rg-apps',
     [string] $PlatformResourceGroup = 'rg-platform',
     [string] $Location = 'northcentralus',
-    [string] $Repository = 'TK11703/my-garage'
+    [string] $Repository = 'TK11703/my-garage',
+    [switch] $TemporaryFirewallRule
 )
 
 $ErrorActionPreference = 'Stop'
@@ -94,14 +99,44 @@ function Write-Step([int] $Number, [string] $Name, [string] $State, [string] $De
     Write-Host ("{0,2}. {1,-58} {2}{3}" -f $Number, $Name, $State, $(if ($Detail) { " ($Detail)" } else { '' })) -ForegroundColor $color
 }
 
+function Initialize-Npgsql {
+    # The az rdbms-connect extension is unreliable on some machines, so SQL runs through Npgsql from a build of the repository.
+    if ('Npgsql.NpgsqlConnection' -as [type]) { return }
+    $root = Join-Path $PSScriptRoot '..' '..'
+    $required = 'Microsoft.Extensions.Logging.Abstractions', 'Microsoft.Extensions.DependencyInjection.Abstractions', 'Npgsql'
+    $dll = Get-ChildItem -Path $root -Filter 'Npgsql.dll' -Recurse -ErrorAction SilentlyContinue |
+        Where-Object { $dir = $_.DirectoryName; -not ($required | Where-Object { -not (Test-Path (Join-Path $dir "$_.dll")) }) } |
+        Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if (-not $dll) { throw 'Npgsql.dll with its dependencies was not found. Run: dotnet build tests/MyGarage.Database.Tests' }
+    foreach ($name in $required) { [void] [Reflection.Assembly]::LoadFrom((Join-Path $dll.DirectoryName "$name.dll")) }
+}
+
 function Invoke-Sql([string] $Database, [string] $Query) {
-    $result = & az postgres flexible-server execute --name $PostgresServer --admin-user $script:pgAdminUser --admin-password $script:pgToken `
-        --database-name $Database --querytext $Query --only-show-errors -o json 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "SQL against '$Database' failed: $(($result | Out-String).Replace($script:pgToken, '***').Trim())"
+    Initialize-Npgsql
+    $builder = [Npgsql.NpgsqlConnectionStringBuilder]::new()
+    $builder.Host = "$PostgresServer.postgres.database.azure.com"
+    $builder.Database = $Database
+    $builder.Username = $script:pgAdminUser
+    $builder.Password = $script:pgToken
+    $builder.SslMode = 'Require'
+    $builder.Timeout = 20
+    $connection = [Npgsql.NpgsqlConnection]::new($builder.ConnectionString)
+    try {
+        $connection.Open()
+        $command = $connection.CreateCommand()
+        $command.CommandText = $Query
+        $reader = $command.ExecuteReader()
+        $rows = @()
+        while ($reader.Read()) {
+            $row = [ordered]@{}
+            for ($i = 0; $i -lt $reader.FieldCount; $i++) { $row[$reader.GetName($i)] = $reader.GetValue($i) }
+            $rows += [pscustomobject] $row
+        }
+        $reader.Close()
+        return $rows
     }
-    $text = ($result | Out-String).Trim()
-    if ($text) { return $text | ConvertFrom-Json -Depth 10 }
+    catch { throw "SQL against '$Database' failed: $($_.Exception.Message)" }
+    finally { $connection.Dispose() }
 }
 
 try {
@@ -252,7 +287,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Initialize-Entra.ps1 failed.' }
 
     # --- 6. Database ---------------------------------------------------------------------------------------------
-    $database = Invoke-Az @('postgres', 'flexible-server', 'db', 'show', '--resource-group', $PlatformResourceGroup, '--server-name', $PostgresServer, '--database-name', $DatabaseName) -AllowFailure
+    $database = @(Invoke-Az @('postgres', 'flexible-server', 'db', 'list', '--resource-group', $PlatformResourceGroup, '--server-name', $PostgresServer)) |
+        Where-Object { $_.name -eq $DatabaseName } | Select-Object -First 1
     if ($database) { Write-Step 6 "Database '$DatabaseName' on $PostgresServer" 'unchanged' }
     elseif ($PSCmdlet.ShouldProcess("database $DatabaseName", 'create')) {
         Invoke-Az @('deployment', 'group', 'create', '--resource-group', $PlatformResourceGroup, '--name', 'mygarage-database',
@@ -271,6 +307,17 @@ try {
         $script:pgAdminUser = $admin.principalName
         $script:pgToken = (& az account get-access-token --resource-type oss-rdbms --query accessToken -o tsv --only-show-errors).Trim()
 
+        $ruleName = $null
+        if ($TemporaryFirewallRule -and -not $whatIf) {
+            $myIp = (Invoke-RestMethod -Uri 'https://api.ipify.org').ToString().Trim()
+            $ruleName = "mygarage-setup-$([DateTime]::UtcNow.ToString('yyyyMMddHHmmss'))"
+            Invoke-Az @('postgres', 'flexible-server', 'firewall-rule', 'create', '--resource-group', $PlatformResourceGroup, '--server-name', $PostgresServer,
+                '--name', $ruleName, '--start-ip-address', $myIp, '--end-ip-address', $myIp) | Out-Null
+            Write-Host "    temporary firewall rule $ruleName for $myIp (removed afterwards)"
+            Start-Sleep -Seconds 30
+        }
+        try {
+
         $role = @(Invoke-Sql 'postgres' "SELECT 1 AS present FROM pg_roles WHERE rolname = '$ApiIdentity'")
         if ($role.Count -gt 0) { Write-Step 7 "Database principal '$ApiIdentity'" 'unchanged' }
         elseif ($PSCmdlet.ShouldProcess("database principal $ApiIdentity", 'create')) {
@@ -282,7 +329,13 @@ try {
         $owner = @(Invoke-Sql 'postgres' "SELECT pg_get_userbyid(datdba) AS owner FROM pg_database WHERE datname = '$DatabaseName'")
         if ($owner.Count -gt 0 -and ($owner[0].owner -eq $ApiIdentity)) { Write-Step 7 "Database owner '$ApiIdentity'" 'unchanged' }
         elseif ($PSCmdlet.ShouldProcess("database $DatabaseName", "make $ApiIdentity the owner")) {
-            Invoke-Sql 'postgres' "ALTER DATABASE $DatabaseName OWNER TO `"$ApiIdentity`"" | Out-Null
+            try { Invoke-Sql 'postgres' "ALTER DATABASE $DatabaseName OWNER TO `"$ApiIdentity`"" | Out-Null }
+            catch {
+                # Changing the owner requires membership of the new owner; grant it for the change and take it back.
+                Invoke-Sql 'postgres' "GRANT `"$ApiIdentity`" TO `"$($script:pgAdminUser)`"" | Out-Null
+                try { Invoke-Sql 'postgres' "ALTER DATABASE $DatabaseName OWNER TO `"$ApiIdentity`"" | Out-Null }
+                finally { Invoke-Sql 'postgres' "REVOKE `"$ApiIdentity`" FROM `"$($script:pgAdminUser)`"" | Out-Null }
+            }
             Write-Step 7 "Database owner '$ApiIdentity'" 'updated'
         }
         else { Write-Step 7 "Database owner '$ApiIdentity'" 'would be updated' }
@@ -294,6 +347,13 @@ try {
             Write-Step 7 'PUBLIC connect on the database revoked' 'updated'
         }
         else { Write-Step 7 'PUBLIC connect on the database revoked' 'would be updated' }
+        }
+        finally {
+            if ($ruleName) {
+                Invoke-Az @('postgres', 'flexible-server', 'firewall-rule', 'delete', '--resource-group', $PlatformResourceGroup, '--server-name', $PostgresServer, '--name', $ruleName, '--yes') -AllowFailure | Out-Null
+                Write-Host "    temporary firewall rule $ruleName removed"
+            }
+        }
     }
     else { Write-Step 7 'Database principal, ownership, PUBLIC connect' 'would be applied after steps 4 and 6' }
 

@@ -5,8 +5,8 @@
 ## Prerequisites
 
 - `az login` as an Owner of the subscription who can create app registrations in the tenant
-- The signed-in account is a Microsoft Entra administrator of the shared PostgreSQL server `accpsqlshared`, and its current IP address is allowed by the server firewall
-- Azure CLI with the `rdbms-connect` extension (`az extension add --name rdbms-connect`), GitHub CLI (`gh auth login` as a repository administrator), PowerShell 7
+- The signed-in account is a Microsoft Entra administrator of the shared PostgreSQL server `accpsqlshared`, and its current IP address is allowed by the server firewall (or pass `-TemporaryFirewallRule`)
+- Azure CLI, GitHub CLI (`gh auth login` as a repository administrator), PowerShell 7, and a build of the repository (`dotnet build tests/MyGarage.Database.Tests`): the database steps run SQL through the Npgsql library from that build because the `az` rdbms-connect extension is unreliable on some machines
 
 ## Run it
 
@@ -37,6 +37,7 @@
 | `-PlatformResourceGroup` | `rg-platform` | Resource group of the shared server, registry, AI account, and storage |
 | `-Location` | `northcentralus` | Azure region |
 | `-Repository` | `TK11703/my-garage` | Repository that deploys |
+| `-TemporaryFirewallRule` | off | Adds a PostgreSQL firewall rule for this machine's public IP for the database step (7) and removes it afterwards; use it when the server does not already allow this machine |
 | `-WhatIf` | off | Reports what would change |
 
 ## Temporary rights
