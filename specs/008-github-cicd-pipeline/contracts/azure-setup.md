@@ -4,7 +4,7 @@ All scripts are PowerShell 7, support `-WhatIf`, are idempotent, and never print
 
 ## `infra/azure/Initialize-Azure.ps1`
 
-Prerequisites: `az login` as an account that is Owner of the subscription, with Entra rights to create app registrations, an Entra admin of `accpsqlshared` (the owner is one), the owner's current IP allowed by the server firewall (the existing client rule covers the current machine), PowerShell 7, Azure CLI with the `rdbms-connect` extension, GitHub CLI authenticated as a repository administrator.
+Prerequisites: `az login` as an account that is Owner of the subscription, with Entra rights to create app registrations, an Entra admin of `accpsqlshared` (the owner is one), the owner's current IP allowed by the server firewall (or `-TemporaryFirewallRule`, which adds a rule for this machine for the database step and removes it afterwards), PowerShell 7, Azure CLI, a build of the repository (the database steps run SQL through Npgsql from it because the `rdbms-connect` extension is unreliable on some machines), GitHub CLI authenticated as a repository administrator.
 
 | Parameter | Default | Meaning |
 |---|---|---|
