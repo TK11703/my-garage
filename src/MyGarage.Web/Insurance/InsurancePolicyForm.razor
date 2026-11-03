@@ -1,0 +1,105 @@
+﻿<MaintenanceFormCard FormId="@FormName" SubmitText="@SubmitText" SubmitTitle="@SubmitTitle" CancelHref="@CancelHref" Delete="Delete">
+    <EditForm EditContext="editContext" id="@FormName" FormName="@FormName" OnValidSubmit="OnSubmit" class="vstack gap-3">
+        <div class="row g-3">
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <InputDate id="start-date" TValue="DateOnly?" class="form-control" @bind-Value="Model.StartDate" placeholder=" "
+                               aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "StartDate")" />
+                    <label for="start-date">Start date<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <ValidationMessage For="@(() => Model.StartDate)" id="startdate-error" class="invalid-feedback d-block" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <InputDate id="end-date" TValue="DateOnly?" class="form-control" @bind-Value="Model.EndDate" placeholder=" "
+                               aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "EndDate")" />
+                    <label for="end-date">End date<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <ValidationMessage For="@(() => Model.EndDate)" id="enddate-error" class="invalid-feedback d-block" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <InputSelect id="duration" TValue="InsuranceDuration?" class="form-select" @bind-Value="Model.Duration"
+                                 aria-required="true" aria-describedby="@Described("Duration", "duration-help")">
+                        <option value="">Choose how often</option>
+                        <option value="@InsuranceDuration.Monthly">Monthly</option>
+                        <option value="@InsuranceDuration.BiAnnual">Bi-Annual (twice a year)</option>
+                        <option value="@InsuranceDuration.Annual">Annual</option>
+                    </InputSelect>
+                    <label for="duration">Duration<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <div id="duration-help" class="form-text">How often the premium is paid.</div>
+                <ValidationMessage For="@(() => Model.Duration)" id="duration-error" class="invalid-feedback d-block" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <InputNumber id="cost" TValue="decimal?" class="form-control" @bind-Value="Model.Cost" min="0" max="9999999.99" step="0.01" inputmode="decimal" placeholder=" "
+                                 aria-required="true" aria-describedby="@Described("Cost", "cost-help")" />
+                    <label for="cost">Cost<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <div id="cost-help" class="form-text">The premium paid each time, at the duration above.</div>
+                <ValidationMessage For="@(() => Model.Cost)" id="cost-error" class="invalid-feedback d-block" />
+            </div>
+        </div>
+    </EditForm>
+</MaintenanceFormCard>
+
+@code {
+    private static readonly string[] Fields = ["StartDate", "EndDate", "Duration", "Cost"];
+
+    private EditContext editContext = default!;
+    private ValidationMessageStore messages = default!;
+    private InsurancePolicyFormModel? contextModel;
+
+    [Parameter, EditorRequired]
+    public InsurancePolicyFormModel Model { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string FormName { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string SubmitText { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string SubmitTitle { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string CancelHref { get; set; } = default!;
+
+    // Validation errors returned by the API, keyed by property name.
+    [Parameter]
+    public IReadOnlyDictionary<string, string[]> Errors { get; set; } = new Dictionary<string, string[]>();
+
+    [Parameter, EditorRequired]
+    public EventCallback OnSubmit { get; set; }
+
+    // The Delete control for the card footer; only the edit page passes it.
+    [Parameter]
+    public RenderFragment? Delete { get; set; }
+
+    // The helper text id, plus the error id when the API reported an error for the field.
+    private string Described(string field, string helpId) =>
+        VehicleFormFields.Described(Errors, field) is { } errorId ? $"{helpId} {errorId}" : helpId;
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(contextModel, Model))
+        {
+            contextModel = Model;
+            editContext = new EditContext(Model);
+            messages = new ValidationMessageStore(editContext);
+            editContext.OnValidationRequested += (_, _) => messages.Clear();
+        }
+
+        messages.Clear();
+        foreach (var field in Fields)
+        {
+            if (Errors.FirstOrDefault(pair => string.Equals(pair.Key, field, StringComparison.OrdinalIgnoreCase)).Value is { Length: > 0 } fieldErrors)
+            {
+                messages.Add(editContext.Field(field), fieldErrors);
+            }
+        }
+
+        editContext.NotifyValidationStateChanged();
+    }
+}

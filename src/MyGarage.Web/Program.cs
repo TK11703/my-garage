@@ -1,8 +1,13 @@
 using MyGarage.Web.Authentication;
 using MyGarage.Web.Common;
 using MyGarage.Web.Components;
+using MyGarage.Web.FuelEnergyEntries;
+using MyGarage.Web.Inspections;
+using MyGarage.Web.Insurance;
+using MyGarage.Web.Registrations;
 using MyGarage.Web.Lookups;
 using MyGarage.Web.ServiceRecords;
+using MyGarage.Web.Taxes;
 using MyGarage.Web.Vehicles;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,6 +29,16 @@ builder.Services.AddHttpClient<VehiclesApiClient>(client => client.BaseAddress =
 builder.Services.AddHttpClient<LookupsApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
     .AddHttpMessageHandler<ApiAccessTokenHandler>();
 builder.Services.AddHttpClient<ServiceRecordsApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
+    .AddHttpMessageHandler<ApiAccessTokenHandler>();
+builder.Services.AddHttpClient<FuelEnergyEntriesApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
+    .AddHttpMessageHandler<ApiAccessTokenHandler>();
+builder.Services.AddHttpClient<InspectionsApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
+    .AddHttpMessageHandler<ApiAccessTokenHandler>();
+builder.Services.AddHttpClient<RegistrationsApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
+    .AddHttpMessageHandler<ApiAccessTokenHandler>();
+builder.Services.AddHttpClient<InsuranceApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
+    .AddHttpMessageHandler<ApiAccessTokenHandler>();
+builder.Services.AddHttpClient<TaxesApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
     .AddHttpMessageHandler<ApiAccessTokenHandler>();
 
 var app = builder.Build();

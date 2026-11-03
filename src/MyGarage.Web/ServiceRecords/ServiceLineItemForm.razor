@@ -1,145 +1,145 @@
 @using System.Globalization
 
 <EditForm Model="Model" FormName="@FormName" OnValidSubmit="OnSubmit" class="vstack gap-3" data-testid="line-item-form">
-    @if (Message is not null)
-    {
-        <div class="alert alert-warning mb-0" role="alert" data-testid="form-message">@Message</div>
-    }
-
-    <div class="col-lg-8">
-        <div class="form-floating">
-            <InputText id="line-description" class="form-control" @bind-Value="Model.Description" maxlength="200" placeholder=" "
-                       aria-required="true" aria-describedby="@Described("Description", "description-error")" />
-            <label for="line-description">What was done<span class="text-danger" aria-hidden="true"> *</span></label>
-        </div>
-        @if (FieldError("Description") is { } descriptionError)
-        {
-            <div id="description-error" class="invalid-feedback d-block">@descriptionError</div>
-        }
-    </div>
-
-    <fieldset class="vstack gap-3">
-        <legend class="h6 mb-0">Pricing</legend>
-        <div class="d-flex flex-wrap gap-3" role="radiogroup" aria-label="Pricing method">
-            <div class="form-check">
-                <input id="pricing-flat" class="form-check-input" type="radio" name="Model.Pricing" value="@nameof(PricingMode.Flat)" data-pricing-choice
-                       checked="@(Model.Pricing == PricingMode.Flat)" @onchange="@(() => Model.Pricing = PricingMode.Flat)" />
-                <label class="form-check-label" for="pricing-flat">Flat Cost</label>
-            </div>
-            <div class="form-check">
-                <input id="pricing-breakdown" class="form-check-input" type="radio" name="Model.Pricing" value="@nameof(PricingMode.Breakdown)" data-pricing-choice
-                       checked="@(Model.Pricing == PricingMode.Breakdown)" @onchange="@(() => Model.Pricing = PricingMode.Breakdown)" />
-                <label class="form-check-label" for="pricing-breakdown">Labor and Parts</label>
-            </div>
-        </div>
-        @if (FieldError("Pricing") is { } pricingError)
-        {
-            <div id="pricing-error" class="invalid-feedback d-block">@pricingError</div>
-        }
-    </fieldset>
-
-    @* One card serves both methods so the buttons are not duplicated; pricing-toggle.js shows the chosen section. *@
     <section class="card border-0 shadow-sm">
-        <h2 id="flat-heading" class="card-header h6 mb-0" data-pricing-section="@nameof(PricingMode.Flat)" hidden="@(Model.Pricing != PricingMode.Flat)">Flat Cost</h2>
-        <h2 id="breakdown-heading" class="card-header h6 mb-0" data-pricing-section="@nameof(PricingMode.Breakdown)" hidden="@(Model.Pricing != PricingMode.Breakdown)">Labor and Parts</h2>
+        <div class="card-body vstack gap-3">
+            <p class="form-text mb-0">* Required</p>
 
-        <div class="card-body" role="group" aria-labelledby="flat-heading" data-pricing-section="@nameof(PricingMode.Flat)" hidden="@(Model.Pricing != PricingMode.Flat)">
-            <p class="text-body-secondary">Use a flat cost when you did not get a breakdown of the labor and parts, only one price for this line item. Choose Labor and Parts instead to enter the details.</p>
-            <div class="col-sm-6 col-lg-4">
+            @if (Message is not null)
+            {
+                <div class="alert alert-warning mb-0" role="alert" data-testid="form-message">@Message</div>
+            }
+
+            <div>
                 <div class="form-floating">
-                    <InputNumber id="flat-cost" TValue="decimal?" class="form-control" @bind-Value="Model.FlatCost" min="0" max="9999999.99" step="0.01" inputmode="decimal" placeholder=" "
-                                 aria-describedby="@Described("FlatCost", "flatcost-error")" />
-                    <label for="flat-cost">Flat cost ($)</label>
+                    <InputText id="line-description" class="form-control" @bind-Value="Model.Description" maxlength="200" placeholder=" "
+                               aria-required="true" aria-describedby="@Described("Description", "description-error")" />
+                    <label for="line-description">What was done<span class="text-danger" aria-hidden="true"> *</span></label>
                 </div>
-                @if (FieldError("FlatCost") is { } flatError)
+                @if (FieldError("Description") is { } descriptionError)
                 {
-                    <div id="flatcost-error" class="invalid-feedback d-block">@flatError</div>
+                    <div id="description-error" class="invalid-feedback d-block">@descriptionError</div>
                 }
             </div>
-        </div>
 
-        <div class="card-body" role="group" aria-labelledby="breakdown-heading" data-pricing-section="@nameof(PricingMode.Breakdown)" hidden="@(Model.Pricing != PricingMode.Breakdown)">
-            <div class="vstack gap-3">
-                <div class="row g-3">
+            <fieldset class="vstack gap-3">
+                <legend class="h6 mb-0">Pricing</legend>
+                <div class="d-flex flex-wrap gap-3" role="radiogroup" aria-label="Pricing method">
+                    <div class="form-check">
+                        <input id="pricing-flat" class="form-check-input" type="radio" name="Model.Pricing" value="@nameof(PricingMode.Flat)" data-pricing-choice
+                               checked="@(Model.Pricing == PricingMode.Flat)" @onchange="@(() => Model.Pricing = PricingMode.Flat)" />
+                        <label class="form-check-label" for="pricing-flat">Flat Cost</label>
+                    </div>
+                    <div class="form-check">
+                        <input id="pricing-breakdown" class="form-check-input" type="radio" name="Model.Pricing" value="@nameof(PricingMode.Breakdown)" data-pricing-choice
+                               checked="@(Model.Pricing == PricingMode.Breakdown)" @onchange="@(() => Model.Pricing = PricingMode.Breakdown)" />
+                        <label class="form-check-label" for="pricing-breakdown">Labor and Parts</label>
+                    </div>
+                </div>
+                @if (FieldError("Pricing") is { } pricingError)
+                {
+                    <div id="pricing-error" class="invalid-feedback d-block">@pricingError</div>
+                }
+            </fieldset>
+
+            @* One card serves both methods so the buttons are not duplicated; pricing-toggle.js shows the chosen section. *@
+            <div role="group" aria-labelledby="flat-heading" data-pricing-section="@nameof(PricingMode.Flat)" hidden="@(Model.Pricing != PricingMode.Flat)">
+                <h3 id="flat-heading" class="h6">Flat Cost</h3>
+                <p class="text-body-secondary">Use a flat cost when you did not get a breakdown of the labor and parts, only one price for this line item. Choose Labor and Parts instead to enter the details.</p>
                 <div class="col-sm-6 col-lg-4">
                     <div class="form-floating">
-                        <InputNumber id="labor-hours" TValue="decimal?" class="form-control" @bind-Value="Model.LaborHours" min="0.01" max="999.99" step="0.01" inputmode="decimal" placeholder=" "
-                                     aria-describedby="@Described("LaborHours", "laborhours-error")" />
-                        <label for="labor-hours">Labor hours</label>
+                        <InputNumber id="flat-cost" TValue="decimal?" class="form-control" @bind-Value="Model.FlatCost" min="0" max="9999999.99" step="0.01" inputmode="decimal" placeholder=" "
+                                     aria-describedby="@Described("FlatCost", "flatcost-error")" />
+                        <label for="flat-cost">Flat cost ($)</label>
                     </div>
-                    @if (FieldError("LaborHours") is { } hoursError)
+                    @if (FieldError("FlatCost") is { } flatError)
                     {
-                        <div id="laborhours-error" class="invalid-feedback d-block">@hoursError</div>
-                    }
-                </div>
-                <div class="col-sm-6 col-lg-4">
-                    <div class="form-floating">
-                        <InputNumber id="labor-rate" TValue="decimal?" class="form-control" @bind-Value="Model.LaborRate" min="0" max="99999.99" step="0.01" inputmode="decimal" placeholder=" "
-                                     aria-describedby="@Described("LaborRate", "laborrate-error")" />
-                        <label for="labor-rate">Hourly rate ($)</label>
-                    </div>
-                    @if (FieldError("LaborRate") is { } rateError)
-                    {
-                        <div id="laborrate-error" class="invalid-feedback d-block">@rateError</div>
+                        <div id="flatcost-error" class="invalid-feedback d-block">@flatError</div>
                     }
                 </div>
             </div>
 
-            <h3 class="h6 mb-0">Parts</h3>
-            @for (var row = 0; row < Model.Parts.Count; row++)
-            {
-                var index = row;
-                var part = Model.Parts[index];
-                var partErrors = PartErrors(index);
-                <div class="row g-2 align-items-start" data-testid="part-row">
-                    <div class="col-12 col-md-6">
-                        <div class="form-floating">
-                            <input id="part-@index-name" class="form-control" type="text" maxlength="100" placeholder=" "
-                                   name="Model.Parts[@index].Name" @bind="part.Name" aria-label="@($"Part {index + 1} name")"
-                                   aria-describedby="@(partErrors.Count > 0 ? $"part-{index}-error" : null)" />
-                            <label for="part-@index-name">Part name</label>
+            <div role="group" aria-labelledby="breakdown-heading" data-pricing-section="@nameof(PricingMode.Breakdown)" hidden="@(Model.Pricing != PricingMode.Breakdown)">
+                <h3 id="breakdown-heading" class="h6">Labor and Parts</h3>
+                <div class="vstack gap-3">
+                    <div class="row g-3">
+                        <div class="col-sm-6 col-lg-4">
+                            <div class="form-floating">
+                                <InputNumber id="labor-hours" TValue="decimal?" class="form-control" @bind-Value="Model.LaborHours" min="0.01" max="999.99" step="0.01" inputmode="decimal" placeholder=" "
+                                             aria-describedby="@Described("LaborHours", "laborhours-error")" />
+                                <label for="labor-hours">Labor hours</label>
+                            </div>
+                            @if (FieldError("LaborHours") is { } hoursError)
+                            {
+                                <div id="laborhours-error" class="invalid-feedback d-block">@hoursError</div>
+                            }
                         </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="form-floating">
-                            <input id="part-@index-quantity" class="form-control" type="number" min="0.01" max="9999.99" step="0.01" inputmode="decimal" placeholder=" "
-                                   name="Model.Parts[@index].Quantity" @bind="part.Quantity" @bind:culture="CultureInfo.InvariantCulture" aria-label="@($"Part {index + 1} quantity")"
-                                   aria-describedby="@(partErrors.Count > 0 ? $"part-{index}-error" : null)" />
-                            <label for="part-@index-quantity">Quantity</label>
+                        <div class="col-sm-6 col-lg-4">
+                            <div class="form-floating">
+                                <InputNumber id="labor-rate" TValue="decimal?" class="form-control" @bind-Value="Model.LaborRate" min="0" max="99999.99" step="0.01" inputmode="decimal" placeholder=" "
+                                             aria-describedby="@Described("LaborRate", "laborrate-error")" />
+                                <label for="labor-rate">Hourly rate ($)</label>
+                            </div>
+                            @if (FieldError("LaborRate") is { } rateError)
+                            {
+                                <div id="laborrate-error" class="invalid-feedback d-block">@rateError</div>
+                            }
                         </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="form-floating">
-                            <input id="part-@index-unit-price" class="form-control" type="number" min="0" max="9999999.99" step="0.01" inputmode="decimal" placeholder=" "
-                                   name="Model.Parts[@index].UnitPrice" @bind="part.UnitPrice" @bind:culture="CultureInfo.InvariantCulture" aria-label="@($"Part {index + 1} price per part")"
-                                   aria-describedby="@(partErrors.Count > 0 ? $"part-{index}-error" : null)" />
-                            <label for="part-@index-unit-price">Price per part</label>
-                        </div>
-                    </div>
-                    @if (partErrors.Count > 0)
-                    {
-                        <div id="part-@index-error" class="invalid-feedback d-block">@string.Join(" ", partErrors.Select(message => $"Part {index + 1}: {message}"))</div>
-                    }
                 </div>
-            }
 
-            @if (Model.Parts.Count < ServiceLineItemFormModel.MaxPartRows)
-            {
-                <div>
-                    <button type="submit" class="btn btn-outline-secondary btn-sm" name="@ServiceLineItemFormModel.AddPartRowsField" value="true" formnovalidate>Add more part rows</button>
+                <h4 class="h6 mb-0">Parts</h4>
+                @for (var row = 0; row < Model.Parts.Count; row++)
+                {
+                    var index = row;
+                    var part = Model.Parts[index];
+                    var partErrors = PartErrors(index);
+                    <div class="row g-2 align-items-start" data-testid="part-row">
+                        <div class="col-12 col-md-6">
+                            <div class="form-floating">
+                                <input id="part-@index-name" class="form-control" type="text" maxlength="100" placeholder=" "
+                                       name="Model.Parts[@index].Name" @bind="part.Name" aria-label="@($"Part {index + 1} name")"
+                                       aria-describedby="@(partErrors.Count > 0 ? $"part-{index}-error" : null)" />
+                                <label for="part-@index-name">Part name</label>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="form-floating">
+                                <input id="part-@index-quantity" class="form-control" type="number" min="0.01" max="9999.99" step="0.01" inputmode="decimal" placeholder=" "
+                                       name="Model.Parts[@index].Quantity" @bind="part.Quantity" @bind:culture="CultureInfo.InvariantCulture" aria-label="@($"Part {index + 1} quantity")"
+                                       aria-describedby="@(partErrors.Count > 0 ? $"part-{index}-error" : null)" />
+                                <label for="part-@index-quantity">Quantity</label>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="form-floating">
+                                <input id="part-@index-unit-price" class="form-control" type="number" min="0" max="9999999.99" step="0.01" inputmode="decimal" placeholder=" "
+                                       name="Model.Parts[@index].UnitPrice" @bind="part.UnitPrice" @bind:culture="CultureInfo.InvariantCulture" aria-label="@($"Part {index + 1} price per part")"
+                                       aria-describedby="@(partErrors.Count > 0 ? $"part-{index}-error" : null)" />
+                                <label for="part-@index-unit-price">Price per part</label>
+                            </div>
+                        </div>
+                        @if (partErrors.Count > 0)
+                        {
+                            <div id="part-@index-error" class="invalid-feedback d-block">@string.Join(" ", partErrors.Select(message => $"Part {index + 1}: {message}"))</div>
+                        }
+                    </div>
+                }
+
+                @if (Model.Parts.Count < ServiceLineItemFormModel.MaxPartRows)
+                {
+                    <div>
+                        <button type="submit" class="btn btn-outline-secondary btn-sm" name="@ServiceLineItemFormModel.AddPartRowsField" value="true" formnovalidate>Add more part rows</button>
+                    </div>
+                }
                 </div>
-            }
             </div>
         </div>
 
-        <div class="card-footer vstack gap-2">
-            <p class="form-text mb-0">* Required</p>
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2" title="Save this line item">
-                    <Icon Name="IconName.Save" /> @SubmitText
-                </button>
-                <a class="btn btn-outline-secondary" href="@CancelHref" title="Cancel and return to the service record">Cancel</a>
-            </div>
+        <div class="card-footer d-flex gap-2">
+            <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2" title="Save this line item">
+                <Icon Name="IconName.Save" /> @SubmitText
+            </button>
+            <a class="btn btn-outline-secondary" href="@CancelHref" title="Cancel and return to the service record">Cancel</a>
         </div>
     </section>
 </EditForm>

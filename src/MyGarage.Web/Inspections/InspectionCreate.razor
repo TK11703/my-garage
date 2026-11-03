@@ -1,0 +1,76 @@
+@page "/vehicles/{VehicleId:guid}/inspections/new"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject VehiclesApiClient VehiclesApi
+@inject InspectionsApiClient Api
+@inject NavigationManager Navigation
+
+<MaintenancePage Title="Add inspection" VehicleId="VehicleId" VehicleName="@vehicleName" Section="MaintenanceSection.Compliance"
+                 Failure="failure" ReturnUrl="@($"/vehicles/{VehicleId}/inspections/new")"
+                 NotFound="notFound" NotFoundTitle="Vehicle not found" NotFoundMessage="@VehicleMessages.NotFound">
+    @if (Model is not null)
+    {
+        <InspectionForm Model="Model" FormName="create-inspection" SubmitText="Save" SubmitTitle="Save this inspection"
+                        CancelHref="@MaintenanceLinks.TabHref(VehicleId, MaintenanceSection.Compliance)" Errors="errors" OnSubmit="SubmitAsync" />
+    }
+</MaintenancePage>
+
+@code {
+    private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
+    private GarageApiFailure? failure;
+    private string? vehicleName;
+    private bool notFound;
+
+    [Parameter]
+    public Guid VehicleId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "create-inspection")]
+    private InspectionFormModel? Model { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Model ??= new InspectionFormModel();
+
+        try
+        {
+            var result = await VehiclesApi.GetAsync(VehicleId);
+            if (result.IsNotFound)
+            {
+                notFound = true;
+                return;
+            }
+
+            vehicleName = result.Value!.Name;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        failure = null;
+        try
+        {
+            var result = await Api.CreateAsync(VehicleId, Model!.ToRequest());
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo(MaintenanceLinks.TabHref(VehicleId, MaintenanceSection.Compliance));
+                return;
+            }
+
+            if (result.IsNotFound)
+            {
+                notFound = true;
+                return;
+            }
+
+            errors = result.Errors;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+}

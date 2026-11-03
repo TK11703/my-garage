@@ -1,0 +1,187 @@
+<div class="accordion-item border rounded overflow-hidden" data-testid="accordion-compliance">
+    <h2 class="accordion-header">
+        <button class="accordion-button @(Expanded ? null : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#maintenance-compliance"
+                aria-expanded="@(Expanded ? "true" : "false")" aria-controls="maintenance-compliance">
+            <span class="fw-semibold">Inspections, Registrations, Insurance, and Taxes</span>
+            @if (Summary is { Length: > 0 } summary)
+            {
+                <span class="ms-3 small text-body-secondary" data-testid="compliance-summary">@summary</span>
+            }
+        </button>
+    </h2>
+    <div id="maintenance-compliance" class="accordion-collapse collapse @(Expanded ? "show" : null)">
+        <div class="accordion-body">
+            <section data-testid="compliance-inspections" class="mb-4">
+                <h3 class="h5">Inspections</h3>
+                <InspectionList VehicleId="VehicleId" Entries="inspections" Failure="inspectionsFailure"
+                                ReturnUrl="@InspectionsHref(InspectionsPage)" HrefFor="@(p => InspectionsHref(p))" />
+            </section>
+            <section data-testid="compliance-registrations" class="mb-4">
+                <h3 class="h5">Registrations</h3>
+                <RegistrationList VehicleId="VehicleId" Entries="registrations" Failure="registrationsFailure"
+                                  ReturnUrl="@RegistrationsHref(RegistrationsPage)" HrefFor="@(p => RegistrationsHref(p))" />
+            </section>
+            <section data-testid="compliance-insurance" class="mb-4">
+                <h3 class="h5">Insurance</h3>
+                <InsurancePolicyList VehicleId="VehicleId" Entries="insurancePolicies" Failure="insuranceFailure"
+                                     ReturnUrl="@InsuranceHref(InsurancePage)" HrefFor="@(p => InsuranceHref(p))" />
+            </section>
+            <section data-testid="compliance-taxes">
+                <h3 class="h5">Taxes</h3>
+                <TaxList VehicleId="VehicleId" Entries="taxes" Failure="taxesFailure"
+                         ReturnUrl="@TaxesHref(TaxesPage)" HrefFor="@(p => TaxesHref(p))" />
+            </section>
+        </div>
+    </div>
+</div>
+
+@code {
+    // One field group and one load method per kind; add the next kind in the same shape.
+    private PagedResultDto<InspectionDto>? inspections;
+    private GarageApiFailure? inspectionsFailure;
+    private PagedResultDto<RegistrationDto>? registrations;
+    private GarageApiFailure? registrationsFailure;
+    private PagedResultDto<InsurancePolicyDto>? insurancePolicies;
+    private GarageApiFailure? insuranceFailure;
+    private PagedResultDto<TaxDto>? taxes;
+    private GarageApiFailure? taxesFailure;
+
+    [Inject]
+    private InspectionsApiClient InspectionsApi { get; set; } = default!;
+
+    [Inject]
+    private RegistrationsApiClient RegistrationsApi { get; set; } = default!;
+
+    [Inject]
+    private InsuranceApiClient InsuranceApi { get; set; } = default!;
+
+    [Inject]
+    private TaxesApiClient TaxesApi { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    // Whether this accordion item starts open.
+    [Parameter]
+    public bool Expanded { get; set; }
+
+    // Each list pages on its own query value (1-based).
+    [Parameter]
+    public int InspectionsPage { get; set; } = 1;
+
+    [Parameter]
+    public int RegistrationsPage { get; set; } = 1;
+
+    [Parameter]
+    public int InsurancePage { get; set; } = 1;
+
+    [Parameter]
+    public int TaxesPage { get; set; } = 1;
+
+    // Counts of the lists that loaded, in heading order.
+    private string Summary
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (inspections is not null)
+            {
+                parts.Add(MaintenanceFormat.Inspections(inspections.TotalCount));
+            }
+
+            if (registrations is not null)
+            {
+                parts.Add(MaintenanceFormat.Registrations(registrations.TotalCount));
+            }
+
+            if (insurancePolicies is not null)
+            {
+                parts.Add(MaintenanceFormat.Insurance(insurancePolicies.TotalCount));
+            }
+
+            if (taxes is not null)
+            {
+                parts.Add(MaintenanceFormat.Taxes(taxes.TotalCount));
+            }
+
+            return string.Join(", ", parts);
+        }
+    }
+
+    // Each list loads on its own so one failure never hides the others.
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadInspectionsAsync();
+        await LoadRegistrationsAsync();
+        await LoadInsuranceAsync();
+        await LoadTaxesAsync();
+    }
+
+    private async Task LoadInspectionsAsync()
+    {
+        inspectionsFailure = null;
+        try
+        {
+            var result = await InspectionsApi.ListAsync(VehicleId, Math.Max(1, InspectionsPage));
+            inspections = result.Value;
+        }
+        catch (GarageApiException ex)
+        {
+            inspectionsFailure = ex.Failure;
+        }
+    }
+
+    private string InspectionsHref(int page) =>
+        MaintenanceLinks.TabHref(VehicleId, MaintenanceSection.Compliance, MaintenanceList.Inspections, page);
+
+    private async Task LoadRegistrationsAsync()
+    {
+        registrationsFailure = null;
+        try
+        {
+            var result = await RegistrationsApi.ListAsync(VehicleId, Math.Max(1, RegistrationsPage));
+            registrations = result.Value;
+        }
+        catch (GarageApiException ex)
+        {
+            registrationsFailure = ex.Failure;
+        }
+    }
+
+    private string RegistrationsHref(int page) =>
+        MaintenanceLinks.TabHref(VehicleId, MaintenanceSection.Compliance, MaintenanceList.Registrations, page);
+
+    private async Task LoadInsuranceAsync()
+    {
+        insuranceFailure = null;
+        try
+        {
+            var result = await InsuranceApi.ListAsync(VehicleId, Math.Max(1, InsurancePage));
+            insurancePolicies = result.Value;
+        }
+        catch (GarageApiException ex)
+        {
+            insuranceFailure = ex.Failure;
+        }
+    }
+
+    private string InsuranceHref(int page) =>
+        MaintenanceLinks.TabHref(VehicleId, MaintenanceSection.Compliance, MaintenanceList.Insurance, page);
+
+    private async Task LoadTaxesAsync()
+    {
+        taxesFailure = null;
+        try
+        {
+            var result = await TaxesApi.ListAsync(VehicleId, Math.Max(1, TaxesPage));
+            taxes = result.Value;
+        }
+        catch (GarageApiException ex)
+        {
+            taxesFailure = ex.Failure;
+        }
+    }
+
+    private string TaxesHref(int page) =>
+        MaintenanceLinks.TabHref(VehicleId, MaintenanceSection.Compliance, MaintenanceList.Taxes, page);
+}

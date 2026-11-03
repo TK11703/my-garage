@@ -42,7 +42,7 @@ public class ServiceRecordCreatePageTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             var save = cut.Find("button[type='submit']");
-            Assert.Equal("Add service record", save.TextContent.Trim());
+            Assert.Equal("Save", save.TextContent.Trim());
             Assert.Equal("Save this service record", save.GetAttribute("title"));
             Assert.NotNull(save.QuerySelector("svg.bi[aria-hidden='true']"));
 

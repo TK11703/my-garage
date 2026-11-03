@@ -31,7 +31,7 @@ else if (vehicle is not null)
                         <Icon Name="IconName.Trash" /> Delete
                     </summary>
                     <div class="alert alert-danger mg-confirm-panel shadow" role="alert">
-                        <p>Delete @vehicle.Name? This also removes its tags, journal notes, service records, and pictures and cannot be undone.</p>
+                        <p>Delete @vehicle.Name? This also removes its tags, journal notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, and pictures and cannot be undone.</p>
                         <form method="post" @formname="delete-vehicle" @onsubmit="DeleteAsync" class="d-flex flex-wrap gap-2">
                             <AntiforgeryToken />
                             <button type="submit" class="btn btn-danger">Yes, delete this vehicle</button>
@@ -100,7 +100,10 @@ else if (vehicle is not null)
                     </div>
                 </div>
                 <div id="tab-service-records" class="tab-pane @PaneState("service-records", current)" role="tabpanel" aria-labelledby="tab-service-records-tab" tabindex="0">
-                    <MaintenanceView VehicleId="VehicleId" RecordsPage="recordsPage" />
+                    <MaintenanceView VehicleId="VehicleId" Section="MaintenanceLinks.ParseSection(Section)" RecordsPage="recordsPage"
+                                     FuelPage="MaintenanceLinks.ParsePage(FuelPage)" InspectionsPage="MaintenanceLinks.ParsePage(InspectionsPage)"
+                                     RegistrationsPage="MaintenanceLinks.ParsePage(RegistrationsPage)" InsurancePage="MaintenanceLinks.ParsePage(InsurancePage)"
+                                     TaxesPage="MaintenanceLinks.ParsePage(TaxesPage)" />
                 </div>
     </div>
 
@@ -129,6 +132,26 @@ else if (vehicle is not null)
     public string? RecordsPage { get; set; }
 
     private int recordsPage => int.TryParse(RecordsPage, out var parsedPage) ? Math.Max(1, parsedPage) : 1;
+
+    // Which Maintenance accordion item starts open: records (default), fuel, or compliance.
+    [Parameter, SupplyParameterFromQuery(Name = "section")]
+    public string? Section { get; set; }
+
+    // Each Maintenance list pages on its own query value, read as text like the others.
+    [Parameter, SupplyParameterFromQuery(Name = "fuelPage")]
+    public string? FuelPage { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "inspectionsPage")]
+    public string? InspectionsPage { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "registrationsPage")]
+    public string? RegistrationsPage { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "insurancePage")]
+    public string? InsurancePage { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "taxesPage")]
+    public string? TaxesPage { get; set; }
 
     private static string PaneState(string id, string current) => id == current ? "show active" : string.Empty;
 

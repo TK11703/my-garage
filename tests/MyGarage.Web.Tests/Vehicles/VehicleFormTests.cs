@@ -313,6 +313,16 @@ public class VehicleFormTests : VehicleTestContext
     }
 
     [Fact]
+    public void Tabbed_RequiredNoteIsTheFirstThingInTheBasicCard_AndNotNearTheButtons()
+    {
+        var cut = RenderForm(tabbed: true);
+
+        var body = cut.Find("#group-basic > .card-body");
+        Assert.Equal("* Required", body.FirstElementChild!.TextContent.Trim());
+        Assert.Single(cut.FindAll("p.form-text"), note => note.TextContent.Contains("* Required"));
+    }
+
+    [Fact]
     public void IsConstrainedToReadableWidth()
     {
         var cut = RenderForm();
@@ -328,6 +338,7 @@ public class VehicleFormTests : VehicleTestContext
         var buttons = cut.FindAll("form > div.d-flex > *");
         Assert.Equal("Add vehicle", buttons[0].TextContent.Trim());
         Assert.Contains("btn-primary", buttons[0].ClassName);
+        Assert.NotNull(buttons[0].QuerySelector("svg.bi[aria-hidden='true']"));
         Assert.Equal("Cancel", buttons[1].TextContent.Trim());
         Assert.Contains("btn-outline-secondary", buttons[1].ClassName);
     }

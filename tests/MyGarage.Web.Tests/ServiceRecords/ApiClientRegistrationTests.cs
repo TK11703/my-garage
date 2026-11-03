@@ -1,6 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
+using MyGarage.Web.FuelEnergyEntries;
+using MyGarage.Web.Inspections;
+using MyGarage.Web.Insurance;
 using MyGarage.Web.Lookups;
+using MyGarage.Web.Registrations;
 using MyGarage.Web.ServiceRecords;
+using MyGarage.Web.Taxes;
 using MyGarage.Web.Tests.Common;
 using MyGarage.Web.Vehicles;
 
@@ -17,6 +22,11 @@ public class ApiClientRegistrationTests : IClassFixture<WebAppFactory>
     [InlineData(typeof(VehiclesApiClient))]
     [InlineData(typeof(LookupsApiClient))]
     [InlineData(typeof(ServiceRecordsApiClient))]
+    [InlineData(typeof(FuelEnergyEntriesApiClient))]
+    [InlineData(typeof(InspectionsApiClient))]
+    [InlineData(typeof(RegistrationsApiClient))]
+    [InlineData(typeof(InsuranceApiClient))]
+    [InlineData(typeof(TaxesApiClient))]
     public void EveryTypedApiClient_ResolvesFromTheRealHost(Type client)
     {
         using var scope = factory.Services.CreateScope();

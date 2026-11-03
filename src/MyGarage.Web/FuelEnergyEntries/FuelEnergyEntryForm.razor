@@ -1,0 +1,102 @@
+﻿<MaintenanceFormCard FormId="@FormName" SubmitText="@SubmitText" SubmitTitle="@SubmitTitle" CancelHref="@CancelHref" Delete="Delete">
+    <EditForm EditContext="editContext" id="@FormName" FormName="@FormName" OnValidSubmit="OnSubmit" class="vstack gap-3">
+        <InputText type="hidden" @bind-Value="Model.KindValue" />
+        <div class="row g-3">
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <InputDate id="entry-date" TValue="DateOnly?" class="form-control" @bind-Value="Model.EntryDate" placeholder=" "
+                               aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "EntryDate")" />
+                    <label for="entry-date">@labels.Date<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <ValidationMessage For="@(() => Model.EntryDate)" id="entrydate-error" class="invalid-feedback d-block" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <InputNumber id="unit-price" TValue="decimal?" class="form-control" @bind-Value="Model.UnitPrice" min="0" max="9999.9999" step="0.0001" inputmode="decimal" placeholder=" "
+                                 aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "UnitPrice")" />
+                    <label for="unit-price">@labels.Price<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <ValidationMessage For="@(() => Model.UnitPrice)" id="unitprice-error" class="invalid-feedback d-block" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <InputNumber id="quantity" TValue="decimal?" class="form-control" @bind-Value="Model.Quantity" min="0.001" max="99999.999" step="0.001" inputmode="decimal" placeholder=" "
+                                 aria-required="true" aria-describedby="@VehicleFormFields.Described(Errors, "Quantity")" />
+                    <label for="quantity">@labels.Quantity<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <ValidationMessage For="@(() => Model.Quantity)" id="quantity-error" class="invalid-feedback d-block" />
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="form-floating">
+                    <InputNumber id="total-cost" TValue="decimal?" class="form-control" @bind-Value="Model.TotalCost" min="0" max="9999999.99" step="0.01" inputmode="decimal" placeholder=" "
+                                 aria-describedby="@TotalDescribedBy" />
+                    <label for="total-cost">@labels.Total</label>
+                </div>
+                <div id="total-help" class="form-text">@labels.TotalHelp</div>
+                <ValidationMessage For="@(() => Model.TotalCost)" id="totalcost-error" class="invalid-feedback d-block" />
+            </div>
+        </div>
+    </EditForm>
+</MaintenanceFormCard>
+
+@code {
+    private static readonly string[] Fields = ["EntryDate", "UnitPrice", "Quantity", "TotalCost"];
+
+    private EditContext editContext = default!;
+    private ValidationMessageStore messages = default!;
+    private FuelEnergyEntryFormModel? contextModel;
+    private FuelEnergyLabels labels = FuelEnergyEntryFormat.Labels(FuelEnergyKind.Fuel);
+
+    [Parameter, EditorRequired]
+    public FuelEnergyEntryFormModel Model { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string FormName { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string SubmitText { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string SubmitTitle { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string CancelHref { get; set; } = default!;
+
+    // Validation errors returned by the API, keyed by property name.
+    [Parameter]
+    public IReadOnlyDictionary<string, string[]> Errors { get; set; } = new Dictionary<string, string[]>();
+
+    [Parameter, EditorRequired]
+    public EventCallback OnSubmit { get; set; }
+
+    // The Delete control for the card footer; only the edit page passes it.
+    [Parameter]
+    public RenderFragment? Delete { get; set; }
+
+    private string TotalDescribedBy =>
+        VehicleFormFields.Described(Errors, "TotalCost") is { } error ? $"total-help {error}" : "total-help";
+
+    protected override void OnParametersSet()
+    {
+        labels = FuelEnergyEntryFormat.Labels(Model.Kind);
+
+        if (!ReferenceEquals(contextModel, Model))
+        {
+            contextModel = Model;
+            editContext = new EditContext(Model);
+            messages = new ValidationMessageStore(editContext);
+            editContext.OnValidationRequested += (_, _) => messages.Clear();
+        }
+
+        messages.Clear();
+        foreach (var field in Fields)
+        {
+            if (Errors.FirstOrDefault(pair => string.Equals(pair.Key, field, StringComparison.OrdinalIgnoreCase)).Value is { Length: > 0 } fieldErrors)
+            {
+                messages.Add(editContext.Field(field), fieldErrors);
+            }
+        }
+
+        editContext.NotifyValidationStateChanged();
+    }
+}

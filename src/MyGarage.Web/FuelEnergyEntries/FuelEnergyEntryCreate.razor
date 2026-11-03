@@ -1,0 +1,82 @@
+@page "/vehicles/{VehicleId:guid}/fuel-energy-entries/new"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject VehiclesApiClient VehiclesApi
+@inject FuelEnergyEntriesApiClient Api
+@inject NavigationManager Navigation
+
+<MaintenancePage Title="@Title" VehicleId="VehicleId" VehicleName="@vehicleName" Section="MaintenanceSection.Fuel"
+                 Failure="failure" ReturnUrl="@($"/vehicles/{VehicleId}/fuel-energy-entries/new?kind={Model?.KindValue}")"
+                 NotFound="notFound" NotFoundTitle="Vehicle not found" NotFoundMessage="@VehicleMessages.NotFound">
+    @if (Model is not null)
+    {
+        <FuelEnergyEntryForm Model="Model" FormName="create-fuel-energy-entry" SubmitText="Save" SubmitTitle="Save this entry"
+                             CancelHref="@MaintenanceLinks.TabHref(VehicleId, MaintenanceSection.Fuel)" Errors="errors" OnSubmit="SubmitAsync" />
+    }
+</MaintenancePage>
+
+@code {
+    private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
+    private GarageApiFailure? failure;
+    private string? vehicleName;
+    private bool notFound;
+
+    [Parameter]
+    public Guid VehicleId { get; set; }
+
+    // "fuel" (default) or "energy"; read as text so a bad value means fuel.
+    [SupplyParameterFromQuery(Name = "kind")]
+    public string? Kind { get; set; }
+
+    [SupplyParameterFromForm(FormName = "create-fuel-energy-entry")]
+    private FuelEnergyEntryFormModel? Model { get; set; }
+
+    private string Title => Model?.Kind == FuelEnergyKind.Energy ? "Add charge" : "Add fuel";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Model ??= FuelEnergyEntryFormModel.For(FuelEnergyEntryFormat.ParseKind(Kind));
+
+        try
+        {
+            var result = await VehiclesApi.GetAsync(VehicleId);
+            if (result.IsNotFound)
+            {
+                notFound = true;
+                return;
+            }
+
+            vehicleName = result.Value!.Name;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        failure = null;
+        try
+        {
+            var result = await Api.CreateAsync(VehicleId, Model!.ToRequest());
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo(MaintenanceLinks.TabHref(VehicleId, MaintenanceSection.Fuel));
+                return;
+            }
+
+            if (result.IsNotFound)
+            {
+                notFound = true;
+                return;
+            }
+
+            errors = result.Errors;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+}

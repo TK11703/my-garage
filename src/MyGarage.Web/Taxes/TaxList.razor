@@ -1,0 +1,40 @@
+@* Display only: the parent loads the page of taxes. *@
+<EntryListBlock TItem="TaxDto" Items="Entries?.Items" TotalCount="Entries?.TotalCount ?? 0" Page="Entries?.Page ?? 1" TotalPages="Entries?.TotalPages ?? 1"
+                HrefFor="HrefFor" Failure="Failure" ReturnUrl="@ReturnUrl" EmptyMessage="No taxes yet. Add the first tax for this vehicle." ListTestId="tax-list">
+    <AddActions>
+        <a class="btn btn-primary d-inline-flex align-items-center gap-2" href="/vehicles/@VehicleId/taxes/new" data-testid="add-tax">
+            <Icon Name="IconName.Plus" /> Add tax
+        </a>
+    </AddActions>
+    <RowTemplate Context="entry">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2" data-testid="tax">
+            <div class="fw-semibold" data-testid="entry-type">@TaxFormat.TypeLabel(entry.Type)</div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="fw-semibold" data-testid="entry-amount">@DisplayFormat.Money(entry.Amount)</span>
+                <span data-testid="entry-recurrence">@TaxFormat.RecurrenceLabel(entry.Recurrence)</span>
+                <a class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" href="/vehicles/@VehicleId/taxes/@entry.Id/edit"
+                   data-testid="edit-entry" aria-label="@TaxFormat.EditName(entry)" title="@TaxFormat.EditName(entry)">
+                    <Icon Name="IconName.Pencil" /> Edit
+                </a>
+            </div>
+        </div>
+    </RowTemplate>
+</EntryListBlock>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    [Parameter]
+    public PagedResultDto<TaxDto>? Entries { get; set; }
+
+    [Parameter]
+    public GarageApiFailure? Failure { get; set; }
+
+    // App-relative page to come back to after signing in again.
+    [Parameter]
+    public string ReturnUrl { get; set; } = "/";
+
+    [Parameter, EditorRequired]
+    public Func<int, string> HrefFor { get; set; } = _ => "#";
+}
