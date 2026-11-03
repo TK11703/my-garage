@@ -18,7 +18,7 @@ records for each vehicle. The project constitution at
 - Follow existing project patterns before introducing new abstractions, dependencies, or architectural approaches.
 - When implementing a feature, follow patterns used by adjacent or similar features unless there is a documented reason to do otherwise.
 - Keep endpoint handlers thin and move business or persistence logic into focused services.
-- Derive user identity and ownership from validated authentication claims; never trust user or owner identifiers supplied in request data for authorization.
+- Derive user identity and ownership from validated authentication claims; never trust user or owner identifiers supplied in request data for authorization. The only exception is the constitution's trusted service intake rule (app-role caller, lookup key only, pending items the owner must approve).
 - Enforce authorization server-side and scope owner-specific queries by owner ID in SQL.
 - Use parameterized Dapper queries exclusively.
 - Preserve nullable-reference-type safety.
