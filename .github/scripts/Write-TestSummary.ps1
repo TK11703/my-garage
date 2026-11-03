@@ -19,7 +19,8 @@ param(
     [int] $MaxFailureLines = 15
 )
 
-$ErrorActionPreference = 'Stop'
+# A problem reading one file must never fail the step; the test step reports the real result.
+$ErrorActionPreference = 'Continue'
 
 $summaryPath = $env:GITHUB_STEP_SUMMARY
 function Write-Summary([string] $Text) {
@@ -37,7 +38,7 @@ $passed = 0; $failed = 0; $skipped = 0
 $failures = [System.Collections.Generic.List[object]]::new()
 
 foreach ($file in $files) {
-    [xml] $trx = Get-Content -Path $file.FullName -Raw
+    [xml] $trx = Get-Content -LiteralPath $file.FullName -Raw
     $ns = [System.Xml.XmlNamespaceManager]::new($trx.NameTable)
     $ns.AddNamespace('t', 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010')
 
@@ -46,10 +47,10 @@ foreach ($file in $files) {
             'Passed' { $passed++ }
             'Failed' {
                 $failed++
-                $error = $result.SelectSingleNode('t:Output/t:ErrorInfo', $ns)
+                $errorInfo = $result.SelectSingleNode('t:Output/t:ErrorInfo', $ns)
                 $lines = @()
-                if ($error) {
-                    $lines = @(($error.InnerText -split "`r?`n") | Where-Object { $_.Trim() } | Select-Object -First $MaxFailureLines)
+                if ($errorInfo) {
+                    $lines = @(($errorInfo.InnerText -split "`r?`n") | Where-Object { $_.Trim() } | Select-Object -First $MaxFailureLines)
                 }
                 $failures.Add([pscustomobject]@{ Name = $result.testName; Lines = $lines })
             }
