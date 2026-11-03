@@ -10,8 +10,7 @@ namespace MyGarage.AppHost.Tests;
 
 public class AppHostSmokeTests
 {
-    // Starting the real PostgreSQL and Azurite containers can take minutes on a shared CI runner.
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(300);
+    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(120);
 
     private static int GetFreePort()
     {
