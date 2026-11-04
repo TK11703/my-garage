@@ -20,7 +20,7 @@ namespace MyGarage.Api.Drafts;
 public static class DraftProposalMapper
 {
     public static ServiceRecordRequest ToRequest(ServiceRecordProposal section) =>
-        new() { DateServiced = section.DateServiced, OdometerReading = section.OdometerReading, ShopOrPerson = section.ShopOrPerson };
+        new() { DateServiced = section.DateServiced, OdometerReading = section.OdometerReading, ShopOrPerson = section.ShopOrPerson, Tax = section.Tax };
 
     // The draft kind decides whether the entry is fuel or charging, so the section's own kind cannot contradict it.
     public static FuelEnergyEntryRequest ToRequest(DraftKind kind, FuelEnergyProposal section) =>
@@ -57,7 +57,8 @@ public static class DraftProposalMapper
                     service.DateServiced!.Value,
                     service.OdometerReading!.Value,
                     ServiceRecordMapper.CleanShop(service.ShopOrPerson),
-                    [.. LinesOf(service).Select(ServiceRecordMapper.ToInput)]);
+                    [.. LinesOf(service).Select(ServiceRecordMapper.ToInput)],
+                    ServiceRecordMapper.CleanTax(service.Tax));
 
             case DraftKind.Fuel:
             case DraftKind.Energy:
@@ -100,7 +101,7 @@ public static class DraftProposalMapper
     public static decimal? HeadlineTotal(DraftProposal proposal) =>
         proposal.Kind switch
         {
-            DraftKind.ServiceRecord => proposal.ServiceRecord is { } service ? service.DocumentTotal ?? LineItemsTotal(service) : null,
+            DraftKind.ServiceRecord => proposal.ServiceRecord is { } service ? service.DocumentTotal ?? RecordTotal(service) : null,
             DraftKind.Fuel or DraftKind.Energy => proposal.FuelEnergy is { } fuel
                 ? fuel.TotalCost ?? (fuel.UnitPrice is { } price && fuel.Quantity is { } quantity ? FuelEnergyTotal.Resolve(price, quantity, null) : null)
                 : null,
@@ -124,10 +125,15 @@ public static class DraftProposalMapper
             line.FlatCost,
             line.LaborHours,
             line.LaborRate,
+            line.LaborCost,
             (line.Parts ?? [])
                 .Where(part => part.Quantity is not null && part.UnitPrice is not null)
                 .Select(part => (part.Quantity!.Value, part.UnitPrice!.Value))));
     }
+
+    // What the accepted record's total would be: the line items plus the tax; null when there are no line items to compare.
+    public static decimal? RecordTotal(ServiceRecordProposal service) =>
+        LineItemsTotal(service) is { } lines ? lines + (service.Tax ?? 0m) : null;
 
     // A JSON null for the list reads as an empty list.
     public static IReadOnlyList<ServiceLineItemRequest> LinesOf(ServiceRecordProposal service) => service.LineItems ?? [];
@@ -136,7 +142,7 @@ public static class DraftProposalMapper
     public static (DateOnly? Date, decimal? Total) DateAndTotal(DraftProposal proposal) =>
         proposal.Kind switch
         {
-            DraftKind.ServiceRecord => (proposal.ServiceRecord?.DateServiced, proposal.ServiceRecord is { } service ? LineItemsTotal(service) : null),
+            DraftKind.ServiceRecord => (proposal.ServiceRecord?.DateServiced, proposal.ServiceRecord is { } service ? RecordTotal(service) : null),
             DraftKind.Fuel or DraftKind.Energy => (proposal.FuelEnergy?.Date, HeadlineTotal(proposal)),
             DraftKind.Inspection => (proposal.Inspection?.Date, proposal.Inspection?.Cost),
             DraftKind.Registration => (proposal.Registration?.ExpirationDate, proposal.Registration?.Cost),

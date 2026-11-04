@@ -32,6 +32,35 @@ public class ServiceRecordRequestValidatorTests
     [Fact]
     public void MinimalRequest_IsValid() => Assert.True(IsValid(Valid(shop: null)));
 
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData("0", true)]
+    [InlineData("8.25", true)]
+    [InlineData("9999999.99", true)]
+    [InlineData("-0.01", false)]
+    [InlineData("10000000", false)]
+    [InlineData("8.255", false)]
+    public void Tax_IsOptionalWithARangeAndTwoDecimals(string? tax, bool valid) =>
+        Assert.Equal(
+            valid,
+            IsValid(new ServiceRecordRequest
+            {
+                DateServiced = new DateOnly(2026, 5, 1),
+                OdometerReading = 45000,
+                Tax = tax is null ? null : decimal.Parse(tax, System.Globalization.CultureInfo.InvariantCulture),
+            }));
+
+    [Fact]
+    public void ATaxOutOfRange_IsAnErrorOnTax_WithTheRangeInTheMessage()
+    {
+        var request = new ServiceRecordRequest { DateServiced = new DateOnly(2026, 5, 1), OdometerReading = 45000, Tax = -1m };
+
+        var errors = validator.Validate(request).Errors;
+
+        Assert.Equal(["Tax"], errors.Select(error => error.PropertyName).Distinct());
+        Assert.Equal("Tax must be between 0.00 and 9,999,999.99.", errors.Single().ErrorMessage);
+    }
+
     [Fact]
     public void DateServiced_IsRequired() =>
         Assert.Equal(["DateServiced"], ErrorFields(Valid(date: null, useDefaultDate: false)));

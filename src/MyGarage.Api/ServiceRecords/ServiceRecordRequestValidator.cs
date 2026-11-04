@@ -20,5 +20,8 @@ public sealed class ServiceRecordRequestValidator : AbstractValidator<ServiceRec
             .NotNull().WithMessage("Odometer reading is required.")
             .InclusiveBetween(0, 9_999_999).WithMessage("Odometer reading must be between 0 and 9,999,999.");
         RuleFor(request => request.ShopOrPerson).TrimmedText("Shop name or person", 100, required: false);
+        RuleFor(request => request.Tax)
+            .InclusiveBetween(0m, MoneyRules.MaxAmount).WithMessage("Tax must be between 0.00 and 9,999,999.99.")
+            .Must(MoneyRules.HasAtMostTwoDecimals).WithMessage("Tax can have at most two decimal places.");
     }
 }

@@ -10,9 +10,11 @@ public sealed class ServiceRecordFormModel
 
     public string? ShopOrPerson { get; set; }
 
+    public decimal? Tax { get; set; }
+
     public ServiceRecordRequest ToRequest() =>
-        new() { DateServiced = DateServiced, OdometerReading = OdometerReading, ShopOrPerson = ShopOrPerson };
+        new() { DateServiced = DateServiced, OdometerReading = OdometerReading, ShopOrPerson = ShopOrPerson, Tax = Tax };
 
     public static ServiceRecordFormModel From(ServiceRecordDto record) =>
-        new() { DateServiced = record.DateServiced, OdometerReading = record.OdometerReading, ShopOrPerson = record.ShopOrPerson };
+        new() { DateServiced = record.DateServiced, OdometerReading = record.OdometerReading, ShopOrPerson = record.ShopOrPerson, Tax = record.Tax };
 }

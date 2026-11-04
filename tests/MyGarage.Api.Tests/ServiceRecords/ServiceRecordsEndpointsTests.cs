@@ -45,6 +45,45 @@ public class ServiceRecordsEndpointsTests(ApiFactory factory) : IClassFixture<Ap
         Assert.EndsWith($"/api/vehicles/{vehicle.Id}/service-records/{record.Id}", response.Headers.Location?.ToString());
     }
 
+    [Fact]
+    public async Task Post_WithTax_ReturnsItAndTheTotalIncludesIt_AndPutClearsIt()
+    {
+        var client = factory.CreateClientForUser(Alice);
+        var vehicle = await CreateVehicleAsync(client);
+
+        var created = await PostRecordAsync(client, vehicle.Id, new ServiceRecordRequest { DateServiced = new DateOnly(2026, 5, 1), OdometerReading = 1000, Tax = 8.25m });
+        var record = (await created.Content.ReadFromJsonAsync<ServiceRecordDto>())!;
+        await AddFlatLineItemAsync(client, vehicle.Id, record.Id, cost: 100m);
+
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        Assert.Equal(8.25m, record.Tax);
+        var loaded = (await client.GetFromJsonAsync<ServiceRecordDto>($"/api/vehicles/{vehicle.Id}/service-records/{record.Id}"))!;
+        Assert.Equal(108.25m, loaded.TotalCost);
+        Assert.Equal(108.25m, Assert.Single((await ListAsync(client, vehicle.Id)).Items).TotalCost);
+
+        var cleared = await client.PutAsJsonAsync(
+            $"/api/vehicles/{vehicle.Id}/service-records/{record.Id}",
+            new ServiceRecordRequest { DateServiced = new DateOnly(2026, 5, 1), OdometerReading = 1000 });
+        Assert.Equal(HttpStatusCode.OK, cleared.StatusCode);
+        var after = (await cleared.Content.ReadFromJsonAsync<ServiceRecordDto>())!;
+        Assert.Null(after.Tax);
+        Assert.Equal(100m, after.TotalCost);
+    }
+
+    [Fact]
+    public async Task Post_ANegativeTax_Returns400NamingTax()
+    {
+        var client = factory.CreateClientForUser(Alice);
+        var vehicle = await CreateVehicleAsync(client);
+
+        var response = await PostRecordAsync(client, vehicle.Id, new ServiceRecordRequest { DateServiced = new DateOnly(2026, 5, 1), OdometerReading = 1000, Tax = -1m });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        Assert.Contains(problem!.Errors.Keys, key => string.Equals(key, "tax", StringComparison.OrdinalIgnoreCase));
+        Assert.Empty((await ListAsync(client, vehicle.Id)).Items);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]

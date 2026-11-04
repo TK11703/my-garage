@@ -77,8 +77,15 @@ else if (record is not null && vehicleName is not null)
             <Icon Name="IconName.Plus" /> Add line item
         </a>
 
+        @if (record.Tax is { } tax)
+        {
+            <p class="mt-3 mb-0">
+                Tax: <span data-testid="tax">@DisplayFormat.Money(tax)</span>
+            </p>
+        }
+
         <p class="fs-5 fw-semibold mt-3 mb-0">
-            Total cost: <span data-testid="total-cost">@DisplayFormat.Money(record.TotalCost)</span>
+            Total cost: <span data-testid="total-cost"><MoneyText Amount="record.TotalCost" /></span>
         </p>
     </FieldGroup>
 }

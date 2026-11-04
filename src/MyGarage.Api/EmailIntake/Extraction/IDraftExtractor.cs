@@ -37,7 +37,8 @@ public sealed record ExtractedLineItem(
     decimal? FlatCost,
     decimal? LaborHours,
     decimal? LaborRate,
-    IReadOnlyList<ExtractedPart>? Parts);
+    IReadOnlyList<ExtractedPart>? Parts,
+    decimal? LaborCost = null);
 
 // Flat, nullable fields for every kind: dates are yyyy-MM-dd text and money has no currency symbol, as the model returns them.
 public sealed record ExtractionResult
@@ -62,6 +63,9 @@ public sealed record ExtractionResult
     public string? ShopOrPerson { get; init; }
 
     public decimal? TotalCost { get; init; }
+
+    // Service records: the tax for the whole document, never a line item.
+    public decimal? Tax { get; init; }
 
     public decimal? UnitPrice { get; init; }
 

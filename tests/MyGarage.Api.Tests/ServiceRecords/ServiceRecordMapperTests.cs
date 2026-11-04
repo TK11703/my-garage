@@ -131,6 +131,59 @@ public class ServiceRecordMapperTests
     }
 
     [Fact]
+    public void ToDto_CarriesTheTax_AndTheTotalThatIncludesIt()
+    {
+        var record = Record(items: 1, total: 108.25m) with { TaxAmount = 8.25m };
+
+        var dto = ServiceRecordMapper.ToDto(new ServiceRecordDetailRecord(record, []));
+
+        Assert.Equal(8.25m, dto.Tax);
+        Assert.Equal(108.25m, dto.TotalCost);
+    }
+
+    [Fact]
+    public void ToDto_ARecordWithoutTax_HasNullTax() =>
+        Assert.Null(ServiceRecordMapper.ToDto(new ServiceRecordDetailRecord(Record(), [])).Tax);
+
+    [Fact]
+    public void ToDto_ALaborTotalOnlyLine_ShowsTheStoredLaborCost()
+    {
+        var record = Record(items: 1, total: 180m);
+        var line = new ServiceLineItemRecord { Id = Guid.NewGuid(), ServiceRecordId = record.Id, Description = "Labor", LaborCost = 180m, TotalCost = 180m };
+
+        var mapped = Assert.Single(ServiceRecordMapper.ToDto(new ServiceRecordDetailRecord(record, [line])).LineItems);
+
+        Assert.Equal(180m, mapped.LaborCost);
+        Assert.Null(mapped.LaborHours);
+        Assert.Null(mapped.LaborRate);
+    }
+
+    [Fact]
+    public void ToDto_HoursAndRateWinOverAStoredLaborCost()
+    {
+        var record = Record(items: 1, total: 300m);
+        var line = new ServiceLineItemRecord
+        {
+            Id = Guid.NewGuid(), ServiceRecordId = record.Id, Description = "Labor", LaborHours = 2.5m, LaborRate = 120m, LaborCost = 999m, TotalCost = 300m,
+        };
+
+        Assert.Equal(300m, Assert.Single(ServiceRecordMapper.ToDto(new ServiceRecordDetailRecord(record, [line])).LineItems).LaborCost);
+    }
+
+    [Fact]
+    public void ToInput_CarriesTheEnteredLaborCost_ButOnlyStoresItWithoutHoursAndRate()
+    {
+        var typedOnly = ServiceRecordMapper.ToInput(new ServiceLineItemRequest { Description = "Labor", LaborCost = 180m });
+        var withHoursAndRate = ServiceRecordMapper.ToInput(
+            new ServiceLineItemRequest { Description = "Labor", LaborHours = 2m, LaborRate = 100m, LaborCost = 999m });
+
+        Assert.Equal(180m, typedOnly.StoredLaborCost);
+        Assert.Equal(180m, typedOnly.TotalCost);
+        Assert.Null(withHoursAndRate.StoredLaborCost);
+        Assert.Equal(200m, withHoursAndRate.TotalCost);
+    }
+
+    [Fact]
     public void ToInput_TrimsTheDescriptionAndPartNamesAndKeepsThePartOrder()
     {
         var request = new ServiceLineItemRequest

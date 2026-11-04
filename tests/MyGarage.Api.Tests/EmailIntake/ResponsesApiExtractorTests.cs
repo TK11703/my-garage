@@ -192,6 +192,58 @@ public class ResponsesApiExtractorTests
     }
 
     [Fact]
+    public async Task TheSchemaAsksForTheTaxAndAPerLineLaborTotal_AndTheInstructionsExplainDiscountsTaxAndLabor()
+    {
+        var handler = FakeHandler.Always(HttpStatusCode.OK, Envelope(Answer()));
+
+        await Create(handler).ExtractAsync(Input(), CancellationToken.None);
+
+        using var body = JsonDocument.Parse(Assert.Single(handler.Requests).Body);
+        var root = body.RootElement;
+        var schema = root.GetProperty("text").GetProperty("format").GetProperty("schema");
+        Assert.Contains("tax", schema.GetProperty("required").EnumerateArray().Select(item => item.GetString()));
+        Assert.Equal(["number", "null"], schema.GetProperty("properties").GetProperty("tax").GetProperty("type").EnumerateArray().Select(item => item.GetString()));
+        var line = schema.GetProperty("properties").GetProperty("lineItems").GetProperty("items");
+        Assert.Contains("laborCost", line.GetProperty("required").EnumerateArray().Select(item => item.GetString()));
+        Assert.Equal(["number", "null"], line.GetProperty("properties").GetProperty("laborCost").GetProperty("type").EnumerateArray().Select(item => item.GetString()));
+        var instructions = root.GetProperty("instructions").GetString()!;
+        Assert.Contains("discount", instructions, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("negative", instructions, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("tax", instructions, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("laborCost", instructions, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AnAnswerWithATaxADiscountAndALaborTotalLine_IsParsed()
+    {
+        var lines = new object[]
+        {
+            new { description = "Coupon", flatCost = (double?)-4.04, laborHours = (double?)null, laborRate = (double?)null, laborCost = (double?)null, parts = Array.Empty<object>() },
+            new { description = "Labor", flatCost = (double?)null, laborHours = (double?)null, laborRate = (double?)null, laborCost = (double?)180.0, parts = Array.Empty<object>() },
+        };
+        var extractor = Create(FakeHandler.Always(HttpStatusCode.OK, Envelope(Answer(lineItems: lines, change: fields => fields["tax"] = 8.25))));
+
+        var result = await extractor.ExtractAsync(Input(), CancellationToken.None);
+
+        Assert.False(result.IsFailure);
+        Assert.Equal(8.25m, result.Tax);
+        Assert.Equal(-4.04m, result.LineItems![0].FlatCost);
+        Assert.Equal(180m, result.LineItems[1].LaborCost);
+    }
+
+    [Fact]
+    public async Task AnAnswerThatOmitsTheNewFields_StillParses_WithThemNull()
+    {
+        var extractor = Create(FakeHandler.Always(HttpStatusCode.OK, Envelope(Answer())));
+
+        var result = await extractor.ExtractAsync(Input(), CancellationToken.None);
+
+        Assert.False(result.IsFailure);
+        Assert.Null(result.Tax);
+        Assert.Null(Assert.Single(result.LineItems!).LaborCost);
+    }
+
+    [Fact]
     public async Task ATopLevelOutputTextAnswer_IsAlsoAccepted()
     {
         var body = JsonSerializer.Serialize(new { output_text = Answer("fuel") });

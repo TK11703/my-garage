@@ -58,13 +58,66 @@ public class ServiceLineItemRequestValidatorTests
     public void Description_RejectsControlCharacters() => Assert.Equal(["Description"], ErrorFields(Flat("bad\u0007text")));
 
     [Theory]
+    [InlineData("-10000000", false)]
+    [InlineData("-9999999.99", true)]
+    [InlineData("-4.04", true)]
+    [InlineData("-0.01", true)]
+    [InlineData("0", true)]
+    [InlineData("9999999.99", true)]
+    [InlineData("10000000", false)]
+    [InlineData("1.005", false)]
+    [InlineData("-1.005", false)]
+    public void FlatCost_RangeAndTwoDecimals(string cost, bool valid) =>
+        Assert.Equal(valid, IsValid(Flat(cost: decimal.Parse(cost, System.Globalization.CultureInfo.InvariantCulture))));
+
+    [Fact]
+    public void AFlatCostOutOfRange_SaysTheAllowedRange() =>
+        Assert.Equal(["Flat cost must be between -9,999,999.99 and 9,999,999.99."], Messages(Flat(cost: -10_000_000m)));
+
+    [Fact]
+    public void ADiscountWithLaborOrParts_IsRejectedAsBoth()
+    {
+        Assert.Equal(["Pricing"], ErrorFields(new ServiceLineItemRequest { Description = "Coupon", FlatCost = -4.04m, LaborHours = 1m, LaborRate = 10m }));
+        Assert.Equal(["Pricing"], ErrorFields(new ServiceLineItemRequest { Description = "Coupon", FlatCost = -4.04m, Parts = [Part()] }));
+    }
+
+    private static ServiceLineItemRequest LaborTotal(decimal? laborCost, params ServicePartRequest[] parts) =>
+        new() { Description = "Labor", LaborCost = laborCost, Parts = parts };
+
+    [Fact]
+    public void ALaborTotalAlone_IsValid() => Assert.True(IsValid(LaborTotal(180m)));
+
+    [Fact]
+    public void ALaborTotalWithParts_IsValid() => Assert.True(IsValid(LaborTotal(180m, Part())));
+
+    [Fact]
+    public void AZeroLaborTotal_IsValid() => Assert.True(IsValid(LaborTotal(0m)));
+
+    [Theory]
     [InlineData("-0.01", false)]
     [InlineData("0", true)]
     [InlineData("9999999.99", true)]
     [InlineData("10000000", false)]
     [InlineData("1.005", false)]
-    public void FlatCost_RangeAndTwoDecimals(string cost, bool valid) =>
-        Assert.Equal(valid, IsValid(Flat(cost: decimal.Parse(cost, System.Globalization.CultureInfo.InvariantCulture))));
+    public void LaborTotal_RangeAndTwoDecimals(string total, bool valid) =>
+        Assert.Equal(valid, IsValid(LaborTotal(decimal.Parse(total, System.Globalization.CultureInfo.InvariantCulture))));
+
+    [Fact]
+    public void HoursAndRateWithATypedLaborTotal_AreValid_BecauseTheCalculationWins() =>
+        Assert.True(IsValid(new ServiceLineItemRequest { Description = "Labor", LaborHours = 2.5m, LaborRate = 120m, LaborCost = 999.99m }));
+
+    [Fact]
+    public void ALaborTotalWithAFlatCost_IsRejectedAsBoth()
+    {
+        var request = new ServiceLineItemRequest { Description = "x", FlatCost = 10m, LaborCost = 5m };
+
+        Assert.Equal(["Pricing"], ErrorFields(request));
+        Assert.Equal(["Use either a flat cost or labor and parts, not both."], Messages(request));
+    }
+
+    [Fact]
+    public void ALaborTotalPlusPartsAboveTheMaximum_IsRejected() =>
+        Assert.Equal(["Pricing"], ErrorFields(LaborTotal(9_999_999.99m, Part("Extra", 1m, 1m))));
 
     [Theory]
     [InlineData("0", false)]
@@ -115,7 +168,7 @@ public class ServiceLineItemRequestValidatorTests
         var request = new ServiceLineItemRequest { Description = "x" };
 
         Assert.Equal(["Pricing"], ErrorFields(request));
-        Assert.Equal(["Enter a flat cost, or labor hours and a rate, or at least one part."], Messages(request));
+        Assert.Equal(["Enter a flat cost, labor (hours and a rate, or a total), or at least one part."], Messages(request));
     }
 
     [Theory]

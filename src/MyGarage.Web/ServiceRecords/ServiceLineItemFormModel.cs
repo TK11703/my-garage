@@ -33,6 +33,11 @@ public sealed class ServiceLineItemFormModel
 
     public decimal? LaborRate { get; set; }
 
+    // Total labor: calculated from hours and rate when both are given, otherwise entered as a number.
+    public decimal? LaborCost { get; set; }
+
+    public bool LaborIsCalculated => LaborHours is not null && LaborRate is not null;
+
     public List<ServicePartRow> Parts { get; set; } = [];
 
     public static ServiceLineItemFormModel New()
@@ -47,10 +52,11 @@ public sealed class ServiceLineItemFormModel
         var model = new ServiceLineItemFormModel
         {
             Description = line.Description,
-            Pricing = line.FlatCost is null && (line.LaborHours is not null || line.Parts.Count > 0) ? PricingMode.Breakdown : PricingMode.Flat,
+            Pricing = line.FlatCost is null && (line.LaborHours is not null || line.LaborCost is not null || line.Parts.Count > 0) ? PricingMode.Breakdown : PricingMode.Flat,
             FlatCost = line.FlatCost,
             LaborHours = line.LaborHours,
             LaborRate = line.LaborRate,
+            LaborCost = line.LaborCost,
             Parts = [.. line.Parts.Select(part => new ServicePartRow { Name = part.Name, Quantity = part.Quantity, UnitPrice = part.UnitPrice })],
         };
         model.AddBlankPartRows();
@@ -67,6 +73,15 @@ public sealed class ServiceLineItemFormModel
         }
     }
 
+    // The total labor shown when hours and rate are both given is their product; the API ignores an entered total then.
+    public void ShowCalculatedLabor()
+    {
+        if (LaborIsCalculated)
+        {
+            LaborCost = Math.Round(LaborHours!.Value * LaborRate!.Value, 2, MidpointRounding.AwayFromZero);
+        }
+    }
+
     // The rows that are sent, by their position in the form (blank rows are ignored).
     public IReadOnlyList<int> SubmittedRows =>
         [.. (Parts ?? []).Select((row, index) => (row, index)).Where(pair => !pair.row.IsBlank).Select(pair => pair.index)];
@@ -80,6 +95,7 @@ public sealed class ServiceLineItemFormModel
                 Description = Description,
                 LaborHours = LaborHours,
                 LaborRate = LaborRate,
+                LaborCost = LaborIsCalculated ? null : LaborCost,
                 Parts = [.. SubmittedRows.Select(index => new ServicePartRequest
                 {
                     Name = Parts[index].Name,

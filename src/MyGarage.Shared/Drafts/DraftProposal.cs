@@ -34,6 +34,9 @@ public sealed class ServiceRecordProposal
 
     public IReadOnlyList<ServiceLineItemRequest> LineItems { get; init; } = [];
 
+    // The tax for the whole record; never a line item.
+    public decimal? Tax { get; init; }
+
     // The total printed on the document; only used to warn when the line items add up differently. Never stored on the record.
     public decimal? DocumentTotal { get; init; }
 }

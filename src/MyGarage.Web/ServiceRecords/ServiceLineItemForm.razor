@@ -45,10 +45,10 @@
             @* One card serves both methods so the buttons are not duplicated; pricing-toggle.js shows the chosen section. *@
             <div role="group" aria-labelledby="flat-heading" data-pricing-section="@nameof(PricingMode.Flat)" hidden="@(Model.Pricing != PricingMode.Flat)">
                 <h3 id="flat-heading" class="h6">Flat Cost</h3>
-                <p class="text-body-secondary">Use a flat cost when you did not get a breakdown of the labor and parts, only one price for this line item. Choose Labor and Parts instead to enter the details.</p>
+                <p class="text-body-secondary">Use a flat cost when you did not get a breakdown of the labor and parts, only one price for this line item. Enter a negative amount for a discount or credit. Choose Labor and Parts instead to enter the details.</p>
                 <div class="col-sm-6 col-lg-4">
                     <div class="form-floating">
-                        <InputNumber id="flat-cost" TValue="decimal?" class="form-control" @bind-Value="Model.FlatCost" min="0" max="9999999.99" step="0.01" inputmode="decimal" placeholder=" "
+                        <InputNumber id="flat-cost" TValue="decimal?" class="form-control" @bind-Value="Model.FlatCost" min="-9999999.99" max="9999999.99" step="0.01" inputmode="decimal" placeholder=" "
                                      aria-describedby="@Described("FlatCost", "flatcost-error")" />
                         <label for="flat-cost">Flat cost ($)</label>
                     </div>
@@ -65,7 +65,7 @@
                     <div class="row g-3">
                         <div class="col-sm-6 col-lg-4">
                             <div class="form-floating">
-                                <InputNumber id="labor-hours" TValue="decimal?" class="form-control" @bind-Value="Model.LaborHours" min="0.01" max="999.99" step="0.01" inputmode="decimal" placeholder=" "
+                                <InputNumber id="labor-hours" TValue="decimal?" class="form-control" @bind-Value="Model.LaborHours" min="0.01" max="999.99" step="0.01" inputmode="decimal" placeholder=" " data-labor-hours
                                              aria-describedby="@Described("LaborHours", "laborhours-error")" />
                                 <label for="labor-hours">Labor hours</label>
                             </div>
@@ -76,13 +76,26 @@
                         </div>
                         <div class="col-sm-6 col-lg-4">
                             <div class="form-floating">
-                                <InputNumber id="labor-rate" TValue="decimal?" class="form-control" @bind-Value="Model.LaborRate" min="0" max="99999.99" step="0.01" inputmode="decimal" placeholder=" "
+                                <InputNumber id="labor-rate" TValue="decimal?" class="form-control" @bind-Value="Model.LaborRate" min="0" max="99999.99" step="0.01" inputmode="decimal" placeholder=" " data-labor-rate
                                              aria-describedby="@Described("LaborRate", "laborrate-error")" />
                                 <label for="labor-rate">Hourly rate ($)</label>
                             </div>
                             @if (FieldError("LaborRate") is { } rateError)
                             {
                                 <div id="laborrate-error" class="invalid-feedback d-block">@rateError</div>
+                            }
+                        </div>
+                        <div class="col-sm-6 col-lg-4">
+                            <div class="form-floating">
+                                <InputNumber id="labor-cost" TValue="decimal?" class="form-control" @bind-Value="Model.LaborCost" min="0" max="9999999.99" step="0.01" inputmode="decimal" placeholder=" "
+                                             readonly="@Model.LaborIsCalculated" data-labor-total
+                                             aria-describedby="@Described("LaborCost", "laborcost-error")" />
+                                <label for="labor-cost">Total labor ($)</label>
+                            </div>
+                            <div class="form-text">Calculated from hours and rate. Leave both empty to enter the total yourself.</div>
+                            @if (FieldError("LaborCost") is { } laborCostError)
+                            {
+                                <div id="laborcost-error" class="invalid-feedback d-block">@laborCostError</div>
                             }
                         </div>
                 </div>
@@ -167,6 +180,8 @@
 
     [Parameter, EditorRequired]
     public EventCallback OnSubmit { get; set; }
+
+    protected override void OnParametersSet() => Model.ShowCalculatedLabor();
 
     private string? FieldError(string field) =>
         Errors.FirstOrDefault(pair => string.Equals(pair.Key, field, StringComparison.OrdinalIgnoreCase)).Value?.FirstOrDefault();

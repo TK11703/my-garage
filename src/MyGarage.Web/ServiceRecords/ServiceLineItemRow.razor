@@ -4,7 +4,7 @@
 <li class="list-group-item" data-testid="line-item">
     <div class="d-flex flex-wrap justify-content-between gap-2">
         <span class="fw-semibold text-break" data-testid="line-description">@Line.Description</span>
-        <span class="fw-semibold" data-testid="line-total">@DisplayFormat.Money(Line.TotalCost)</span>
+        <span class="fw-semibold" data-testid="line-total"><MoneyText Amount="Line.TotalCost" /></span>
     </div>
 
     <ul class="list-unstyled small text-body-secondary mb-2" data-testid="line-pricing">
@@ -12,7 +12,7 @@
         {
             <li data-testid="line-flat">Flat cost @DisplayFormat.Money(flat)</li>
         }
-        @if (Line.LaborHours is not null)
+        @if (Line.LaborHours is not null || Line.LaborCost is not null)
         {
             <li data-testid="line-labor">@ServiceRecordFormat.LaborLine(Line)</li>
         }

@@ -82,6 +82,7 @@ public static class ServiceRecordsEndpoints
                     request.DateServiced!.Value,
                     request.OdometerReading!.Value,
                     ServiceRecordMapper.CleanShop(request.ShopOrPerson),
+                    ServiceRecordMapper.CleanTax(request.Tax),
                     timeProvider.GetUtcNow(),
                     cancellationToken);
 
@@ -141,6 +142,7 @@ public static class ServiceRecordsEndpoints
                     request.DateServiced!.Value,
                     request.OdometerReading!.Value,
                     ServiceRecordMapper.CleanShop(request.ShopOrPerson),
+                    ServiceRecordMapper.CleanTax(request.Tax),
                     timeProvider.GetUtcNow(),
                     cancellationToken);
 

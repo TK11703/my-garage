@@ -41,24 +41,29 @@ public static class ProposalMapper
             OdometerReading = result.OdometerReading ?? result.VehicleHint?.Odometer,
             ShopOrPerson = Text(result.ShopOrPerson, MaxShop),
             LineItems = [.. (result.LineItems ?? []).Select(LineItem)],
+            Tax = Round(result.Tax, 2) is 0m ? null : Round(result.Tax, 2),
             DocumentTotal = Round(result.TotalCost, 2),
         };
 
-    // Labor or parts win over a flat cost, because a line is either a flat cost or labor and parts, never both (research R12).
+    // A line is a flat cost (below zero for a discount), or labor and/or parts, never both. Labor is hours with a rate, or a labor total;
+    // a lone hours or rate cannot be calculated, so it is dropped and any labor total stays. Hours and rate win over a typed total (spec 009).
     private static ServiceLineItemRequest LineItem(ExtractedLineItem line)
     {
         var parts = (line.Parts ?? [])
             .Where(part => !string.IsNullOrWhiteSpace(part.Name) || part.Quantity is not null || part.UnitPrice is not null)
             .Select(part => new ServicePartRequest { Name = Text(part.Name, MaxName), Quantity = Round(part.Quantity, 2), UnitPrice = Round(part.UnitPrice, 2) })
             .ToList();
-        var hasBreakdown = line.LaborHours is not null || line.LaborRate is not null || parts.Count > 0;
+        var hasHoursAndRate = line.LaborHours is not null && line.LaborRate is not null;
+        var laborCost = hasHoursAndRate ? null : Round(line.LaborCost, 2);
+        var hasBreakdown = hasHoursAndRate || laborCost is not null || parts.Count > 0;
 
         return new ServiceLineItemRequest
         {
             Description = Text(line.Description, MaxDescription),
             FlatCost = hasBreakdown ? null : Round(line.FlatCost, 2),
-            LaborHours = Round(line.LaborHours, 2),
-            LaborRate = Round(line.LaborRate, 2),
+            LaborHours = hasHoursAndRate ? Round(line.LaborHours, 2) : null,
+            LaborRate = hasHoursAndRate ? Round(line.LaborRate, 2) : null,
+            LaborCost = laborCost,
             Parts = parts,
         };
     }
