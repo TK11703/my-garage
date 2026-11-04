@@ -28,6 +28,22 @@
 .PARAMETER RotateSecret
     Creates a new web client secret even if one is already stored.
 
+.PARAMETER WebBaseUri
+    Public address of the deployed web app (for example https://ca-web-mygarage.<domain>). When given, the web redirect URIs are
+    <uri>/signin-oidc and <uri>/signout-callback-oidc instead of the localhost ones.
+
+.PARAMETER GitHubEnvironment
+    When given, the tenant, client ids, and API scope are written as variables of this GitHub environment (GitHub CLI) instead of
+    the AppHost user-secrets, which are then neither read nor written.
+
+.PARAMETER ManagedIdentityPrincipalId
+    Object (principal) id of a user-assigned managed identity. When given, the web registration gets a federated identity credential
+    for it (issuer https://login.microsoftonline.com/<tenant>/v2.0, audience api://AzureADTokenExchange) and no client secret is
+    created or stored; the web app proves its identity with the managed identity instead.
+
+.PARAMETER Repository
+    Repository (owner/name) that owns the GitHub environment. Used with -GitHubEnvironment.
+
 .PARAMETER WhatIf
     Reports what would change without changing anything (read-only queries against Microsoft Graph still run).
 
@@ -41,7 +57,11 @@ param(
     [ValidateRange(1024, 65535)] [int] $WebPort = 7080,
     [string] $NamePrefix = 'MyGarage',
     [string] $AppHostProject = (Join-Path $PSScriptRoot '..' '..' 'src' 'MyGarage.AppHost'),
-    [switch] $RotateSecret
+    [switch] $RotateSecret,
+    [string] $WebBaseUri,
+    [string] $GitHubEnvironment,
+    [string] $ManagedIdentityPrincipalId,
+    [string] $Repository = 'TK11703/my-garage'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -50,8 +70,10 @@ $ScopeName = 'access_as_user'
 $IngestRoleName = 'Email.Ingest'
 $apiName = "$NamePrefix API"
 $webName = "$NamePrefix Web"
-$webOrigin = "https://localhost:$WebPort"
+$webOrigin = if ($WebBaseUri) { $WebBaseUri.TrimEnd('/') } else { "https://localhost:$WebPort" }
 $desiredRedirectUris = @("$webOrigin/signin-oidc", "$webOrigin/signout-callback-oidc")
+$FederatedCredentialName = 'mygarage-web-managed-identity'
+$useGitHub = [bool] $GitHubEnvironment
 $appSelect = '$select=id,appId,displayName,identifierUris,api,web,requiredResourceAccess,appRoles,optionalClaims'
 
 function Invoke-Graph {
@@ -135,6 +157,7 @@ try {
     foreach ($tool in 'az', 'dotnet') {
         if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) { throw "'$tool' was not found on PATH." }
     }
+    if ($useGitHub -and -not (Get-Command gh -ErrorAction SilentlyContinue)) { throw "'gh' was not found on PATH." }
 
     $accountJson = az account show --only-show-errors 2>$null
     if ($LASTEXITCODE -ne 0 -or -not $accountJson) {
@@ -146,23 +169,38 @@ try {
         throw "The Azure CLI is signed in to tenant $($account.tenantId), not $TenantId. Run: az login --tenant $TenantId --allow-no-subscriptions"
     }
 
-    $script:projectPath = (Resolve-Path -Path $AppHostProject -ErrorAction Stop).Path
-    if (-not (Test-Path -Path $script:projectPath)) { throw "AppHost project '$AppHostProject' was not found." }
-    $secrets = Read-UserSecrets
+    $script:projectPath = $null
+    $secrets = @{}
+    if (-not $useGitHub) {
+        $script:projectPath = (Resolve-Path -Path $AppHostProject -ErrorAction Stop).Path
+        if (-not (Test-Path -Path $script:projectPath)) { throw "AppHost project '$AppHostProject' was not found." }
+        $secrets = Read-UserSecrets
+    }
 
     # --- Discovery (read-only) -----------------------------------------------------------------------------------
     $apiApp = Find-App $apiName
     $webApp = Find-App $webName
 
     if ($WhatIfPreference) {
-        Write-Host "What if: tenant $TenantId, AppHost '$script:projectPath'" -ForegroundColor Cyan
+        Write-Host "What if: tenant $TenantId, $(if ($useGitHub) { "GitHub environment '$GitHubEnvironment' of $Repository" } else { "AppHost '$script:projectPath'" })" -ForegroundColor Cyan
         Write-Host ("  {0,-22} {1}" -f $apiName, $(if ($apiApp) { 'exists - scope, app role Email.Ingest, email claim, identifier URI and token version would be verified' } else { 'would be created' }))
         Write-Host ("  {0,-22} {1}" -f $webName, $(if ($webApp) { 'exists - redirect URIs and API permission would be verified' } else { 'would be created' }))
         $missingUris = $desiredRedirectUris | Where-Object { $_ -notin @($webApp.web.redirectUris) }
         Write-Host "  Redirect URIs to add : $(if ($missingUris) { $missingUris -join ', ' } else { 'none' })"
-        $storedClient = $secrets['AzureAd:Web:ClientId']
-        $needsSecret = $RotateSecret -or -not $secrets['AzureAd:Web:ClientSecret'] -or -not $webApp -or $storedClient -ne $webApp.appId
-        Write-Host "  Web client secret    : $(if ($needsSecret) { 'a new secret would be created and stored in user-secrets' } else { 'existing secret would be kept' })"
+        if ($ManagedIdentityPrincipalId) {
+            $hasCredential = $false
+            if ($webApp) {
+                $hasCredential = [bool] (@((Invoke-Graph GET "/applications/$($webApp.id)/federatedIdentityCredentials").value) | Where-Object { $_.name -eq $FederatedCredentialName -and $_.subject -eq $ManagedIdentityPrincipalId })
+            }
+            Write-Host "  Federated credential : $(if ($hasCredential) { 'exists, would be kept' } else { "'$FederatedCredentialName' for managed identity $ManagedIdentityPrincipalId would be created" })"
+            Write-Host '  Web client secret    : none (a federated credential is used)'
+        }
+        else {
+            $storedClient = $secrets['AzureAd:Web:ClientId']
+            $needsSecret = $RotateSecret -or -not $secrets['AzureAd:Web:ClientSecret'] -or -not $webApp -or $storedClient -ne $webApp.appId
+            Write-Host "  Web client secret    : $(if ($needsSecret) { 'a new secret would be created and stored in user-secrets' } else { 'existing secret would be kept' })"
+        }
+        if ($useGitHub) { Write-Host "  GitHub variables     : AZURE_TENANT_ID, API_ENTRA_CLIENT_ID, API_ENTRA_SCOPE, WEB_ENTRA_CLIENT_ID would be set on '$GitHubEnvironment'" }
         Write-Host '  Admin consent        : would be granted for the delegated API permission if missing'
         Write-Host 'No changes were made.' -ForegroundColor Cyan
         exit 0
@@ -266,39 +304,86 @@ try {
         Write-Warning "A tenant administrator can grant it at: $consentUrl"
     }
 
-    # --- Web client secret ---------------------------------------------------------------------------------------
-    $storedSecret = $secrets['AzureAd:Web:ClientSecret']
-    $storedClient = $secrets['AzureAd:Web:ClientId']
+    # --- Web client credential -----------------------------------------------------------------------------------
     $secretCreated = $false
-    if ($RotateSecret -or -not $storedSecret -or $storedClient -ne $webApp.appId) {
-        Write-Host 'Creating a web client secret (valid for 180 days)...'
-        $credential = Invoke-Graph POST "/applications/$($webApp.id)/addPassword" @{
-            passwordCredential = @{
-                displayName = "$NamePrefix local development"
-                endDateTime = (Get-Date).AddDays(180).ToUniversalTime().ToString('o')
-            }
+    $federatedState = 'not used'
+    if ($ManagedIdentityPrincipalId) {
+        # The web app proves its identity with a managed identity; no secret is created or stored.
+        $issuer = "https://login.microsoftonline.com/$TenantId/v2.0"
+        $federated = @((Invoke-Graph GET "/applications/$($webApp.id)/federatedIdentityCredentials").value)
+        $current = $federated | Where-Object { $_.name -eq $FederatedCredentialName } | Select-Object -First 1
+        $desired = @{
+            name        = $FederatedCredentialName
+            issuer      = $issuer
+            subject     = $ManagedIdentityPrincipalId
+            audiences   = @('api://AzureADTokenExchange')
+            description = 'Managed identity of the deployed My Garage web app'
         }
-        Set-UserSecret 'AzureAd:Web:ClientSecret' $credential.secretText
-        $credential = $null
-        $secretCreated = $true
+        if (-not $current) {
+            Invoke-Graph POST "/applications/$($webApp.id)/federatedIdentityCredentials" $desired | Out-Null
+            $federatedState = 'created'
+        }
+        elseif ($current.subject -ne $ManagedIdentityPrincipalId -or $current.issuer -ne $issuer) {
+            Invoke-Graph PATCH "/applications/$($webApp.id)/federatedIdentityCredentials/$($current.id)" $desired | Out-Null
+            $federatedState = 'updated'
+        }
+        else { $federatedState = 'unchanged' }
+    }
+    else {
+        $storedSecret = $secrets['AzureAd:Web:ClientSecret']
+        $storedClient = $secrets['AzureAd:Web:ClientId']
+        if ($RotateSecret -or -not $storedSecret -or $storedClient -ne $webApp.appId) {
+            Write-Host 'Creating a web client secret (valid for 180 days)...'
+            $credential = Invoke-Graph POST "/applications/$($webApp.id)/addPassword" @{
+                passwordCredential = @{
+                    displayName = "$NamePrefix local development"
+                    endDateTime = (Get-Date).AddDays(180).ToUniversalTime().ToString('o')
+                }
+            }
+            Set-UserSecret 'AzureAd:Web:ClientSecret' $credential.secretText
+            $credential = $null
+            $secretCreated = $true
+        }
     }
 
-    # --- AppHost user-secrets ------------------------------------------------------------------------------------
-    Set-UserSecret 'AzureAd:TenantId' $TenantId
-    Set-UserSecret 'AzureAd:Web:ClientId' $webApp.appId
-    Set-UserSecret 'AzureAd:Api:ClientId' $apiApp.appId
-    Set-UserSecret 'AzureAd:Api:Scope' $ScopeName
+    # --- Output: GitHub environment variables or the AppHost user-secrets ----------------------------------------
+    if ($useGitHub) {
+        $variables = [ordered]@{
+            AZURE_TENANT_ID     = $TenantId
+            API_ENTRA_CLIENT_ID = $apiApp.appId
+            API_ENTRA_SCOPE     = $ScopeName
+            WEB_ENTRA_CLIENT_ID = $webApp.appId
+        }
+        foreach ($name in $variables.Keys) {
+            & gh variable set $name --env $GitHubEnvironment --repo $Repository --body $variables[$name] *> $null
+            if ($LASTEXITCODE -ne 0) { throw "Could not set variable '$name' on GitHub environment '$GitHubEnvironment'." }
+        }
+    }
+    else {
+        Set-UserSecret 'AzureAd:TenantId' $TenantId
+        Set-UserSecret 'AzureAd:Web:ClientId' $webApp.appId
+        Set-UserSecret 'AzureAd:Api:ClientId' $apiApp.appId
+        Set-UserSecret 'AzureAd:Api:Scope' $ScopeName
+    }
 
     Write-Host ''
     Write-Host 'My Garage Entra setup complete' -ForegroundColor Green
-    Write-Host "  Tenant            : $TenantId"
-    Write-Host "  API client id     : $($apiApp.appId)  (scope api://$($apiApp.appId)/$ScopeName)"
-    Write-Host "  Web client id     : $($webApp.appId)  (redirect $($desiredRedirectUris[0]))"
-    Write-Host "  Web client secret : $(if ($secretCreated) { 'created and stored in the AppHost user-secrets' } else { 'already stored, left unchanged' })"
-    Write-Host "  Admin consent     : $(if ($consentGranted) { 'granted' } else { 'NOT granted - see the warning above' })"
-    Write-Host ''
-    Write-Host 'Next: run the system with "aspire run" from the repository root, then browse to ' -NoNewline
-    Write-Host $webOrigin -ForegroundColor Cyan
+    Write-Host "  Tenant              : $TenantId"
+    Write-Host "  API client id       : $($apiApp.appId)  (scope api://$($apiApp.appId)/$ScopeName)"
+    Write-Host "  Web client id       : $($webApp.appId)  (redirect $($desiredRedirectUris[0]))"
+    if ($ManagedIdentityPrincipalId) {
+        Write-Host "  Federated credential: $federatedState ($FederatedCredentialName); no client secret"
+    }
+    else {
+        Write-Host "  Web client secret   : $(if ($secretCreated) { 'created and stored in the AppHost user-secrets' } else { 'already stored, left unchanged' })"
+    }
+    Write-Host "  Configuration       : $(if ($useGitHub) { "GitHub environment '$GitHubEnvironment' variables set" } else { 'AppHost user-secrets' })"
+    Write-Host "  Admin consent       : $(if ($consentGranted) { 'granted' } else { 'NOT granted - see the warning above' })"
+    if (-not $useGitHub) {
+        Write-Host ''
+        Write-Host 'Next: run the system with "aspire run" from the repository root, then browse to ' -NoNewline
+        Write-Host $webOrigin -ForegroundColor Cyan
+    }
 }
 catch {
     Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red

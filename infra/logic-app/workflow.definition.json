@@ -1,0 +1,204 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "$connections": {
+      "type": "Object",
+      "defaultValue": {}
+    },
+    "ApiAddress": {
+      "type": "String",
+      "defaultValue": ""
+    },
+    "ApiClientId": {
+      "type": "String",
+      "defaultValue": ""
+    },
+    "IdentityResourceId": {
+      "type": "String",
+      "defaultValue": ""
+    }
+  },
+  "triggers": {
+    "When_a_new_email_arrives": {
+      "type": "ApiConnection",
+      "recurrence": {
+        "frequency": "Minute",
+        "interval": 5
+      },
+      "splitOn": "@triggerBody()?['value']",
+      "inputs": {
+        "host": {
+          "connection": {
+            "name": "@parameters('$connections')['outlook']['connectionId']"
+          }
+        },
+        "method": "get",
+        "path": "/v2/Mail/OnNewEmail",
+        "queries": {
+          "fetchOnlyWithAttachment": false,
+          "folderPath": "Inbox",
+          "importance": "Any",
+          "includeAttachments": true
+        }
+      }
+    }
+  },
+  "actions": {
+    "Html_to_text": {
+      "type": "ApiConnection",
+      "runAfter": {},
+      "inputs": {
+        "host": {
+          "connection": {
+            "name": "@parameters('$connections')['conversionservice']['connectionId']"
+          }
+        },
+        "method": "post",
+        "path": "/html2text",
+        "body": "<p>@{coalesce(triggerBody()?['Body'], '')}</p>"
+      }
+    },
+    "Keep_usable_attachments": {
+      "type": "Query",
+      "runAfter": {
+        "Html_to_text": [
+          "Succeeded"
+        ]
+      },
+      "inputs": {
+        "from": "@coalesce(triggerBody()?['Attachments'], json('[]'))",
+        "where": "@and(not(equals(item()?['IsInline'], true)), lessOrEquals(coalesce(item()?['Size'], 0), 10485760))"
+      }
+    },
+    "Map_attachments": {
+      "type": "Select",
+      "runAfter": {
+        "Keep_usable_attachments": [
+          "Succeeded"
+        ]
+      },
+      "inputs": {
+        "from": "@take(body('Keep_usable_attachments'), 5)",
+        "select": {
+          "fileName": "@item()?['Name']",
+          "contentType": "@item()?['ContentType']",
+          "isInline": false,
+          "contentBase64": "@item()?['ContentBytes']"
+        }
+      }
+    },
+    "Send_to_api": {
+      "type": "Http",
+      "runAfter": {
+        "Map_attachments": [
+          "Succeeded"
+        ]
+      },
+      "inputs": {
+        "method": "POST",
+        "uri": "@{parameters('ApiAddress')}/api/intake/emails",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "messageId": "@triggerBody()?['InternetMessageId']",
+          "receivedAt": "@triggerBody()?['DateTimeReceived']",
+          "from": "@triggerBody()?['From']",
+          "subject": "@substring(coalesce(triggerBody()?['Subject'], ''), 0, min(length(coalesce(triggerBody()?['Subject'], '')), 500))",
+          "bodyText": "@substring(body('Html_to_text'), 0, min(length(body('Html_to_text')), 100000))",
+          "attachments": "@body('Map_attachments')"
+        },
+        "authentication": {
+          "type": "ManagedServiceIdentity",
+          "identity": "@parameters('IdentityResourceId')",
+          "audience": "api://@{parameters('ApiClientId')}"
+        },
+        "retryPolicy": {
+          "type": "exponential",
+          "count": 4,
+          "interval": "PT10S",
+          "minimumInterval": "PT5S",
+          "maximumInterval": "PT1M"
+        }
+      },
+      "runtimeConfiguration": {
+        "secureData": {
+          "properties": [
+            "inputs",
+            "outputs"
+          ]
+        }
+      }
+    },
+    "Handle_failure": {
+      "type": "If",
+      "runAfter": {
+        "Send_to_api": [
+          "Failed",
+          "TimedOut"
+        ]
+      },
+      "expression": {
+        "and": [
+          {
+            "equals": [
+              "@outputs('Send_to_api')?['statusCode']",
+              413
+            ]
+          }
+        ]
+      },
+      "actions": {
+        "Send_without_attachments": {
+          "type": "Http",
+          "runAfter": {},
+          "inputs": {
+            "method": "POST",
+            "uri": "@{parameters('ApiAddress')}/api/intake/emails",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "messageId": "@triggerBody()?['InternetMessageId']",
+              "receivedAt": "@triggerBody()?['DateTimeReceived']",
+              "from": "@triggerBody()?['From']",
+              "subject": "@substring(coalesce(triggerBody()?['Subject'], ''), 0, min(length(coalesce(triggerBody()?['Subject'], '')), 500))",
+              "bodyText": "@substring(body('Html_to_text'), 0, min(length(body('Html_to_text')), 100000))",
+              "attachments": []
+            },
+            "authentication": {
+              "type": "ManagedServiceIdentity",
+              "identity": "@parameters('IdentityResourceId')",
+              "audience": "api://@{parameters('ApiClientId')}"
+            }
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        }
+      },
+      "else": {
+        "actions": {
+          "Leave_run_failed": {
+            "type": "Terminate",
+            "runAfter": {},
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "IntakeRejected",
+                "message": "The API did not accept the email and the request is not retryable. See the Send_to_api status code."
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "outputs": {}
+}

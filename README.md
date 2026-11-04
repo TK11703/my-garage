@@ -11,6 +11,10 @@ Prerequisites: .NET 10 SDK, [Aspire CLI](https://aspire.dev), Azure CLI, PowerSh
 
 Full validation steps: [specs/001-app-foundation-auth/quickstart.md](specs/001-app-foundation-auth/quickstart.md).
 
+## CI/CD
+
+Every pull request to `main` is built (warnings are errors), tested, and checked by the required GitHub check `verify`; a merge to `main` is deployed to Azure Container Apps after the owner approves the `production` environment. Setup, the runbook (manual deploy, rollback), and the Azure resource mapping are in [infra/README.md](infra/README.md).
+
 ## SpecKit
 
 This template was set up with [SpecKit](https://github.com/github/spec-kit) for specification-driven development. Its configuration, templates, scripts, and workflows live in [`.specify/`](.specify/), with Copilot skills in `.github/skills/speckit-*`.
