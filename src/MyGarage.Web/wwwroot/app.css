@@ -215,8 +215,21 @@ main:focus {
 }
 
 .mg-accordion-item > .accordion-header > .accordion-button {
-    padding-right: 6rem;
     border-radius: calc(var(--bs-border-radius) - var(--bs-border-width));
+}
+
+/* Empty space before the chevron, where the "+" menu sits. */
+.mg-accordion-item > .accordion-header > .accordion-button::before {
+    content: "";
+    order: 1;
+    flex-shrink: 0;
+    width: 3.5rem;
+    margin-left: auto;
+}
+
+.mg-accordion-item > .accordion-header > .accordion-button::after {
+    order: 2;
+    margin-left: 0;
 }
 
 .mg-accordion-item > .accordion-header > .accordion-button:not(.collapsed) {
@@ -224,10 +237,16 @@ main:focus {
     border-bottom-right-radius: 0;
 }
 
+/* Above the header button, which rises on hover and focus (z-index 2 and 3). */
 .mg-accordion-add {
     position: absolute;
     top: 0.75rem;
     right: 3.25rem;
+    z-index: 4;
+}
+
+.mg-accordion-add:has(.show) {
+    z-index: 1000;
 }
 
 /* Keep brand and icons on one row at 320 px so the bar stays one row tall. */
