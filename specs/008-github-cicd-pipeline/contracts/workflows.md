@@ -23,7 +23,7 @@ The reusable workflow has no gate job of its own: a calling job succeeds only wh
 
 | Trigger | Behaviour |
 |---|---|
-| `pull_request` targeting `main` (opened, synchronize, reopened, ready_for_review) | job `checks` calls `verify.yml`; job `verify` (`needs: checks`, `if: always()`) succeeds only when `checks` succeeded; no secrets, no `id-token` |
+| `pull_request` targeting `main` (opened, synchronize, reopened) | job `checks` calls `verify.yml`; job `verify` (`needs: checks`, `if: always()`) succeeds only when `checks` succeeded; no secrets, no `id-token` |
 | `push` to `main` | not used here (CD covers it) |
 
 Concurrency group `ci-${{ github.event.pull_request.number }}`, `cancel-in-progress: true`. Fork pull requests run with the read-only token and no secrets.
