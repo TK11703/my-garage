@@ -1,11 +1,6 @@
 @* Display only: the parent loads the page of inspections. *@
 <EntryListBlock TItem="InspectionDto" Items="Entries?.Items" TotalCount="Entries?.TotalCount ?? 0" Page="Entries?.Page ?? 1" TotalPages="Entries?.TotalPages ?? 1"
                 HrefFor="HrefFor" Failure="Failure" ReturnUrl="@ReturnUrl" EmptyMessage="No inspections yet. Add the first inspection for this vehicle." ListTestId="inspection-list">
-    <AddActions>
-        <a class="btn btn-primary d-inline-flex align-items-center gap-2" href="/vehicles/@VehicleId/inspections/new" data-testid="add-inspection">
-            <Icon Name="IconName.Plus" /> Add inspection
-        </a>
-    </AddActions>
     <RowTemplate Context="entry">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2" data-testid="inspection">
             <div>

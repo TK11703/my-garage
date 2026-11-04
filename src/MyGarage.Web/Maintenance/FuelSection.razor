@@ -1,4 +1,4 @@
-<div class="accordion-item border rounded overflow-hidden" data-testid="accordion-fuel">
+<div class="accordion-item mg-accordion-item border rounded" data-testid="accordion-fuel">
     <h2 class="accordion-header">
         <button class="accordion-button @(Expanded ? null : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#maintenance-fuel"
                 aria-expanded="@(Expanded ? "true" : "false")" aria-controls="maintenance-fuel">
@@ -9,6 +9,10 @@
             }
         </button>
     </h2>
+    <AccordionAddMenu Label="Add to Charging and Fueling">
+        <li><a class="dropdown-item" href="/vehicles/@VehicleId/fuel-energy-entries/new?kind=fuel" data-testid="add-fuel">Add fuel</a></li>
+        <li><a class="dropdown-item" href="/vehicles/@VehicleId/fuel-energy-entries/new?kind=energy" data-testid="add-charge">Add charge</a></li>
+    </AccordionAddMenu>
     <div id="maintenance-fuel" class="accordion-collapse collapse @(Expanded ? "show" : null)">
         <div class="accordion-body">
             <FuelEnergyEntryList VehicleId="VehicleId" Entries="entries" Failure="failure"

@@ -1,10 +1,6 @@
 @typeparam TItem
 
-@* Shared chrome for the Maintenance lists: add actions, rows or an empty state, a pager, and a failure alert. *@
-<div class="d-flex flex-wrap justify-content-end gap-2 mb-3" data-testid="entry-add-actions">
-    @AddActions
-</div>
-
+@* Shared chrome for the Maintenance lists: rows or an empty state, a pager, and a failure alert. *@
 @if (Failure is not null)
 {
     <ApiFailureAlert Failure="Failure.Value" ReturnUrl="@ReturnUrl"
@@ -53,9 +49,6 @@ else if (Items is not null)
 
     [Parameter, EditorRequired]
     public string EmptyMessage { get; set; } = string.Empty;
-
-    [Parameter]
-    public RenderFragment? AddActions { get; set; }
 
     [Parameter]
     public GarageApiFailure? Failure { get; set; }

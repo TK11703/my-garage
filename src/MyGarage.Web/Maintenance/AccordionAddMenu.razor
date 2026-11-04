@@ -1,0 +1,20 @@
+@* The "+" dropdown beside an accordion header; each add action is a dropdown item. It sits beside the header, not in it, because a button cannot hold a button. *@
+<div class="dropdown mg-accordion-add" data-testid="accordion-add-menu">
+    <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center" aria-label="@Label" title="@Label"
+            data-bs-toggle="dropdown" aria-expanded="false">
+        <Icon Name="IconName.Plus" />
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end mg-menu">
+        @ChildContent
+    </ul>
+</div>
+
+@code {
+    // The accessible name, such as "Add to Service Records".
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    // The dropdown items: <li><a class="dropdown-item" ...>.
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

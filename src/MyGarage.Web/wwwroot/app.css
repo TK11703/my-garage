@@ -208,6 +208,28 @@ main:focus {
     max-width: calc(100vw - 1.5rem);
 }
 
+/* The "+" add menu floats over the right end of an accordion header, left of the chevron.
+   The item cannot clip (overflow) or the menu would be cut off, so the header button rounds its own corners. */
+.mg-accordion-item {
+    position: relative;
+}
+
+.mg-accordion-item > .accordion-header > .accordion-button {
+    padding-right: 6rem;
+    border-radius: calc(var(--bs-border-radius) - var(--bs-border-width));
+}
+
+.mg-accordion-item > .accordion-header > .accordion-button:not(.collapsed) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.mg-accordion-add {
+    position: absolute;
+    top: 0.75rem;
+    right: 3.25rem;
+}
+
 /* Keep brand and icons on one row at 320 px so the bar stays one row tall. */
 @media (max-width: 359.98px) {
     .mg-navbar .container-fluid {
