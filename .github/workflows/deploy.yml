@@ -68,6 +68,8 @@ jobs:
           "tag=sha-$sha" >> $env:GITHUB_OUTPUT
           "deployable=$($deployable.ToString().ToLower())" >> $env:GITHUB_OUTPUT
           Write-Host "Commit $sha, tag sha-$sha, deployable=$deployable"
+          # pwsh exits with the last native exit code, which is 1 when the commit is not an ancestor of main.
+          exit 0
 
   verify:
     needs: resolve
