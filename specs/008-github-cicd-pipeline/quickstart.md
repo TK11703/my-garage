@@ -16,7 +16,7 @@ Expected: the preview lists what would be created; the real run reports each ste
 1. Push a small change on a branch and open a pull request. Expect the check `verify` and its jobs to appear and pass within 15 minutes.
 2. Add a compiler warning, push, and expect `verify` to fail naming the warning. Revert it.
 3. Break one test and expect the failing test to be listed in the run summary. Revert it.
-4. Change an applied migration script and expect the database tests to fail. Revert it.
+4. Change an applied migration script and expect the `migrations` job to fail (the database tests still pass because they start from an empty database). Revert it.
 5. Push a documentation-only change in another pull request: `verify` still succeeds quickly with the heavy jobs skipped.
 6. Push twice quickly to one pull request: the first run shows `cancelled`.
 
