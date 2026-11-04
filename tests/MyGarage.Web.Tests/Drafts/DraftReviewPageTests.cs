@@ -295,6 +295,7 @@ public class DraftReviewPageTests : DraftTestContext
             Assert.False(string.IsNullOrEmpty(form.Id));
             Assert.Equal(form.Id, footer.QuerySelector("button[data-testid='save-record']")!.GetAttribute("form"));
             Assert.Equal(form.Id, footer.QuerySelector("button[data-testid='check-again']")!.GetAttribute("form"));
+            Assert.Equal("Saving...", footer.QuerySelector("button[data-testid='save-record']")!.GetAttribute("data-busy-text"));
             Assert.Empty(form.QuerySelectorAll("[data-testid='save-record'], [data-testid='check-again'], [data-testid='discard-draft']"));
             Assert.DoesNotContain("Back to drafts", cut.Markup);
         });
