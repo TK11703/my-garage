@@ -6,7 +6,7 @@ Tracked in `infra/logic-app/` (`New-IntakeLogicApp.ps1`, `workflow.definition.js
 
 | Parameter | Required | Default | Meaning |
 |---|---|---|---|
-| `-OutlookConnectionName` | no | `con-mygarage-outlook` | Name of the `Microsoft.Web/connections` resource (API `outlook`) for `mygarage-intake@outlook.com`; created by the script from `outlook-connection.bicep` when missing, authorised once by the owner in the portal |
+| `-OutlookConnectionName` | no | `con-mygarage-outlook` | Name of the `Microsoft.Web/connections` resource (API `outlook`) for `mygarage_intake@outlook.com`; created by the script from `outlook-connection.bicep` when missing, authorised once by the owner in the portal |
 | `-ResourceGroup` | no | `rg-apps` | |
 | `-Location` | no | `northcentralus` | Must equal the connection's region |
 | `-Name` | no | `logic-mygarage-intake` | |

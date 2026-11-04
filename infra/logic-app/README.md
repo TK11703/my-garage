@@ -29,7 +29,7 @@ Each step reports `created`, `updated`, or `unchanged`; a second run changes not
 
 ## Authorise the mailbox (once)
 
-After the first run, open the API connection `con-mygarage-outlook` in `rg-apps` in the Azure portal, choose **Edit API connection**, **Authorize**, sign in as `mygarage-intake@outlook.com`, and **Save**. The status must read *Connected*. The script prints this reminder while the connection is not authorised, and never redeploys the connection once it exists, so the authorisation is kept.
+After the first run, open the API connection `con-mygarage-outlook` in `rg-apps` in the Azure portal, choose **Edit API connection**, **Authorize**, sign in as `mygarage_intake@outlook.com`, and **Save**. The status must read *Connected*. The script prints this reminder while the connection is not authorised, and never redeploys the connection once it exists, so the authorisation is kept.
 
 ## Parameters
 
