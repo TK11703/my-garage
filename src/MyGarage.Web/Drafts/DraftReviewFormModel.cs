@@ -76,6 +76,8 @@ public sealed class ServiceProposalForm
 
     public string? ShopOrPerson { get; set; }
 
+    public decimal? Tax { get; set; }
+
     // The total printed on the document; kept only so the check can warn when the lines add up differently.
     public decimal? DocumentTotal { get; set; }
 
@@ -83,6 +85,9 @@ public sealed class ServiceProposalForm
 
     // What the lines add up to as they are entered now.
     public decimal Total => Lines.Sum(line => line.Total);
+
+    // The lines plus the tax: what the saved record's total will be.
+    public decimal RecordTotal => Total + (Tax ?? 0m);
 
     public static ServiceProposalForm From(ServiceRecordProposal? proposal) =>
         proposal is null
@@ -92,6 +97,7 @@ public sealed class ServiceProposalForm
                 DateServiced = proposal.DateServiced,
                 OdometerReading = proposal.OdometerReading,
                 ShopOrPerson = proposal.ShopOrPerson,
+                Tax = proposal.Tax,
                 DocumentTotal = proposal.DocumentTotal,
                 Lines = [.. proposal.LineItems.Select(ProposalLineForm.From)],
             };
@@ -102,6 +108,7 @@ public sealed class ServiceProposalForm
             DateServiced = DateServiced,
             OdometerReading = OdometerReading,
             ShopOrPerson = ShopOrPerson,
+            Tax = Tax,
             DocumentTotal = DocumentTotal,
             LineItems = [.. Lines.Select(line => line.ToRequest())],
         };
@@ -157,13 +164,26 @@ public sealed class ProposalLineForm
 
     public decimal? LaborRate { get; set; }
 
+    // Total labor, entered only when there are no hours and rate; the product of both otherwise.
+    public decimal? LaborCost { get; set; }
+
+    public bool LaborIsCalculated => LaborHours is not null && LaborRate is not null;
+
     public List<ServicePartRow> Parts { get => field ??= []; set; } = [];
 
     // The line total as the chosen pricing method gives it; missing numbers count as zero.
     public decimal Total =>
         Pricing == PricingMode.Flat
             ? FlatCost ?? 0m
-            : Money(LaborHours, LaborRate) + Parts.Sum(PartTotal);
+            : Labor + Parts.Sum(PartTotal);
+
+    private decimal Labor =>
+        LaborIsCalculated ? Money(LaborHours, LaborRate)
+        : LaborHours is null && LaborRate is null ? LaborCost ?? 0m
+        : 0m;
+
+    // What the Total labor field shows: the product when hours and rate are both given, else what was entered.
+    public decimal? LaborShown => LaborIsCalculated ? Money(LaborHours, LaborRate) : LaborCost;
 
     public static decimal PartTotal(ServicePartRow part) => Money(part.Quantity, part.UnitPrice);
 
@@ -172,7 +192,7 @@ public sealed class ProposalLineForm
 
     public static ProposalLineForm From(ServiceLineItemRequest line)
     {
-        var breakdown = line.FlatCost is null && (line.LaborHours is not null || line.LaborRate is not null || line.Parts.Count > 0);
+        var breakdown = line.FlatCost is null && (line.LaborHours is not null || line.LaborRate is not null || line.LaborCost is not null || line.Parts.Count > 0);
         return new ProposalLineForm
         {
             Description = line.Description,
@@ -180,6 +200,7 @@ public sealed class ProposalLineForm
             FlatCost = line.FlatCost,
             LaborHours = line.LaborHours,
             LaborRate = line.LaborRate,
+            LaborCost = line.LaborCost,
             Parts = [.. line.Parts.Select(part => new ServicePartRow { Name = part.Name, Quantity = part.Quantity, UnitPrice = part.UnitPrice })],
         };
     }
@@ -193,6 +214,7 @@ public sealed class ProposalLineForm
                 Description = Description,
                 LaborHours = LaborHours,
                 LaborRate = LaborRate,
+                LaborCost = LaborIsCalculated ? null : LaborCost,
                 Parts = [.. Parts.Select(part => new ServicePartRequest { Name = part.Name, Quantity = part.Quantity, UnitPrice = part.UnitPrice })],
             };
 }

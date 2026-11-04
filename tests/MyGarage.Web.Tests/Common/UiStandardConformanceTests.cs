@@ -8,7 +8,7 @@ public class UiStandardConformanceTests
 {
     private static readonly string[] Sources = FindSources();
     private static readonly string WebProject = FindWebProject();
-    private static readonly string[] Scripts = ["lease-toggle.js", "pricing-toggle.js", "dropzone.js", "feature-suggest.js", "auto-submit.js", "clear-error.js"];
+    private static readonly string[] Scripts = ["lease-toggle.js", "pricing-toggle.js", "labor-total.js", "dropzone.js", "feature-suggest.js", "auto-submit.js", "clear-error.js"];
 
     private static string FindWebProject([CallerFilePath] string? sourceFile = null)
     {
@@ -263,6 +263,7 @@ public class UiStandardConformanceTests
     [Theory]
     [InlineData("lease-toggle.js")]
     [InlineData("pricing-toggle.js")]
+    [InlineData("labor-total.js")]
     [InlineData("dropzone.js")]
     [InlineData("feature-suggest.js")]
     [InlineData("auto-submit.js")]
@@ -286,6 +287,7 @@ public class UiStandardConformanceTests
     [Theory]
     [InlineData("lease-toggle.js")]
     [InlineData("pricing-toggle.js")]
+    [InlineData("labor-total.js")]
     [InlineData("dropzone.js")]
     [InlineData("feature-suggest.js")]
     [InlineData("auto-submit.js")]

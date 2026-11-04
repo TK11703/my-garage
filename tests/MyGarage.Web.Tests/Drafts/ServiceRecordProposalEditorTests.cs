@@ -163,6 +163,67 @@ public class ServiceRecordProposalEditorTests : DraftTestContext
     }
 
     [Fact]
+    public void TheEditorOffersATaxField_AndATotalLaborFieldAfterTheRate()
+    {
+        var cut = RenderEditor();
+
+        var tax = cut.Find("input#serviceRecord-tax");
+        Assert.Equal("Model.Service.Tax", tax.GetAttribute("name"));
+        Assert.Equal("0", tax.GetAttribute("min"));
+        Assert.Equal("9999999.99", tax.GetAttribute("max"));
+        Assert.Null(tax.GetAttribute("aria-required"));
+
+        var flat = cut.Find("#serviceRecord-lineItems-0-flatCost");
+        Assert.Equal("-9999999.99", flat.GetAttribute("min"));
+
+        var laborCost = cut.Find("#serviceRecord-lineItems-1-laborCost");
+        Assert.Equal("Model.Service.Lines[1].LaborCost", laborCost.GetAttribute("name"));
+        Assert.True(laborCost.HasAttribute("data-labor-total"));
+        Assert.NotNull(cut.Find("label[for='serviceRecord-lineItems-1-laborCost']"));
+        Assert.True(cut.Find("#serviceRecord-lineItems-1-laborHours").HasAttribute("data-labor-hours"));
+        Assert.True(cut.Find("#serviceRecord-lineItems-1-laborRate").HasAttribute("data-labor-rate"));
+    }
+
+    [Fact]
+    public void ATax_IsShownWithTheTotalThatIncludesIt_AndNothingIsShownWithoutOne()
+    {
+        var cut = RenderEditor();
+        Assert.Empty(cut.FindAll("[data-testid='proposal-tax']"));
+
+        cut.Find("#serviceRecord-tax").Change("8.25");
+
+        Assert.Equal("$8.25", cut.Find("[data-testid='proposal-tax']").TextContent.Trim());
+        Assert.Equal("$208.25", cut.Find("[data-testid='record-total']").TextContent.Trim());
+        Assert.Equal("$200.00", cut.Find("[data-testid='proposal-total']").TextContent.Trim());
+    }
+
+    [Fact]
+    public void ADiscountLine_ShowsAMinusSignAndACreditLabel()
+    {
+        model.Lines[0].FlatCost = -4.04m;
+
+        var cut = RenderEditor();
+
+        var total = cut.FindAll("[data-testid='line-total']")[0];
+        Assert.Equal("-$4.04", total.FirstChild!.TextContent.Trim());
+        Assert.Equal("credit", total.QuerySelector(".visually-hidden")!.TextContent.Trim());
+    }
+
+    [Fact]
+    public void ErrorsOnTheTaxAndTheLaborTotal_ShowBesideTheirFields()
+    {
+        var cut = RenderEditor(new Dictionary<string, string>
+        {
+            ["serviceRecord.tax"] = "Tax must be between 0.00 and 9,999,999.99.",
+            ["serviceRecord.lineItems[1].laborCost"] = "Total labor must be between 0.00 and 9,999,999.99.",
+        });
+
+        Assert.Contains("Tax must be between", cut.Find("#serviceRecord-tax-error").TextContent);
+        Assert.Contains("Total labor must be between", cut.Find("#serviceRecord-lineItems-1-laborCost-error").TextContent);
+        Assert.Equal("serviceRecord-tax-error", cut.Find("#serviceRecord-tax").GetAttribute("aria-describedby"));
+    }
+
+    [Fact]
     public void RunningTotals_ShowEachPartEachLineAndTheWholeProposal()
     {
         var cut = RenderEditor();
