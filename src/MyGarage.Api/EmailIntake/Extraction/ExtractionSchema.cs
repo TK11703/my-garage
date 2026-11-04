@@ -91,5 +91,8 @@ public static class ExtractionSchema
         "inspection, registration, insurance, or tax document. Dates are yyyy-MM-dd, money is a plain decimal number without currency symbols, " +
         "and anything not stated in the content is null. " +
         "On a service invoice a discount or credit is a line item with a negative flatCost, and the tax is returned once in tax and is never a line item. " +
+        "A miscellaneous, MISC, coupon, discount, adjustment, or split amount is its own line item even when it is printed inside a job's charges or totals, and a negative amount stays negative. " +
+        "Every printed charge belongs in a line item, but a job with no amount, such as a no-charge inspection, is not a line item. " +
+        "Before answering, check each job: its labor plus parts plus miscellaneous amounts must equal the printed job total, and the line items plus the tax must equal the document total; add any missing line until they do. " +
         "Give laborHours and laborRate only when both are printed; when only a labor total is printed, give it in laborCost.";
 }
