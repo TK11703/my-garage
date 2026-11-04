@@ -117,7 +117,7 @@ description: "Task list for Discounts, Labor Totals, and Tax on Service Records"
 - [x] T033 [P] Update `docs/ui-standard.md`: credits (a minus sign and a visually hidden label, never color alone), and calculated versus entered fields (a disabled input that shows the calculated value), with the Tax and Total labor fields as the examples; extend `UiStandardConformanceTests` if it checks forms for the new inputs
 - [x] T034 Run the whole solution: `dotnet build MyGarage.slnx` (zero warnings) and `dotnet test MyGarage.slnx`, confirm migrations apply to an empty database, and fix what fails
 - [x] T035 Run the quickstart local steps with `aspire run` in the integrated browser (ask the owner to sign in first) and record the result
-- [ ] T036 Open a pull request for `009-invoice-pricing-rules`; when the owner merges it and approves the `production` gate, open the existing draft from the invoice that raised these issues (or resend it), confirm it shows the discount, the labor total, and the tax with no mismatch warning, accept it, and confirm the record total equals the invoice total (SC-002)
+- [x] T036 Open a pull request for `009-invoice-pricing-rules`; when the owner merges it and approves the `production` gate, open the existing draft from the invoice that raised these issues (or resend it), confirm it shows the discount, the labor total, and the tax with no mismatch warning, accept it, and confirm the record total equals the invoice total (SC-002)
 
 ---
 
