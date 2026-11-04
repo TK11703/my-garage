@@ -1,4 +1,4 @@
-<div class="accordion-item border rounded overflow-hidden" data-testid="accordion-compliance">
+<div class="accordion-item mg-accordion-item border rounded" data-testid="accordion-compliance">
     <h2 class="accordion-header">
         <button class="accordion-button @(Expanded ? null : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#maintenance-compliance"
                 aria-expanded="@(Expanded ? "true" : "false")" aria-controls="maintenance-compliance">
@@ -9,6 +9,12 @@
             }
         </button>
     </h2>
+    <AccordionAddMenu Label="Add to Inspections, Registrations, Insurance, and Taxes">
+        <li><a class="dropdown-item" href="/vehicles/@VehicleId/inspections/new" data-testid="add-inspection">Add inspection</a></li>
+        <li><a class="dropdown-item" href="/vehicles/@VehicleId/registrations/new" data-testid="add-registration">Add registration</a></li>
+        <li><a class="dropdown-item" href="/vehicles/@VehicleId/insurance/new" data-testid="add-insurance">Add insurance</a></li>
+        <li><a class="dropdown-item" href="/vehicles/@VehicleId/taxes/new" data-testid="add-tax">Add tax</a></li>
+    </AccordionAddMenu>
     <div id="maintenance-compliance" class="accordion-collapse collapse @(Expanded ? "show" : null)">
         <div class="accordion-body">
             <section data-testid="compliance-inspections" class="mb-4">

@@ -1,4 +1,4 @@
-<div class="accordion-item border rounded overflow-hidden" data-testid="accordion-service-records">
+<div class="accordion-item mg-accordion-item border rounded" data-testid="accordion-service-records">
     <h2 class="accordion-header">
         <button class="accordion-button @(Expanded ? null : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#maintenance-service-records"
                 aria-expanded="@(Expanded ? "true" : "false")" aria-controls="maintenance-service-records">
@@ -9,14 +9,11 @@
             }
         </button>
     </h2>
+    <AccordionAddMenu Label="Add to Service Records">
+        <li><a class="dropdown-item" href="/vehicles/@VehicleId/service-records/new" data-testid="add-service-record">Add service record</a></li>
+    </AccordionAddMenu>
     <div id="maintenance-service-records" class="accordion-collapse collapse @(Expanded ? "show" : null)">
         <div class="accordion-body">
-            <div class="d-flex justify-content-end mb-3">
-                <a class="btn btn-primary d-inline-flex align-items-center gap-2" href="/vehicles/@VehicleId/service-records/new" data-testid="add-service-record">
-                    <Icon Name="IconName.Plus" /> Add service record
-                </a>
-            </div>
-
             @if (failure is not null)
             {
                 <ApiFailureAlert Failure="failure.Value" ReturnUrl="@TabHref(Page)"

@@ -9,8 +9,6 @@ public class EntryListBlockTests : BunitContext
 {
     private static RenderFragment<string> Row => item => builder => builder.AddMarkupContent(0, $"<span data-testid=\"row-text\">{item}</span>");
 
-    private static RenderFragment Add => builder => builder.AddMarkupContent(0, "<a data-testid=\"add\" href=\"/add\">Add</a>");
-
     private IRenderedComponent<EntryListBlock<string>> RenderBlock(
         IReadOnlyList<string>? items, int totalCount, int totalPages = 1, GarageApiFailure? failure = null) =>
         Render<EntryListBlock<string>>(parameters => parameters
@@ -21,17 +19,15 @@ public class EntryListBlockTests : BunitContext
             .Add(block => block.HrefFor, page => $"/list?page={page}")
             .Add(block => block.RowTemplate, Row)
             .Add(block => block.EmptyMessage, "Nothing here yet.")
-            .Add(block => block.AddActions, Add)
             .Add(block => block.Failure, failure)
             .Add(block => block.ReturnUrl, "/back"));
 
     [Fact]
-    public void NoItems_ShowsTheEmptyMessageAndStillShowsTheAddActions()
+    public void NoItems_ShowsTheEmptyMessage()
     {
         var cut = RenderBlock([], 0);
 
         Assert.Contains("Nothing here yet.", cut.Markup);
-        Assert.NotNull(cut.Find("[data-testid='add']"));
         Assert.Empty(cut.FindAll(".list-group"));
     }
 
@@ -43,7 +39,6 @@ public class EntryListBlockTests : BunitContext
         var rows = cut.FindAll(".list-group > li");
         Assert.Equal(2, rows.Count);
         Assert.Equal(["one", "two"], cut.FindAll("[data-testid='row-text']").Select(row => row.TextContent));
-        Assert.NotNull(cut.Find("[data-testid='add']"));
         Assert.Empty(cut.FindAll("table"));
     }
 
@@ -58,12 +53,11 @@ public class EntryListBlockTests : BunitContext
     }
 
     [Fact]
-    public void AFailure_ShowsTheAlertInsteadOfTheListAndKeepsTheAddActions()
+    public void AFailure_ShowsTheAlertInsteadOfTheList()
     {
         var cut = RenderBlock(null, 0, failure: GarageApiFailure.Unavailable);
 
         Assert.NotNull(cut.Find("[role='alert']"));
         Assert.Empty(cut.FindAll(".list-group"));
-        Assert.NotNull(cut.Find("[data-testid='add']"));
     }
 }

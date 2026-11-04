@@ -120,6 +120,29 @@ public class MaintenanceViewTests : VehicleTestContext
         });
     }
 
+    [Theory]
+    [InlineData("accordion-service-records", "Add to Service Records", "add-service-record")]
+    [InlineData("accordion-fuel", "Add to Charging and Fueling", "add-fuel,add-charge")]
+    [InlineData("accordion-compliance", "Add to Inspections, Registrations, Insurance, and Taxes", "add-inspection,add-registration,add-insurance,add-tax")]
+    public void TheAddActions_LiveInAPlusDropdownOnTheAccordionHeader(string item, string label, string testIds)
+    {
+        ServiceRecords = ServiceRecordsPage([]);
+
+        var cut = RenderView();
+
+        cut.WaitForAssertion(() =>
+        {
+            var menu = cut.Find($"[data-testid='{item}'] > .mg-accordion-add");
+            var toggle = menu.QuerySelector("button[data-bs-toggle='dropdown']")!;
+            Assert.Equal(label, toggle.GetAttribute("aria-label"));
+            Assert.Equal("false", toggle.GetAttribute("aria-expanded"));
+            Assert.NotNull(toggle.QuerySelector("svg.bi"));
+            Assert.Equal(testIds.Split(','), menu.QuerySelectorAll(".dropdown-menu a.dropdown-item").Select(link => link.GetAttribute("data-testid")));
+            Assert.Empty(cut.FindAll($"[data-testid='{item}'] .accordion-body [data-testid^='add-']"));
+            Assert.Empty(cut.FindAll($"[data-testid='{item}'] .accordion-header [data-testid^='add-']"));
+        });
+    }
+
     [Fact]
     public void Records_AreListedInTheOrderReturnedWithTheirValuesAndALink()
     {
