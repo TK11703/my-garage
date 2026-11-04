@@ -347,6 +347,21 @@ try {
             Write-Step 7 'PUBLIC connect on the database revoked' 'updated'
         }
         else { Write-Step 7 'PUBLIC connect on the database revoked' 'would be updated' }
+
+        # The database owner does not own its public schema (Azure keeps it with azure_pg_admin), so without this grant the
+        # API cannot create the migration ledger or any table.
+        $schemaOk = $null
+        try { $schemaOk = @(Invoke-Sql $DatabaseName "SELECT has_schema_privilege('$ApiIdentity', 'public', 'CREATE') AS ok")[0].ok } catch { $schemaOk = $null }
+        if ($schemaOk -eq $true) { Write-Step 7 "Schema public: $ApiIdentity can create objects" 'unchanged' }
+        elseif ($PSCmdlet.ShouldProcess("schema public in $DatabaseName", "grant USAGE and CREATE to $ApiIdentity")) {
+            # After the owner change the administrator reaches the database and schema only through membership of the owner role.
+            $member = $false
+            try { Invoke-Sql 'postgres' "GRANT `"$ApiIdentity`" TO `"$($script:pgAdminUser)`"" | Out-Null; $member = $true } catch { }
+            try { Invoke-Sql $DatabaseName "GRANT USAGE, CREATE ON SCHEMA public TO `"$ApiIdentity`"" | Out-Null }
+            finally { if ($member) { Invoke-Sql 'postgres' "REVOKE `"$ApiIdentity`" FROM `"$($script:pgAdminUser)`"" | Out-Null } }
+            Write-Step 7 "Schema public: $ApiIdentity can create objects" 'updated'
+        }
+        else { Write-Step 7 "Schema public: $ApiIdentity can create objects" 'would be updated' }
         }
         finally {
             if ($ruleName) {
