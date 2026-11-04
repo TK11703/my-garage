@@ -211,6 +211,8 @@ public class ResponsesApiExtractorTests
         Assert.Contains("negative", instructions, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("tax", instructions, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("laborCost", instructions, StringComparison.Ordinal);
+        Assert.Contains("MISC", instructions, StringComparison.Ordinal);
+        Assert.Contains("document total", instructions, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
