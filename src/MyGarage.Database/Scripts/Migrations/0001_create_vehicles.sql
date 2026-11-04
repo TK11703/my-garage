@@ -15,3 +15,5 @@ CREATE TABLE vehicles (
 );
 
 CREATE INDEX ix_vehicles_owner_nickname ON vehicles (owner_id, lower(nickname), id);
+
+-- rehearsal edit of an applied migration
