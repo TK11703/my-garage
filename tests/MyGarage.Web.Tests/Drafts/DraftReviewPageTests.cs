@@ -277,6 +277,30 @@ public class DraftReviewPageTests : DraftTestContext
     }
 
     [Fact]
+    public void TheProposedRecordCardFooter_HoldsSaveCheckAgainCancelAndDiscardInOneRow()
+    {
+        var cut = RenderPage(DraftDto(compatibility: Acceptable()));
+
+        cut.WaitForAssertion(() =>
+        {
+            var footer = cut.Find("section[aria-labelledby='proposal-heading'] > .card-footer");
+            Assert.Contains("d-flex", footer.ClassList);
+
+            var controls = footer.QuerySelectorAll("button[data-testid='save-record'], button[data-testid='check-again'], a.btn[href='/drafts'], details[data-testid='discard-draft']");
+            Assert.Equal(
+                ["Save record", "Check again", "Cancel", "Discard"],
+                controls.Select(control => (control.TagName == "DETAILS" ? control.QuerySelector("summary")! : control).TextContent.Trim()));
+
+            var form = cut.Find(FormSelector);
+            Assert.False(string.IsNullOrEmpty(form.Id));
+            Assert.Equal(form.Id, footer.QuerySelector("button[data-testid='save-record']")!.GetAttribute("form"));
+            Assert.Equal(form.Id, footer.QuerySelector("button[data-testid='check-again']")!.GetAttribute("form"));
+            Assert.Empty(form.QuerySelectorAll("[data-testid='save-record'], [data-testid='check-again'], [data-testid='discard-draft']"));
+            Assert.DoesNotContain("Back to drafts", cut.Markup);
+        });
+    }
+
+    [Fact]
     public void Save_IsDisabled_WhileTheProposalIsNotAcceptable()
     {
         var cut = RenderPage(DraftDto(compatibility: NeedsAttention(DraftKind.ServiceRecord, ("serviceRecord.odometerReading", CompatibilityStatus.Missing, "Required"))));
