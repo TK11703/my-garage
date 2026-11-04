@@ -25,7 +25,7 @@ A signed-in user adds or edits a service record and enters a line item whose fla
 1. **Given** a user adding a line item, **When** they enter a description and a flat cost of -4.04, **Then** the line item is accepted and the record total drops by 4.04.
 2. **Given** a record with a discount line, **When** the user views the record, **Then** the discount is shown as a credit (a minus amount), not as an error or a charge.
 3. **Given** a user entering a flat cost beyond the allowed range in either direction, **When** they save, **Then** nothing is stored and the message says the allowed range.
-4. **Given** discounts larger than the charges they are meant to offset, **When** the record total would be below zero, **Then** the record is not saved and the message says the total cannot be below zero.
+4. **Given** a record whose discounts exceed its charges, **When** the user views it, **Then** the total is shown as a credit (a minus amount); a record is never refused because of its total.
 5. **Given** a line item with a discount, **When** the user also fills in labor or parts on the same line, **Then** the existing rule applies and the line is rejected: a flat cost cannot be combined with labor or parts.
 
 ---
@@ -88,7 +88,7 @@ When an emailed or attached invoice is turned into a draft, discounts arrive as 
 ### Edge Cases
 
 - A discount line combined with parts or labor on the same line is still rejected (flat cost stays exclusive).
-- A record whose lines and tax add up to less than zero is rejected; a total of exactly zero is allowed.
+- A record whose lines and tax add up to less than zero is allowed and shown as a credit, because line items are added and removed one at a time and a refund-only record is real.
 - A typed total labor of zero is allowed; a labor total over the allowed maximum is rejected.
 - Hours and rate given with a typed total labor: the calculation wins.
 - Labor hours with no rate (or the reverse) is an error in the form and is never silently dropped there; only the draft builder drops a lone value and records that it did.
@@ -110,7 +110,7 @@ When an emailed or attached invoice is turned into a draft, discounts arrive as 
 - **FR-007**: A line item MUST be acceptable when its pricing is a flat cost, or labor (calculated or entered) and/or parts, and MUST be rejected when it has none of these.
 - **FR-008**: A line item's total MUST be the flat cost, or the labor total plus the parts, rounded to cents.
 - **FR-009**: A service record MUST accept an optional tax amount from 0.00 to 9,999,999.99 with at most two decimal places, stored with the record and not as a line item.
-- **FR-010**: A service record's total MUST be the sum of its line item totals plus its tax, and MUST NOT be below zero; a record that would total below zero MUST be rejected with a message that says so.
+- **FR-010**: A service record's total MUST be the sum of its line item totals plus its tax, and MAY be below zero.
 - **FR-011**: Service records, line items, and tax saved before this change MUST keep their values and totals unchanged.
 - **FR-012**: Discounts MUST be shown as credits (a minus amount) wherever line items are listed or summarized, and the tax MUST be shown on its own line separately from the line items wherever a record is shown in full.
 - **FR-013**: When an invoice is turned into a draft, discounts MUST be proposed as negative flat-cost lines, a labor amount without hours and rate MUST be proposed as a labor total, a lone labor hours or hourly rate MUST be left out of the proposal with the labor kept as a total, and the tax MUST be proposed in the tax field and not as a line item.
