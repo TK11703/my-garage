@@ -29,3 +29,5 @@ Each feature is specified under [`specs/`](../specs) (spec, plan, research, data
 - **Processing**: a background service reads each queued submission with Azure OpenAI and creates draft maintenance items (never records) for the matched owner. Drafts wait 30 days for review, then expire.
 - **Review**: the owner opens **Email drafts** from the notifications menu, checks the compatibility panel, and saves a draft as a record (optionally keeping the original file under the vehicle's Documents) or discards it. **History** lists what happened to each email.
 - **Privacy**: logs, metrics, and failure reasons carry ids, counts, and statuses only; email text, addresses, file names, and extracted values are never logged. Attachments live in private blob containers (`email-intake`, `vehicle-documents`) and are streamed to the owner through the web app.
+
+
