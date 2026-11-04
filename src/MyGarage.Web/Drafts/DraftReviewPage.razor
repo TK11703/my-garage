@@ -99,7 +99,7 @@ else if (draft is not null)
 
                         <CompatibilityPanel Compatibility="compatibility" SaveFailed="saveFailed" />
 
-                        <EditForm Model="Model" FormName="review-draft" OnSubmit="SubmitAsync" class="vstack gap-3" data-testid="review-form">
+                        <EditForm Model="Model" FormName="review-draft" OnSubmit="SubmitAsync" id="review-draft" class="vstack gap-3" data-testid="review-form">
                             @* Pressing Enter in a field submits the form with the first button, so that one only checks. *@
                             <button type="submit" name="action" value="check" class="visually-hidden" tabindex="-1" aria-hidden="true" formnovalidate>Check</button>
 
@@ -168,18 +168,18 @@ else if (draft is not null)
                                     <div id="keep-original-help" class="form-text">The file is stored privately under Documents on this vehicle's Maintenance tab, apart from vehicle pictures.</div>
                                 </div>
                             }
-
-                            <div class="d-flex flex-wrap gap-2">
-                                <button type="submit" name="action" value="save" class="btn btn-primary d-inline-flex align-items-center gap-2"
-                                        data-testid="save-record" title="Save this record" disabled="@(!CanSave)">
-                                    <Icon Name="IconName.Save" /> Save record
-                                </button>
-                                <button type="submit" name="action" value="check" class="btn btn-outline-secondary" formnovalidate
-                                        data-testid="check-again" title="Check the details again after changing them">Check again</button>
-                                <a class="btn btn-outline-secondary" href="/drafts" title="Leave this draft for later">Back to drafts</a>
-                            </div>
                         </EditForm>
+                    </div>
 
+                    @* The footer sits outside the form so Discard can have a form of its own; "form" ties Save and Check again to the review form. *@
+                    <div class="card-footer d-flex flex-wrap align-items-start gap-2">
+                        <button type="submit" form="review-draft" name="action" value="save" class="btn btn-primary d-inline-flex align-items-center gap-2"
+                                data-testid="save-record" title="Save this record" disabled="@(!CanSave)">
+                            <Icon Name="IconName.Save" /> Save record
+                        </button>
+                        <button type="submit" form="review-draft" name="action" value="check" class="btn btn-outline-secondary" formnovalidate
+                                data-testid="check-again" title="Check the details again after changing them">Check again</button>
+                        <a class="btn btn-outline-secondary" href="/drafts" title="Leave this draft for later">Cancel</a>
                         <details class="position-relative" data-testid="discard-draft">
                             <summary class="btn btn-outline-danger d-inline-flex align-items-center gap-2" title="Discard this draft">
                                 <Icon Name="IconName.Trash" /> Discard
