@@ -7,15 +7,17 @@
     Idempotent: each step reports created, updated, or unchanged. The Logic App (Consumption) watches the mailbox behind the
     Outlook connection you provide and posts each email to POST <api>/api/intake/emails, authenticating with the user-assigned
     managed identity id-mygarage-intake, which is granted the Email.Ingest app role on "MyGarage Azure API".
-      1. Checks the Outlook connection you created and authorised (never creates or consents to it)
+      1. Creates the Outlook.com connection from outlook-connection.bicep when it is missing (never consents to it: the mailbox
+         owner authorises it once in the Azure portal)
       2. Creates the content-conversion connection (no sign-in needed) used to turn the HTML body into text
       3. Creates the user-assigned identity id-mygarage-intake
       4. Creates or updates the Logic App from workflow.definition.json
       5. Grants the identity the Email.Ingest app role through Microsoft Graph
     No secret exists in this flow and none is printed.
 
-.PARAMETER OutlookConnectionId
-    Resource id of the existing Microsoft.Web/connections resource for the Outlook.com connector, authorised for the intake mailbox.
+.PARAMETER OutlookConnectionName
+    Name of the Microsoft.Web/connections resource for the Outlook.com connector. Created when missing; the intake mailbox owner
+    must then authorise it in the Azure portal.
 
 .PARAMETER ResourceGroup
     Resource group of the Logic App, identity, and conversion connection.
@@ -42,12 +44,12 @@
     Reports what would change without changing anything.
 
 .EXAMPLE
-    ./infra/logic-app/New-IntakeLogicApp.ps1 -OutlookConnectionId <resource id> -WhatIf
-    ./infra/logic-app/New-IntakeLogicApp.ps1 -OutlookConnectionId <resource id>
+    ./infra/logic-app/New-IntakeLogicApp.ps1 -WhatIf
+    ./infra/logic-app/New-IntakeLogicApp.ps1
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [Parameter(Mandatory)] [string] $OutlookConnectionId,
+    [string] $OutlookConnectionName = 'con-mygarage-outlook',
     [string] $ResourceGroup = 'rg-apps',
     [string] $Location = 'northcentralus',
     [string] $Name = 'logic-mygarage-intake',
@@ -64,6 +66,7 @@ $ApiContainerApp = 'ca-api-mygarage'
 $IngestRole = 'Email.Ingest'
 $ConversionConnectionName = 'con-mygarage-conversion'
 $definitionPath = Join-Path $PSScriptRoot 'workflow.definition.json'
+$outlookTemplate = Join-Path $PSScriptRoot 'outlook-connection.bicep'
 
 function Invoke-Az {
     param([string[]] $Arguments, [switch] $AllowFailure)
@@ -120,18 +123,25 @@ try {
         $ApiClientId = $apiApp.appId
     }
 
-    # --- Outlook connection (owner-provided) -----------------------------------------------------------------
-    $connection = Invoke-Az @('resource', 'show', '--ids', $OutlookConnectionId) -AllowFailure
-    if (-not $connection) { throw "The Outlook connection '$OutlookConnectionId' was not found." }
-    if ($connection.properties.api.id -notmatch '/managedApis/outlook$') { throw 'The connection is not an Outlook.com (outlook) connection.' }
-    if ($connection.location -ne $Location -and $connection.location.Replace(' ', '').ToLower() -ne $Location.ToLower()) {
-        throw "The connection is in $($connection.location) but the Logic App is in $Location; they must match."
+    # --- Outlook connection (created here, authorised by the mailbox owner) --------------------------------------
+    $outlookApiId = "/subscriptions/$subscriptionId/providers/Microsoft.Web/locations/$Location/managedApis/outlook"
+    $outlookConnectionId = "$groupScope/providers/Microsoft.Web/connections/$OutlookConnectionName"
+    $outlookAuthorised = $false
+    $connection = Invoke-Az @('resource', 'show', '--ids', $outlookConnectionId) -AllowFailure
+    if ($connection) {
+        if ($connection.properties.api.id -notmatch '/managedApis/outlook$') { throw "'$OutlookConnectionName' is not an Outlook.com (outlook) connection." }
+        if ($connection.location.Replace(' ', '').ToLower() -ne $Location.ToLower()) {
+            throw "The connection is in $($connection.location) but the Logic App is in $Location; they must match."
+        }
+        $outlookAuthorised = @($connection.properties.statuses | ForEach-Object { $_.status }) -contains 'Connected'
+        Write-Step 'Outlook connection' 'unchanged' "$OutlookConnectionName, $(if ($outlookAuthorised) { 'connected' } else { 'waiting for authorisation' })"
     }
-    $statuses = @($connection.properties.statuses | ForEach-Object { $_.status })
-    if ($statuses -notcontains 'Connected') {
-        throw "The Outlook connection is not authorised (status: $($statuses -join ', ')). Open it in the Azure portal, authorise it for the intake mailbox, and run this script again."
+    elseif ($PSCmdlet.ShouldProcess($OutlookConnectionName, 'create')) {
+        Invoke-Az @('deployment', 'group', 'create', '--resource-group', $ResourceGroup, '--name', 'mygarage-outlook-connection',
+            '--template-file', $outlookTemplate, '--parameters', "connectionName=$OutlookConnectionName", "location=$Location") | Out-Null
+        Write-Step 'Outlook connection' 'created' 'waiting for authorisation'
     }
-    Write-Step 'Outlook connection' 'unchanged' "$($connection.name), connected"
+    else { Write-Step 'Outlook connection' 'would be created' }
 
     # --- Content-conversion connection ----------------------------------------------------------------------
     $conversionId = "$groupScope/providers/Microsoft.Web/connections/$ConversionConnectionName"
@@ -166,9 +176,9 @@ try {
         '$connections'     = @{
             value = @{
                 outlook         = @{
-                    connectionId   = $OutlookConnectionId
-                    connectionName = $connection.name
-                    id             = $connection.properties.api.id
+                    connectionId   = $outlookConnectionId
+                    connectionName = $OutlookConnectionName
+                    id             = $outlookApiId
                 }
                 conversionservice = @{
                     connectionId   = $conversionId
@@ -228,6 +238,9 @@ try {
     if ($whatIf) { Write-Host 'No changes were made.' -ForegroundColor Cyan }
     else {
         Write-Host "Logic App ready: $Name posts to $ApiAddress/api/intake/emails every $PollIntervalMinutes minute(s)." -ForegroundColor Green
+        if (-not $outlookAuthorised) {
+            Write-Host "Next: in the Azure portal open the API connection '$OutlookConnectionName' in $ResourceGroup, choose Edit API connection, Authorize, sign in as the intake mailbox, and Save. The Logic App cannot read mail until then." -ForegroundColor Yellow
+        }
     }
 }
 catch {

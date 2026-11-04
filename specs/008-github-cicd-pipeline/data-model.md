@@ -24,7 +24,7 @@ No application data model changes: no table, migration, DTO, or API contract is 
 | Extraction service | `aif-shared-acc` deployment `gpt-4.1-mini` | `rg-platform` | existing, referenced only; role assignment by Bicep |
 | Logging | `law-shared` via `cae-shared` | `rg-apps` | existing |
 | Logic App | `logic-mygarage-intake` | `rg-apps` | `New-IntakeLogicApp.ps1` (not pipeline) |
-| Outlook connection | owner-provided `Microsoft.Web/connections` resource | region `northcentralus` | owner |
+| Outlook connection | `Microsoft.Web/connections` resource `con-mygarage-outlook`, created by the Logic App script, authorised by the owner | region `northcentralus` | owner |
 | Entra registrations | `MyGarage Azure API`, `MyGarage Azure Web` | tenant | `Initialize-Entra.ps1` (extended) |
 
 ### Role assignments created

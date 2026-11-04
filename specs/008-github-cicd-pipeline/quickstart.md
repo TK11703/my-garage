@@ -59,12 +59,12 @@ Rename or remove a mapped resource only in a throwaway copy, not production; the
 
 ## 7. Email intake
 
-1. The owner creates the Outlook connection for `mygarage-intake@outlook.com` (portal: Logic Apps connection `outlook`, authorise) in `rg-apps`, region `northcentralus`.
+1. The script creates the Outlook connection `con-mygarage-outlook` in `rg-apps`, region `northcentralus`; after the first run the owner opens it in the portal (Edit API connection, Authorize, sign in as `mygarage-intake@outlook.com`, Save) so it shows *Connected*.
 2. Create the Logic App:
 
    ```powershell
-   ./infra/logic-app/New-IntakeLogicApp.ps1 -OutlookConnectionId <connection resource id> -WhatIf
-   ./infra/logic-app/New-IntakeLogicApp.ps1 -OutlookConnectionId <connection resource id>
+    ./infra/logic-app/New-IntakeLogicApp.ps1 -WhatIf
+    ./infra/logic-app/New-IntakeLogicApp.ps1
    ```
 
    Expected: `created`; a second run reports `unchanged`; the managed identity holds the `Email.Ingest` role.

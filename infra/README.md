@@ -25,7 +25,7 @@ My Garage runs on shared resources that already exist in the subscription (regio
 | File storage | Storage account `stmygarage<unique>` | `rg-platform` | new (no shared account existed) |
 | Document extraction | AI Foundry account `aif-shared-acc`, deployment `gpt-4.1-mini` | `rg-platform` | existing, reused |
 | Logging | Log Analytics workspace `law-shared` through `cae-shared` | `rg-apps` | existing, reused |
-| Email intake | Logic App `logic-mygarage-intake` and the owner's Outlook connection | `rg-apps` | new, created by script (not the pipeline) |
+| Email intake | Logic App `logic-mygarage-intake` and its Outlook connection `con-mygarage-outlook` | `rg-apps` | new, created by script (not the pipeline) |
 | Sign-in | Entra registrations `MyGarage Azure API` and `MyGarage Azure Web` | tenant | new |
 | Pipeline | App registration `mygarage-github-oidc`, GitHub environment `production` | tenant, GitHub | new |
 
