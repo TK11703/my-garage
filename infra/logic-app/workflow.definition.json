@@ -135,10 +135,27 @@
         }
       }
     },
-    "Move_to_processed": {
+    "Mark_as_read": {
       "type": "ApiConnection",
       "runAfter": {
         "Send_to_api": [
+          "Succeeded"
+        ]
+      },
+      "inputs": {
+        "host": {
+          "connection": {
+            "name": "@parameters('$connections')['outlook']['connectionId']"
+          }
+        },
+        "method": "post",
+        "path": "/Mail/MarkAsRead/@{encodeURIComponent(triggerBody()?['Id'])}"
+      }
+    },
+    "Move_to_processed": {
+      "type": "ApiConnection",
+      "runAfter": {
+        "Mark_as_read": [
           "Succeeded"
         ]
       },
@@ -206,10 +223,27 @@
             }
           }
         },
-        "Move_to_processed_after_retry": {
+        "Mark_as_read_after_retry": {
           "type": "ApiConnection",
           "runAfter": {
             "Send_without_attachments": [
+              "Succeeded"
+            ]
+          },
+          "inputs": {
+            "host": {
+              "connection": {
+                "name": "@parameters('$connections')['outlook']['connectionId']"
+              }
+            },
+            "method": "post",
+            "path": "/Mail/MarkAsRead/@{encodeURIComponent(triggerBody()?['Id'])}"
+          }
+        },
+        "Move_to_processed_after_retry": {
+          "type": "ApiConnection",
+          "runAfter": {
+            "Mark_as_read_after_retry": [
               "Succeeded"
             ]
           },

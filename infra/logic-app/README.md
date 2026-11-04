@@ -48,7 +48,7 @@ After the first run, open the API connection `con-mygarage-outlook` in `rg-apps`
 
 ## Behaviour
 
-The mapping, attachment limits, retry policy, and failure handling are described in the feature contract ([`specs/008-github-cicd-pipeline/contracts/logic-app-intake.md`](../../specs/008-github-cicd-pipeline/contracts/logic-app-intake.md)). In short: inline images and files over 10 MB are dropped, at most 5 attachments are sent, a `413` is retried once without attachments, any other rejection leaves the run **Failed** in the run history, and inputs and outputs of the call are hidden from the run history because they contain email content. After the API accepts an email (any `2xx`, including the `413` retry), the email is moved from the Inbox to the `Processed` folder so the Inbox only holds mail that was not handled; a rejected email stays in the Inbox.
+The mapping, attachment limits, retry policy, and failure handling are described in the feature contract ([`specs/008-github-cicd-pipeline/contracts/logic-app-intake.md`](../../specs/008-github-cicd-pipeline/contracts/logic-app-intake.md)). In short: inline images and files over 10 MB are dropped, at most 5 attachments are sent, a `413` is retried once without attachments, any other rejection leaves the run **Failed** in the run history, and inputs and outputs of the call are hidden from the run history because they contain email content. After the API accepts an email (any `2xx`, including the `413` retry), the email is marked as read and moved from the Inbox to the `Processed` folder so the Inbox only holds mail that was not handled; a rejected email stays in the Inbox.
 
 ## Cost
 
