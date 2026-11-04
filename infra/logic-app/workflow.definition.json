@@ -17,6 +17,10 @@
     "IdentityResourceId": {
       "type": "String",
       "defaultValue": ""
+    },
+    "ProcessedFolder": {
+      "type": "String",
+      "defaultValue": "Processed"
     }
   },
   "triggers": {
@@ -131,6 +135,26 @@
         }
       }
     },
+    "Move_to_processed": {
+      "type": "ApiConnection",
+      "runAfter": {
+        "Send_to_api": [
+          "Succeeded"
+        ]
+      },
+      "inputs": {
+        "host": {
+          "connection": {
+            "name": "@parameters('$connections')['outlook']['connectionId']"
+          }
+        },
+        "method": "post",
+        "path": "/Mail/Move/@{encodeURIComponent(triggerBody()?['Id'])}",
+        "queries": {
+          "folderPath": "@parameters('ProcessedFolder')"
+        }
+      }
+    },
     "Handle_failure": {
       "type": "If",
       "runAfter": {
@@ -179,6 +203,26 @@
                 "inputs",
                 "outputs"
               ]
+            }
+          }
+        },
+        "Move_to_processed_after_retry": {
+          "type": "ApiConnection",
+          "runAfter": {
+            "Send_without_attachments": [
+              "Succeeded"
+            ]
+          },
+          "inputs": {
+            "host": {
+              "connection": {
+                "name": "@parameters('$connections')['outlook']['connectionId']"
+              }
+            },
+            "method": "post",
+            "path": "/Mail/Move/@{encodeURIComponent(triggerBody()?['Id'])}",
+            "queries": {
+              "folderPath": "@parameters('ProcessedFolder')"
             }
           }
         }
