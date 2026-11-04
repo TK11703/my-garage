@@ -251,6 +251,7 @@ public sealed class ResponsesApiExtractor(
             OdometerReading = answer.OdometerReading,
             ShopOrPerson = answer.ShopOrPerson,
             TotalCost = answer.TotalCost,
+            Tax = answer.Tax,
             UnitPrice = answer.UnitPrice,
             Quantity = answer.Quantity,
             Type = answer.Type,
@@ -266,7 +267,8 @@ public sealed class ResponsesApiExtractor(
                 line.FlatCost,
                 line.LaborHours,
                 line.LaborRate,
-                line.Parts?.Select(part => new ExtractedPart(part.Name, part.Quantity, part.UnitPrice)).ToList())).ToList(),
+                line.Parts?.Select(part => new ExtractedPart(part.Name, part.Quantity, part.UnitPrice)).ToList(),
+                line.LaborCost)).ToList(),
         };
     }
 
@@ -301,6 +303,9 @@ public sealed class ResponsesApiExtractor(
         public required string? ShopOrPerson { get; init; }
 
         public required decimal? TotalCost { get; init; }
+
+        // Optional here so an older stored answer without it still parses; the request schema requires it.
+        public decimal? Tax { get; init; }
 
         public required decimal? UnitPrice { get; init; }
 
@@ -347,6 +352,8 @@ public sealed class ResponsesApiExtractor(
         public required decimal? LaborHours { get; init; }
 
         public required decimal? LaborRate { get; init; }
+
+        public decimal? LaborCost { get; init; }
 
         public required List<PartAnswer>? Parts { get; init; }
     }

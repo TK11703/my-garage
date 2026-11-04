@@ -58,6 +58,81 @@ public class ServiceLineItemsEndpointsTests(ApiFactory factory) : IClassFixture<
     }
 
     [Fact]
+    public async Task Post_ADiscountLine_ReducesTheRecordTotal_AndAnOutOfRangeOneIsRejected()
+    {
+        var client = factory.CreateClientForUser(Alice);
+        var vehicle = await CreateVehicleAsync(client);
+        var record = await CreateRecordAsync(client, vehicle.Id);
+        await AddFlatLineItemAsync(client, vehicle.Id, record.Id, "Oil change", 50m);
+
+        var response = await PostLineItemAsync(client, vehicle.Id, record.Id, new ServiceLineItemRequest { Description = "Coupon", FlatCost = -4.04m });
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var updated = (await response.Content.ReadFromJsonAsync<ServiceRecordDto>())!;
+        var coupon = updated.LineItems.Single(line => line.Description == "Coupon");
+        Assert.Equal(-4.04m, coupon.FlatCost);
+        Assert.Equal(-4.04m, coupon.TotalCost);
+        Assert.Equal(45.96m, updated.TotalCost);
+
+        var tooLow = await PostLineItemAsync(client, vehicle.Id, record.Id, new ServiceLineItemRequest { Description = "Too much", FlatCost = -10_000_000m });
+        Assert.Equal(HttpStatusCode.BadRequest, tooLow.StatusCode);
+        var problem = await tooLow.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        Assert.Contains(problem!.Errors.Keys, key => key.Equals("flatCost", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Post_ALaborTotalOnlyLine_StoresAndReturnsTheEnteredAmount_AndWithPartsTotalsBoth()
+    {
+        var client = factory.CreateClientForUser(Alice);
+        var vehicle = await CreateVehicleAsync(client);
+        var record = await CreateRecordAsync(client, vehicle.Id);
+
+        var labor = await PostLineItemAsync(client, vehicle.Id, record.Id, new ServiceLineItemRequest { Description = "Labor", LaborCost = 180m });
+        var withParts = await PostLineItemAsync(
+            client, vehicle.Id, record.Id,
+            new ServiceLineItemRequest { Description = "Brake job", LaborCost = 180m, Parts = [new ServicePartRequest { Name = "Pads", Quantity = 1m, UnitPrice = 25m }] });
+
+        Assert.Equal(HttpStatusCode.Created, labor.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, withParts.StatusCode);
+        var updated = (await withParts.Content.ReadFromJsonAsync<ServiceRecordDto>())!;
+        var first = updated.LineItems.Single(line => line.Description == "Labor");
+        Assert.Equal(180m, first.LaborCost);
+        Assert.Null(first.LaborHours);
+        Assert.Equal(180m, first.TotalCost);
+        Assert.Equal(205m, updated.LineItems.Single(line => line.Description == "Brake job").TotalCost);
+        Assert.Equal(385m, updated.TotalCost);
+    }
+
+    [Fact]
+    public async Task Post_HoursAndRateWithATypedLaborTotal_UseTheCalculation()
+    {
+        var client = factory.CreateClientForUser(Alice);
+        var vehicle = await CreateVehicleAsync(client);
+        var record = await CreateRecordAsync(client, vehicle.Id);
+
+        var response = await PostLineItemAsync(
+            client, vehicle.Id, record.Id, new ServiceLineItemRequest { Description = "Labor", LaborHours = 2.5m, LaborRate = 120m, LaborCost = 999.99m });
+
+        var line = Assert.Single((await response.Content.ReadFromJsonAsync<ServiceRecordDto>())!.LineItems);
+        Assert.Equal(300m, line.LaborCost);
+        Assert.Equal(300m, line.TotalCost);
+    }
+
+    [Fact]
+    public async Task Post_HoursWithoutARate_Returns400()
+    {
+        var client = factory.CreateClientForUser(Alice);
+        var vehicle = await CreateVehicleAsync(client);
+        var record = await CreateRecordAsync(client, vehicle.Id);
+
+        var response = await PostLineItemAsync(client, vehicle.Id, record.Id, new ServiceLineItemRequest { Description = "Labor", LaborHours = 2m, LaborCost = 180m });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        Assert.Contains(problem!.Errors.Keys, key => key.Equals("laborRate", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public async Task Post_BreakdownAndTheRunningTotal()
     {
         var client = factory.CreateClientForUser(Alice);

@@ -99,6 +99,7 @@ public sealed class DraftAcceptanceRepository(NpgsqlDataSource dataSource, SqlSc
                             service.DateServiced,
                             service.OdometerReading,
                             service.ShopOrPerson,
+                            service.TaxAmount,
                             Now = now,
                             FromEmail = true,
                         }))
@@ -166,8 +167,8 @@ public sealed class DraftAcceptanceRepository(NpgsqlDataSource dataSource, SqlSc
                 line.FlatCost,
                 line.LaborHours,
                 line.LaborRate,
-                TotalCost = ServiceCostCalculator.LineTotal(
-                    line.FlatCost, line.LaborHours, line.LaborRate, line.Parts.Select(part => (part.Quantity, part.UnitPrice))),
+                LaborCost = line.StoredLaborCost,
+                line.TotalCost,
                 Now = now,
             },
             transaction,

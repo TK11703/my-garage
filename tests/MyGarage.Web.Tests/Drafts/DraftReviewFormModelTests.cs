@@ -56,6 +56,60 @@ public class DraftReviewFormModelTests
     }
 
     [Fact]
+    public void ATaxALaborTotalAndADiscount_RoundTripAndCountInTheTotals()
+    {
+        var model = DraftReviewFormModel.From(
+            new DraftProposal
+            {
+                Kind = DraftKind.ServiceRecord,
+                ServiceRecord = new ServiceRecordProposal
+                {
+                    DateServiced = new DateOnly(2026, 10, 12),
+                    OdometerReading = 45_000,
+                    Tax = 8.25m,
+                    LineItems =
+                    [
+                        new ServiceLineItemRequest { Description = "Brakes", LaborCost = 180m },
+                        new ServiceLineItemRequest { Description = "Coupon", FlatCost = -4.04m },
+                    ],
+                },
+            },
+            DraftKind.ServiceRecord,
+            Guid.NewGuid(),
+            keepOriginal: false);
+
+        Assert.Equal(PricingMode.Breakdown, model.Service.Lines[0].Pricing);
+        Assert.Equal(180m, model.Service.Lines[0].Total);
+        Assert.Equal(-4.04m, model.Service.Lines[1].Total);
+        Assert.Equal(175.96m, model.Service.Total);
+        Assert.Equal(184.21m, model.Service.RecordTotal);
+
+        var section = model.ToProposal().ServiceRecord!;
+        Assert.Equal(8.25m, section.Tax);
+        Assert.Equal(180m, section.LineItems[0].LaborCost);
+        Assert.Null(section.LineItems[0].LaborHours);
+        Assert.Equal(-4.04m, section.LineItems[1].FlatCost);
+    }
+
+    [Fact]
+    public void HoursAndRate_MakeTheLaborTotalTheirProduct_AndAnEnteredTotalIsNotSent()
+    {
+        var line = new ProposalLineForm { Pricing = PricingMode.Breakdown, LaborHours = 1.5m, LaborRate = 90m, LaborCost = 1m };
+
+        Assert.Equal(135m, line.Total);
+        Assert.Null(line.ToRequest().LaborCost);
+    }
+
+    [Fact]
+    public void AlineWithLaborCostOnly_IsShownAsLaborAndParts()
+    {
+        var line = ProposalLineForm.From(new ServiceLineItemRequest { Description = "x", LaborCost = 50m });
+
+        Assert.Equal(PricingMode.Breakdown, line.Pricing);
+        Assert.Equal(50m, line.LaborCost);
+    }
+
+    [Fact]
     public void ALineWithBothFlatCostAndLabor_IsShownAsFlat()
     {
         var line = ProposalLineForm.From(new ServiceLineItemRequest { Description = "x", FlatCost = 5m, LaborHours = 1m, LaborRate = 2m });

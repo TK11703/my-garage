@@ -15,6 +15,10 @@ public sealed class ServiceRecordDto
     // In the order they were added.
     public required IReadOnlyList<ServiceLineItemDto> LineItems { get; init; }
 
+    // Null when the record has no tax; it is part of TotalCost, not a line item.
+    public decimal? Tax { get; init; }
+
+    // Line item totals plus the tax; below zero when discounts exceed the charges.
     public required decimal TotalCost { get; init; }
 
     public required DateTimeOffset CreatedAt { get; init; }

@@ -43,7 +43,7 @@
                                                 <span class="badge text-bg-info fw-normal" data-testid="from-email">From email</span>
                                             }
                                         </span>
-                                        <span class="fw-semibold" data-testid="record-total">@DisplayFormat.Money(record.TotalCost)</span>
+                                        <span class="fw-semibold" data-testid="record-total"><MoneyText Amount="record.TotalCost" /></span>
                                     </span>
                                     <span class="d-flex flex-wrap gap-3 small text-body-secondary">
                                         <span data-testid="record-odometer">@ServiceRecordFormat.Odometer(record.OdometerReading)</span>

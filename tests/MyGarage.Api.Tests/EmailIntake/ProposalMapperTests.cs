@@ -75,10 +75,85 @@ public class ProposalMapperTests
     [Fact]
     public void BothFlatCostAndLabor_KeepsTheLabor()
     {
-        var line = Map(ServiceResult(new ExtractedLineItem("Alignment", 99m, 1m, null, []))).ServiceRecord!.LineItems.Single();
+        var line = Map(ServiceResult(new ExtractedLineItem("Alignment", 99m, 1m, 80m, []))).ServiceRecord!.LineItems.Single();
 
         Assert.Null(line.FlatCost);
         Assert.Equal(1m, line.LaborHours);
+        Assert.Equal(80m, line.LaborRate);
+    }
+
+    [Fact]
+    public void ADiscountLine_KeepsItsNegativeFlatCost()
+    {
+        var line = Map(ServiceResult(new ExtractedLineItem("Coupon", -4.04m, null, null, null))).ServiceRecord!.LineItems.Single();
+
+        Assert.Equal(-4.04m, line.FlatCost);
+        Assert.Null(line.LaborCost);
+    }
+
+    [Fact]
+    public void ALaborTotalWithoutHoursOrRate_IsKeptAsTheLaborCost_AndClearsTheFlatCost()
+    {
+        var line = Map(ServiceResult(new ExtractedLineItem("Labor", 180m, null, null, null, 180m))).ServiceRecord!.LineItems.Single();
+
+        Assert.Null(line.FlatCost);
+        Assert.Equal(180m, line.LaborCost);
+        Assert.Null(line.LaborHours);
+        Assert.Null(line.LaborRate);
+    }
+
+    [Fact]
+    public void ALaborTotalWithParts_KeepsBoth()
+    {
+        var line = Map(ServiceResult(new ExtractedLineItem("Brake job", null, null, null, [new ExtractedPart("Pads", 1m, 25m)], 180m))).ServiceRecord!.LineItems.Single();
+
+        Assert.Equal(180m, line.LaborCost);
+        Assert.Single(line.Parts);
+    }
+
+    [Theory]
+    [InlineData(2.5, null)]
+    [InlineData(null, 120.0)]
+    public void ALoneHoursOrRate_IsDropped_AndTheLaborTotalIsKept(double? hours, double? rate)
+    {
+        var line = Map(ServiceResult(new ExtractedLineItem("Labor", null, (decimal?)hours, (decimal?)rate, null, 180m))).ServiceRecord!.LineItems.Single();
+
+        Assert.Null(line.LaborHours);
+        Assert.Null(line.LaborRate);
+        Assert.Equal(180m, line.LaborCost);
+    }
+
+    [Fact]
+    public void ALoneHoursWithAFlatCostAndNoLaborTotal_FallsBackToTheFlatCost()
+    {
+        var line = Map(ServiceResult(new ExtractedLineItem("Alignment", 99m, 1m, null, []))).ServiceRecord!.LineItems.Single();
+
+        Assert.Equal(99m, line.FlatCost);
+        Assert.Null(line.LaborHours);
+    }
+
+    [Fact]
+    public void HoursAndRateTogetherWithALaborTotal_KeepTheCalculationAndDropTheTotal()
+    {
+        var line = Map(ServiceResult(new ExtractedLineItem("Labor", null, 2.5m, 120m, null, 999m))).ServiceRecord!.LineItems.Single();
+
+        Assert.Equal(2.5m, line.LaborHours);
+        Assert.Equal(120m, line.LaborRate);
+        Assert.Null(line.LaborCost);
+    }
+
+    [Fact]
+    public void TheTax_IsRoundedAndKeptOutOfTheLineItems_AndZeroMeansNone()
+    {
+        var withTax = ServiceResult(new ExtractedLineItem("Oil change", 50m, null, null, null)) with { Tax = 8.255m };
+        var zero = ServiceResult(new ExtractedLineItem("Oil change", 50m, null, null, null)) with { Tax = 0m };
+
+        var section = Map(withTax).ServiceRecord!;
+
+        Assert.Equal(8.26m, section.Tax);
+        Assert.Single(section.LineItems);
+        Assert.Null(Map(zero).ServiceRecord!.Tax);
+        Assert.Null(Map(ServiceResult()).ServiceRecord!.Tax);
     }
 
     [Fact]

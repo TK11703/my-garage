@@ -87,7 +87,7 @@ public class ServiceLineItemFormTests : VehicleTestContext
 
             var flat = cut.Find("input#flat-cost");
             Assert.Equal("0.01", flat.GetAttribute("step"));
-            Assert.Equal("0", flat.GetAttribute("min"));
+            Assert.Equal("-9999999.99", flat.GetAttribute("min"));
             Assert.NotNull(cut.Find("label[for='flat-cost']"));
             Assert.NotNull(cut.Find("input#labor-hours"));
             Assert.NotNull(cut.Find("input#labor-rate"));
@@ -266,6 +266,89 @@ public class ServiceLineItemFormTests : VehicleTestContext
     }
 
     [Fact]
+    public void Add_ADiscountLine_PostsTheNegativeFlatCost()
+    {
+        var cut = RenderCreate();
+        cut.WaitForElement("input#line-description").Change("Coupon");
+        cut.Find("input#flat-cost").Change("-4.04");
+
+        cut.Find("form[data-testid='line-item-form']").Submit();
+
+        cut.WaitForAssertion(() => Assert.EndsWith($"/vehicles/{vehicleId}/service-records/{recordId}", CurrentUri));
+        Assert.Equal(-4.04m, LastBody().GetProperty("flatCost").GetDecimal());
+    }
+
+    [Fact]
+    public void Add_TotalLabor_FollowsTheHourlyRateInTheLaborSection()
+    {
+        var cut = RenderCreate();
+
+        cut.WaitForAssertion(() =>
+        {
+            var section = cut.Find("[data-pricing-section='Breakdown']");
+            Assert.Equal(
+                ["labor-hours", "labor-rate", "labor-cost"],
+                section.QuerySelectorAll("input[id^='labor-']").Select(input => input.Id));
+            Assert.NotNull(cut.Find("label[for='labor-cost']"));
+            Assert.Equal("Total labor ($)", cut.Find("label[for='labor-cost']").TextContent.Trim());
+            var total = cut.Find("input#labor-cost");
+            Assert.False(total.HasAttribute("readonly"));
+            Assert.Equal("0.01", total.GetAttribute("step"));
+            Assert.Equal("0", total.GetAttribute("min"));
+            Assert.True(total.HasAttribute("data-labor-total"));
+        });
+    }
+
+    [Fact]
+    public void Add_ALaborTotalOnlyLine_PostsTheTotalWithoutHoursOrRate()
+    {
+        var cut = RenderCreate();
+        cut.WaitForElement("input#line-description").Change("Brake job");
+        cut.Find("input#pricing-breakdown").Change("Breakdown");
+        cut.Find("input#labor-cost").Change("180");
+
+        cut.Find("form[data-testid='line-item-form']").Submit();
+
+        cut.WaitForAssertion(() => Assert.EndsWith($"/vehicles/{vehicleId}/service-records/{recordId}", CurrentUri));
+        var body = LastBody();
+        Assert.Equal(180m, body.GetProperty("laborCost").GetDecimal());
+        Assert.Equal(JsonValueKind.Null, body.GetProperty("laborHours").ValueKind);
+        Assert.Equal(JsonValueKind.Null, body.GetProperty("laborRate").ValueKind);
+    }
+
+    [Fact]
+    public void Add_HoursAndRate_PostNoEnteredTotal()
+    {
+        var cut = RenderCreate();
+        cut.WaitForElement("input#line-description").Change("Oil change");
+        cut.Find("input#pricing-breakdown").Change("Breakdown");
+        cut.Find("input#labor-hours").Change("2");
+        cut.Find("input#labor-rate").Change("90");
+        cut.Find("input#labor-cost").Change("1");
+
+        cut.Find("form[data-testid='line-item-form']").Submit();
+
+        cut.WaitForAssertion(() => Assert.EndsWith($"/vehicles/{vehicleId}/service-records/{recordId}", CurrentUri));
+        Assert.Equal(JsonValueKind.Null, LastBody().GetProperty("laborCost").ValueKind);
+    }
+
+    [Fact]
+    public void Add_ARejectedTotalLabor_ShowsTheMessageBesideTheField()
+    {
+        var cut = RenderCreate(() => ValidationProblem(("LaborCost", "Total labor must be between 0.00 and 9,999,999.99.")));
+        cut.WaitForElement("input#pricing-breakdown").Change("Breakdown");
+        cut.Find("input#labor-cost").Change("-5");
+
+        cut.Find("form[data-testid='line-item-form']").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("Total labor must be between", cut.Find("#laborcost-error").TextContent);
+            Assert.Equal("laborcost-error", cut.Find("input#labor-cost").GetAttribute("aria-describedby"));
+        });
+    }
+
+    [Fact]
     public void Add_ARejectedSave_ShowsMessagesBesideTheFieldsAndPartRowsAndKeepsTheValues()
     {
         var cut = RenderCreate(() => ValidationProblem(
@@ -403,6 +486,49 @@ public class ServiceLineItemFormTests : VehicleTestContext
             Assert.Equal("Oil filter", cut.Find("input#part-0-name").GetAttribute("value"));
             Assert.Equal("8.25", cut.Find("input#part-1-unit-price").GetAttribute("value"));
             Assert.Equal(string.Empty, cut.Find("input#part-2-name").GetAttribute("value") ?? string.Empty);
+        });
+    }
+
+    [Fact]
+    public void Edit_ALaborTotalOnlyLine_SelectsLaborAndPartsAndPrefillsAnEditableTotal()
+    {
+        var line = new ServiceLineItemDto { Id = Guid.NewGuid(), Description = "Brake job", LaborCost = 180m, Parts = [], TotalCost = 180m };
+
+        var cut = RenderEdit(line);
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.True(cut.Find("input#pricing-breakdown").HasAttribute("checked"));
+            Assert.Equal("180", cut.Find("input#labor-cost").GetAttribute("value"));
+            Assert.False(cut.Find("input#labor-cost").HasAttribute("readonly"));
+        });
+    }
+
+    [Fact]
+    public void Edit_AHoursAndRateLine_ShowsTheCalculatedTotalReadOnly()
+    {
+        var line = new ServiceLineItemDto { Id = Guid.NewGuid(), Description = "Oil change", LaborHours = 1.5m, LaborRate = 90m, LaborCost = 135m, Parts = [], TotalCost = 135m };
+
+        var cut = RenderEdit(line);
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal(135m, decimal.Parse(cut.Find("input#labor-cost").GetAttribute("value")!, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.True(cut.Find("input#labor-cost").HasAttribute("readonly"));
+        });
+    }
+
+    [Fact]
+    public void Edit_ADiscountLine_PrefillsTheNegativeFlatCost()
+    {
+        var line = new ServiceLineItemDto { Id = Guid.NewGuid(), Description = "Coupon", FlatCost = -4.04m, Parts = [], TotalCost = -4.04m };
+
+        var cut = RenderEdit(line);
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.True(cut.Find("input#pricing-flat").HasAttribute("checked"));
+            Assert.Equal("-4.04", cut.Find("input#flat-cost").GetAttribute("value"));
         });
     }
 

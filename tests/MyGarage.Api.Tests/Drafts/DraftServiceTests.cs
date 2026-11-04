@@ -257,6 +257,57 @@ public class DraftServiceTests
         Assert.Equal(("Pads", 2m, 20m), (part.Name, part.Quantity, part.UnitPrice));
     }
 
+    [Fact]
+    public void AServiceProposalWithADiscountALaborTotalAndATax_MapsToValuesWhoseTotalMatchesTheDocument()
+    {
+        var proposal = new DraftProposal
+        {
+            Kind = DraftKind.ServiceRecord,
+            ServiceRecord = new ServiceRecordProposal
+            {
+                DateServiced = Day,
+                OdometerReading = 45_500,
+                LineItems =
+                [
+                    new ServiceLineItemRequest { Description = "Oil change", FlatCost = 50m },
+                    new ServiceLineItemRequest { Description = "Coupon", FlatCost = -4.04m },
+                    new ServiceLineItemRequest { Description = "Labor", LaborCost = 180m },
+                ],
+                Tax = 8.25m,
+                DocumentTotal = 234.21m,
+            },
+        };
+
+        var values = Assert.IsType<ServiceRecordValues>(DraftProposalMapper.ToValues(proposal));
+
+        Assert.Equal(8.25m, values.TaxAmount);
+        Assert.Equal(-4.04m, values.LineItems[1].TotalCost);
+        Assert.Equal(180m, values.LineItems[2].StoredLaborCost);
+        Assert.Equal(234.21m, values.LineItems.Sum(line => line.TotalCost) + values.TaxAmount);
+        Assert.Equal(234.21m, DraftProposalMapper.RecordTotal(proposal.ServiceRecord));
+        Assert.Equal(234.21m, DraftProposalMapper.HeadlineTotal(proposal));
+        Assert.Equal((Day, (decimal?)234.21m), DraftProposalMapper.DateAndTotal(proposal));
+    }
+
+    [Fact]
+    public void AZeroTaxOnAProposal_IsNoTaxOnTheValues()
+    {
+        var proposal = FullService();
+        var withZero = new DraftProposal
+        {
+            Kind = DraftKind.ServiceRecord,
+            ServiceRecord = new ServiceRecordProposal
+            {
+                DateServiced = proposal.ServiceRecord!.DateServiced,
+                OdometerReading = proposal.ServiceRecord.OdometerReading,
+                LineItems = proposal.ServiceRecord.LineItems,
+                Tax = 0m,
+            },
+        };
+
+        Assert.Null(Assert.IsType<ServiceRecordValues>(DraftProposalMapper.ToValues(withZero)).TaxAmount);
+    }
+
     [Theory]
     [InlineData(DraftKind.Fuel, "fuel")]
     [InlineData(DraftKind.Energy, "energy")]

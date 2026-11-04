@@ -27,7 +27,7 @@ public class ServiceRecordRepositoryTests(PostgresFixture postgres)
 
     private static Task<ServiceRecordDetailRecord?> AddAsync(
         ServiceRecordRepository records, string ownerId, Guid vehicleId, DateOnly date, int odometer = 1000, string? shop = null, DateTimeOffset? at = null) =>
-        records.AddAsync(ownerId, vehicleId, Guid.CreateVersion7(), date, odometer, shop, at ?? T0, CancellationToken.None);
+        records.AddAsync(ownerId, vehicleId, Guid.CreateVersion7(), date, odometer, shop, null, at ?? T0, CancellationToken.None);
 
     [Fact]
     public async Task Add_StoresTheRecordWithNoLineItemsAndAudit()
@@ -49,6 +49,69 @@ public class ServiceRecordRepositoryTests(PostgresFixture postgres)
         Assert.Equal(T0, detail.Record.UpdatedAt);
         Assert.Equal("owner-1", detail.Record.CreatedBy);
         Assert.Equal("owner-1", detail.Record.UpdatedBy);
+    }
+
+    [Fact]
+    public async Task Add_WithTax_StoresItAndTheRecordTotalIncludesIt()
+    {
+        var (dataSource, vehicles, records) = await CreateAsync();
+        var vehicle = await InsertVehicleAsync(vehicles, "owner-1");
+
+        var detail = await records.AddAsync(
+            "owner-1", vehicle.Id, Guid.CreateVersion7(), new DateOnly(2026, 5, 1), 1000, null, 8.25m, T0, CancellationToken.None);
+        await ServiceRecordTestData.InsertLineItemAsync(dataSource, detail!.Record.Id, flatCost: 100m);
+
+        var loaded = await records.GetAsync("owner-1", vehicle.Id, detail.Record.Id, CancellationToken.None);
+        Assert.Equal(8.25m, loaded!.Record.TaxAmount);
+        Assert.Equal(108.25m, loaded.Record.TotalCost);
+        var page = await records.ListPageAsync("owner-1", vehicle.Id, 1, 10, CancellationToken.None);
+        Assert.Equal(108.25m, Assert.Single(page!.Items).TotalCost);
+    }
+
+    [Fact]
+    public async Task Add_WithTaxAndNoLineItems_TotalsTheTax()
+    {
+        var (_, vehicles, records) = await CreateAsync();
+        var vehicle = await InsertVehicleAsync(vehicles, "owner-1");
+
+        var detail = await records.AddAsync(
+            "owner-1", vehicle.Id, Guid.CreateVersion7(), new DateOnly(2026, 5, 1), 1000, null, 8.25m, T0, CancellationToken.None);
+
+        Assert.Equal(8.25m, detail!.Record.TotalCost);
+    }
+
+    [Fact]
+    public async Task Add_WithoutTax_ReadsNullAndTotalsTheLineItemsOnly()
+    {
+        var (dataSource, vehicles, records) = await CreateAsync();
+        var vehicle = await InsertVehicleAsync(vehicles, "owner-1");
+        var detail = await AddAsync(records, "owner-1", vehicle.Id, new DateOnly(2026, 5, 1));
+        await ServiceRecordTestData.InsertLineItemAsync(dataSource, detail!.Record.Id, flatCost: 40m);
+
+        var loaded = await records.GetAsync("owner-1", vehicle.Id, detail.Record.Id, CancellationToken.None);
+
+        Assert.Null(loaded!.Record.TaxAmount);
+        Assert.Equal(40m, loaded.Record.TotalCost);
+    }
+
+    [Fact]
+    public async Task Update_SetsAndClearsTheTax_ScopedToTheOwner()
+    {
+        var (dataSource, vehicles, records) = await CreateAsync();
+        var vehicle = await InsertVehicleAsync(vehicles, "owner-1");
+        var detail = await AddAsync(records, "owner-1", vehicle.Id, new DateOnly(2026, 5, 1));
+        var id = detail!.Record.Id;
+        await ServiceRecordTestData.InsertLineItemAsync(dataSource, id, flatCost: 100m);
+
+        var withTax = await records.UpdateAsync("owner-1", vehicle.Id, id, new DateOnly(2026, 5, 1), 1000, null, 8.25m, T0, CancellationToken.None);
+        Assert.Equal(108.25m, withTax!.Record.TotalCost);
+
+        Assert.Null(await records.UpdateAsync("owner-2", vehicle.Id, id, new DateOnly(2026, 5, 1), 1000, null, 99m, T0, CancellationToken.None));
+        Assert.Equal(8.25m, (await records.GetAsync("owner-1", vehicle.Id, id, CancellationToken.None))!.Record.TaxAmount);
+
+        var cleared = await records.UpdateAsync("owner-1", vehicle.Id, id, new DateOnly(2026, 5, 1), 1000, null, null, T0, CancellationToken.None);
+        Assert.Null(cleared!.Record.TaxAmount);
+        Assert.Equal(100m, cleared.Record.TotalCost);
     }
 
     [Fact]
@@ -171,7 +234,7 @@ public class ServiceRecordRepositoryTests(PostgresFixture postgres)
         await ServiceRecordTestData.InsertLineItemAsync(dataSource, id, flatCost: 25m);
 
         var updated = await records.UpdateAsync(
-            "owner-1", vehicle.Id, id, new DateOnly(2026, 3, 3), 250, null, T0.AddDays(1), CancellationToken.None);
+            "owner-1", vehicle.Id, id, new DateOnly(2026, 3, 3), 250, null, null, T0.AddDays(1), CancellationToken.None);
 
         Assert.NotNull(updated);
         Assert.Equal(new DateOnly(2026, 3, 3), updated.Record.DateServiced);
@@ -193,9 +256,9 @@ public class ServiceRecordRepositoryTests(PostgresFixture postgres)
         var otherVehicle = await InsertVehicleAsync(vehicles, "owner-1");
         var id = (await AddAsync(records, "owner-1", vehicle.Id, new DateOnly(2026, 1, 1), 100, "Shop"))!.Record.Id;
 
-        Assert.Null(await records.UpdateAsync("owner-1", vehicle.Id, Guid.NewGuid(), new DateOnly(2026, 2, 2), 1, "x", T0, CancellationToken.None));
-        Assert.Null(await records.UpdateAsync("owner-1", otherVehicle.Id, id, new DateOnly(2026, 2, 2), 1, "x", T0, CancellationToken.None));
-        Assert.Null(await records.UpdateAsync("owner-2", vehicle.Id, id, new DateOnly(2026, 2, 2), 1, "x", T0, CancellationToken.None));
+        Assert.Null(await records.UpdateAsync("owner-1", vehicle.Id, Guid.NewGuid(), new DateOnly(2026, 2, 2), 1, "x", null, T0, CancellationToken.None));
+        Assert.Null(await records.UpdateAsync("owner-1", otherVehicle.Id, id, new DateOnly(2026, 2, 2), 1, "x", null, T0, CancellationToken.None));
+        Assert.Null(await records.UpdateAsync("owner-2", vehicle.Id, id, new DateOnly(2026, 2, 2), 1, "x", null, T0, CancellationToken.None));
 
         var unchanged = await records.GetAsync("owner-1", vehicle.Id, id, CancellationToken.None);
         Assert.Equal(new DateOnly(2026, 1, 1), unchanged!.Record.DateServiced);
@@ -211,7 +274,7 @@ public class ServiceRecordRepositoryTests(PostgresFixture postgres)
         var first = (await AddAsync(records, "owner-1", vehicle.Id, new DateOnly(2026, 1, 1)))!.Record.Id;
         var second = (await AddAsync(records, "owner-1", vehicle.Id, new DateOnly(2026, 2, 1)))!.Record.Id;
 
-        await records.UpdateAsync("owner-1", vehicle.Id, first, new DateOnly(2026, 3, 1), 1000, null, T0, CancellationToken.None);
+        await records.UpdateAsync("owner-1", vehicle.Id, first, new DateOnly(2026, 3, 1), 1000, null, null, T0, CancellationToken.None);
 
         var page = await records.ListPageAsync("owner-1", vehicle.Id, 1, 10, CancellationToken.None);
         Assert.Equal([first, second], page!.Items.Select(record => record.Id));

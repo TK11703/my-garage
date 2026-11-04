@@ -222,6 +222,63 @@ public class CompatibilityCheckerTests
     }
 
     [Fact]
+    public async Task ADiscountALaborTotalAndATax_AreNotInvalid_AndTheTotalsAgree()
+    {
+        var section = new ServiceRecordProposal
+        {
+            DateServiced = new DateOnly(2026, 10, 20),
+            OdometerReading = 1000,
+            LineItems =
+            [
+                Flat("Oil change", 50m),
+                Flat("Coupon", -4.04m),
+                new ServiceLineItemRequest { Description = "Labor", LaborCost = 180m },
+            ],
+            Tax = 8.25m,
+            DocumentTotal = 234.21m,
+        };
+
+        var result = await NewChecker().CheckAsync(Service(section), Context, CancellationToken.None);
+
+        Assert.True(result.IsAcceptable);
+        Assert.Empty(result.Warnings);
+        Assert.All(result.Fields, field => Assert.Equal(CompatibilityStatus.Ok, field.Status));
+        Assert.Equal(CompatibilityStatus.Ok, Field(result, "serviceRecord.tax").Status);
+        Assert.Equal(CompatibilityStatus.Ok, Field(result, "serviceRecord.lineItems[1].flatCost").Status);
+        Assert.Equal(CompatibilityStatus.Ok, Field(result, "serviceRecord.lineItems[2].laborCost").Status);
+    }
+
+    [Fact]
+    public async Task ATaxThatMakesTheTotalsDiffer_WarnsWithBothAmounts_AndStaysAcceptable()
+    {
+        var section = new ServiceRecordProposal
+        {
+            DateServiced = new DateOnly(2026, 10, 20),
+            OdometerReading = 1000,
+            LineItems = [Flat(flat: 100m)],
+            Tax = 8.25m,
+            DocumentTotal = 100m,
+        };
+
+        var result = await NewChecker().CheckAsync(Service(section), Context, CancellationToken.None);
+
+        Assert.True(result.IsAcceptable);
+        var warning = Assert.Single(result.Warnings);
+        Assert.Equal("The line items and tax add up to 108.25, but the document total is 100.00.", warning);
+    }
+
+    [Fact]
+    public async Task ANegativeTax_IsInvalidAtTheTaxField()
+    {
+        var section = new ServiceRecordProposal { DateServiced = new DateOnly(2026, 10, 20), OdometerReading = 1000, LineItems = [Flat()], Tax = -1m };
+
+        var result = await NewChecker().CheckAsync(Service(section), Context, CancellationToken.None);
+
+        Assert.False(result.IsAcceptable);
+        Assert.Equal(CompatibilityStatus.Invalid, Field(result, "serviceRecord.tax").Status);
+    }
+
+    [Fact]
     public async Task AProbableDuplicate_ByAttachmentHash_WarnsOnlyWhenTheContextHasAHash()
     {
         var duplicates = new FakeDuplicates { SameAttachment = true };

@@ -2,6 +2,7 @@ UPDATE service_records sr
 SET date_serviced    = @DateServiced,
     odometer_reading = @OdometerReading,
     shop_or_person   = @ShopOrPerson,
+    tax_amount       = @TaxAmount,
     updated_at       = @Now,
     updated_by       = @OwnerId
 FROM vehicles v

@@ -27,7 +27,7 @@ public class EffectiveMileageTests(PostgresFixture postgres)
     }
 
     private static Task AddRecordAsync(ServiceRecordRepository records, VehicleRecord vehicle, DateOnly date, int odometer, DateTimeOffset? at = null) =>
-        records.AddAsync(vehicle.OwnerId, vehicle.Id, Guid.CreateVersion7(), date, odometer, null, at ?? T0, CancellationToken.None);
+        records.AddAsync(vehicle.OwnerId, vehicle.Id, Guid.CreateVersion7(), date, odometer, null, null, at ?? T0, CancellationToken.None);
 
     private static async Task<int?> MileageAsync(VehicleRepository vehicles, VehicleRecord vehicle) =>
         (await vehicles.ListPageAsync(vehicle.OwnerId, VehicleSearchCriteria.None, 1, 50, CancellationToken.None))
@@ -81,7 +81,7 @@ public class EffectiveMileageTests(PostgresFixture postgres)
     {
         var (_, vehicles, records) = await CreateAsync();
         var vehicle = await InsertAsync(vehicles, mileage: 20_000, latest: 60_000);
-        var detail = await records.AddAsync("owner-1", vehicle.Id, Guid.CreateVersion7(), new DateOnly(2026, 5, 1), 70_000, null, T0, CancellationToken.None);
+        var detail = await records.AddAsync("owner-1", vehicle.Id, Guid.CreateVersion7(), new DateOnly(2026, 5, 1), 70_000, null, null, T0, CancellationToken.None);
 
         Assert.Equal(70_000, await MileageAsync(vehicles, vehicle));
 
@@ -126,9 +126,9 @@ public class EffectiveMileageTests(PostgresFixture postgres)
     {
         var (_, vehicles, records) = await CreateAsync();
         var vehicle = await InsertAsync(vehicles);
-        var detail = await records.AddAsync("owner-1", vehicle.Id, Guid.CreateVersion7(), new DateOnly(2026, 6, 1), 40_000, null, T0, CancellationToken.None);
+        var detail = await records.AddAsync("owner-1", vehicle.Id, Guid.CreateVersion7(), new DateOnly(2026, 6, 1), 40_000, null, null, T0, CancellationToken.None);
 
-        await records.UpdateAsync("owner-1", vehicle.Id, detail!.Record.Id, new DateOnly(2026, 6, 1), 41_500, null, T0, CancellationToken.None);
+        await records.UpdateAsync("owner-1", vehicle.Id, detail!.Record.Id, new DateOnly(2026, 6, 1), 41_500, null, null, T0, CancellationToken.None);
 
         Assert.Equal(41_500, await MileageAsync(vehicles, vehicle));
     }

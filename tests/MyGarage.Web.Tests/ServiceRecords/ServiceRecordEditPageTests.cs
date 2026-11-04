@@ -47,6 +47,16 @@ public class ServiceRecordEditPageTests : VehicleTestContext
     }
 
     [Fact]
+    public void PrefillsTheTax()
+    {
+        var cut = RenderPage(request => request.Method == HttpMethod.Get
+            ? Json(RecordDetail(vehicleId, recordId, tax: 8.25m))
+            : StoredRecord(request));
+
+        cut.WaitForAssertion(() => Assert.Equal("8.25", cut.Find("#tax").GetAttribute("value")));
+    }
+
+    [Fact]
     public void ARejectedSave_ShowsMessagesAndKeepsTheTypedValues()
     {
         var cut = RenderPage(request => request.Method == HttpMethod.Get

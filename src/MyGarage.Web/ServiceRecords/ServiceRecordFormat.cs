@@ -15,7 +15,9 @@ public static class ServiceRecordFormat
     public static string RecordCount(int count) => count == 1 ? "1 service record" : $"{count.ToString(CultureInfo.InvariantCulture)} service records";
 
     public static string LaborLine(ServiceLineItemDto line) =>
-        $"Labor: {DisplayFormat.Number(line.LaborHours ?? 0)} h x {DisplayFormat.Money(line.LaborRate ?? 0)} = {DisplayFormat.Money(line.LaborCost ?? 0)}";
+        line.LaborHours is null
+            ? $"Labor: {DisplayFormat.Money(line.LaborCost ?? 0)}"
+            : $"Labor: {DisplayFormat.Number(line.LaborHours.Value)} h x {DisplayFormat.Money(line.LaborRate ?? 0)} = {DisplayFormat.Money(line.LaborCost ?? 0)}";
 
     public static string PartLine(ServicePartDto part) =>
         $"{DisplayFormat.Number(part.Quantity)} x {part.Name} at {DisplayFormat.Money(part.UnitPrice)} = {DisplayFormat.Money(part.TotalPrice)}";

@@ -280,7 +280,8 @@ public abstract class VehicleTestContext : BunitContext
         int odometer = 45_000,
         string? shop = "Joe's Garage",
         IReadOnlyList<ServiceLineItemDto>? lineItems = null,
-        decimal? total = null)
+        decimal? total = null,
+        decimal? tax = null)
     {
         var items = lineItems ?? [];
         return new ServiceRecordDto
@@ -291,7 +292,8 @@ public abstract class VehicleTestContext : BunitContext
             OdometerReading = odometer,
             ShopOrPerson = shop,
             LineItems = items,
-            TotalCost = total ?? items.Sum(item => item.TotalCost),
+            Tax = tax,
+            TotalCost = total ?? items.Sum(item => item.TotalCost) + (tax ?? 0m),
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow,
         };

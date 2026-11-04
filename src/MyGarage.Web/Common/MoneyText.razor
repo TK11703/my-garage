@@ -1,0 +1,10 @@
+@* An amount in the standard money format. A negative amount (a discount or credit) gets a hidden "credit" label so assistive technology does not rely on the minus sign. *@
+@DisplayFormat.Money(Amount)@if (Amount < 0)
+{
+    <span class="visually-hidden"> credit</span>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public decimal Amount { get; set; }
+}

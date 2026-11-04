@@ -28,6 +28,7 @@ public static class ServiceRecordMapper
             OdometerReading = detail.Record.OdometerReading,
             ShopOrPerson = detail.Record.ShopOrPerson,
             LineItems = [.. detail.LineItems.Select(ToLineItemDto)],
+            Tax = detail.Record.TaxAmount,
             TotalCost = detail.Record.TotalCost,
             CreatedAt = detail.Record.CreatedAt,
             UpdatedAt = detail.Record.UpdatedAt,
@@ -42,7 +43,7 @@ public static class ServiceRecordMapper
             FlatCost = line.FlatCost,
             LaborHours = line.LaborHours,
             LaborRate = line.LaborRate,
-            LaborCost = line.LaborHours is { } hours && line.LaborRate is { } rate ? ServiceCostCalculator.LaborCost(hours, rate) : null,
+            LaborCost = ServiceCostCalculator.EffectiveLaborCost(line.LaborHours, line.LaborRate, line.LaborCost),
             Parts = [.. line.Parts.Select(part => new ServicePartDto
             {
                 Name = part.Name,
@@ -60,7 +61,11 @@ public static class ServiceRecordMapper
             request.FlatCost,
             request.LaborHours,
             request.LaborRate,
-            [.. (request.Parts ?? []).Select(part => new ServicePartInput(part.Name!.Trim(), part.Quantity!.Value, part.UnitPrice!.Value))]);
+            [.. (request.Parts ?? []).Select(part => new ServicePartInput(part.Name!.Trim(), part.Quantity!.Value, part.UnitPrice!.Value))],
+            request.LaborCost);
+
+    // Empty and zero both mean no tax.
+    public static decimal? CleanTax(decimal? tax) => tax is null or 0m ? null : tax;
 
     public static PagedResultDto<ServiceRecordSummaryDto> ToPageDto(PagedResult<ServiceRecordRecord> page) =>
         new()

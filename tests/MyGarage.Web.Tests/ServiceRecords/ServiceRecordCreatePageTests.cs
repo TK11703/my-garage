@@ -79,6 +79,63 @@ public class ServiceRecordCreatePageTests : VehicleTestContext
     }
 
     [Fact]
+    public void Form_HasAnOptionalTaxFieldAfterTheShop()
+    {
+        var cut = RenderPage(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
+
+        cut.WaitForAssertion(() =>
+        {
+            var tax = cut.Find("input#tax");
+            Assert.Equal("number", tax.GetAttribute("type"));
+            Assert.Equal("0.01", tax.GetAttribute("step"));
+            Assert.Equal("0", tax.GetAttribute("min"));
+            Assert.Equal("9999999.99", tax.GetAttribute("max"));
+            Assert.Null(tax.GetAttribute("aria-required"));
+            Assert.Equal("Tax ($)", cut.Find("label[for='tax']").TextContent.Trim());
+            Assert.Equal(
+                ["date-serviced", "odometer-reading", "shop-or-person", "tax"],
+                cut.FindAll("form input").Select(input => input.Id).Where(id => !string.IsNullOrEmpty(id)));
+        });
+    }
+
+    private static string ReadBody(HttpRequestMessage request) => request.Content!.ReadAsStringAsync().Result;
+
+    [Fact]
+    public void ATaxIsPostedWithTheRecord()
+    {
+        var created = RecordDetail(vehicleId);
+        string? body = null;
+        var cut = RenderPage(request =>
+        {
+            body = ReadBody(request);
+            return Json(created, HttpStatusCode.Created);
+        });
+        cut.WaitForElement("input#odometer-reading").Change("45000");
+        cut.Find("input#tax").Change("8.25");
+
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => Assert.NotNull(body));
+        Assert.Equal(8.25m, System.Text.Json.JsonDocument.Parse(body!).RootElement.GetProperty("tax").GetDecimal());
+    }
+
+    [Fact]
+    public void ARejectedTax_ShowsTheMessageBesideTheField()
+    {
+        var cut = RenderPage(_ => ValidationProblem(("Tax", "Tax must be between 0.00 and 9,999,999.99.")));
+        cut.WaitForElement("input#odometer-reading").Change("12");
+        cut.Find("input#tax").Change("-1");
+
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("Tax must be between", cut.Find("#tax-error").TextContent);
+            Assert.Equal("tax-error", cut.Find("#tax").GetAttribute("aria-describedby"));
+        });
+    }
+
+    [Fact]
     public void ARejectedSave_ShowsMessagesBesideTheFieldsAndKeepsTheValues()
     {
         var cut = RenderPage(_ => ValidationProblem(

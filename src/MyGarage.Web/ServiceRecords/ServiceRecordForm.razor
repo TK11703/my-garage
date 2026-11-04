@@ -25,12 +25,20 @@
                 </div>
                 <ValidationMessage For="@(() => Model.ShopOrPerson)" id="shoporperson-error" class="invalid-feedback d-block" />
             </div>
+            <div class="col-sm-4">
+                <div class="form-floating">
+                    <InputNumber id="tax" TValue="decimal?" class="form-control" @bind-Value="Model.Tax" min="0" max="9999999.99" step="0.01" inputmode="decimal" placeholder=" "
+                                 aria-describedby="@VehicleFormFields.Described(Errors, "Tax")" />
+                    <label for="tax">Tax ($)</label>
+                </div>
+                <ValidationMessage For="@(() => Model.Tax)" id="tax-error" class="invalid-feedback d-block" />
+            </div>
         </div>
     </EditForm>
 </MaintenanceFormCard>
 
 @code {
-    private static readonly string[] Fields = ["DateServiced", "OdometerReading", "ShopOrPerson"];
+    private static readonly string[] Fields = ["DateServiced", "OdometerReading", "ShopOrPerson", "Tax"];
 
     private EditContext editContext = default!;
     private ValidationMessageStore messages = default!;

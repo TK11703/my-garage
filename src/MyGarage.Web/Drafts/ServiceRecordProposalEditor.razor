@@ -29,6 +29,15 @@
             </div>
             <FieldError Path="serviceRecord.shopOrPerson" Errors="FieldErrors" />
         </div>
+        <div class="col-sm-4">
+            <div class="form-floating">
+                <input id="serviceRecord-tax" name="@(NamePrefix).Tax" type="number" class="form-control" placeholder=" "
+                       min="0" max="9999999.99" step="0.01" inputmode="decimal" @bind="Model.Tax" @bind:culture="CultureInfo.InvariantCulture"
+                       aria-describedby="@Described("serviceRecord.tax")" />
+                <label for="serviceRecord-tax">Tax ($)</label>
+            </div>
+            <FieldError Path="serviceRecord.tax" Errors="FieldErrors" />
+        </div>
     </div>
     <input type="hidden" name="@(NamePrefix).DocumentTotal" value="@(Model.DocumentTotal?.ToString(CultureInfo.InvariantCulture))" />
 
@@ -82,7 +91,7 @@
                             <div class="col-sm-6 col-lg-4">
                                 <div class="form-floating">
                                     <input id="@(prefix)-flatCost" name="@(NamePrefix).Lines[@index].FlatCost" type="number" class="form-control" placeholder=" "
-                                           min="0" max="9999999.99" step="0.01" inputmode="decimal" @bind="line.FlatCost" @bind:culture="CultureInfo.InvariantCulture"
+                                           min="-9999999.99" max="9999999.99" step="0.01" inputmode="decimal" @bind="line.FlatCost" @bind:culture="CultureInfo.InvariantCulture"
                                            aria-describedby="@Described($"{linePath}.flatCost")" />
                                     <label for="@(prefix)-flatCost">Flat cost ($)</label>
                                 </div>
@@ -95,7 +104,7 @@
                                 <div class="col-sm-6 col-lg-4">
                                     <div class="form-floating">
                                         <input id="@(prefix)-laborHours" name="@(NamePrefix).Lines[@index].LaborHours" type="number" class="form-control" placeholder=" "
-                                               min="0.01" max="999.99" step="0.01" inputmode="decimal" @bind="line.LaborHours" @bind:culture="CultureInfo.InvariantCulture"
+                                               min="0.01" max="999.99" step="0.01" inputmode="decimal" data-labor-hours @bind="line.LaborHours" @bind:culture="CultureInfo.InvariantCulture"
                                                aria-describedby="@Described($"{linePath}.laborHours")" />
                                         <label for="@(prefix)-laborHours">Labor hours</label>
                                     </div>
@@ -104,11 +113,22 @@
                                 <div class="col-sm-6 col-lg-4">
                                     <div class="form-floating">
                                         <input id="@(prefix)-laborRate" name="@(NamePrefix).Lines[@index].LaborRate" type="number" class="form-control" placeholder=" "
-                                               min="0" max="99999.99" step="0.01" inputmode="decimal" @bind="line.LaborRate" @bind:culture="CultureInfo.InvariantCulture"
+                                               min="0" max="99999.99" step="0.01" inputmode="decimal" data-labor-rate @bind="line.LaborRate" @bind:culture="CultureInfo.InvariantCulture"
                                                aria-describedby="@Described($"{linePath}.laborRate")" />
                                         <label for="@(prefix)-laborRate">Hourly rate ($)</label>
                                     </div>
                                     <FieldError Path="@($"{linePath}.laborRate")" Errors="FieldErrors" />
+                                </div>
+                                <div class="col-sm-6 col-lg-4">
+                                    <div class="form-floating">
+                                        <input id="@(prefix)-laborCost" name="@(NamePrefix).Lines[@index].LaborCost" type="number" class="form-control" placeholder=" "
+                                               min="0" max="9999999.99" step="0.01" inputmode="decimal" data-labor-total readonly="@line.LaborIsCalculated"
+                                               value="@line.LaborShown?.ToString("0.##", CultureInfo.InvariantCulture)"
+                                               @onchange="@(args => line.LaborCost = decimal.TryParse(args.Value?.ToString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var typed) ? typed : null)"
+                                               aria-describedby="@Described($"{linePath}.laborCost")" />
+                                        <label for="@(prefix)-laborCost">Total labor ($)</label>
+                                    </div>
+                                    <FieldError Path="@($"{linePath}.laborCost")" Errors="FieldErrors" />
                                 </div>
                             </div>
 
@@ -168,7 +188,7 @@
                     </div>
                 </div>
                 <div class="card-footer d-flex flex-wrap align-items-center justify-content-between gap-2">
-                    <span class="fw-semibold">Line total <span data-testid="line-total">@DisplayFormat.Money(line.Total)</span></span>
+                    <span class="fw-semibold">Line total <span data-testid="line-total"><MoneyText Amount="line.Total" /></span></span>
                     <button type="submit" name="action" value="remove-line:@index" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1" formnovalidate
                             aria-label="Remove line item @(index + 1)">
                         <Icon Name="IconName.Trash" /> Remove
@@ -184,7 +204,14 @@
                     <Icon Name="IconName.Plus" /> Add line item
                 </button>
             }
-            <span class="fw-semibold ms-auto">Line items total <span data-testid="proposal-total">@DisplayFormat.Money(Model.Total)</span></span>
+            <span class="vstack ms-auto text-end">
+                <span class="fw-semibold">Line items total <span data-testid="proposal-total"><MoneyText Amount="Model.Total" /></span></span>
+                @if (Model.Tax is > 0)
+                {
+                    <span class="fw-semibold">Tax <span data-testid="proposal-tax">@DisplayFormat.Money(Model.Tax.Value)</span></span>
+                    <span class="fw-semibold">Total <span data-testid="record-total"><MoneyText Amount="Model.RecordTotal" /></span></span>
+                }
+            </span>
         </div>
     </section>
 </div>

@@ -171,6 +171,10 @@ public sealed class CompatibilityChecker(
                 yield return $"{ServiceRecordSection}.dateServiced";
                 yield return $"{ServiceRecordSection}.odometerReading";
                 yield return $"{ServiceRecordSection}.shopOrPerson";
+                if (section.Tax is not null)
+                {
+                    yield return $"{ServiceRecordSection}.tax";
+                }
                 var lines = DraftProposalMapper.LinesOf(section);
                 for (var index = 0; index < lines.Count; index++)
                 {
@@ -186,6 +190,10 @@ public sealed class CompatibilityChecker(
                     {
                         yield return $"{prefix}.laborHours";
                         yield return $"{prefix}.laborRate";
+                    }
+                    else if (line.LaborCost is not null)
+                    {
+                        yield return $"{prefix}.laborCost";
                     }
 
                     var parts = line.Parts ?? [];
@@ -259,10 +267,11 @@ public sealed class CompatibilityChecker(
             {
                 warnings.Add("No line items were found.");
             }
-            else if (section.DocumentTotal is { } documentTotal && DraftProposalMapper.LineItemsTotal(section) is { } lineTotal && lineTotal != documentTotal)
+            else if (section.DocumentTotal is { } documentTotal && DraftProposalMapper.RecordTotal(section) is { } recordTotal && recordTotal != documentTotal)
             {
+                var lead = section.Tax is > 0m ? "The line items and tax add up to" : "The line items add up to";
                 warnings.Add(
-                    $"The line items add up to {lineTotal.ToString("0.00", CultureInfo.InvariantCulture)}, but the document total is {documentTotal.ToString("0.00", CultureInfo.InvariantCulture)}.");
+                    $"{lead} {recordTotal.ToString("0.00", CultureInfo.InvariantCulture)}, but the document total is {documentTotal.ToString("0.00", CultureInfo.InvariantCulture)}.");
             }
         }
 

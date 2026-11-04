@@ -77,6 +77,63 @@ public class ServiceRecordLineItemsViewTests : VehicleTestContext
     }
 
     [Fact]
+    public void ADiscountLine_ShowsAMinusSignAndAHiddenCreditLabel_AndReducesTheTotal()
+    {
+        var record = RecordDetail(vehicleId, recordId, lineItems: [FlatLine("Oil change", 50m), FlatLine("Coupon", -4.04m)]);
+
+        var cut = RenderPage(record);
+
+        cut.WaitForAssertion(() =>
+        {
+            var coupon = cut.FindAll("[data-testid='line-item']")[1];
+            Assert.Equal("Flat cost -$4.04", coupon.QuerySelector("[data-testid='line-flat']")!.TextContent.Replace(" credit", string.Empty).Trim());
+            var total = coupon.QuerySelector("[data-testid='line-total']")!;
+            Assert.Equal("-$4.04", total.FirstChild!.TextContent.Trim());
+            Assert.Equal("credit", total.QuerySelector(".visually-hidden")!.TextContent.Trim());
+            Assert.Equal("$45.96", cut.Find("[data-testid='total-cost']").TextContent.Trim());
+            Assert.Empty(cut.FindAll("[data-testid='line-item']")[0].QuerySelectorAll(".visually-hidden"));
+        });
+    }
+
+    [Fact]
+    public void ALaborTotalOnlyLine_ShowsTheLaborTotalWithoutHoursOrRate()
+    {
+        var line = new ServiceLineItemDto { Id = Guid.NewGuid(), Description = "Brake job", LaborCost = 180m, Parts = [], TotalCost = 180m };
+
+        var cut = RenderPage(RecordDetail(vehicleId, recordId, lineItems: [line]));
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("Labor: $180.00", cut.Find("[data-testid='line-labor']").TextContent.Trim());
+            Assert.Equal("$180.00", cut.Find("[data-testid='line-total']").TextContent.Trim());
+        });
+    }
+
+    [Fact]
+    public void ATax_IsShownSeparatelyAndIncludedInTheTotal()
+    {
+        var cut = RenderPage(RecordDetail(vehicleId, recordId, lineItems: [FlatLine("Oil change", 50m)], tax: 8.25m));
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("$8.25", cut.Find("[data-testid='tax']").TextContent.Trim());
+            Assert.Equal("$58.25", cut.Find("[data-testid='total-cost']").TextContent.Trim());
+        });
+    }
+
+    [Fact]
+    public void NoTax_ShowsNoTaxLine()
+    {
+        var cut = RenderPage(RecordDetail(vehicleId, recordId, lineItems: [FlatLine()]));
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Empty(cut.FindAll("[data-testid='tax']"));
+            Assert.Equal("$40.00", cut.Find("[data-testid='total-cost']").TextContent.Trim());
+        });
+    }
+
+    [Fact]
     public void EachLineHasEditAndDeleteWithAccessibleNames_AndThereIsAnAddLink()
     {
         var line = FlatLine("Brake pads");
