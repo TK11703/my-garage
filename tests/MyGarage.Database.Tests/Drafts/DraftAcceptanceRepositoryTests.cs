@@ -155,6 +155,46 @@ public class DraftAcceptanceRepositoryTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task Accept_ServiceRecordWithADiscountALaborCostAndTax_StoresThemAndTotalsThemTogether()
+    {
+        var harness = await CreateAsync();
+        var values = new ServiceRecordValues(
+            new DateOnly(2026, 10, 20),
+            45_500,
+            "Joe's Garage",
+            [
+                new ServiceLineItemInput("Oil change", 50m, null, null, []),
+                new ServiceLineItemInput("Coupon", -4.04m, null, null, []),
+                new ServiceLineItemInput("Labor", null, null, null, [], 180m),
+            ],
+            8.25m);
+
+        var result = await harness.Repository.AcceptAsync("owner-a", harness.DraftId, harness.VehicleId, values, null, Now, CancellationToken.None);
+
+        Assert.Equal(AcceptDraftOutcome.Accepted, result.Outcome);
+        await using var connection = await harness.DataSource.OpenConnectionAsync();
+        Assert.Equal(8.25m, await connection.ExecuteScalarAsync<decimal>("SELECT tax_amount FROM service_records WHERE id = @id", new { id = result.RecordId }));
+        var lines = (await connection.QueryAsync<(string Description, decimal? Flat, decimal? LaborCost, decimal Total)>(
+            "SELECT description, flat_cost, labor_cost, total_cost FROM service_line_items WHERE service_record_id = @id", new { id = result.RecordId })).ToList();
+        Assert.Equal(-4.04m, lines.Single(line => line.Description == "Coupon").Total);
+        Assert.Equal(180m, lines.Single(line => line.Description == "Labor").LaborCost);
+        Assert.Equal(234.21m, lines.Sum(line => line.Total) + 8.25m);
+    }
+
+    [Fact]
+    public async Task HasRecordLike_ComparesTheServiceRecordTotalIncludingItsTax()
+    {
+        var harness = await CreateAsync();
+        var values = new ServiceRecordValues(
+            new DateOnly(2026, 10, 20), 45_500, null, [new ServiceLineItemInput("Oil change", 100m, null, null, [])], 8.25m);
+        await harness.Repository.AcceptAsync("owner-a", harness.DraftId, harness.VehicleId, values, null, Now, CancellationToken.None);
+        var lookup = new MaintenanceDraftRepository(harness.DataSource, new SqlScriptStore());
+
+        Assert.True(await lookup.HasRecordLikeAsync("owner-a", harness.VehicleId, "service_record", new DateOnly(2026, 10, 20), 108.25m, CancellationToken.None));
+        Assert.False(await lookup.HasRecordLikeAsync("owner-a", harness.VehicleId, "service_record", new DateOnly(2026, 10, 20), 100m, CancellationToken.None));
+    }
+
+    [Fact]
     public async Task Accept_UpdatesTheDraftAndRemovesTheNotificationAndTheEmailContent()
     {
         var harness = await CreateAsync();

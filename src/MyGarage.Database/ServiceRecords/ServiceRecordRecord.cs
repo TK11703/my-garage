@@ -14,6 +14,9 @@ public sealed record ServiceRecordRecord
 
     public int LineItemCount { get; init; }
 
+    public decimal? TaxAmount { get; init; }
+
+    // Line item totals plus the tax; may be below zero when discounts exceed charges.
     public decimal TotalCost { get; init; }
 
     public DateTimeOffset CreatedAt { get; init; }

@@ -10,7 +10,11 @@ public abstract record AcceptedRecordValues
 }
 
 public sealed record ServiceRecordValues(
-    DateOnly DateServiced, int OdometerReading, string? ShopOrPerson, IReadOnlyList<ServiceLineItemInput> LineItems) : AcceptedRecordValues
+    DateOnly DateServiced,
+    int OdometerReading,
+    string? ShopOrPerson,
+    IReadOnlyList<ServiceLineItemInput> LineItems,
+    decimal? TaxAmount = null) : AcceptedRecordValues
 {
     public override string DraftKind => "service_record";
 }

@@ -24,7 +24,7 @@ public class ServiceLineItemRepositoryTests(PostgresFixture postgres)
     {
         var vehicle = TestData.Vehicle(ownerId);
         await vehicles.InsertAsync(vehicle, CancellationToken.None);
-        var detail = await records.AddAsync(ownerId, vehicle.Id, Guid.CreateVersion7(), ServiceDate, 1000, null, T0, CancellationToken.None);
+        var detail = await records.AddAsync(ownerId, vehicle.Id, Guid.CreateVersion7(), ServiceDate, 1000, null, null, T0, CancellationToken.None);
         return (vehicle, detail!.Record.Id);
     }
 
@@ -56,6 +56,92 @@ public class ServiceLineItemRepositoryTests(PostgresFixture postgres)
         Assert.Empty(line.Parts);
         Assert.Equal(40m, result.Detail.Record.TotalCost);
         Assert.Equal(1, result.Detail.Record.LineItemCount);
+    }
+
+    [Fact]
+    public async Task Add_DiscountLine_StoresANegativeTotalThatReducesTheRecordTotal()
+    {
+        var (_, vehicles, records) = await CreateAsync();
+        var (vehicle, recordId) = await InsertRecordAsync(vehicles, records);
+        await AddAsync(records, "owner-1", vehicle.Id, recordId, Flat("Oil change", 50m));
+
+        var result = await AddAsync(records, "owner-1", vehicle.Id, recordId, Flat("Coupon", -4.04m));
+
+        Assert.Equal(AddLineItemOutcome.Created, result.Outcome);
+        var coupon = result.Detail!.LineItems.Single(line => line.Description == "Coupon");
+        Assert.Equal(-4.04m, coupon.FlatCost);
+        Assert.Equal(-4.04m, coupon.TotalCost);
+        Assert.Equal(45.96m, result.Detail.Record.TotalCost);
+    }
+
+    [Fact]
+    public async Task Add_DiscountsLargerThanTheCharges_GiveANegativeRecordTotal()
+    {
+        var (_, vehicles, records) = await CreateAsync();
+        var (vehicle, recordId) = await InsertRecordAsync(vehicles, records);
+        await AddAsync(records, "owner-1", vehicle.Id, recordId, Flat("Part", 10m));
+
+        var result = await AddAsync(records, "owner-1", vehicle.Id, recordId, Flat("Refund", -25m));
+
+        Assert.Equal(-15m, result.Detail!.Record.TotalCost);
+    }
+
+    [Fact]
+    public async Task Add_LaborCostOnlyLine_StoresTheEnteredAmountWithNoHoursOrRate()
+    {
+        var (_, vehicles, records) = await CreateAsync();
+        var (vehicle, recordId) = await InsertRecordAsync(vehicles, records);
+
+        var result = await AddAsync(records, "owner-1", vehicle.Id, recordId, new ServiceLineItemInput("Labor", null, null, null, [], 180m));
+
+        var line = Assert.Single(result.Detail!.LineItems);
+        Assert.Equal(180m, line.LaborCost);
+        Assert.Null(line.LaborHours);
+        Assert.Null(line.LaborRate);
+        Assert.Null(line.FlatCost);
+        Assert.Equal(180m, line.TotalCost);
+    }
+
+    [Fact]
+    public async Task Add_LaborCostWithParts_TotalsTheLaborCostPlusTheParts()
+    {
+        var (_, vehicles, records) = await CreateAsync();
+        var (vehicle, recordId) = await InsertRecordAsync(vehicles, records);
+
+        var result = await AddAsync(
+            records, "owner-1", vehicle.Id, recordId, new ServiceLineItemInput("Brake job", null, null, null, [new ServicePartInput("Pads", 1m, 25m)], 180m));
+
+        Assert.Equal(205m, Assert.Single(result.Detail!.LineItems).TotalCost);
+    }
+
+    [Fact]
+    public async Task Add_HoursAndRate_IgnoreASuppliedLaborCostAndStoreNone()
+    {
+        var (_, vehicles, records) = await CreateAsync();
+        var (vehicle, recordId) = await InsertRecordAsync(vehicles, records);
+
+        var result = await AddAsync(
+            records, "owner-1", vehicle.Id, recordId, new ServiceLineItemInput("Labor", null, 2.5m, 120m, [], 999.99m));
+
+        var line = Assert.Single(result.Detail!.LineItems);
+        Assert.Null(line.LaborCost);
+        Assert.Equal(300m, line.TotalCost);
+    }
+
+    [Fact]
+    public async Task Update_ChangingFromEnteredLaborCostToHoursAndRate_ClearsTheStoredLaborCost()
+    {
+        var (_, vehicles, records) = await CreateAsync();
+        var (vehicle, recordId) = await InsertRecordAsync(vehicles, records);
+        var added = await AddAsync(records, "owner-1", vehicle.Id, recordId, new ServiceLineItemInput("Labor", null, null, null, [], 180m));
+        var lineId = added.Detail!.LineItems.Single().Id;
+
+        var updated = await records.UpdateLineItemAsync(
+            "owner-1", vehicle.Id, recordId, lineId, new ServiceLineItemInput("Labor", null, 2m, 100m, [], 180m), T0, CancellationToken.None);
+
+        var line = Assert.Single(updated!.LineItems);
+        Assert.Null(line.LaborCost);
+        Assert.Equal(200m, line.TotalCost);
     }
 
     [Fact]
@@ -208,7 +294,7 @@ public class ServiceLineItemRepositoryTests(PostgresFixture postgres)
     {
         var (_, vehicles, records) = await CreateAsync();
         var (vehicle, recordId) = await InsertRecordAsync(vehicles, records);
-        var other = (await records.AddAsync("owner-1", vehicle.Id, Guid.CreateVersion7(), ServiceDate, 1, null, T0, CancellationToken.None))!.Record.Id;
+        var other = (await records.AddAsync("owner-1", vehicle.Id, Guid.CreateVersion7(), ServiceDate, 1, null, null, T0, CancellationToken.None))!.Record.Id;
         for (var i = 0; i < 50; i++)
         {
             var added = await AddAsync(records, "owner-1", vehicle.Id, recordId, Flat($"Line {i}", 1m));

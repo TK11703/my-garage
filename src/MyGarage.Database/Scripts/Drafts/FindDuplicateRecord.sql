@@ -7,7 +7,7 @@ SELECT EXISTS (
       AND v.owner_id = @OwnerId
       AND sr.vehicle_id = @VehicleId
       AND sr.date_serviced = @Date
-      AND (SELECT COALESCE(sum(li.total_cost), 0) FROM service_line_items li WHERE li.service_record_id = sr.id) = @Total)
+      AND (SELECT COALESCE(sum(li.total_cost), 0) FROM service_line_items li WHERE li.service_record_id = sr.id) + COALESCE(sr.tax_amount, 0) = @Total)
 OR EXISTS (
     SELECT 1
     FROM fuel_energy_entries fe

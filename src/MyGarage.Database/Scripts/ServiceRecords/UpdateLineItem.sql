@@ -3,6 +3,7 @@ SET description = @Description,
     flat_cost   = @FlatCost,
     labor_hours = @LaborHours,
     labor_rate  = @LaborRate,
+    labor_cost  = @LaborCost,
     total_cost  = @TotalCost,
     updated_at  = @Now,
     updated_by  = @OwnerId

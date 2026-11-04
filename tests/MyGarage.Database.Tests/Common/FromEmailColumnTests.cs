@@ -41,7 +41,7 @@ public class FromEmailColumnTests(PostgresFixture postgres)
         var (dataSource, scripts, vehicleId) = await CreateAsync();
         var repository = new ServiceRecordRepository(dataSource, scripts);
 
-        var manual = await repository.AddAsync("owner-1", vehicleId, Guid.CreateVersion7(), Day, 1000, null, T0, CancellationToken.None);
+        var manual = await repository.AddAsync("owner-1", vehicleId, Guid.CreateVersion7(), Day, 1000, null, null, T0, CancellationToken.None);
         Assert.False(manual!.Record.FromEmail);
 
         var emailed = await ServiceRecordTestData.InsertRecordAsync(dataSource, vehicleId, Day.AddDays(1));

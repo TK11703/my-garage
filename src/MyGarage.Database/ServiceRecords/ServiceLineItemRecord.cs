@@ -14,6 +14,9 @@ public sealed record ServiceLineItemRecord
 
     public decimal? LaborRate { get; init; }
 
+    // The entered labor total; null when labor is calculated from hours and rate or absent.
+    public decimal? LaborCost { get; init; }
+
     public decimal TotalCost { get; init; }
 
     public IReadOnlyList<ServiceLinePartRecord> Parts { get; init; } = [];

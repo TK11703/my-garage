@@ -27,11 +27,12 @@ public class MigrationRunnerTests(PostgresFixture postgres)
 
         var ledger = (await connection.QueryAsync<(string ScriptId, string Checksum, DateTime AppliedAt)>(
             "SELECT script_id AS ScriptId, checksum AS Checksum, applied_at AS AppliedAt FROM schema_migrations ORDER BY script_id")).ToList();
-        Assert.Equal(12, ledger.Count);
+        Assert.Equal(13, ledger.Count);
         Assert.Equal("0009_create_service_records", ledger[8].ScriptId);
         Assert.Equal("0010_add_vehicle_latest_odometer", ledger[9].ScriptId);
         Assert.Equal("0011_create_maintenance_records", ledger[10].ScriptId);
         Assert.Equal("0012_create_email_intake", ledger[11].ScriptId);
+        Assert.Equal("0013_pricing_discounts_labor_tax", ledger[12].ScriptId);
         Assert.Equal("0001_create_vehicles", ledger[0].ScriptId);
         Assert.Equal("0005_create_lookup_items", ledger[4].ScriptId);
         Assert.Equal("0006_add_vehicle_details", ledger[5].ScriptId);
@@ -50,7 +51,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
         await runner.RunAsync();
 
         await using var connection = await dataSource.OpenConnectionAsync();
-        Assert.Equal(12, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
+        Assert.Equal(13, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
     }
 
     [Fact]
@@ -80,7 +81,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
             CreateRunner(dataSource).RunAsync());
 
         await using var connection = await dataSource.OpenConnectionAsync();
-        Assert.Equal(12, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
+        Assert.Equal(13, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
     }
 
     [Theory]
@@ -425,17 +426,21 @@ public class MigrationRunnerTests(PostgresFixture postgres)
 
     public static TheoryData<string> InvalidLineItemAssignments => new()
     {
-        "flat_cost = -0.01",
+        "flat_cost = -10000000.00",
         "flat_cost = 10000000.00",
         "labor_hours = 0, labor_rate = 1",
         "labor_hours = 1000, labor_rate = 1",
         "labor_hours = 1, labor_rate = -0.01",
         "labor_hours = 1, labor_rate = 100000.00",
-        "total_cost = -0.01",
+        "total_cost = -10000000.00",
         "total_cost = 10000000.00",
         "labor_hours = 1",
         "labor_rate = 1",
         "flat_cost = 5, labor_hours = 1, labor_rate = 1",
+        "labor_cost = -0.01",
+        "labor_cost = 10000000.00",
+        "labor_cost = 5, labor_hours = 1, labor_rate = 1",
+        "flat_cost = 5, labor_cost = 5",
     };
 
     [Theory]
@@ -449,6 +454,56 @@ public class MigrationRunnerTests(PostgresFixture postgres)
 
         await Assert.ThrowsAsync<PostgresException>(() => connection.ExecuteAsync(
             $"UPDATE service_line_items SET {assignments} WHERE id = @lineItemId", new { lineItemId }));
+    }
+
+    [Fact]
+    public async Task Migration0013_AllowsDiscountsAndEnteredLaborCost_AndAddsRecordTax()
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var recordId = await InsertServiceRecordAsync(connection, await InsertVehicleAsync(connection));
+        var lineItemId = await InsertLineItemAsync(connection, recordId);
+
+        await connection.ExecuteAsync("UPDATE service_line_items SET flat_cost = -4.04, total_cost = -4.04 WHERE id = @lineItemId", new { lineItemId });
+        await connection.ExecuteAsync("UPDATE service_line_items SET flat_cost = -9999999.99, total_cost = -9999999.99 WHERE id = @lineItemId", new { lineItemId });
+        await connection.ExecuteAsync("UPDATE service_line_items SET flat_cost = NULL, labor_cost = 180.00, total_cost = 180.00 WHERE id = @lineItemId", new { lineItemId });
+        await connection.ExecuteAsync("UPDATE service_records SET tax_amount = 8.25 WHERE id = @recordId", new { recordId });
+
+        Assert.Equal(180.00m, await connection.ExecuteScalarAsync<decimal>("SELECT labor_cost FROM service_line_items WHERE id = @lineItemId", new { lineItemId }));
+        Assert.Equal(8.25m, await connection.ExecuteScalarAsync<decimal>("SELECT tax_amount FROM service_records WHERE id = @recordId", new { recordId }));
+    }
+
+    [Theory]
+    [InlineData("-0.01")]
+    [InlineData("10000000.00")]
+    public async Task Migration0013_RejectsTaxOutsideItsRange(string tax)
+    {
+        await using var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var recordId = await InsertServiceRecordAsync(connection, await InsertVehicleAsync(connection));
+
+        await Assert.ThrowsAsync<PostgresException>(() => connection.ExecuteAsync($"UPDATE service_records SET tax_amount = {tax} WHERE id = @recordId", new { recordId }));
+    }
+
+    [Fact]
+    public async Task Migration0013_KeepsExistingRowsUnchanged_AndNewColumnsReadNull()
+    {
+        await using var dataSource = await postgres.CreateDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var scripts = new SqlScriptStore();
+        await ApplyAsync(connection, scripts, AllMigrations[..12]);
+        var recordId = await InsertServiceRecordAsync(connection, await InsertVehicleAsync(connection));
+        var lineItemId = await InsertLineItemAsync(connection, recordId);
+        await connection.ExecuteAsync("UPDATE service_line_items SET flat_cost = 12.34, total_cost = 12.34 WHERE id = @lineItemId", new { lineItemId });
+
+        await ApplyAsync(connection, scripts, AllMigrations[12]);
+
+        var line = await connection.QuerySingleAsync<(decimal Flat, decimal Total, decimal? LaborCost)>(
+            "SELECT flat_cost AS Flat, total_cost AS Total, labor_cost AS LaborCost FROM service_line_items WHERE id = @lineItemId", new { lineItemId });
+        Assert.Equal(12.34m, line.Flat);
+        Assert.Equal(12.34m, line.Total);
+        Assert.Null(line.LaborCost);
+        Assert.Null(await connection.ExecuteScalarAsync<decimal?>("SELECT tax_amount FROM service_records WHERE id = @recordId", new { recordId }));
     }
 
     [Fact]
@@ -874,6 +929,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
         "0001_create_vehicles", "0002_create_vehicle_tags", "0003_create_journal_notes", "0004_create_vehicle_images",
         "0005_create_lookup_items", "0006_add_vehicle_details", "0007_drop_vehicle_nickname", "0008_create_features",
         "0009_create_service_records", "0010_add_vehicle_latest_odometer", "0011_create_maintenance_records", "0012_create_email_intake",
+        "0013_pricing_discounts_labor_tax",
     ];
 
     private static async Task ApplyAsync(NpgsqlConnection connection, SqlScriptStore scripts, params string[] migrations)

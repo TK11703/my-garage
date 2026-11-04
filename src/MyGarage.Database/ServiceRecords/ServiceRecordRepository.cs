@@ -15,6 +15,7 @@ public sealed class ServiceRecordRepository(NpgsqlDataSource dataSource, SqlScri
         DateOnly dateServiced,
         int odometerReading,
         string? shopOrPerson,
+        decimal? taxAmount,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
@@ -29,6 +30,7 @@ public sealed class ServiceRecordRepository(NpgsqlDataSource dataSource, SqlScri
                 DateServiced = dateServiced,
                 OdometerReading = odometerReading,
                 ShopOrPerson = shopOrPerson,
+                TaxAmount = taxAmount,
                 Now = now,
                 FromEmail = false,
             },
@@ -78,6 +80,7 @@ public sealed class ServiceRecordRepository(NpgsqlDataSource dataSource, SqlScri
         DateOnly dateServiced,
         int odometerReading,
         string? shopOrPerson,
+        decimal? taxAmount,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
@@ -92,6 +95,7 @@ public sealed class ServiceRecordRepository(NpgsqlDataSource dataSource, SqlScri
                 DateServiced = dateServiced,
                 OdometerReading = odometerReading,
                 ShopOrPerson = shopOrPerson,
+                TaxAmount = taxAmount,
                 Now = now,
             },
             cancellationToken: cancellationToken));
@@ -223,8 +227,8 @@ public sealed class ServiceRecordRepository(NpgsqlDataSource dataSource, SqlScri
             input.FlatCost,
             input.LaborHours,
             input.LaborRate,
-            TotalCost = ServiceCostCalculator.LineTotal(
-                input.FlatCost, input.LaborHours, input.LaborRate, input.Parts.Select(part => (part.Quantity, part.UnitPrice))),
+            LaborCost = input.StoredLaborCost,
+            input.TotalCost,
             Now = now,
         };
 
