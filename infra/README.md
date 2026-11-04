@@ -38,7 +38,7 @@ Two GitHub Actions workflows in `.github/workflows/` verify and deploy the app. 
 | `ci.yml` (with the reusable `verify.yml`) | every pull request to `main` | Builds with warnings as errors, runs all four test projects (Docker is available on the runner), checks the Bicep, scans for secrets, and reports the required check `verify`. Documentation-only changes skip the heavy jobs but still report `verify` |
 | `deploy.yml` | push to `main`, or a manual run | Verifies the commit, publishes `mygarage/api` and `mygarage/web` to `acccrshared` once per commit (tag `sha-<commit>`), waits for the owner's approval of the `production` environment, deploys `bicep/main.bicep` into `rg-apps` (incremental, never deletes), and checks both apps on `/health` |
 
-GitHub signs in to Azure with a federated credential for `mygarage-github-oidc`; no Azure secret is stored. The GitHub environment `production` holds only variables (no secrets).
+GitHub signs in to Azure with a federated credential for `mygarage-github-oidc`; no Azure secret is stored. The sign-in identifiers (`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`) are repository variables, because the image build job has no environment; everything else is a variable of the GitHub environment `production`. There are no secrets.
 
 ### First-time setup
 

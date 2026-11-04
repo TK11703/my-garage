@@ -26,7 +26,7 @@ Steps and outcomes:
 | 5 | Run `infra/entra/Initialize-Entra.ps1 -NamePrefix 'MyGarage Azure' -WebBaseUri <web address> -ManagedIdentityPrincipalId <principal id of id-mygarage-web> -GitHubEnvironment production`, creating `MyGarage Azure API` and `MyGarage Azure Web` (with its federated credential and no secret) and sending their ids to the environment | unchanged |
 | 6 | Deploy `infra/bicep/modules/platform-database.bicep` (creates database `mygarage` only) | no change |
 | 7 | As the owner (Entra token), create the PostgreSQL Entra principal `id-mygarage-api`, make it owner of `mygarage`, revoke public connect | unchanged |
-| 8 | Set the remaining environment variables (`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `EXTRACTION_ENDPOINT`, `EXTRACTION_DEPLOYMENT`) from [environment-config.md](environment-config.md) | unchanged |
+| 8 | Set the repository variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` (the `build-images` job has no environment, so it can only read repository-scope variables) and the environment variables `EXTRACTION_ENDPOINT`, `EXTRACTION_DEPLOYMENT` from [environment-config.md](environment-config.md) | unchanged |
 
 Nothing is ever deleted or replaced, and nothing shared (`cae-shared`, `accpsqlshared`, `acccrshared`, `aif-shared-acc`) is reconfigured beyond the role assignments and database objects listed above.
 
