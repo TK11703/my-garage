@@ -40,6 +40,9 @@
 .PARAMETER PollIntervalMinutes
     How often the trigger checks the mailbox.
 
+.PARAMETER ProcessedFolder
+    Mailbox folder an email is moved to after the API accepted it. It must already exist in the intake mailbox.
+
 .PARAMETER WhatIf
     Reports what would change without changing anything.
 
@@ -56,7 +59,8 @@ param(
     [string] $IdentityName = 'id-mygarage-intake',
     [string] $ApiAddress,
     [string] $ApiClientId,
-    [ValidateRange(1, 1440)] [int] $PollIntervalMinutes = 5
+    [ValidateRange(1, 1440)] [int] $PollIntervalMinutes = 5,
+    [ValidateNotNullOrEmpty()] [string] $ProcessedFolder = 'Processed'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -201,6 +205,7 @@ try {
         ApiAddress         = @{ value = $ApiAddress }
         ApiClientId        = @{ value = $ApiClientId }
         IdentityResourceId = @{ value = $identityId }
+        ProcessedFolder    = @{ value = $ProcessedFolder }
     }
 
     # A hash of the desired state is kept in a tag so a repeat run can tell whether anything changed.
