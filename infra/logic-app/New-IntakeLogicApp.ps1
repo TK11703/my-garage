@@ -98,6 +98,17 @@ function Write-Step([string] $Name, [string] $State, [string] $Detail = '') {
     Write-Host ("  {0,-52} {1}{2}" -f $Name, $State, $(if ($Detail) { " ($Detail)" } else { '' })) -ForegroundColor $color
 }
 
+# Hashtable key order differs between runs, so the state hash needs sorted keys.
+function ConvertTo-Canonical($Value) {
+    if ($Value -is [System.Collections.IDictionary]) {
+        $sorted = [ordered]@{}
+        foreach ($key in ($Value.Keys | Sort-Object -CaseSensitive)) { $sorted[$key] = ConvertTo-Canonical $Value[$key] }
+        return $sorted
+    }
+    if ($Value -is [System.Collections.IList]) { return , @($Value | ForEach-Object { ConvertTo-Canonical $_ }) }
+    return $Value
+}
+
 try {
     if (-not (Get-Command az -ErrorAction SilentlyContinue)) { throw "'az' was not found on PATH." }
     $account = Invoke-Az @('account', 'show') -AllowFailure
@@ -193,7 +204,7 @@ try {
     }
 
     # A hash of the desired state is kept in a tag so a repeat run can tell whether anything changed.
-    $desiredJson = @{ definition = $definition; parameters = $parameters; identity = $identityId } | ConvertTo-Json -Depth 50 -Compress
+    $desiredJson = ConvertTo-Canonical @{ definition = $definition; parameters = $parameters; identity = $identityId } | ConvertTo-Json -Depth 50 -Compress
     $hash = [Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($desiredJson))).ToLower()
     $workflowUrl = "$armBase$groupScope/providers/Microsoft.Logic/workflows/$Name"
     $current = Invoke-Rest GET $workflowUrl -Query 'api-version=2019-05-01' -AllowFailure
