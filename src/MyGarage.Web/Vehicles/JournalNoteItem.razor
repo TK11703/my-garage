@@ -41,7 +41,7 @@
                             <ValidationMessage For="@(() => EditModel.Category)" id="@($"note-{Note.Id}-category-error")" class="invalid-feedback d-block" />
                         </div>
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary btn-sm">Save note</button>
+                            <button type="submit" class="btn btn-primary btn-sm" data-busy-text="Saving...">Save note</button>
                             <a class="btn btn-outline-secondary btn-sm" href="@ReturnHref">Cancel</a>
                         </div>
                     </EditForm>

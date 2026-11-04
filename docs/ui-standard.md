@@ -85,7 +85,7 @@ The search box submits `GET /vehicles?q=` (the existing owner-scoped vehicle sea
 | Primary action | `btn btn-primary`; at most one per page header |
 | Secondary action | `btn btn-outline-secondary` (cancel, keep) or `btn btn-outline-primary` (edit, add in a section) |
 | Destructive action | `btn btn-outline-danger` to open, `btn btn-danger` to confirm |
-| Form buttons | Submit first, then Cancel |
+| Form buttons | Submit first, then Cancel. The Save button carries `data-busy-text="Saving..."`, so once submitted it shows a spinner and the text and stays disabled (`submit-busy.js`) |
 | Row-level buttons | `btn-sm`; page-level buttons regular size |
 | Destructive confirmation | Inline `<details>` with a danger alert, a POST form, and buttons "Yes, delete this {vehicle, note, picture}" and "Keep {vehicle, note, picture}". Feature removal is immediately reversible, so it is a one-click remove button with the accessible name "Remove feature {name}" |
 | Forms | Bootstrap floating labels (`form-floating`, input before label) on every field; the search boxes keep a visible label and hint. Read-only views use the same grid as the edit form with a small label stacked over each value (`ViewField`), not label/value rows; required fields marked with a visible `*` (`aria-hidden`) and a "* Required" note as the first thing in the form's first card body (never beside the buttons); field errors use `invalid-feedback d-block`; forms limited to `col-lg-8` |

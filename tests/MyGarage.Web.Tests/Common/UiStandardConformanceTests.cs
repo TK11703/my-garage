@@ -304,6 +304,19 @@ public class UiStandardConformanceTests
         Assert.DoesNotMatch(new Regex(@"innerHTML|outerHTML|insertAdjacentHTML|document\.write"), source);
     }
 
+    [Theory]
+    [InlineData("Drafts", "DraftReviewPage.razor")]
+    [InlineData("Maintenance", "MaintenanceFormCard.razor")]
+    [InlineData("ServiceRecords", "ServiceLineItemForm.razor")]
+    [InlineData("Vehicles", "VehicleFormActions.razor")]
+    [InlineData("Vehicles", "JournalNoteItem.razor")]
+    public void TheSaveButtons_ShowASavingStateOnceSubmitted(string folder, string file)
+    {
+        var source = File.ReadAllText(Path.Combine(WebProject, folder, file));
+
+        Assert.Contains("data-busy-text=\"Saving...\"", source);
+    }
+
     [Fact]
     public void TheAppShell_HasNoInlineScriptsOrJQuery()
     {
