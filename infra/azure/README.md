@@ -26,7 +26,7 @@
 | 5 | Entra registrations `MyGarage Azure API` and `MyGarage Azure Web` through [`infra/entra/Initialize-Entra.ps1`](../entra/README.md), with the web registration's federated credential for `id-mygarage-web` and no client secret | unchanged |
 | 6 | Database `mygarage` on `accpsqlshared` from `infra/bicep/modules/platform-database.bicep` | unchanged |
 | 7 | PostgreSQL Entra principal `id-mygarage-api`, owner of `mygarage`; `PUBLIC` can no longer connect to it | unchanged |
-| 8 | Environment variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `EXTRACTION_ENDPOINT`, `EXTRACTION_DEPLOYMENT` (the Entra variables come from step 5) | unchanged |
+| 8 | Repository variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` (repository scope because the `build-images` job has no environment and still signs in) and environment variables `EXTRACTION_ENDPOINT`, `EXTRACTION_DEPLOYMENT` (the Entra variables come from step 5) | unchanged |
 
 ## Parameters
 

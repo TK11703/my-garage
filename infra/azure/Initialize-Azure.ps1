@@ -357,33 +357,39 @@ try {
     }
     else { Write-Step 7 'Database principal, ownership, PUBLIC connect' 'would be applied after steps 4 and 6' }
 
-    # --- 8. Remaining GitHub environment variables ---------------------------------------------------------------
-    $variables = [ordered]@{
+    # --- 8. GitHub variables ---------------------------------------------------------------------------------------
+    # The sign-in identifiers are repository variables because the build-images job has no environment (so no approval
+    # gate) and still needs them; the extraction settings belong to the production environment.
+    $repositoryVariables = [ordered]@{
         AZURE_CLIENT_ID       = if ($app) { $app.appId } else { '<pipeline app id>' }
         AZURE_TENANT_ID       = $tenantId
         AZURE_SUBSCRIPTION_ID = $SubscriptionId
+    }
+    $environmentVariables = [ordered]@{
         EXTRACTION_ENDPOINT   = $ExtractionEndpoint
         EXTRACTION_DEPLOYMENT = $ExtractionDeployment
     }
-    $current = @{}
-    if ($environment) {
-        $listed = & gh variable list --env $EnvironmentName --repo $Repository --json name,value 2>$null
-        if ($LASTEXITCODE -eq 0 -and $listed) { foreach ($item in ($listed | ConvertFrom-Json)) { $current[$item.name] = $item.value } }
-    }
-    $changedVariables = @()
-    foreach ($name in $variables.Keys) {
-        if ($current[$name] -ne $variables[$name]) { $changedVariables += $name }
-    }
-    if ($changedVariables.Count -eq 0) { Write-Step 8 'GitHub environment variables' 'unchanged' }
-    elseif ($app -and $PSCmdlet.ShouldProcess("GitHub environment variables $($changedVariables -join ', ')", 'set')) {
-        foreach ($name in $changedVariables) {
-            & gh variable set $name --env $EnvironmentName --repo $Repository --body $variables[$name] *> $null
-            if ($LASTEXITCODE -ne 0) { throw "Could not set variable '$name'." }
-        }
-        Write-Step 8 'GitHub environment variables' 'updated' ($changedVariables -join ', ')
-    }
-    else { Write-Step 8 'GitHub environment variables' 'would be set' ($changedVariables -join ', ') }
 
+    function Sync-GitHubVariables([string] $Label, $Desired, [string[]] $ScopeArguments, [bool] $Exists) {
+        $current = @{}
+        if ($Exists) {
+            $listed = & gh variable list @ScopeArguments --repo $Repository --json name,value 2>$null
+            if ($LASTEXITCODE -eq 0 -and $listed) { foreach ($item in ($listed | ConvertFrom-Json)) { $current[$item.name] = $item.value } }
+        }
+        $changed = @($Desired.Keys | Where-Object { $current[$_] -ne $Desired[$_] })
+        if ($changed.Count -eq 0) { Write-Step 8 $Label 'unchanged'; return }
+        if ($app -and $PSCmdlet.ShouldProcess("$Label $($changed -join ', ')", 'set')) {
+            foreach ($name in $changed) {
+                & gh variable set $name @ScopeArguments --repo $Repository --body $Desired[$name] *> $null
+                if ($LASTEXITCODE -ne 0) { throw "Could not set variable '$name'." }
+            }
+            Write-Step 8 $Label 'updated' ($changed -join ', ')
+        }
+        else { Write-Step 8 $Label 'would be set' ($changed -join ', ') }
+    }
+
+    Sync-GitHubVariables 'GitHub repository variables' $repositoryVariables @() $true
+    Sync-GitHubVariables 'GitHub environment variables' $environmentVariables @('--env', $EnvironmentName) ([bool] $environment)
     Write-Host ''
     if ($whatIf) { Write-Host 'No changes were made.' -ForegroundColor Cyan }
     else {

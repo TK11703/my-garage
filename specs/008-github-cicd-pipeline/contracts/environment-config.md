@@ -4,9 +4,9 @@
 
 | Name | Kind | Source | Used for |
 |---|---|---|---|
-| `AZURE_CLIENT_ID` | variable | `Initialize-Azure.ps1` (`mygarage-github-oidc`) | `azure/login` |
-| `AZURE_TENANT_ID` | variable | script | `azure/login`, app setting `AzureAd__TenantId` |
-| `AZURE_SUBSCRIPTION_ID` | variable | script | `azure/login`, deployment |
+| `AZURE_CLIENT_ID` | **repository** variable | `Initialize-Azure.ps1` (`mygarage-github-oidc`) | `azure/login` in `build-images` (no environment) and `deploy` |
+| `AZURE_TENANT_ID` | **repository** variable (also written to the environment by `Initialize-Entra.ps1`) | script | `azure/login`, app setting `AzureAd__TenantId` |
+| `AZURE_SUBSCRIPTION_ID` | **repository** variable | script | `azure/login`, deployment |
 | `API_ENTRA_CLIENT_ID` | variable | `MyGarage Azure API` registration | `AzureAd__Api__ClientId` (both apps) |
 | `API_ENTRA_SCOPE` | variable | `access_as_user` | `AzureAd__Api__Scope` (both apps) |
 | `WEB_ENTRA_CLIENT_ID` | variable | `MyGarage Azure Web` registration | `AzureAd__Web__ClientId` |
