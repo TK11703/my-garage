@@ -8,7 +8,7 @@ public class UiStandardConformanceTests
 {
     private static readonly string[] Sources = FindSources();
     private static readonly string WebProject = FindWebProject();
-    private static readonly string[] Scripts = ["lease-toggle.js", "pricing-toggle.js", "labor-total.js", "dropzone.js", "feature-suggest.js", "auto-submit.js", "clear-error.js"];
+    private static readonly string[] Scripts = ["lease-toggle.js", "pricing-toggle.js", "labor-total.js", "dropzone.js", "feature-suggest.js", "auto-submit.js", "clear-error.js", "submit-busy.js"];
 
     private static string FindWebProject([CallerFilePath] string? sourceFile = null)
     {
@@ -268,6 +268,7 @@ public class UiStandardConformanceTests
     [InlineData("feature-suggest.js")]
     [InlineData("auto-submit.js")]
     [InlineData("clear-error.js")]
+    [InlineData("submit-busy.js")]
     public void EachScript_ExistsAndIsLoadedAsAModuleFromTheAppShell(string script)
     {
         Assert.True(File.Exists(Path.Combine(WebProject, "wwwroot", "js", script)));
@@ -292,6 +293,7 @@ public class UiStandardConformanceTests
     [InlineData("feature-suggest.js")]
     [InlineData("auto-submit.js")]
     [InlineData("clear-error.js")]
+    [InlineData("submit-busy.js")]
     public void Scripts_UseNoJQueryEvalOrInnerHtml(string script)
     {
         var source = File.ReadAllText(Path.Combine(WebProject, "wwwroot", "js", script));
@@ -300,6 +302,19 @@ public class UiStandardConformanceTests
         Assert.DoesNotMatch(new Regex(@"\$\("), source);
         Assert.DoesNotMatch(new Regex(@"\beval\("), source);
         Assert.DoesNotMatch(new Regex(@"innerHTML|outerHTML|insertAdjacentHTML|document\.write"), source);
+    }
+
+    [Theory]
+    [InlineData("Drafts", "DraftReviewPage.razor")]
+    [InlineData("Maintenance", "MaintenanceFormCard.razor")]
+    [InlineData("ServiceRecords", "ServiceLineItemForm.razor")]
+    [InlineData("Vehicles", "VehicleFormActions.razor")]
+    [InlineData("Vehicles", "JournalNoteItem.razor")]
+    public void TheSaveButtons_ShowASavingStateOnceSubmitted(string folder, string file)
+    {
+        var source = File.ReadAllText(Path.Combine(WebProject, folder, file));
+
+        Assert.Contains("data-busy-text=\"Saving...\"", source);
     }
 
     [Fact]

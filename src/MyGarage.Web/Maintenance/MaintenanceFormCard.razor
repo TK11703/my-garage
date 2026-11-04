@@ -6,7 +6,7 @@
     </div>
     <div class="card-footer d-flex flex-wrap gap-2">
         @* The footer sits outside the form so Delete can have a form of its own; "form" ties Save to the entry form. *@
-        <button type="submit" form="@FormId" class="btn btn-primary d-inline-flex align-items-center gap-2" title="@SubmitTitle">
+        <button type="submit" form="@FormId" class="btn btn-primary d-inline-flex align-items-center gap-2" data-busy-text="Saving..." title="@SubmitTitle">
             <Icon Name="IconName.Save" /> @SubmitText
         </button>
         <a class="btn btn-outline-secondary" href="@CancelHref" title="Cancel and return without saving">Cancel</a>

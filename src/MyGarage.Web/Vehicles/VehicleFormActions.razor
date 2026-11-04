@@ -1,5 +1,5 @@
 <div class="d-flex gap-2">
-    <button type="submit" class="btn btn-primary @(SubmitIcon is null ? null : "d-inline-flex align-items-center gap-2")" title="@SubmitTitle">
+    <button type="submit" class="btn btn-primary @(SubmitIcon is null ? null : "d-inline-flex align-items-center gap-2")" data-busy-text="Saving..." title="@SubmitTitle">
         @if (SubmitIcon is { } icon)
         {
             <Icon Name="icon" />

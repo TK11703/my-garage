@@ -174,7 +174,7 @@ else if (draft is not null)
                     @* The footer sits outside the form so Discard can have a form of its own; "form" ties Save and Check again to the review form. *@
                     <div class="card-footer d-flex flex-wrap align-items-start gap-2">
                         <button type="submit" form="review-draft" name="action" value="save" class="btn btn-primary d-inline-flex align-items-center gap-2"
-                                data-testid="save-record" title="Save this record" disabled="@(!CanSave)">
+                                data-testid="save-record" data-busy-text="Saving..." title="Save this record" disabled="@(!CanSave)">
                             <Icon Name="IconName.Save" /> Save record
                         </button>
                         <button type="submit" form="review-draft" name="action" value="check" class="btn btn-outline-secondary" formnovalidate
