@@ -6,7 +6,7 @@ Tracked in `infra/logic-app/` (`New-IntakeLogicApp.ps1`, `workflow.definition.js
 
 | Parameter | Required | Default | Meaning |
 |---|---|---|---|
-| `-OutlookConnectionId` | yes | none | Resource ID of the existing `Microsoft.Web/connections` resource (API `outlook`) authorised for `mygarage-intake@outlook.com`; created and consented to by the owner |
+| `-OutlookConnectionName` | no | `con-mygarage-outlook` | Name of the `Microsoft.Web/connections` resource (API `outlook`) for `mygarage_intake@outlook.com`; created by the script from `outlook-connection.bicep` when missing, authorised once by the owner in the portal |
 | `-ResourceGroup` | no | `rg-apps` | |
 | `-Location` | no | `northcentralus` | Must equal the connection's region |
 | `-Name` | no | `logic-mygarage-intake` | |
@@ -18,7 +18,7 @@ Tracked in `infra/logic-app/` (`New-IntakeLogicApp.ps1`, `workflow.definition.js
 
 Behaviour (each step is idempotent and reports `created`, `updated`, or `unchanged`):
 
-1. Check prerequisites: signed in to Azure, the resource group and API exist, the connection exists, is in the same region, and shows status `Connected` (otherwise stop with instructions; the script never creates or consents to the connection).
+1. Check prerequisites: signed in to Azure, the resource group and API exist. Create the Outlook connection from `outlook-connection.bicep` when it is missing (never redeploy an existing one, which could reset its authorisation); when it exists, check it is in the same region. When it is not yet `Connected`, continue and finish with instructions for the owner to authorise it in the portal (the script never consents to the connection).
 2. Create the content-conversion connection `con-mygarage-conversion` when missing.
 3. Create the user-assigned identity `id-mygarage-intake` when missing.
 4. Create or update the Consumption Logic App from `workflow.definition.json` with the parameter values above, with that identity assigned; a hash of the desired state is kept in a tag so a repeat run reports `unchanged`.

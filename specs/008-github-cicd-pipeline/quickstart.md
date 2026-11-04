@@ -59,16 +59,16 @@ Rename or remove a mapped resource only in a throwaway copy, not production; the
 
 ## 7. Email intake
 
-1. The owner creates the Outlook connection for `mygarage-intake@outlook.com` (portal: Logic Apps connection `outlook`, authorise) in `rg-apps`, region `northcentralus`.
+1. The script creates the Outlook connection `con-mygarage-outlook` in `rg-apps`, region `northcentralus`; after the first run the owner opens it in the portal (Edit API connection, Authorize, sign in as `mygarage_intake@outlook.com`, Save) so it shows *Connected*.
 2. Create the Logic App:
 
    ```powershell
-   ./infra/logic-app/New-IntakeLogicApp.ps1 -OutlookConnectionId <connection resource id> -WhatIf
-   ./infra/logic-app/New-IntakeLogicApp.ps1 -OutlookConnectionId <connection resource id>
+    ./infra/logic-app/New-IntakeLogicApp.ps1 -WhatIf
+    ./infra/logic-app/New-IntakeLogicApp.ps1
    ```
 
    Expected: `created`; a second run reports `unchanged`; the managed identity holds the `Email.Ingest` role.
-3. As a user already signed in to My Garage, forward a service invoice (PDF) to `mygarage-intake@outlook.com`. Within about 5 minutes the run history shows a `202` from the API, and a draft with a notification appears in the web app. Open the draft, view the PDF in Chrome, accept it (this completes the walkthrough deferred from spec 007, FR-026).
+3. As a user already signed in to My Garage, forward a service invoice (PDF) to `mygarage_intake@outlook.com`. Within about 5 minutes the run history shows a `202` from the API, and a draft with a notification appears in the web app. Open the draft, view the PDF in Chrome, accept it (this completes the walkthrough deferred from spec 007, FR-026).
 4. Send mail from an address that matches no user: the API still answers `202`, and nothing appears for any user.
 
 ## 8. Cost and cleanup checks

@@ -15,7 +15,7 @@ Findings come from read-only inspection of the Azure subscription (`Azure Person
 | Identities | siblings keep one user-assigned identity per app in `rg-apps` | None for My Garage. | **Gap: create `id-mygarage-api`, `id-mygarage-web`, `id-mygarage-intake` in `rg-apps`** |
 | Entra registrations | `MyGarage API` and `MyGarage Web` exist (local development, localhost redirect URIs) | Created by `infra/entra/Initialize-Entra.ps1`. | Leave untouched; **create separate registrations for Azure** |
 | GitHub-to-Azure identity | `gisr-github-oidc` (subscription Contributor + User Access Administrator) | Federated credentials for another repository. | Not reused; create `mygarage-github-oidc` |
-| Email Logic App | `logic-trip-planner-email-relay` (Consumption, user-assigned identity, Outlook connection) | A working precedent. Not ours to reuse. | New Logic App and owner-provided connection |
+| Email Logic App | `logic-trip-planner-email-relay` (Consumption, user-assigned identity, Outlook connection) | A working precedent. Not ours to reuse. | New Logic App and a connection created by the script |
 
 Other facts used below: the repository is public, `main` has no branch protection, there are no GitHub environments, and the repository's OIDC subject claim uses GitHub's immutable form (`repo:TK11703@174497/my-garage@1439821961`).
 
@@ -109,7 +109,7 @@ Other facts used below: the repository is public, `main` has no branch protectio
 ### R12: Logic App
 
 - **Decision**: A Consumption Logic App `logic-mygarage-intake` in `rg-apps` (`northcentralus`), created by `New-IntakeLogicApp.ps1` from `workflow.definition.json`, using user-assigned identity `id-mygarage-intake` (the script creates the identity when missing). Components:
-  - **Trigger**: Outlook.com "When a new email arrives (V3)", folder Inbox, includes attachments, recurrence 5 minutes (`PollIntervalMinutes`), on the owner-supplied connection to `mygarage-intake@outlook.com` (`-OutlookConnectionId`; the script verifies it exists, is in the same region, and is connected; it never creates or consents to it).
+  - **Trigger**: Outlook.com "When a new email arrives (V3)", folder Inbox, includes attachments, recurrence 5 minutes (`PollIntervalMinutes`), on the connection `con-mygarage-outlook` to `mygarage_intake@outlook.com` (`-OutlookConnectionName`; the script creates it from `outlook-connection.bicep` when missing, never redeploys it once it exists, and never consents to it: the owner authorises it once in the portal).
   - **Identity grant**: the script assigns `id-mygarage-intake`'s service principal the `Email.Ingest` app role on `MyGarage Azure API` through Microsoft Graph (`az rest`), skipping when already granted. The owner running it holds the needed Entra rights.
   - **Call**: HTTP POST to `https://<api fqdn>/api/intake/emails`, authentication type Managed identity, identity `id-mygarage-intake`, audience `api://<Azure API client id>`.
   - **Mapping, retry, failure handling**: [contracts/logic-app-intake.md](contracts/logic-app-intake.md), following the contract in `infra/README.md`.

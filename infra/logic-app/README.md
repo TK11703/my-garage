@@ -8,30 +8,34 @@
 |---|---|---|
 | Logic App (Consumption) | `logic-mygarage-intake` in `rg-apps`, `northcentralus` | Definition from [`workflow.definition.json`](workflow.definition.json); polls every 5 minutes by default |
 | User-assigned identity | `id-mygarage-intake` | The Logic App's identity; holds the `Email.Ingest` app role on `MyGarage Azure API` |
+| API connection | `con-mygarage-outlook` | Outlook.com connector for the intake mailbox, created from [`outlook-connection.bicep`](outlook-connection.bicep) only when missing; created unauthorised |
 | API connection | `con-mygarage-conversion` | Content Conversion connector used for "Html to text"; needs no sign-in |
 
-It never creates or consents to the Outlook connection: you provide that.
+It creates the Outlook connection but never consents to it: after the first run the mailbox owner authorises it once in the portal (see below).
 
 ## Before you run it
 
 1. The API is deployed (the script reads the address of `ca-api-mygarage`).
-2. Create the Outlook.com connection for the intake mailbox (`mygarage-intake@outlook.com`) in region `northcentralus`: in the Azure portal create an API connection of type *Outlook.com* (for example in `rg-apps`), then open it and authorise it by signing in as the mailbox owner. It must show status *Connected*.
-3. `az login` as a user who can create resources in `rg-apps` and assign app roles in the tenant (the same rights `infra/entra` needs).
+2. `az login` as a user who can create resources in `rg-apps` and assign app roles in the tenant (the same rights `infra/entra` needs).
 
 ## Run it
 
 ```powershell
-./infra/logic-app/New-IntakeLogicApp.ps1 -OutlookConnectionId <resource id of the connection> -WhatIf
-./infra/logic-app/New-IntakeLogicApp.ps1 -OutlookConnectionId <resource id of the connection>
+./infra/logic-app/New-IntakeLogicApp.ps1 -WhatIf
+./infra/logic-app/New-IntakeLogicApp.ps1
 ```
 
 Each step reports `created`, `updated`, or `unchanged`; a second run changes nothing.
+
+## Authorise the mailbox (once)
+
+After the first run, open the API connection `con-mygarage-outlook` in `rg-apps` in the Azure portal, choose **Edit API connection**, **Authorize**, sign in as `mygarage_intake@outlook.com`, and **Save**. The status must read *Connected*. The script prints this reminder while the connection is not authorised, and never redeploys the connection once it exists, so the authorisation is kept.
 
 ## Parameters
 
 | Parameter | Default | Description |
 |---|---|---|
-| `-OutlookConnectionId` | required | Resource id of the Outlook connection |
+| `-OutlookConnectionName` | `con-mygarage-outlook` | Name of the Outlook connection; created when missing |
 | `-ResourceGroup` | `rg-apps` | Group of the Logic App, identity, and conversion connection |
 | `-Location` | `northcentralus` | Must match the connection's region |
 | `-Name` | `logic-mygarage-intake` | Logic App name |
