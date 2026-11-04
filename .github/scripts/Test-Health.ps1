@@ -44,28 +44,39 @@ foreach ($app in $apps) {
     $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
     $healthy = $false
     $lastStatus = 'no response'
-    while ((Get-Date) -lt $deadline) {
+    $info = $null
+    $tagOk = $false
+    $revisionOk = $false
+    $readError = $null
+
+    # The old revision keeps answering /health until traffic moves, so health, tag, and revision readiness must all hold at once.
+    while ($true) {
+        $healthy = $false
         try {
             $response = Invoke-WebRequest -Uri "$($app.Address.TrimEnd('/'))/health" -TimeoutSec 30 -SkipHttpErrorCheck
             $lastStatus = "HTTP $([int] $response.StatusCode)"
-            if ($response.StatusCode -eq 200 -and $response.Content.Trim() -eq 'Healthy') { $healthy = $true; break }
+            $healthy = $response.StatusCode -eq 200 -and $response.Content.Trim() -eq 'Healthy'
         }
         catch { $lastStatus = $_.Exception.GetType().Name }
+
+        $details = & az containerapp show --name $app.Name --resource-group $ResourceGroup `
+            --query '{image:properties.template.containers[0].image, state:properties.provisioningState, latest:properties.latestRevisionName, ready:properties.latestReadyRevisionName}' `
+            --only-show-errors -o json 2>&1
+        if ($LASTEXITCODE -ne 0) { $readError = ($details | Out-String).Trim(); break }
+        $info = ($details | Out-String) | ConvertFrom-Json
+
+        $tagOk = $info.image.EndsWith(":$ExpectedTag", [StringComparison]::Ordinal)
+        $revisionOk = $info.state -eq 'Succeeded' -and $info.latest -eq $info.ready
+        if (($healthy -and $tagOk -and $revisionOk) -or (Get-Date) -ge $deadline) { break }
         Start-Sleep -Seconds 10
     }
 
-    $details = & az containerapp show --name $app.Name --resource-group $ResourceGroup `
-        --query '{image:properties.template.containers[0].image, state:properties.provisioningState, latest:properties.latestRevisionName, ready:properties.latestReadyRevisionName}' `
-        --only-show-errors -o json 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "FAIL $($app.Label): could not read $($app.Name): $(($details | Out-String).Trim())"
+    if ($readError) {
+        Write-Host "FAIL $($app.Label): could not read $($app.Name): $readError"
         $failures++
         continue
     }
-    $info = ($details | Out-String) | ConvertFrom-Json
 
-    $tagOk = $info.image.EndsWith(":$ExpectedTag", [StringComparison]::Ordinal)
-    $revisionOk = $info.state -eq 'Succeeded' -and $info.latest -eq $info.ready
     if ($healthy -and $tagOk -and $revisionOk) {
         Write-Host "OK   $($app.Label): healthy on $ExpectedTag, revision $($info.latest)"
     }
