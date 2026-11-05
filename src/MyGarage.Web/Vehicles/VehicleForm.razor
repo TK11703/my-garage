@@ -24,21 +24,31 @@ else
                     <p class="form-text mb-2">* Required</p>
                     <div class="row">
                         <div class="col-lg-10 vstack gap-3">
-                            <VehicleBasicFields Model="Model" Errors="Errors" Lookups="Lookups" />
+                            <VehicleBasicFields Model="Model" Errors="Errors" Lookups="Lookups" Hints="Hints" />
                         </div>
                     </div>
                 </FieldGroup>
                 <FieldGroup Id="specifications" Title="Specifications">
                     <div class="row">
                         <div class="col-lg-10 vstack gap-3">
-                            <VehicleSpecificationFields Model="Model" Errors="Errors" Lookups="Lookups" />
+                            <VehicleSpecificationFields Model="Model" Errors="Errors" Lookups="Lookups" Hints="Hints" />
                         </div>
                     </div>
                 </FieldGroup>
+                <StickerFeaturesGroup Model="Model" Errors="Errors" />
                 <VehicleFormActions SubmitText="@SubmitText" CancelHref="@CancelHref" SubmitIcon="IconName.Save" />
             </div>
         </div>
     </EditForm>
+
+    @if (ImportContent is not null)
+    {
+        <div class="tab-content">
+            <div id="tab-import" class="tab-pane card border-0 shadow-sm @PaneState("import", current)" role="tabpanel" aria-labelledby="tab-import-tab" tabindex="0">
+                <div class="card-body">@ImportContent</div>
+            </div>
+        </div>
+    }
 
     @if (AttachmentTabs)
     {
@@ -93,7 +103,15 @@ else
     [Parameter]
     public bool AttachmentTabs { get; set; } = true;
 
-    private IReadOnlyList<(string Id, string Label, IconName Icon)> Tabs => AttachmentTabs ? VehicleTabs.Edit : [.. VehicleTabs.Edit.Take(1)];
+    // The Import from sticker pane; when null the form has no import tab.
+    [Parameter]
+    public RenderFragment? ImportContent { get; set; }
+
+    // The sticker's own text for lookups it could not match, shown under the empty dropdowns.
+    [Parameter]
+    public StickerHints Hints { get; set; } = StickerHints.None;
+
+    private IReadOnlyList<(string Id, string Label, IconName Icon)> Tabs => VehicleTabs.ForForm(ImportContent is not null, AttachmentTabs);
 
     [Parameter]
     public RenderFragment? MediaContent { get; set; }
@@ -126,12 +144,17 @@ else
     // A rejected save opens the tab that holds the first error so the message is not hidden.
     private string CurrentTab()
     {
-        if (VehicleFormFields.HasError(Errors, Fields))
+        if (VehicleFormFields.HasError(Errors, Fields) || VehicleFormFields.HasStickerFeatureError(Errors))
         {
             return "details";
         }
 
         var requested = VehicleTabs.NormalizeForEdit(ActiveTab);
+        if (requested == VehicleTabs.Import)
+        {
+            return ImportContent is null ? "details" : requested;
+        }
+
         return !AttachmentTabs && requested is "media" or "description" ? "details" : requested;
     }
 

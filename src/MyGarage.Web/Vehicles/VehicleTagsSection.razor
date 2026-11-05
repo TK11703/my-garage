@@ -38,6 +38,7 @@
                 {
                     <li class="list-group-item d-flex justify-content-between align-items-center gap-2" @key="tag.Id" data-testid="tag">
                         <span class="text-break">@tag.Name</span>
+                        <span class="badge text-bg-light ms-auto" data-testid="tag-category">@tag.Category</span>
                         <form method="post" @formname="@($"remove-tag-{tag.Id}")" @onsubmit="() => RemoveAsync(tag.Id)">
                             <AntiforgeryToken />
                             <button type="submit" class="btn-close" aria-label="Remove feature @tag.Name"></button>

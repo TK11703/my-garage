@@ -69,11 +69,11 @@ public class VehicleTagRepositoryTests(PostgresFixture postgres)
     }
 
     [Fact]
-    public async Task Add_The21stTag_ReachesTheLimitAndStoresNothing()
+    public async Task Add_OneTagOverTheLimit_ReachesTheLimitAndStoresNothing()
     {
         var (_, vehicles, tags) = await CreateAsync();
         var vehicle = await InsertVehicleAsync(vehicles, "owner-1");
-        for (var i = 1; i <= 20; i++)
+        for (var i = 1; i <= VehicleTagRepository.MaxTagsPerVehicle; i++)
         {
             Assert.Equal(AddTagStatus.Added, (await AddAsync(tags, "owner-1", vehicle.Id, $"tag {i}")).Status);
         }
@@ -81,7 +81,7 @@ public class VehicleTagRepositoryTests(PostgresFixture postgres)
         var result = await AddAsync(tags, "owner-1", vehicle.Id, "one too many");
 
         Assert.Equal(AddTagStatus.LimitReached, result.Status);
-        Assert.Equal(20, (await tags.ListAsync("owner-1", vehicle.Id, CancellationToken.None)).Count);
+        Assert.Equal(VehicleTagRepository.MaxTagsPerVehicle, (await tags.ListAsync("owner-1", vehicle.Id, CancellationToken.None)).Count);
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public class VehicleTagRepositoryTests(PostgresFixture postgres)
     {
         var (_, vehicles, tags) = await CreateAsync();
         var vehicle = await InsertVehicleAsync(vehicles, "owner-1");
-        for (var i = 1; i <= 20; i++)
+        for (var i = 1; i <= VehicleTagRepository.MaxTagsPerVehicle; i++)
         {
             await AddAsync(tags, "owner-1", vehicle.Id, $"tag {i}");
         }
@@ -103,11 +103,13 @@ public class VehicleTagRepositoryTests(PostgresFixture postgres)
         var (_, vehicles, tags) = await CreateAsync();
         var vehicle = await InsertVehicleAsync(vehicles, "owner-1");
 
-        var results = await Task.WhenAll(Enumerable.Range(1, 30).Select(i => AddAsync(tags, "owner-1", vehicle.Id, $"tag {i}")));
+        var limit = VehicleTagRepository.MaxTagsPerVehicle;
 
-        Assert.Equal(20, results.Count(result => result.Status == AddTagStatus.Added));
+        var results = await Task.WhenAll(Enumerable.Range(1, limit + 10).Select(i => AddAsync(tags, "owner-1", vehicle.Id, $"tag {i}")));
+
+        Assert.Equal(limit, results.Count(result => result.Status == AddTagStatus.Added));
         Assert.Equal(10, results.Count(result => result.Status == AddTagStatus.LimitReached));
-        Assert.Equal(20, (await tags.ListAsync("owner-1", vehicle.Id, CancellationToken.None)).Count);
+        Assert.Equal(limit, (await tags.ListAsync("owner-1", vehicle.Id, CancellationToken.None)).Count);
     }
 
     [Fact]
@@ -357,5 +359,89 @@ public class VehicleTagRepositoryTests(PostgresFixture postgres)
         await AddAsync(tags, "owner-2", two.Id, "ROOF RACK");
 
         Assert.Equal(["Roof rack", "Alloy wheels"], await tags.SuggestAsync("o", 10, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task ANewFeature_HasNoCategoryUntilOneIsSet()
+    {
+        var (_, vehicles, tags) = await CreateAsync();
+        var vehicle = await InsertVehicleAsync(vehicles, "owner-1");
+
+        var added = await AddAsync(tags, "owner-1", vehicle.Id, "Sunroof");
+
+        Assert.Null(added.Tag!.Category);
+        Assert.Null(Assert.Single(await tags.ListAsync("owner-1", vehicle.Id, CancellationToken.None)).Category);
+        var pending = Assert.Single(await tags.ListUncategorizedAsync(10, CancellationToken.None));
+        Assert.Equal("Sunroof", pending.Name);
+    }
+
+    [Fact]
+    public async Task SettingACategory_ShowsItOnEveryVehicleThatHasTheFeature_AndRemovesItFromThePendingList()
+    {
+        var (_, vehicles, tags) = await CreateAsync();
+        var one = await InsertVehicleAsync(vehicles, "owner-1");
+        var two = await InsertVehicleAsync(vehicles, "owner-2");
+        await AddAsync(tags, "owner-1", one.Id, "Sunroof");
+        await AddAsync(tags, "owner-2", two.Id, "sunroof");
+        var pending = Assert.Single(await tags.ListUncategorizedAsync(10, CancellationToken.None));
+
+        await tags.SetCategoriesAsync(new Dictionary<Guid, string> { [pending.Id] = "Exterior" }, CancellationToken.None);
+
+        Assert.Equal("Exterior", Assert.Single(await tags.ListAsync("owner-1", one.Id, CancellationToken.None)).Category);
+        Assert.Equal("Exterior", Assert.Single(await tags.ListAsync("owner-2", two.Id, CancellationToken.None)).Category);
+        Assert.Empty(await tags.ListUncategorizedAsync(10, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task AddingAFeatureThatIsAlreadyCategorized_ReturnsItsCategory()
+    {
+        var (_, vehicles, tags) = await CreateAsync();
+        var one = await InsertVehicleAsync(vehicles, "owner-1");
+        var two = await InsertVehicleAsync(vehicles, "owner-2");
+        await AddAsync(tags, "owner-1", one.Id, "Sunroof");
+        var pending = Assert.Single(await tags.ListUncategorizedAsync(10, CancellationToken.None));
+        await tags.SetCategoriesAsync(new Dictionary<Guid, string> { [pending.Id] = "Exterior" }, CancellationToken.None);
+
+        var result = await AddAsync(tags, "owner-2", two.Id, "SUNROOF");
+
+        Assert.Equal("Exterior", result.Tag!.Category);
+    }
+
+    [Fact]
+    public async Task ACategoryIsSetOnce_ALaterWriteDoesNotOverwriteIt()
+    {
+        var (_, vehicles, tags) = await CreateAsync();
+        var vehicle = await InsertVehicleAsync(vehicles, "owner-1");
+        await AddAsync(tags, "owner-1", vehicle.Id, "Sunroof");
+        var pending = Assert.Single(await tags.ListUncategorizedAsync(10, CancellationToken.None));
+        await tags.SetCategoriesAsync(new Dictionary<Guid, string> { [pending.Id] = "Exterior" }, CancellationToken.None);
+
+        await tags.SetCategoriesAsync(new Dictionary<Guid, string> { [pending.Id] = "Safety" }, CancellationToken.None);
+
+        Assert.Equal("Exterior", Assert.Single(await tags.ListAsync("owner-1", vehicle.Id, CancellationToken.None)).Category);
+    }
+
+    [Fact]
+    public async Task ListUncategorized_ReturnsTheOldestFirstUpToTheLimit()
+    {
+        var (_, vehicles, tags) = await CreateAsync();
+        var vehicle = await InsertVehicleAsync(vehicles, "owner-1");
+        await tags.AddAsync("owner-1", vehicle.Id, Guid.CreateVersion7(), "Second", TestData.Created.AddMinutes(1), CancellationToken.None);
+        await tags.AddAsync("owner-1", vehicle.Id, Guid.CreateVersion7(), "First", TestData.Created, CancellationToken.None);
+        await tags.AddAsync("owner-1", vehicle.Id, Guid.CreateVersion7(), "Third", TestData.Created.AddMinutes(2), CancellationToken.None);
+
+        var pending = await tags.ListUncategorizedAsync(2, CancellationToken.None);
+
+        Assert.Equal(["First", "Second"], pending.Select(feature => feature.Name));
+    }
+
+    [Fact]
+    public async Task SettingNoCategories_ChangesNothing()
+    {
+        var (_, _, tags) = await CreateAsync();
+
+        await tags.SetCategoriesAsync(new Dictionary<Guid, string>(), CancellationToken.None);
+
+        Assert.Empty(await tags.ListUncategorizedAsync(10, CancellationToken.None));
     }
 }

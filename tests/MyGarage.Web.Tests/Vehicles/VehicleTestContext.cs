@@ -20,6 +20,7 @@ using MyGarage.Web.ServiceRecords;
 using MyGarage.Web.Taxes;
 using MyGarage.Web.VehicleDocuments;
 using MyGarage.Web.Vehicles;
+using MyGarage.Web.Vehicles.StickerImport;
 
 namespace MyGarage.Web.Tests.Vehicles;
 
@@ -159,6 +160,7 @@ public abstract class VehicleTestContext : BunitContext
         Services.AddSingleton(new DraftsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
         Services.AddSingleton(new NotificationsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
         Services.AddSingleton(new VehicleDocumentsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
+        Services.AddSingleton(new StickerImportApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
     }
 
     private static LookupsDto WithoutHidden(LookupsDto lookups) =>

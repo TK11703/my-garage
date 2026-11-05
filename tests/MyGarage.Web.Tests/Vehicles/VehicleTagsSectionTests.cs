@@ -11,7 +11,8 @@ public class VehicleTagsSectionTests : VehicleTestContext
 {
     private readonly Guid vehicleId = Guid.NewGuid();
 
-    private static VehicleTagDto Tag(string name) => new() { Id = Guid.NewGuid(), Name = name };
+    private static VehicleTagDto Tag(string name, string? category = null) =>
+        category is null ? new() { Id = Guid.NewGuid(), Name = name } : new() { Id = Guid.NewGuid(), Name = name, Category = category };
 
     private IRenderedComponent<VehicleTagsSection> RenderSection(params VehicleTagDto[] tags) =>
         Render<VehicleTagsSection>(parameters => parameters
@@ -74,12 +75,23 @@ public class VehicleTagsSectionTests : VehicleTestContext
 
         var list = cut.Find("ul.list-group[data-testid='feature-list']");
         var items = list.QuerySelectorAll("li.list-group-item[data-testid='tag']");
-        Assert.Equal(["sunroof", "tow package"], items.Select(item => item.TextContent.Trim()));
+        Assert.Equal(["sunroof", "tow package"], items.Select(item => item.QuerySelector("span.text-break")!.TextContent.Trim()));
         Assert.Equal(
             ["Remove feature sunroof", "Remove feature tow package"],
             items.Select(item => item.QuerySelector("form button[type='submit'].btn-close")!.GetAttribute("aria-label")));
-        Assert.Empty(cut.FindAll("span.badge"));
         Assert.DoesNotContain("Remove tag", cut.Markup);
+    }
+
+    [Fact]
+    public void EachFeature_ShowsItsCategory_AndOtherUntilItHasOne()
+    {
+        RegisterApi(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var cut = RenderSection(Tag("airbags", "Safety"), Tag("new thing"));
+
+        Assert.Equal(
+            ["Safety", "Other"],
+            cut.FindAll("[data-testid='tag'] [data-testid='tag-category']").Select(badge => badge.TextContent.Trim()));
     }
 
     [Fact]
@@ -100,7 +112,7 @@ public class VehicleTagsSectionTests : VehicleTestContext
         var cut = RenderSection(Tag("<b>bold</b>"));
 
         Assert.Empty(cut.FindAll("[data-testid='tag'] b"));
-        Assert.Equal("<b>bold</b>", cut.Find("[data-testid='tag']").TextContent.Trim());
+        Assert.Equal("<b>bold</b>", cut.Find("[data-testid='tag'] span.text-break").TextContent.Trim());
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 using Dapper;
 using MyGarage.Database.Common;
 using MyGarage.Database.Lookups;
+using MyGarage.Database.Tags;
 using Npgsql;
 
 namespace MyGarage.Database.Vehicles;
@@ -11,6 +12,119 @@ public sealed class VehicleRepository(NpgsqlDataSource dataSource, SqlScriptStor
     {
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await connection.ExecuteAsync(new CommandDefinition(scripts.Get("Vehicles/Insert"), vehicle, cancellationToken: cancellationToken));
+    }
+
+    // The vehicle and its window-sticker features are written in one transaction; any status other than Written leaves nothing behind.
+    public async Task<VehicleFeatureWriteStatus> InsertWithFeaturesAsync(
+        VehicleRecord vehicle,
+        IReadOnlyList<StickerFeatureWrite> features,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+
+        await connection.ExecuteAsync(new CommandDefinition(scripts.Get("Vehicles/Insert"), vehicle, transaction, cancellationToken: cancellationToken));
+        var status = await ApplyFeaturesAsync(connection, transaction, vehicle.OwnerId, vehicle.Id, features, now, cancellationToken);
+        if (status != VehicleFeatureWriteStatus.Written)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return status;
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+        return status;
+    }
+
+    // Like UpdateAsync, plus the features: the listed tags of this vehicle are removed and the new features linked, all or nothing.
+    public async Task<VehicleFeatureWriteStatus> UpdateWithFeaturesAsync(
+        VehicleRecord vehicle,
+        IReadOnlyList<StickerFeatureWrite> features,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+
+        var rows = await connection.ExecuteAsync(new CommandDefinition(scripts.Get("Vehicles/Update"), vehicle, transaction, cancellationToken: cancellationToken));
+        if (rows == 0)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return VehicleFeatureWriteStatus.NotFound;
+        }
+
+        var status = await ApplyFeaturesAsync(connection, transaction, vehicle.OwnerId, vehicle.Id, features, now, cancellationToken);
+        if (status != VehicleFeatureWriteStatus.Written)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return status;
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+        return status;
+    }
+
+    private async Task<VehicleFeatureWriteStatus> ApplyFeaturesAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction transaction,
+        string ownerId,
+        Guid vehicleId,
+        IReadOnlyList<StickerFeatureWrite> features,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (features.Count == 0)
+        {
+            return VehicleFeatureWriteStatus.Written;
+        }
+
+        var locked = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
+            scripts.Get("Tags/LockVehicle"), new { VehicleId = vehicleId, OwnerId = ownerId }, transaction, cancellationToken: cancellationToken));
+        if (locked is null)
+        {
+            return VehicleFeatureWriteStatus.NotFound;
+        }
+
+        // Removed first so a replacement frees its place under the limit and a feature may replace itself.
+        var replaced = features.SelectMany(feature => feature.ReplacesTagIds).Distinct().ToArray();
+        if (replaced.Length > 0)
+        {
+            await connection.ExecuteAsync(new CommandDefinition(
+                scripts.Get("Tags/DeleteByIds"), new { VehicleId = vehicleId, OwnerId = ownerId, TagIds = replaced }, transaction, cancellationToken: cancellationToken));
+        }
+
+        foreach (var feature in features)
+        {
+            var linked = await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+                scripts.Get("Tags/Exists"), new { VehicleId = vehicleId, feature.Name }, transaction, cancellationToken: cancellationToken));
+            if (linked)
+            {
+                continue;
+            }
+
+            var featureId = await connection.ExecuteScalarAsync<Guid>(new CommandDefinition(
+                scripts.Get("Tags/UpsertFeature"),
+                new { Id = Guid.CreateVersion7(), feature.Name, CreatedAt = now, OwnerId = ownerId },
+                transaction,
+                cancellationToken: cancellationToken));
+            await connection.ExecuteAsync(new CommandDefinition(
+                scripts.Get("Tags/Insert"),
+                new { Id = Guid.CreateVersion7(), VehicleId = vehicleId, FeatureId = featureId, CreatedAt = now },
+                transaction,
+                cancellationToken: cancellationToken));
+        }
+
+        var count = await connection.ExecuteScalarAsync<int>(new CommandDefinition(
+            scripts.Get("Tags/CountForVehicle"), new { VehicleId = vehicleId }, transaction, cancellationToken: cancellationToken));
+        return count > VehicleTagRepository.MaxTagsPerVehicle ? VehicleFeatureWriteStatus.FeatureLimit : VehicleFeatureWriteStatus.Written;
+    }
+
+    // Whether the owner already has a vehicle with this VIN, other than excludeVehicleId (the one being edited); never looks at other owners.
+    public async Task<bool> VinExistsAsync(string ownerId, string vin, Guid? excludeVehicleId, CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        return await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+            scripts.Get("Vehicles/VinExists"), new { OwnerId = ownerId, Vin = vin, ExcludeId = excludeVehicleId }, cancellationToken: cancellationToken));
     }
 
     public async Task<VehicleRecord?> GetByIdAsync(string ownerId, Guid id, CancellationToken cancellationToken)

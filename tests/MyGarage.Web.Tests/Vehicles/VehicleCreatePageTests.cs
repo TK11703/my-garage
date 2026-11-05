@@ -55,7 +55,7 @@ public class VehicleCreatePageTests : VehicleTestContext
     }
 
     [Fact]
-    public void Form_HasOnlyTheBasicInfoAndSpecificationsTabsWithTheFieldsOnEach()
+    public void Form_HasTheImportAndDetailsTabsOpenOnImportWithTheFieldsOnDetails()
     {
         RegisterApi(_ => Json(Detail()));
 
@@ -64,8 +64,8 @@ public class VehicleCreatePageTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             var tabs = cut.FindAll("ul.mg-tabs[role='tablist'] button[role='tab']");
-            Assert.Equal(["Details"], tabs.Select(tab => tab.TextContent.Trim()));
-            Assert.Equal(["tab-details"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
+            Assert.Equal(["Import from sticker", "Details"], tabs.Select(tab => tab.TextContent.Trim()));
+            Assert.Equal(["tab-import"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
             Assert.Empty(cut.FindAll("#tab-media, #tab-description"));
             Assert.Equal(
                 ["year", "make", "model", "trim", "vin", "vehicle-type", "ownership", "purchased-on", "lease-ends-on", "mileage", "latest-odometer-reading"],

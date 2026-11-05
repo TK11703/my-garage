@@ -14,4 +14,11 @@ public static class VehicleFormFields
 
     public static bool HasError(IReadOnlyDictionary<string, string[]> errors, IEnumerable<string> fields) =>
         fields.Any(field => errors.Keys.Any(key => string.Equals(key, field, StringComparison.OrdinalIgnoreCase)));
+
+    // Space-separated element ids for aria-describedby; null when there are none.
+    public static string? Join(params string?[] ids) => ids.Where(id => !string.IsNullOrEmpty(id)).ToArray() is { Length: > 0 } present ? string.Join(' ', present) : null;
+
+    // An error on a feature proposed from the sticker belongs to the Details tab.
+    public static bool HasStickerFeatureError(IReadOnlyDictionary<string, string[]> errors) =>
+        errors.Keys.Any(key => key.StartsWith("StickerFeatures", StringComparison.OrdinalIgnoreCase));
 }

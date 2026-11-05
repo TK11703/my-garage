@@ -35,6 +35,11 @@ Configuration read by the API:
 | `EmailIntake:Extraction:Endpoint` | Azure OpenAI endpoint, for example `https://<resource>.openai.azure.com`. Empty disables extraction: text-only emails end as not applicable and attachments become manual-entry drafts |
 | `EmailIntake:Extraction:Deployment` | Name of the model deployment that answers extraction calls |
 | `EmailIntake:Extraction:TimeoutSeconds` | Upper bound for one extraction call (default 90) |
+| `StickerImport:TimeoutSeconds` | Upper bound for reading one window sticker (default 90); the user is waiting in the form. Reading uses the `EmailIntake:Extraction:Endpoint` and `:Deployment` settings above, and is off when they are empty |
+| `StickerImport:RequestsPerMinute` | How many stickers one user may start reading in a minute (default 6); more answers 429 |
+| `FeatureCategories:TimeoutSeconds` | Upper bound for categorizing features with the model (default 30). Uses the same `EmailIntake:Extraction` endpoint and deployment; empty means features stay under Other |
+| `FeatureCategories:SweepEnabled`, `SweepMinutes` | The background pass that categorizes features still without a category (default on, every 10 minutes; tests turn it off) |
+| `FeatureCategories:BatchSize` | How many feature names go to the model in one call (default 100) |
 | `EmailIntake:Processing:Enabled` | `false` stops `SubmissionProcessor` and `OrphanBlobSweepService` from polling (tests set it to `false` and call them directly; default `true`) |
 | `EmailIntake:Processing:PollIntervalSeconds`, `LeaseMinutes` | Idle wait between polls (5) and how long a claimed submission stays leased to one worker (10) |
 

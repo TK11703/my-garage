@@ -44,4 +44,7 @@ public sealed record VehicleRequest
     public decimal? WheelSize { get; init; }
 
     public string? TireSize { get; init; }
+
+    // Window-sticker features added with this save (at most StickerImportLimits.MaxFeaturesPerVehicle); null or empty changes no features.
+    public IReadOnlyList<StickerFeatureRequest>? StickerFeatures { get; init; }
 }

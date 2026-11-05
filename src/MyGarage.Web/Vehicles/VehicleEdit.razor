@@ -3,6 +3,7 @@
 @attribute [ExcludeFromInteractiveRouting]
 @inject VehiclesApiClient Api
 @inject LookupsApiClient LookupsApi
+@inject StickerImportApiClient StickerApi
 @inject NavigationManager Navigation
 
 @if (failure is not null)
@@ -30,8 +31,17 @@ else if (loaded && Model is not null)
         </Actions>
     </PageHeader>
 
-    <VehicleForm Tabbed="true" ActiveTab="@Tab" Model="Model" FormName="update-vehicle" SubmitText="Save changes" CancelHref="@($"/vehicles/{VehicleId}")"
-                 Lookups="lookups" Errors="errors" OnSubmit="SubmitAsync">
+    @if (importFailure is not null)
+    {
+        <ApiFailureAlert Failure="importFailure.Value" ReturnUrl="@($"/vehicles/{VehicleId}/edit")"
+                         NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+    }
+
+    <VehicleForm Tabbed="true" ActiveTab="@activeTab" Model="Model" FormName="update-vehicle" SubmitText="Save changes" CancelHref="@($"/vehicles/{VehicleId}")"
+                 Lookups="lookups" Errors="errors" Hints="hints" OnSubmit="SubmitAsync">
+        <ImportContent>
+            <StickerImportPanel Existing="true" Result="importResult" Message="@importMessage" Level="@importLevel" OnImport="ImportAsync" />
+        </ImportContent>
         <MediaContent>
             <VehicleGallerySection VehicleId="VehicleId" VehicleName="@storedName" Images="images" Status="@ImageStatus"
                                    ReturnPath="@EditPath("media")" />
@@ -60,6 +70,14 @@ else if (loaded && Model is not null)
     private bool notFound;
     // A posted Model exists before the stored vehicle loads, so Model alone can't gate the form.
     private bool loaded;
+    // Details unless another tab was asked for; an import or a rejected save also moves it to the details.
+    private string? activeTab;
+    // A sign-in rejection or outage while importing shows above the form instead of replacing it.
+    private GarageApiFailure? importFailure;
+    private StickerImportResultDto? importResult;
+    private string? importMessage;
+    private string importLevel = "danger";
+    private StickerHints hints = StickerHints.None;
 
     [Parameter]
     public Guid VehicleId { get; set; }
@@ -89,6 +107,7 @@ else if (loaded && Model is not null)
     // The stored vehicle is loaded on every request; a posted form takes precedence over it.
     protected override async Task OnInitializedAsync()
     {
+        activeTab = Tab;
         try
         {
             var result = await Api.GetAsync(VehicleId);
@@ -99,6 +118,11 @@ else if (loaded && Model is not null)
             }
 
             Model ??= VehicleFormModel.From(result.Value!);
+            if (HttpContext is { Request.HasFormContentType: true } http)
+            {
+                Model.StickerFeatures = StickerFeatureChoice.ReadFrom(http.Request.Form);
+            }
+
             storedName = result.Value!.Name;
             images = result.Value.Images;
             tags = result.Value.Tags;
@@ -108,6 +132,37 @@ else if (loaded && Model is not null)
         catch (GarageApiException ex)
         {
             failure = ex.Failure;
+        }
+    }
+
+    private async Task ImportAsync()
+    {
+        failure = null;
+        importFailure = null;
+        try
+        {
+            var attempt = await StickerImportHandler.RunAsync(HttpContext, StickerApi, VehicleId, HttpContext?.RequestAborted ?? default);
+            if (attempt.Failure == StickerImportFailure.NotFound)
+            {
+                MarkNotFound();
+                return;
+            }
+
+            activeTab = VehicleTabs.Import;
+            importMessage = attempt.Message;
+            importLevel = attempt.Level;
+            importResult = attempt.Result;
+            if (attempt.Result is { Outcome: not StickerImportOutcome.NoDetailsFound } result)
+            {
+                Model!.ApplyImport(result);
+                hints = StickerHints.From(result);
+                activeTab = "details";
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            importFailure = ex.Failure;
+            activeTab = VehicleTabs.Import;
         }
     }
 
@@ -130,6 +185,7 @@ else if (loaded && Model is not null)
             }
 
             errors = result.Errors;
+            activeTab = "details";
         }
         catch (GarageApiException ex)
         {

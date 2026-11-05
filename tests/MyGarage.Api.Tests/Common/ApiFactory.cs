@@ -9,6 +9,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using MyGarage.Api.EmailIntake.Extraction;
+using MyGarage.Api.Vehicles.StickerImport;
+using MyGarage.Api.Vehicles.Tags;
 using MyGarage.Database.EmailIntake;
 using MyGarage.Database.VehicleDocuments;
 using MyGarage.Database.VehicleImages;
@@ -48,6 +50,12 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     // Replaces the AI extractor for every request this factory serves.
     public FakeDraftExtractor Extractor { get; } = new();
 
+    // Replaces the window-sticker reader for every request this factory serves.
+    public FakeStickerExtractor StickerExtractor { get; } = new();
+
+    // Replaces the feature categorizer for every request this factory serves.
+    public FakeFeatureCategorizer FeatureCategorizer { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
@@ -62,6 +70,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
                 ["EmailIntake:Processing:Enabled"] = "false",
                 // Tests call DraftExpiryService.RunOnceAsync themselves so a background run never expires their seeded drafts.
                 ["Drafts:Expiry:Enabled"] = "false",
+                // Many tests read stickers as the same user inside one minute; the rate-limit tests set their own limit.
+                ["StickerImport:RequestsPerMinute"] = "1000",
+                // Tests call FeatureCategorizationService.CategorizePendingAsync themselves so a background run never categorizes their seeded features.
+                ["FeatureCategories:SweepEnabled"] = "false",
             }));
 
         builder.ConfigureServices(services =>
@@ -79,6 +91,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             services.AddSingleton(_ => blobService);
             services.RemoveAll<IDraftExtractor>();
             services.AddSingleton<IDraftExtractor>(Extractor);
+            services.RemoveAll<IStickerExtractor>();
+            services.AddSingleton<IStickerExtractor>(StickerExtractor);
+            services.RemoveAll<IFeatureCategorizer>();
+            services.AddSingleton<IFeatureCategorizer>(FeatureCategorizer);
 
             // Real JWT validation runs; only the key source is swapped so no call reaches the real identity provider.
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>

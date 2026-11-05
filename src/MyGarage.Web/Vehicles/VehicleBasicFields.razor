@@ -44,7 +44,7 @@
     <div class="col-sm-4">
         <div class="form-floating">
             <InputSelect id="vehicle-type" TValue="Guid?" class="form-select" @bind-Value="Model.VehicleTypeId"
-                         aria-describedby="@VehicleFormFields.Described(Errors, "VehicleTypeId")">
+                         aria-describedby="@VehicleFormFields.Join(VehicleFormFields.Described(Errors, "VehicleTypeId"), Hints.VehicleType is null ? null : "vehicle-type-hint")">
                 <option value="">Not set</option>
                 @foreach (var item in Lookups.VehicleTypes)
                 {
@@ -54,6 +54,10 @@
             <label for="vehicle-type">Vehicle type</label>
         </div>
         <ValidationMessage For="@(() => Model.VehicleTypeId)" id="vehicletypeid-error" class="invalid-feedback d-block" />
+        @if (Hints.VehicleType is { } vehicleTypeHint)
+        {
+            <div id="vehicle-type-hint" class="form-text" data-testid="sticker-hint-vehicle-type">The sticker says: @vehicleTypeHint</div>
+        }
     </div>
 </div>
 <div class="row g-3">
@@ -119,6 +123,10 @@
 
     [Parameter]
     public VehicleFormLookups Lookups { get; set; } = VehicleFormLookups.Empty;
+
+    // The sticker's own text for a vehicle type it could not match to one of the user's items.
+    [Parameter]
+    public StickerHints Hints { get; set; } = StickerHints.None;
 
     private string LatestDescribedBy =>
         VehicleFormFields.Described(Errors, "LatestOdometerReading") is { } error ? $"{error} latest-odometer-help" : "latest-odometer-help";

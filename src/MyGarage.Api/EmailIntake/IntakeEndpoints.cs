@@ -1,5 +1,4 @@
 using Azure.Core;
-using Azure.Identity;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -36,7 +35,7 @@ public static class IntakeEndpoints
         services.AddOptions<SubmissionProcessingOptions>().BindConfiguration(SubmissionProcessingOptions.SectionName);
 
         // No key anywhere: the managed identity (or the developer's sign-in) gets the token. Tests replace IDraftExtractor, so this is never built there.
-        services.TryAddSingleton<TokenCredential>(_ => new DefaultAzureCredential());
+        services.TryAddSingleton<TokenCredential>(sp => AzureCredentials.Create(sp.GetRequiredService<IHostEnvironment>()));
 
         // The processor is a singleton, so the client is long-lived: connections are recycled by lifetime instead of by handler rotation.
         // The model call takes far longer than the 10 s default of the standard resilience handler, so this client gets its own pipeline.

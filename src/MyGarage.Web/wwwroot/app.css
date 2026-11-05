@@ -407,6 +407,13 @@ main:focus {
     pointer-events: none;
 }
 
+/* The sticker form's preview and buttons sit above the full-size file input so they stay clickable */
+form[data-sticker-import] [data-sticker-preview],
+form[data-sticker-import] .btn {
+    position: relative;
+    z-index: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .mg-dropzone {
         transition: none;
@@ -553,4 +560,9 @@ main:focus {
 .mg-original-frame {
     height: 70vh;
     min-height: 24rem;
+}
+
+/* Extra-small text, one step below Bootstrap's .small, for dense feature lists. */
+.mg-text-xs {
+    font-size: 0.8125rem;
 }

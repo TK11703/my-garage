@@ -4,7 +4,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 
-namespace MyGarage.Api.EmailIntake.Extraction;
+namespace MyGarage.Api.Common;
 
 // A JSON request body whose one string value is a document: the JSON before and after it is written as is, and the document is
 // read from its stream in small blocks and base64-encoded straight into the request, so a 10 MB file is never held as bytes

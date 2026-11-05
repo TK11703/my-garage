@@ -77,11 +77,11 @@ public class VehicleTagsEndpointsTests(ApiFactory factory) : IClassFixture<ApiFa
     }
 
     [Fact]
-    public async Task Post_The21stTag_Returns409()
+    public async Task Post_OneTagOverTheLimit_Returns409()
     {
         var client = factory.CreateClientForUser(Alice);
         var vehicle = await CreateVehicleAsync(client);
-        for (var i = 1; i <= 20; i++)
+        for (var i = 1; i <= MyGarage.Database.Tags.VehicleTagRepository.MaxTagsPerVehicle; i++)
         {
             Assert.Equal(HttpStatusCode.Created, (await AddTagAsync(client, vehicle.Id, $"tag {i}")).StatusCode);
         }
@@ -90,8 +90,8 @@ public class VehicleTagsEndpointsTests(ApiFactory factory) : IClassFixture<ApiFa
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        Assert.Equal("A vehicle can have at most 20 features.", problem!.Title);
-        Assert.Equal(20, (await client.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{vehicle.Id}"))!.Tags.Count);
+        Assert.Equal($"A vehicle can have at most {MyGarage.Database.Tags.VehicleTagRepository.MaxTagsPerVehicle} features.", problem!.Title);
+        Assert.Equal(MyGarage.Database.Tags.VehicleTagRepository.MaxTagsPerVehicle, (await client.GetFromJsonAsync<VehicleDetailDto>($"/api/vehicles/{vehicle.Id}"))!.Tags.Count);
     }
 
     [Fact]

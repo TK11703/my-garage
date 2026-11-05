@@ -1,0 +1,32 @@
+<div class="alert @(Result.Outcome == StickerImportOutcome.NoDetailsFound ? "alert-warning" : "alert-success")" role="status" tabindex="-1" id="sticker-result" data-testid="sticker-result">
+    @if (Result.Outcome == StickerImportOutcome.NoDetailsFound)
+    {
+        <p class="mb-0" data-testid="sticker-no-details">@StickerImportMessages.NoDetails</p>
+    }
+    else
+    {
+        <p class="mb-0" data-testid="sticker-read-count">
+            Read @Result.FieldsFilled @(Result.FieldsFilled == 1 ? "detail" : "details")@(Result.Features.Count > 0 ? $" and {Result.Features.Count} {(Result.Features.Count == 1 ? "feature" : "features")}" : string.Empty) from the sticker. Review them on the Details tab.
+        </p>
+        <button type="button" class="btn btn-sm btn-outline-success mt-2" data-bs-toggle="tab" data-bs-target="#tab-details">Open the Details tab</button>
+    }
+
+    @if (Notices.Count > 0)
+    {
+        <ul class="mb-0 mt-2" data-testid="sticker-notices">
+            @foreach (var notice in Notices)
+            {
+                <li data-notice="@notice.Code">@notice.Message</li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public StickerImportResultDto Result { get; set; } = default!;
+
+    // The no-details result already has its own message above, so its notice is not repeated.
+    private IReadOnlyList<StickerNoticeDto> Notices =>
+        [.. Result.Notices.Where(notice => Result.Outcome != StickerImportOutcome.NoDetailsFound || notice.Code != StickerNoticeCode.NoDetails)];
+}
