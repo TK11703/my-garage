@@ -18,7 +18,7 @@
     <div class="col-sm-4">
         <div class="form-floating">
             <InputSelect id="drivetrain" TValue="Guid?" class="form-select" @bind-Value="Model.DrivetrainId"
-                         aria-describedby="@VehicleFormFields.Described(Errors, "DrivetrainId")">
+                         aria-describedby="@VehicleFormFields.Join(VehicleFormFields.Described(Errors, "DrivetrainId"), Hints.Drivetrain is null ? null : "drivetrain-hint")">
                 <option value="">Not set</option>
                 @foreach (var item in Lookups.Drivetrains)
                 {
@@ -28,6 +28,10 @@
             <label for="drivetrain">Drivetrain</label>
         </div>
         <ValidationMessage For="@(() => Model.DrivetrainId)" id="drivetrainid-error" class="invalid-feedback d-block" />
+        @if (Hints.Drivetrain is { } drivetrainHint)
+        {
+            <div id="drivetrain-hint" class="form-text" data-testid="sticker-hint-drivetrain">The sticker says: @drivetrainHint</div>
+        }
     </div>
 </div>
 <div class="row g-3">
@@ -42,7 +46,7 @@
     <div class="col-sm-4">
         <div class="form-floating">
             <InputSelect id="fuel-type" TValue="Guid?" class="form-select" @bind-Value="Model.FuelTypeId"
-                         aria-describedby="@VehicleFormFields.Described(Errors, "FuelTypeId")">
+                         aria-describedby="@VehicleFormFields.Join(VehicleFormFields.Described(Errors, "FuelTypeId"), Hints.FuelType is null ? null : "fuel-type-hint")">
                 <option value="">Not set</option>
                 @foreach (var item in Lookups.FuelTypes)
                 {
@@ -52,11 +56,15 @@
             <label for="fuel-type">Fuel type</label>
         </div>
         <ValidationMessage For="@(() => Model.FuelTypeId)" id="fueltypeid-error" class="invalid-feedback d-block" />
+        @if (Hints.FuelType is { } fuelTypeHint)
+        {
+            <div id="fuel-type-hint" class="form-text" data-testid="sticker-hint-fuel-type">The sticker says: @fuelTypeHint</div>
+        }
     </div>
     <div class="col-sm-4">
         <div class="form-floating">
             <InputSelect id="transmission" TValue="Guid?" class="form-select" @bind-Value="Model.TransmissionId"
-                         aria-describedby="@VehicleFormFields.Described(Errors, "TransmissionId")">
+                         aria-describedby="@VehicleFormFields.Join(VehicleFormFields.Described(Errors, "TransmissionId"), Hints.Transmission is null ? null : "transmission-hint")">
                 <option value="">Not set</option>
                 @foreach (var item in Lookups.Transmissions)
                 {
@@ -66,6 +74,10 @@
             <label for="transmission">Transmission</label>
         </div>
         <ValidationMessage For="@(() => Model.TransmissionId)" id="transmissionid-error" class="invalid-feedback d-block" />
+        @if (Hints.Transmission is { } transmissionHint)
+        {
+            <div id="transmission-hint" class="form-text" data-testid="sticker-hint-transmission">The sticker says: @transmissionHint</div>
+        }
     </div>
 </div>
 <div class="row g-3">
@@ -112,4 +124,8 @@
 
     [Parameter]
     public VehicleFormLookups Lookups { get; set; } = VehicleFormLookups.Empty;
+
+    // The sticker's own text for a lookup it could not match to one of the user's items.
+    [Parameter]
+    public StickerHints Hints { get; set; } = StickerHints.None;
 }

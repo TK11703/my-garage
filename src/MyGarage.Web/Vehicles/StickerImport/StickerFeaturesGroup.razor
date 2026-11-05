@@ -1,0 +1,47 @@
+@if (Model.StickerFeatures.Count > 0)
+{
+    <FieldGroup Id="sticker-features" Title="Features from the sticker">
+        <p class="form-text mb-2">These features will be added to the vehicle when you save. Features it replaces will be removed. Untick any you do not want.</p>
+
+        @foreach (var message in ErrorMessages)
+        {
+            <div class="invalid-feedback d-block" data-testid="sticker-features-error">@message</div>
+        }
+
+        <div role="group" aria-labelledby="group-sticker-features-title" data-testid="sticker-features">
+            @for (var index = 0; index < Model.StickerFeatures.Count; index++)
+            {
+                var row = Model.StickerFeatures[index];
+                var position = index;
+                <div class="form-check mb-2" data-testid="sticker-feature">
+                    <input type="hidden" name="@StickerFeatureChoice.NameField(position)" value="@row.Name" />
+                    @foreach (var id in row.ReplacesTagIds)
+                    {
+                        <input type="hidden" name="@StickerFeatureChoice.ReplacesIdField(position)" value="@id" />
+                    }
+                    @foreach (var replaced in row.ReplacesNames)
+                    {
+                        <input type="hidden" name="@StickerFeatureChoice.ReplacesNameField(position)" value="@replaced" />
+                    }
+                    <input class="form-check-input" type="checkbox" id="sticker-feature-@position" name="@StickerFeatureChoice.IncludeField(position)" value="true" checked="@row.Include" />
+                    <label class="form-check-label" for="sticker-feature-@position">@row.Name</label>
+                    @if (row.ReplacesNames.Count > 0)
+                    {
+                        <span class="form-text d-block" data-testid="sticker-feature-replaces">Replaces: @string.Join(", ", row.ReplacesNames)</span>
+                    }
+                </div>
+            }
+        </div>
+    </FieldGroup>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public VehicleFormModel Model { get; set; } = default!;
+
+    [Parameter]
+    public IReadOnlyDictionary<string, string[]> Errors { get; set; } = new Dictionary<string, string[]>();
+
+    private IEnumerable<string> ErrorMessages =>
+        Errors.Where(pair => pair.Key.StartsWith("StickerFeatures", StringComparison.OrdinalIgnoreCase)).SelectMany(pair => pair.Value);
+}

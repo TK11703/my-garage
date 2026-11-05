@@ -71,7 +71,10 @@ else if (vehicle is not null)
                         <ViewField Label="Vehicle type" Value="@VehicleFormat.Text(vehicle.VehicleType?.Name)" />
                         <ViewField Label="Purchased or leased" Value="@VehicleFormat.Ownership(vehicle.Ownership)" />
                         <ViewField Label="@VehicleFormat.DateLabel(vehicle.Ownership)" Value="@VehicleFormat.Date(vehicle.PurchasedOn)" />
-                        <ViewField Label="Date lease ends" Value="@VehicleFormat.Date(vehicle.LeaseEndsOn)" />
+                        @if (vehicle.Ownership == OwnershipType.Leased)
+                        {
+                            <ViewField Label="Date lease ends" Value="@VehicleFormat.Date(vehicle.LeaseEndsOn)" />
+                        }
                         <ViewField Label="@VehicleFormat.MileageLabel(vehicle.Ownership)" Value="@VehicleFormat.MileageOrNotSet(vehicle.Mileage)" />
                         <ViewField Label="Latest odometer reading" Value="@VehicleFormat.MileageOrNotSet(vehicle.LatestOdometerReading)" />
                     </dl>
@@ -96,10 +99,10 @@ else if (vehicle is not null)
                 </div>
                 <div id="tab-description" class="tab-pane @PaneState("description", current)" role="tabpanel" aria-labelledby="tab-description-tab" tabindex="0">
                     <div class="row g-4">
-                        <div class="col-lg-6">
-                            <VehicleTagsView VehicleId="VehicleId" Tags="vehicle.Tags" />
+                        <div class="col-lg-8">
+                            <VehicleTagsView VehicleId="VehicleId" Tags="vehicle.Tags" Query="@FeatureQuery" />
                         </div>
-                        <div class="col-lg-6">
+                        <div class="col-lg-4">
                             <VehicleJournalView VehicleId="VehicleId" NotesPage="journalPage" />
                         </div>
                     </div>
@@ -160,6 +163,10 @@ else if (vehicle is not null)
 
     [Parameter, SupplyParameterFromQuery(Name = "documentsPage")]
     public string? DocumentsPage { get; set; }
+
+    // The text typed into the feature search on the Description tab.
+    [Parameter, SupplyParameterFromQuery(Name = "featureQuery")]
+    public string? FeatureQuery { get; set; }
 
     // Set to "draft" when a record was just saved from an email draft.
     [Parameter, SupplyParameterFromQuery(Name = "saved")]

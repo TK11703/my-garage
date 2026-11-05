@@ -1,20 +1,19 @@
 using System.Diagnostics;
-using System.Net;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Azure.Core;
 using Microsoft.Extensions.Options;
+using MyGarage.Api.Common;
 
 namespace MyGarage.Api.EmailIntake.Extraction;
 
-// Reads an email or one attached document through the Azure OpenAI Responses API with a strict JSON schema (research R6, R7).
+// Reads an email or one attached document with a strict JSON schema (research R6, R7); the HTTP and token plumbing is the shared ResponsesApiClient.
 // The model gets no tools and no data of ours; every failure becomes a failed result with a reason code, never email content.
-public sealed class ResponsesApiExtractor(
-    HttpClient httpClient, IOptions<ExtractionOptions> options, TokenCredential credential, ILogger<ResponsesApiExtractor> logger) : IDraftExtractor
+public sealed class ResponsesApiExtractor : IDraftExtractor
 {
-    private const string TokenScope = "https://ai.azure.com/.default";
+    private readonly ResponsesApiClient client;
+    private readonly IOptions<ExtractionOptions> options;
+    private readonly ILogger<ResponsesApiExtractor> logger;
 
     private static readonly JsonSerializerOptions AnswerOptions = new(JsonSerializerDefaults.Web)
     {
@@ -22,75 +21,49 @@ public sealed class ResponsesApiExtractor(
         RespectNullableAnnotations = true,
     };
 
-    public bool IsEnabled => !string.IsNullOrWhiteSpace(options.Value.Endpoint) && !string.IsNullOrWhiteSpace(options.Value.Deployment);
+    public ResponsesApiExtractor(HttpClient httpClient, IOptions<ExtractionOptions> options, TokenCredential credential, ILogger<ResponsesApiExtractor> logger)
+    {
+        client = new ResponsesApiClient(httpClient, options, credential);
+        this.options = options;
+        this.logger = logger;
+    }
+
+    public bool IsEnabled => client.IsEnabled;
 
     public async Task<ExtractionResult> ExtractAsync(ExtractionInput input, CancellationToken cancellationToken)
     {
-        var settings = options.Value;
         var started = Stopwatch.GetTimestamp();
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(Math.Max(1, settings.TimeoutSeconds)));
+        var call = new ResponsesCall(
+            ExtractionSchema.Instructions,
+            ExtractionSchema.Name,
+            ExtractionSchema.Json,
+            BuildInputText(input),
+            input.Document is { } document ? new ResponsesDocument(document.Content, document.ContentType, document.FileName) : null,
+            TimeSpan.FromSeconds(Math.Max(1, options.Value.TimeoutSeconds)));
 
-        try
+        var outcome = await client.SendAsync(call, cancellationToken);
+        var result = outcome.IsFailure ? ExtractionResult.Failed(outcome.FailureReason!) : ParseAnswer(outcome.AnswerText!);
+
+        if (result.IsFailure)
         {
-            var token = await credential.GetTokenAsync(new TokenRequestContext([TokenScope]), timeout.Token);
-            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri($"{settings.Endpoint!.TrimEnd('/')}/openai/v1/responses"))
+            if (outcome.StatusCode is { } status)
             {
-                Content = BuildContent(input, settings.Deployment!),
-            };
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Token);
-
-            using var response = await httpClient.SendAsync(request, timeout.Token);
-            var body = await response.Content.ReadAsStringAsync(timeout.Token);
-            var result = response.IsSuccessStatusCode ? ParseResponse(body) : ExtractionResult.Failed(ReasonFor(response.StatusCode, body));
-
-            if (result.IsFailure)
-            {
-                logger.LogWarning("Extraction failed with {Reason} (HTTP {StatusCode})", result.FailureReason, (int)response.StatusCode);
+                logger.LogWarning("Extraction failed with {Reason} (HTTP {StatusCode})", result.FailureReason, status);
             }
             else
             {
-                logger.LogInformation("Extraction answered kind {Kind} in {ElapsedMs} ms", result.Kind, (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+                logger.LogWarning("Extraction failed with {Reason}", result.FailureReason);
             }
-
-            return result;
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        else
         {
-            return Fail("timeout");
-        }
-        catch (TimeoutException)
-        {
-            return Fail("timeout");
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            // Network, credential, and service failures all become a failed result; the caller's retry policy decides what happens next.
-            return Fail("service_error");
+            logger.LogInformation("Extraction answered kind {Kind} in {ElapsedMs} ms", result.Kind, (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds);
         }
 
-        ExtractionResult Fail(string reason)
-        {
-            logger.LogWarning("Extraction failed with {Reason}", reason);
-            return ExtractionResult.Failed(reason);
-        }
+        return result;
     }
 
-    // Without a document the body is plain JSON. With one, the file's base64 is written into the request as it is read from its stream.
-    private static HttpContent BuildContent(ExtractionInput input, string deployment)
-    {
-        var request = BuildRequest(input, deployment, out var placeholder);
-        var json = request.ToJsonString();
-        if (input.Document is not { } document)
-        {
-            return new StringContent(json, Encoding.UTF8, "application/json");
-        }
-
-        var at = json.IndexOf(placeholder, StringComparison.Ordinal);
-        return new DocumentRequestContent(json[..at], json[(at + placeholder.Length)..], document.Content);
-    }
-
-    private static JsonObject BuildRequest(ExtractionInput input, string deployment, out string placeholder)
+    private static string BuildInputText(ExtractionInput input)
     {
         var email = new StringBuilder();
         email.Append(input.Document is null ? "Email to read." : "Email text, context only; the attached document is what to read.");
@@ -101,127 +74,7 @@ public sealed class ResponsesApiExtractor(
         }
 
         email.Append("\n\n").Append(input.Text);
-
-        // Letters and digits only, so the JSON writer leaves it untouched and it can be cut out of the serialized text.
-        placeholder = $"DOCUMENT{Guid.NewGuid():N}";
-        var content = new JsonArray(new JsonObject { ["type"] = "input_text", ["text"] = email.ToString() });
-        if (input.Document is { } document)
-        {
-            content.Add(document.ContentType == "application/pdf"
-                ? new JsonObject { ["type"] = "input_file", ["filename"] = document.FileName, ["file_data"] = $"data:{document.ContentType};base64,{placeholder}" }
-                : new JsonObject { ["type"] = "input_image", ["image_url"] = $"data:{document.ContentType};base64,{placeholder}" });
-        }
-
-        return new JsonObject
-        {
-            ["model"] = deployment,
-            ["store"] = false,
-            ["instructions"] = ExtractionSchema.Instructions,
-            ["input"] = new JsonArray(new JsonObject { ["role"] = "user", ["content"] = content }),
-            ["text"] = new JsonObject
-            {
-                ["format"] = new JsonObject
-                {
-                    ["type"] = "json_schema",
-                    ["name"] = ExtractionSchema.Name,
-                    ["strict"] = true,
-                    ["schema"] = JsonNode.Parse(ExtractionSchema.Json),
-                },
-            },
-        };
-    }
-
-    // Only the status and the error code are read; the body text itself is never logged or kept.
-    private static string ReasonFor(HttpStatusCode status, string body)
-    {
-        if (status == HttpStatusCode.TooManyRequests)
-        {
-            return "rate_limited";
-        }
-
-        if (status == HttpStatusCode.BadRequest && ErrorCode(body) == "content_filter")
-        {
-            return "content_filter";
-        }
-
-        return "service_error";
-    }
-
-    private static string? ErrorCode(string body)
-    {
-        try
-        {
-            using var document = JsonDocument.Parse(body);
-            return document.RootElement.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.Object
-                   && error.TryGetProperty("code", out var code) && code.ValueKind == JsonValueKind.String
-                ? code.GetString()
-                : null;
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
-
-    private static ExtractionResult ParseResponse(string body)
-    {
-        try
-        {
-            using var envelope = JsonDocument.Parse(body);
-            var root = envelope.RootElement;
-            if (root.ValueKind != JsonValueKind.Object)
-            {
-                return ExtractionResult.Failed("invalid_output");
-            }
-
-            if (root.TryGetProperty("status", out var status) && status.ValueKind == JsonValueKind.String && status.GetString() == "incomplete")
-            {
-                var reason = root.TryGetProperty("incomplete_details", out var details) && details.ValueKind == JsonValueKind.Object
-                             && details.TryGetProperty("reason", out var why) && why.ValueKind == JsonValueKind.String
-                    ? why.GetString()
-                    : null;
-                return ExtractionResult.Failed(reason == "content_filter" ? "content_filter" : "invalid_output");
-            }
-
-            return AnswerText(root) is { } answer ? ParseAnswer(answer) : ExtractionResult.Failed("invalid_output");
-        }
-        catch (JsonException)
-        {
-            return ExtractionResult.Failed("invalid_output");
-        }
-    }
-
-    private static string? AnswerText(JsonElement root)
-    {
-        if (root.TryGetProperty("output_text", out var direct) && direct.ValueKind == JsonValueKind.String)
-        {
-            return direct.GetString();
-        }
-
-        if (!root.TryGetProperty("output", out var output) || output.ValueKind != JsonValueKind.Array)
-        {
-            return null;
-        }
-
-        foreach (var item in output.EnumerateArray())
-        {
-            if (item.ValueKind != JsonValueKind.Object || !item.TryGetProperty("content", out var content) || content.ValueKind != JsonValueKind.Array)
-            {
-                continue;
-            }
-
-            foreach (var part in content.EnumerateArray())
-            {
-                if (part.ValueKind == JsonValueKind.Object
-                    && part.TryGetProperty("type", out var type) && type.GetString() == "output_text"
-                    && part.TryGetProperty("text", out var text) && text.ValueKind == JsonValueKind.String)
-                {
-                    return text.GetString();
-                }
-            }
-        }
-
-        return null;
+        return email.ToString();
     }
 
     private static ExtractionResult ParseAnswer(string answerJson)

@@ -45,6 +45,17 @@ if (builder.Configuration["EmailIntake:Extraction:Deployment"] is { Length: > 0 
     api.WithEnvironment("EmailIntake__Extraction__Deployment", extractionDeployment);
 }
 
+// Window-sticker reading uses the endpoint and deployment above; these only tune it.
+if (builder.Configuration["StickerImport:TimeoutSeconds"] is { Length: > 0 } stickerTimeout)
+{
+    api.WithEnvironment("StickerImport__TimeoutSeconds", stickerTimeout);
+}
+
+if (builder.Configuration["StickerImport:RequestsPerMinute"] is { Length: > 0 } stickerRate)
+{
+    api.WithEnvironment("StickerImport__RequestsPerMinute", stickerRate);
+}
+
 builder.AddProject<Projects.MyGarage_Web>("web")
     .WithReference(api)
     .WaitFor(api)

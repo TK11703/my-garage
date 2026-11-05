@@ -12,6 +12,7 @@ using MyGarage.Web.ServiceRecords;
 using MyGarage.Web.Taxes;
 using MyGarage.Web.VehicleDocuments;
 using MyGarage.Web.Vehicles;
+using MyGarage.Web.Vehicles.StickerImport;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +30,17 @@ builder.Services.AddHttpClient<GarageApiClient>(client => client.BaseAddress = n
     .AddHttpMessageHandler<ApiAccessTokenHandler>();
 builder.Services.AddHttpClient<VehiclesApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
     .AddHttpMessageHandler<ApiAccessTokenHandler>();
+// Reading a sticker takes the model up to 90 s and is billed per call, so it gets its own client: a 105 s limit and no automatic retry.
+// RemoveAllResilienceHandlers is experimental, but it is the only way to replace the default handler that ServiceDefaults adds to every client.
+#pragma warning disable EXTEXP0001
+builder.Services.AddHttpClient<StickerImportApiClient>(client =>
+    {
+        client.BaseAddress = new Uri("https+http://api");
+        client.Timeout = TimeSpan.FromSeconds(105);
+    })
+    .AddHttpMessageHandler<ApiAccessTokenHandler>()
+    .RemoveAllResilienceHandlers();
+#pragma warning restore EXTEXP0001
 builder.Services.AddHttpClient<LookupsApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
     .AddHttpMessageHandler<ApiAccessTokenHandler>();
 builder.Services.AddHttpClient<ServiceRecordsApiClient>(client => client.BaseAddress = new Uri("https+http://api"))

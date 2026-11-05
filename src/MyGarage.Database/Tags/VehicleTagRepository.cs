@@ -6,7 +6,7 @@ namespace MyGarage.Database.Tags;
 
 public sealed class VehicleTagRepository(NpgsqlDataSource dataSource, SqlScriptStore scripts)
 {
-    public const int MaxTagsPerVehicle = 20;
+    public const int MaxTagsPerVehicle = 100;
 
     // The vehicle row is locked (owner-scoped) so the limit and uniqueness checks cannot race with another add.
     public async Task<AddTagResult> AddAsync(
@@ -52,7 +52,7 @@ public sealed class VehicleTagRepository(NpgsqlDataSource dataSource, SqlScriptS
             scripts.Get("Tags/Insert"), new { Id = tagId, VehicleId = vehicleId, FeatureId = feature.Id, CreatedAt = createdAt }, transaction, cancellationToken: cancellationToken));
         await transaction.CommitAsync(cancellationToken);
 
-        return new AddTagResult(AddTagStatus.Added, new VehicleTagRecord { Id = tagId, Name = feature.Name, CreatedAt = createdAt });
+        return new AddTagResult(AddTagStatus.Added, new VehicleTagRecord { Id = tagId, Name = feature.Name, Category = feature.Category, CreatedAt = createdAt });
     }
 
     // Names of shared features that at least one vehicle uses, most used first.
@@ -68,7 +68,34 @@ public sealed class VehicleTagRepository(NpgsqlDataSource dataSource, SqlScriptS
             scripts.Get("Tags/SuggestFeatures"), new { Pattern = pattern, Limit = limit }, cancellationToken: cancellationToken))).ToList();
     }
 
-    private sealed record FeatureRow(Guid Id, string Name);
+    private sealed record FeatureRow(Guid Id, string Name, string? Category);
+
+    // Shared features that have no category yet, oldest first.
+    public async Task<IReadOnlyList<UncategorizedFeature>> ListUncategorizedAsync(int limit, CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        return (await connection.QueryAsync<UncategorizedFeature>(new CommandDefinition(
+            scripts.Get("Tags/ListUncategorized"), new { Limit = limit }, cancellationToken: cancellationToken))).ToList();
+    }
+
+    // Only a feature that still has no category is written, so a category is set once and a slower caller cannot overwrite it.
+    public async Task SetCategoriesAsync(IReadOnlyDictionary<Guid, string> categories, CancellationToken cancellationToken)
+    {
+        if (categories.Count == 0)
+        {
+            return;
+        }
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        foreach (var (id, category) in categories)
+        {
+            await connection.ExecuteAsync(new CommandDefinition(
+                scripts.Get("Tags/SetCategory"), new { Id = id, Category = category }, transaction, cancellationToken: cancellationToken));
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+    }
 
     public async Task<bool> RemoveAsync(string ownerId, Guid vehicleId, Guid tagId, CancellationToken cancellationToken)
     {

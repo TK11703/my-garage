@@ -7,20 +7,103 @@
         }
         else
         {
-            <ul class="list-group" aria-labelledby="tags-heading">
-                @foreach (var tag in Tags)
-                {
-                    <li class="list-group-item" @key="tag.Id" data-testid="tag">@tag.Name</li>
-                }
-            </ul>
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-8 col-lg-6">
+                    <form method="get" action="/vehicles/@VehicleId" role="search" aria-label="Search features" data-testid="feature-search">
+                        <input type="hidden" name="tab" value="description" />
+                        <label for="feature-query" class="visually-hidden">Search features</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-body border-end-0 text-body-secondary"><Icon Name="IconName.Search" /></span>
+                            <input id="feature-query" name="featureQuery" type="search" class="form-control border-start-0" value="@search"
+                                   maxlength="@FeatureGroups.MaxQueryLength" autocomplete="off" placeholder="Type keywords to find features" />
+                        </div>
+                        <button type="submit" class="visually-hidden">Search</button>
+                    </form>
+                </div>
+            </div>
+
+            @if (search.Length > 0)
+            {
+                <p class="text-body-secondary" role="status" data-testid="feature-search-summary">
+                    @MatchSummary
+                    <a href="/vehicles/@VehicleId?tab=description">Clear search</a>
+                </p>
+            }
+
+            @if (groups.Count == 0)
+            {
+                <EmptyState Compact="true" Variant="EmptyStateVariant.NoMatch" Message="@($"No features match \"{search}\".")" />
+            }
+            else
+            {
+                <div class="row g-3" data-testid="feature-categories">
+                    @for (var index = 0; index < groups.Count; index++)
+                    {
+                        var group = groups[index];
+                        var headingId = $"feature-category-{index}";
+                        var preview = search.Length > 0 ? group.Features : group.Features.Take(FeatureGroups.PreviewCount).ToList();
+                        var rest = group.Features.Skip(preview.Count).ToList();
+                        <div class="col-12 col-sm-6 col-xxl-4" @key="group.Category">
+                            <section class="card h-100 border" aria-labelledby="@headingId" data-testid="feature-category" data-category="@group.Category">
+                                <div class="card-body">
+                                    <h3 id="@headingId" class="h6 fw-semibold d-flex justify-content-between align-items-center gap-2 mb-3">
+                                        <span>@group.Category</span>
+                                        <span class="badge text-bg-light" data-testid="feature-count">@group.Features.Count</span>
+                                    </h3>
+                                    <ul class="list-unstyled mg-text-xs mb-0" aria-labelledby="@headingId">
+                                        @foreach (var tag in preview)
+                                        {
+                                            <li class="py-2 border-bottom text-break" @key="tag.Id" data-testid="tag">@tag.Name</li>
+                                        }
+                                    </ul>
+                                    @if (rest.Count > 0)
+                                    {
+                                        <details class="mg-text-xs mt-2" data-testid="feature-more">
+                                            <summary class="text-body-secondary py-2">Show @rest.Count more @(rest.Count == 1 ? "feature" : "features")</summary>
+                                            <ul class="list-unstyled mg-text-xs mb-0">
+                                                @foreach (var tag in rest)
+                                                {
+                                                    <li class="py-2 border-bottom text-break" @key="tag.Id" data-testid="tag">@tag.Name</li>
+                                                }
+                                            </ul>
+                                        </details>
+                                    }
+                                </div>
+                            </section>
+                        </div>
+                    }
+                </div>
+            }
         }
     </div>
 </section>
 
 @code {
+    private string search = string.Empty;
+    private IReadOnlyList<FeatureGroup> groups = [];
+
     [Parameter, EditorRequired]
     public Guid VehicleId { get; set; }
 
     [Parameter, EditorRequired]
     public IReadOnlyList<VehicleTagDto> Tags { get; set; } = [];
+
+    // The text typed into the feature search, from the page's query string.
+    [Parameter]
+    public string? Query { get; set; }
+
+    private string MatchSummary
+    {
+        get
+        {
+            var count = groups.Sum(group => group.Features.Count);
+            return $"{count} {(count == 1 ? "feature matches" : "features match")} \"{search}\".";
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        search = FeatureGroups.Clean(Query);
+        groups = FeatureGroups.Build(Tags, search);
+    }
 }

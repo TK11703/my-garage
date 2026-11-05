@@ -3,6 +3,7 @@
 @attribute [ExcludeFromInteractiveRouting]
 @inject VehiclesApiClient Api
 @inject LookupsApiClient LookupsApi
+@inject StickerImportApiClient StickerApi
 @inject NavigationManager Navigation
 
 <PageHeader Title="Add Vehicle" Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb("New vehicle") })" />
@@ -15,8 +16,12 @@
 
 @if (!lookupsFailed)
 {
-    <VehicleForm Tabbed="true" AttachmentTabs="false" Model="Model" FormName="create-vehicle" SubmitText="Save" CancelHref="/vehicles"
-                 Lookups="lookups" Errors="errors" OnSubmit="SubmitAsync" />
+    <VehicleForm Tabbed="true" AttachmentTabs="false" ActiveTab="@activeTab" Model="Model" FormName="create-vehicle" SubmitText="Save" CancelHref="/vehicles"
+                 Lookups="lookups" Errors="errors" Hints="hints" OnSubmit="SubmitAsync">
+        <ImportContent>
+            <StickerImportPanel Existing="false" Result="importResult" Message="@importMessage" Level="@importLevel" OnImport="ImportAsync" />
+        </ImportContent>
+    </VehicleForm>
 }
 
 @code {
@@ -24,13 +29,26 @@
     private GarageApiFailure? failure;
     private VehicleFormLookups lookups = VehicleFormLookups.Empty;
     private bool lookupsFailed;
+    // The add form opens on the import tab until an import or a rejected save moves it to the details.
+    private string activeTab = VehicleTabs.Import;
+    private StickerImportResultDto? importResult;
+    private string? importMessage;
+    private string importLevel = "danger";
+    private StickerHints hints = StickerHints.None;
 
     [SupplyParameterFromForm(FormName = "create-vehicle")]
     private VehicleFormModel? Model { get; set; }
 
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         Model ??= new VehicleFormModel();
+        if (HttpContext is { Request.HasFormContentType: true } http)
+        {
+            Model.StickerFeatures = StickerFeatureChoice.ReadFrom(http.Request.Form);
+        }
 
         try
         {
@@ -40,6 +58,28 @@
         {
             failure = ex.Failure;
             lookupsFailed = true;
+        }
+    }
+
+    private async Task ImportAsync()
+    {
+        failure = null;
+        try
+        {
+            var attempt = await StickerImportHandler.RunAsync(HttpContext, StickerApi, null, HttpContext?.RequestAborted ?? default);
+            importMessage = attempt.Message;
+            importLevel = attempt.Level;
+            importResult = attempt.Result;
+            if (attempt.Result is { Outcome: not StickerImportOutcome.NoDetailsFound } result)
+            {
+                Model!.ApplyImport(result);
+                hints = StickerHints.From(result);
+                activeTab = "details";
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
         }
     }
 
@@ -56,10 +96,12 @@
             }
 
             errors = result.Errors;
+            activeTab = "details";
         }
         catch (GarageApiException ex)
         {
             failure = ex.Failure;
+            activeTab = "details";
         }
     }
 }

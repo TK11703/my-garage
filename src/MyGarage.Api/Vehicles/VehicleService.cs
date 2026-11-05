@@ -1,4 +1,5 @@
 using MyGarage.Api.Vehicles.Images;
+using MyGarage.Api.Vehicles.StickerImport;
 using MyGarage.Api.Vehicles.Tags;
 using MyGarage.Database.Tags;
 using MyGarage.Database.VehicleDocuments;
@@ -8,11 +9,15 @@ using MyGarage.Shared.Vehicles;
 
 namespace MyGarage.Api.Vehicles;
 
+// Vehicle is null when nothing was written: Status is NotFound (not the owner's) or FeatureLimit (the sticker features would exceed the per-vehicle limit).
+public sealed record VehicleSaveResult(VehicleDetailDto? Vehicle, VehicleFeatureWriteStatus Status);
+
 public sealed class VehicleService(
     VehicleRepository vehicles,
     VehicleTagRepository tags,
     VehicleImageRepository images,
     VehicleDocumentRepository documents,
+    FeatureCategorizationService categorization,
     TimeProvider timeProvider)
 {
     // PostgreSQL stores microseconds, so the value returned after a write must not carry finer ticks.
@@ -22,13 +27,27 @@ public sealed class VehicleService(
         return now.AddTicks(-(now.Ticks % 10));
     }
 
-    public async Task<VehicleDetailDto> CreateAsync(string ownerId, VehicleRequest request, CancellationToken cancellationToken)
+    public async Task<VehicleSaveResult> CreateAsync(string ownerId, VehicleRequest request, CancellationToken cancellationToken)
     {
-        var record = VehicleMapper.ToRecord(request, ownerId, Guid.CreateVersion7(), Now());
-        await vehicles.InsertAsync(record, cancellationToken);
+        var now = Now();
+        var record = VehicleMapper.ToRecord(request, ownerId, Guid.CreateVersion7(), now);
+        var features = StickerFeatureMapper.ToWrites(request);
+        if (features.Count == 0)
+        {
+            await vehicles.InsertAsync(record, cancellationToken);
+        }
+        else if (await vehicles.InsertWithFeaturesAsync(record, features, now, cancellationToken) is var status and not VehicleFeatureWriteStatus.Written)
+        {
+            return new VehicleSaveResult(null, status);
+        }
+
+        if (features.Count > 0)
+        {
+            await categorization.CategorizePendingAsync(cancellationToken);
+        }
 
         // Read back so the lookup names come from the stored references.
-        return (await GetAsync(ownerId, record.Id, cancellationToken))!;
+        return new VehicleSaveResult(await GetAsync(ownerId, record.Id, cancellationToken), VehicleFeatureWriteStatus.Written);
     }
 
     public async Task<VehicleDetailDto?> GetAsync(string ownerId, Guid vehicleId, CancellationToken cancellationToken)
@@ -44,15 +63,29 @@ public sealed class VehicleService(
         return VehicleMapper.ToDetailDto(record, VehicleTagMapper.ToDtos(vehicleTags), VehicleImageMapper.ToDtos(vehicleImages));
     }
 
-    public async Task<VehicleDetailDto?> UpdateAsync(string ownerId, Guid vehicleId, VehicleRequest request, CancellationToken cancellationToken)
+    public async Task<VehicleSaveResult> UpdateAsync(string ownerId, Guid vehicleId, VehicleRequest request, CancellationToken cancellationToken)
     {
-        var record = VehicleMapper.ToRecord(request, ownerId, vehicleId, Now());
-        if (!await vehicles.UpdateAsync(record, cancellationToken))
+        var now = Now();
+        var record = VehicleMapper.ToRecord(request, ownerId, vehicleId, now);
+        var features = StickerFeatureMapper.ToWrites(request);
+        if (features.Count == 0)
         {
-            return null;
+            if (!await vehicles.UpdateAsync(record, cancellationToken))
+            {
+                return new VehicleSaveResult(null, VehicleFeatureWriteStatus.NotFound);
+            }
+        }
+        else if (await vehicles.UpdateWithFeaturesAsync(record, features, now, cancellationToken) is var status and not VehicleFeatureWriteStatus.Written)
+        {
+            return new VehicleSaveResult(null, status);
         }
 
-        return await GetAsync(ownerId, vehicleId, cancellationToken);
+        if (features.Count > 0)
+        {
+            await categorization.CategorizePendingAsync(cancellationToken);
+        }
+
+        return new VehicleSaveResult(await GetAsync(ownerId, vehicleId, cancellationToken), VehicleFeatureWriteStatus.Written);
     }
 
     // The vehicle and its image and document rows go first (drafts stay, detached); the files are then removed (best effort, a failure leaves private orphans).

@@ -1,0 +1,242 @@
+openapi: 3.1.0
+info:
+  title: My Garage API - Window sticker import
+  version: 0.10.0
+  description: >
+    Additions for feature 010. The extraction endpoint is called by the Web app on behalf of a signed-in user
+    (scope access_as_user); it stores nothing and returns what was read from the uploaded sticker. Saving is the
+    existing vehicle create or update, which gains an optional list of sticker features. Errors are RFC 9457
+    ProblemDetails; app-only tokens are refused by the existing fallback policy.
+servers:
+  - url: https://localhost:7001
+security:
+  - userAccess: []
+tags:
+  - name: Vehicles
+  - name: StickerImport
+
+paths:
+  /api/vehicles/sticker-extractions:
+    post:
+      tags: [StickerImport]
+      operationId: ExtractWindowSticker
+      summary: Read one window sticker (PDF or image) and return the vehicle details found on it.
+      description: >
+        Nothing is saved and the uploaded file is not kept. The file type is decided from the file's content,
+        not its name or declared type. When vehicleId is given, the vehicle must belong to the caller; its
+        feature names are sent to the reading step so near-duplicate features can be found. At most 6 calls
+        per minute per user. The reading step is bounded at 90 seconds (StickerImport:TimeoutSeconds).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PDF, JPEG, PNG, or WebP, at most 10 MB.
+                vehicleId:
+                  type: string
+                  format: uuid
+                  description: The vehicle being edited; omit when adding a vehicle.
+      responses:
+        '200':
+          description: >
+            The sticker was read. Outcome NoDetailsFound means a valid file contained no vehicle details
+            (the Web page leaves the form unchanged).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StickerImportResult' }
+        '400':
+          description: No file, an empty file, an unsupported or damaged file, or a malformed vehicleId.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404':
+          description: The vehicle does not exist or is not the caller's (the two are not distinguished).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/Problem' }
+        '429':
+          description: Too many extractions; honor Retry-After.
+          headers:
+            Retry-After: { schema: { type: integer } }
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503':
+          description: >
+            Reading is not configured, timed out, was refused by the service (rate limit or content filter), or
+            returned an unusable answer. The problem's code extension is one of not_configured, timeout,
+            rate_limited, content_filter, service_error, invalid_output; the title is safe to show.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/vehicles:
+    post:
+      tags: [Vehicles]
+      operationId: CreateVehicle
+      summary: Create a vehicle (existing); may carry sticker features.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VehicleRequest' }
+      responses:
+        '201': { description: Created (existing VehicleDetailDto). }
+        '400':
+          description: >
+            Validation problem (existing), including StickerFeatures errors: more than 100 entries, a name over
+            30 characters, a duplicate name, replaced tag ids on a create, or a result above 100 features.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/vehicles/{vehicleId}:
+    put:
+      tags: [Vehicles]
+      operationId: UpdateVehicle
+      summary: Update a vehicle (existing); may carry sticker features that replace duplicate features.
+      parameters:
+        - { name: vehicleId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VehicleRequest' }
+      responses:
+        '200': { description: Updated (existing VehicleDetailDto). }
+        '400':
+          description: Validation problem (existing), including StickerFeatures errors as for create.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '404':
+          description: Not found or not the caller's (existing).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+components:
+  securitySchemes:
+    userAccess:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://login.microsoftonline.com/common/oauth2/v2.0/authorize
+          tokenUrl: https://login.microsoftonline.com/common/oauth2/v2.0/token
+          scopes:
+            access_as_user: Act as the signed-in user
+
+  responses:
+    Problem:
+      description: Error as RFC 9457 ProblemDetails.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
+  schemas:
+    Problem:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        code:
+          type: string
+          description: Stable machine-readable reason (extension member) on 503 answers.
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+
+    StickerImportResult:
+      type: object
+      required: [outcome, features, notices, fieldsFilled]
+      properties:
+        outcome: { type: string, enum: [Filled, Partial, NoDetailsFound] }
+        year: { type: [integer, 'null'] }
+        make: { type: [string, 'null'], maxLength: 50 }
+        model: { type: [string, 'null'], maxLength: 50 }
+        trim: { type: [string, 'null'], maxLength: 50 }
+        vin:
+          type: [string, 'null']
+          pattern: '^[A-HJ-NPR-Z0-9]{17}$'
+        vehicleTypeId: { type: [string, 'null'], format: uuid }
+        vehicleTypeText: { type: [string, 'null'], description: The sticker's text when no lookup item matched. }
+        fuelTypeId: { type: [string, 'null'], format: uuid }
+        fuelTypeText: { type: [string, 'null'] }
+        transmissionId: { type: [string, 'null'], format: uuid }
+        transmissionText: { type: [string, 'null'] }
+        drivetrainId: { type: [string, 'null'], format: uuid }
+        drivetrainText: { type: [string, 'null'] }
+        engine: { type: [string, 'null'], maxLength: 100 }
+        horsepower: { type: [integer, 'null'], minimum: 1, maximum: 3000 }
+        color: { type: [string, 'null'], maxLength: 30 }
+        seats: { type: [integer, 'null'], minimum: 1, maximum: 20 }
+        doors: { type: [integer, 'null'], minimum: 1, maximum: 6 }
+        wheelSize: { type: [number, 'null'], description: Inches. }
+        tireSize: { type: [string, 'null'], maxLength: 20 }
+        features:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/StickerFeature' }
+        notices:
+          type: array
+          items: { $ref: '#/components/schemas/StickerNotice' }
+        fieldsFilled: { type: integer, minimum: 0 }
+
+    StickerFeature:
+      type: object
+      required: [name, replacesTagIds, replacesNames]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 30 }
+        replacesTagIds:
+          type: array
+          items: { type: string, format: uuid }
+          description: Existing feature links of the edited vehicle this feature would replace.
+        replacesNames:
+          type: array
+          items: { type: string }
+
+    StickerNotice:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [NoDetails, PartiallyRead, UnreadableValues, FeaturesLeftOut, MultipleVehicles, DuplicateVin, NotAStickerLikely]
+        message: { type: string, description: Short text that never contains the VIN or other extracted values. }
+
+    StickerFeatureRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 30 }
+        replacesTagIds:
+          type: [array, 'null']
+          items: { type: string, format: uuid }
+          description: Must be empty or omitted on create.
+
+    VehicleRequest:
+      description: >
+        Existing full set of editable fields (see feature 004), unchanged except for the optional
+        stickerFeatures member below. Only the new member is shown.
+      type: object
+      properties:
+        stickerFeatures:
+          type: [array, 'null']
+          maxItems: 100
+          items: { $ref: '#/components/schemas/StickerFeatureRequest' }
+          description: >
+            Features to add to the vehicle and the existing features they replace, applied in the same
+            transaction as the vehicle write. Null or empty changes no features.

@@ -25,20 +25,23 @@ public static class IntakeRateLimiting
                     QueueLimit = 0,
                     AutoReplenishment = true,
                 }));
-            options.OnRejected = async (context, cancellationToken) =>
-            {
-                var response = context.HttpContext.Response;
-                response.StatusCode = StatusCodes.Status429TooManyRequests;
-                var retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var delay) ? delay : TimeSpan.FromMinutes(1);
-                response.Headers.RetryAfter = Math.Ceiling(retryAfter.TotalSeconds).ToString(CultureInfo.InvariantCulture);
-                await response.WriteAsJsonAsync(
-                    new ProblemDetails { Status = StatusCodes.Status429TooManyRequests, Title = "Too many requests. Retry after the delay given in Retry-After." },
-                    options: null,
-                    contentType: "application/problem+json",
-                    cancellationToken);
-            };
+            options.OnRejected = WriteRejectionAsync;
         });
         return services;
+    }
+
+    // The 429 answer both rate-limit policies give: ProblemDetails with Retry-After.
+    public static async ValueTask WriteRejectionAsync(OnRejectedContext context, CancellationToken cancellationToken)
+    {
+        var response = context.HttpContext.Response;
+        response.StatusCode = StatusCodes.Status429TooManyRequests;
+        var retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var delay) ? delay : TimeSpan.FromMinutes(1);
+        response.Headers.RetryAfter = Math.Ceiling(retryAfter.TotalSeconds).ToString(CultureInfo.InvariantCulture);
+        await response.WriteAsJsonAsync(
+            new ProblemDetails { Status = StatusCodes.Status429TooManyRequests, Title = "Too many requests. Retry after the delay given in Retry-After." },
+            options: null,
+            contentType: "application/problem+json",
+            cancellationToken);
     }
 
     // One window per calling application (the azp or appid claim), else per remote address.

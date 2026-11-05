@@ -159,10 +159,10 @@ public class VehicleDetailPageTests : VehicleTestContext
         {
             var basic = cut.Find("#group-basic");
             Assert.Equal(
-                ["Year", "Make", "Model", "Trim", "VIN", "Vehicle type", "Purchased or leased", "Date purchased or leased", "Date lease ends", "Mileage on Date purchased or leased", "Latest odometer reading"],
+                ["Year", "Make", "Model", "Trim", "VIN", "Vehicle type", "Purchased or leased", "Date purchased or leased", "Mileage on Date purchased or leased", "Latest odometer reading"],
                 basic.QuerySelectorAll("dt").Select(dt => dt.TextContent.Trim()));
             Assert.Equal(
-                ["2020", "Ford", "F-150", "XLT", "Not set", "Not set", "Not set", "Not set", "Not set", "42,000 mi", "Not set"],
+                ["2020", "Ford", "F-150", "XLT", "Not set", "Not set", "Not set", "Not set", "42,000 mi", "Not set"],
                 basic.QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()));
 
             var specifications = cut.Find("#group-specifications");
@@ -194,11 +194,39 @@ public class VehicleDetailPageTests : VehicleTestContext
         {
             var basic = cut.Find("#group-basic");
             var labels = basic.QuerySelectorAll("dt").Select(dt => dt.TextContent.Trim()).ToList();
+            var values = basic.QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()).ToList();
             Assert.Equal(dateLabel, labels[7]);
-            Assert.Equal(mileageLabel, labels[9]);
-            Assert.Equal("Mar 15, 2024", basic.QuerySelectorAll("dd")[7].TextContent.Trim());
-            Assert.Equal("42,000 mi", basic.QuerySelectorAll("dd")[9].TextContent.Trim());
+            Assert.Equal("Mar 15, 2024", values[7]);
+            Assert.Equal("42,000 mi", values[labels.IndexOf(mileageLabel)]);
+            Assert.Contains(mileageLabel, labels);
             Assert.DoesNotContain(cut.Find("#group-specifications").QuerySelectorAll("dt"), dt => dt.TextContent.Contains("Mileage", StringComparison.Ordinal));
+        });
+    }
+
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData(OwnershipType.Purchased, false)]
+    [InlineData(OwnershipType.Leased, true)]
+    public void DateLeaseEnds_IsShownOnlyForALeasedVehicle(OwnershipType? ownership, bool shown)
+    {
+        var basis = Detail(vehicleId);
+        RegisterApi(_ => Json(new VehicleDetailDto
+        {
+            Id = basis.Id, Make = basis.Make, Model = basis.Model, Year = basis.Year, Ownership = ownership,
+            LeaseEndsOn = new DateOnly(2027, 3, 14), Tags = [], Images = [], CreatedAt = basis.CreatedAt, UpdatedAt = basis.UpdatedAt,
+        }));
+
+        var cut = RenderDetail();
+
+        cut.WaitForAssertion(() =>
+        {
+            var basic = cut.Find("#group-basic");
+            var labels = basic.QuerySelectorAll("dt").Select(dt => dt.TextContent.Trim()).ToList();
+            Assert.Equal(shown, labels.Contains("Date lease ends"));
+            if (shown)
+            {
+                Assert.Equal("Mar 14, 2027", basic.QuerySelectorAll("dd")[labels.IndexOf("Date lease ends")].TextContent.Trim());
+            }
         });
     }
 
@@ -285,7 +313,7 @@ public class VehicleDetailPageTests : VehicleTestContext
     }
 
     [Fact]
-    public void DescriptionTabShowsTheFeaturesCardThenTheRecentJournalEntriesCardEachInAHalfWidthColumn()
+    public void DescriptionTabShowsTheFeaturesCardThenTheRecentJournalEntriesCardInEightAndFourColumns()
     {
         RegisterApi(_ => Json(Detail(vehicleId)));
 
@@ -296,7 +324,8 @@ public class VehicleDetailPageTests : VehicleTestContext
             var row = cut.Find("#tab-description div.row.g-4");
             var columns = row.Children.ToList();
             Assert.Equal(2, columns.Count);
-            Assert.All(columns, column => Assert.Contains("col-lg-6", column.ClassList));
+            Assert.Contains("col-lg-8", columns[0].ClassList);
+            Assert.Contains("col-lg-4", columns[1].ClassList);
             Assert.NotNull(columns[0].QuerySelector("section[aria-labelledby='tags-heading']"));
             Assert.NotNull(columns[1].QuerySelector("section[aria-labelledby='recent-entries-heading']"));
             Assert.Equal("Features", columns[0].QuerySelector("#tags-heading")!.TextContent.Trim());
@@ -344,22 +373,26 @@ public class VehicleDetailPageTests : VehicleTestContext
             Assert.Equal("Features", section.Children[0].TextContent.Trim());
             Assert.Contains("card-header", section.Children[0].ClassList);
             Assert.Contains("card-body", section.Children[1].ClassList);
-            Assert.Equal("tags-heading", section.Children[1].QuerySelector("ul.list-group")!.GetAttribute("aria-labelledby"));
+            Assert.NotNull(section.Children[1].QuerySelector("[data-testid='feature-categories']"));
         });
     }
 
     [Fact]
-    public void FeaturesAreShownAsAListGroupWithoutRemoveButtons()
+    public void FeaturesAreGroupedByCategoryWithoutRemoveButtons()
     {
-        var tags = new[] { new VehicleTagDto { Id = Guid.NewGuid(), Name = "sunroof" }, new VehicleTagDto { Id = Guid.NewGuid(), Name = "<b>tow</b>" } };
+        var tags = new[]
+        {
+            new VehicleTagDto { Id = Guid.NewGuid(), Name = "sunroof", Category = "Exterior" },
+            new VehicleTagDto { Id = Guid.NewGuid(), Name = "<b>tow</b>", Category = "Towing & Utility" },
+        };
         RegisterApi(_ => Json(DetailWith(vehicleId, tags, [])));
 
         var cut = RenderDetail();
 
         cut.WaitForAssertion(() =>
         {
-            Assert.NotNull(cut.Find("#tab-description ul.list-group"));
-            var items = cut.FindAll("#tab-description ul.list-group > li.list-group-item[data-testid='tag']");
+            Assert.Equal(["Exterior", "Towing & Utility"], cut.FindAll("#tab-description [data-testid='feature-category']").Select(card => card.GetAttribute("data-category")));
+            var items = cut.FindAll("#tab-description [data-testid='tag']");
             Assert.Equal(["sunroof", "<b>tow</b>"], items.Select(item => item.TextContent.Trim()));
             Assert.Empty(cut.FindAll("#tab-description [data-testid='tag'] button"));
             Assert.Empty(cut.FindAll("#tab-description b"));
@@ -438,10 +471,11 @@ public class VehicleDetailPageTests : VehicleTestContext
         var cut = RenderDetail();
 
         cut.WaitForAssertion(() => Assert.Contains("A note", cut.Markup));
-        var forms = cut.FindAll("form");
+        var forms = cut.FindAll("form:not([role='search'])");
         Assert.Single(forms);
+        Assert.Equal("get", cut.Find("form[role='search']").GetAttribute("method"));
         Assert.NotNull(cut.Find("details[data-testid='delete-vehicle'] form"));
-        Assert.Empty(cut.FindAll("input:not([type='hidden']), textarea, select, input[type='file']"));
+        Assert.Empty(cut.FindAll("input:not([type='hidden']):not([type='search']), textarea, select, input[type='file']"));
     }
 
     [Fact]

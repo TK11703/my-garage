@@ -1,6 +1,8 @@
 using System.Text.RegularExpressions;
 using FluentValidation;
 using MyGarage.Api.Common;
+using MyGarage.Api.Vehicles.StickerImport;
+using MyGarage.Database.Tags;
 using MyGarage.Shared.Vehicles;
 
 namespace MyGarage.Api.Vehicles;
@@ -40,6 +42,12 @@ public sealed partial class VehicleRequestValidator : AbstractValidator<VehicleR
             .InclusiveBetween(10m, 30m).WithMessage("Wheel size must be between 10 and 30 inches.")
             .Must(size => size is null || decimal.Round(size.Value, 1) == size.Value).WithMessage("Wheel size can have at most one decimal place.");
         RuleFor(request => request.TireSize).TrimmedText("Tire size", 20, required: false);
+        RuleFor(request => request.StickerFeatures)
+            .Must(features => features is null || features.Count <= VehicleTagRepository.MaxTagsPerVehicle)
+            .WithMessage($"A vehicle can have at most {VehicleTagRepository.MaxTagsPerVehicle} features.")
+            .Must(features => features is null || features.Select(feature => feature.Name?.Trim().ToLowerInvariant()).Distinct().Count() == features.Count)
+            .WithMessage("Each feature can be added only once.");
+        RuleForEach(request => request.StickerFeatures).SetValidator(new StickerFeatureRequestValidator());
     }
 
     [GeneratedRegex("^[A-HJ-NPR-Z0-9]{17}$")]

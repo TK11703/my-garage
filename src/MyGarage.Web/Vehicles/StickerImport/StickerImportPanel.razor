@@ -1,0 +1,57 @@
+<section aria-labelledby="sticker-heading" data-testid="sticker-import">
+    <h2 id="sticker-heading" class="h5">Import from sticker</h2>
+    <p class="mb-2">
+        Upload the window sticker to fill in the vehicle details. PDF, JPG, PNG, or WebP, up to @(StickerImportLimits.MaxFileBytes / 1_048_576) MB.
+        Nothing is saved until you save the vehicle, and the sticker file is not kept.
+    </p>
+    <p class="text-body-secondary small" data-testid="sticker-warning">
+        Importing replaces any unsaved changes on this form with @(Existing ? "the saved vehicle plus " : string.Empty)the values found on the sticker.
+    </p>
+
+    @if (Message is { } message)
+    {
+        <div class="alert alert-@Level" role="alert" data-testid="sticker-message">@message</div>
+    }
+
+    @if (Result is { } result)
+    {
+        <StickerResultsPanel Result="result" />
+    }
+
+    <form method="post" enctype="multipart/form-data" @formname="import-sticker" @onsubmit="OnImport" data-sticker-import
+          class="mg-dropzone d-flex flex-column align-items-center justify-content-center text-center p-4">
+        <AntiforgeryToken />
+        <label for="sticker-file" class="visually-hidden">Choose the window sticker file</label>
+        <input id="sticker-file" name="stickerFile" type="file" accept="@StickerImportLimits.Accept" required aria-describedby="sticker-help" />
+        <span class="mg-dropzone-icon" aria-hidden="true"><Icon Name="IconName.CloudUpload" Size="40" /></span>
+        <span class="fw-semibold mt-3">Choose or drop the window sticker here</span>
+        <span id="sticker-help" class="form-text mt-1">PDF, JPG, PNG, or WebP. Max @(StickerImportLimits.MaxFileBytes / 1_048_576) MB. On a phone you can take a photo of the sticker.</span>
+        <div class="mt-3 w-100" data-sticker-preview aria-live="polite"></div>
+        <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+            <button type="button" class="btn btn-outline-secondary" data-sticker-clear hidden>Remove file</button>
+            <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2" data-busy-text="Reading the sticker..." data-testid="accept-import">
+                <Icon Name="IconName.CloudUpload" /> Accept import
+            </button>
+        </div>
+        <span class="form-text mt-2">This may take up to two minutes.</span>
+    </form>
+</section>
+
+@code {
+    // True on the edit form, where the unsaved-changes warning also mentions the saved vehicle.
+    [Parameter]
+    public bool Existing { get; set; }
+
+    [Parameter]
+    public StickerImportResultDto? Result { get; set; }
+
+    [Parameter]
+    public string? Message { get; set; }
+
+    // A Bootstrap alert level for Message.
+    [Parameter]
+    public string Level { get; set; } = "danger";
+
+    [Parameter, EditorRequired]
+    public EventCallback OnImport { get; set; }
+}

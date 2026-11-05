@@ -1,4 +1,6 @@
 using MyGarage.Shared.Vehicles;
+using MyGarage.Shared.Vehicles.StickerImport;
+using MyGarage.Web.Vehicles.StickerImport;
 
 namespace MyGarage.Web.Vehicles;
 
@@ -47,6 +49,31 @@ public sealed class VehicleFormModel
 
     public string? TireSize { get; set; }
 
+    // Features proposed from a window sticker; they travel as plain form fields (StickerFeatureChoice.ReadFrom), not through the model binder.
+    public List<StickerFeatureChoice> StickerFeatures { get => field ??= []; set; }
+
+    // Puts what the sticker provided over the current values; a value the sticker did not provide stays as it is.
+    public void ApplyImport(StickerImportResultDto result)
+    {
+        Year = result.Year ?? Year;
+        Make = result.Make ?? Make;
+        Model = result.Model ?? Model;
+        Trim = result.Trim ?? Trim;
+        Vin = result.Vin ?? Vin;
+        VehicleTypeId = result.VehicleTypeId ?? VehicleTypeId;
+        Engine = result.Engine ?? Engine;
+        Horsepower = result.Horsepower ?? Horsepower;
+        FuelTypeId = result.FuelTypeId ?? FuelTypeId;
+        TransmissionId = result.TransmissionId ?? TransmissionId;
+        Color = result.Color ?? Color;
+        Seats = result.Seats ?? Seats;
+        Doors = result.Doors ?? Doors;
+        DrivetrainId = result.DrivetrainId ?? DrivetrainId;
+        WheelSize = result.WheelSize ?? WheelSize;
+        TireSize = result.TireSize ?? TireSize;
+        StickerFeatures = [.. result.Features.Select(StickerFeatureChoice.From)];
+    }
+
     public VehicleRequest ToRequest() =>
         new()
         {
@@ -72,6 +99,7 @@ public sealed class VehicleFormModel
             DrivetrainId = DrivetrainId,
             WheelSize = WheelSize,
             TireSize = TireSize,
+            StickerFeatures = StickerFeatures.Any(row => row.Include) ? [.. StickerFeatures.Where(row => row.Include).Select(row => row.ToRequest())] : null,
         };
 
     public static VehicleFormModel From(VehicleDetailDto vehicle) =>

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FluentValidation;
 using MyGarage.Api.Common;
+using MyGarage.Database.Tags;
 using MyGarage.Shared.Vehicles;
 
 namespace MyGarage.Api.Vehicles;
@@ -54,13 +55,20 @@ public static class VehiclesEndpoints
                 }
 
                 var errors = await checker.CheckAsync(ownerId, request, null, cancellationToken);
+                if (request.StickerFeatures?.Any(feature => feature.ReplacesTagIds is { Count: > 0 }) == true)
+                {
+                    errors[nameof(VehicleRequest.StickerFeatures)] = ["A new vehicle has no features to replace."];
+                }
+
                 if (errors.Count > 0)
                 {
                     return Results.ValidationProblem(errors);
                 }
 
                 var created = await service.CreateAsync(ownerId, request, cancellationToken);
-                return Results.Created($"/api/vehicles/{created.Id}", created);
+                return created.Vehicle is { } vehicle
+                    ? Results.Created($"/api/vehicles/{vehicle.Id}", vehicle)
+                    : FeatureLimit();
             })
             .AddEndpointFilter<ValidationFilter<VehicleRequest>>()
             .WithName("CreateVehicle")
@@ -101,7 +109,12 @@ public static class VehiclesEndpoints
                 }
 
                 var updated = await service.UpdateAsync(ownerId, vehicleId, request, cancellationToken);
-                return updated is null ? NotFound() : Results.Ok(updated);
+                return updated switch
+                {
+                    { Vehicle: { } vehicle } => Results.Ok(vehicle),
+                    { Status: VehicleFeatureWriteStatus.FeatureLimit } => FeatureLimit(),
+                    _ => NotFound(),
+                };
             })
             .AddEndpointFilter<ValidationFilter<VehicleRequest>>()
             .WithName("UpdateVehicle")
@@ -136,4 +149,10 @@ public static class VehiclesEndpoints
 
     internal static IResult NotFound() =>
         Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Not found.");
+
+    private static IResult FeatureLimit() =>
+        Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            [nameof(VehicleRequest.StickerFeatures)] = [$"A vehicle can have at most {VehicleTagRepository.MaxTagsPerVehicle} features."],
+        });
 }

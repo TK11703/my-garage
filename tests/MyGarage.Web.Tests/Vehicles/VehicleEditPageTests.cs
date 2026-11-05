@@ -210,14 +210,14 @@ public class VehicleEditPageTests : VehicleTestContext
         {
             var tabs = cut.Find("ul.mg-tabs");
             Assert.Null(tabs.Closest(".card"));
-            Assert.Equal(3, tabs.QuerySelectorAll("button svg.bi[aria-hidden='true']").Length);
+            Assert.Equal(4, tabs.QuerySelectorAll("button svg.bi[aria-hidden='true']").Length);
             Assert.NotNull(cut.Find("#group-basic").Closest(".card"));
             Assert.NotNull(cut.Find("#tab-media").Closest(".card"));
         });
     }
 
     [Fact]
-    public void ShowsThreeTabsWithDetailsActiveByDefault()
+    public void ShowsTheImportDetailsMediaAndDescriptionTabsWithDetailsActiveByDefault()
     {
         RegisterApi(_ => Json(Detail(vehicleId)));
 
@@ -226,18 +226,20 @@ public class VehicleEditPageTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             var tabs = cut.FindAll("ul.mg-tabs[role='tablist'] button[role='tab']");
-            Assert.Equal(["Details", "Media", "Description"], tabs.Select(tab => tab.TextContent.Trim()));
-            Assert.Equal(["true", "false", "false"], tabs.Select(tab => tab.GetAttribute("aria-selected")));
-            Assert.Contains("active", tabs[0].ClassList);
-            Assert.Equal(["tab-details", "tab-media", "tab-description"],
+            Assert.Equal(["Import from sticker", "Details", "Media", "Description"], tabs.Select(tab => tab.TextContent.Trim()));
+            Assert.Equal(["false", "true", "false", "false"], tabs.Select(tab => tab.GetAttribute("aria-selected")));
+            Assert.Contains("active", tabs[1].ClassList);
+            Assert.Equal(["tab-import", "tab-details", "tab-media", "tab-description"],
                 tabs.Select(tab => tab.GetAttribute("data-bs-target")!.TrimStart('#')));
             Assert.Contains("show", cut.Find("#tab-details").ClassList);
             Assert.Contains("active", cut.Find("#tab-details").ClassList);
             Assert.DoesNotContain("active", cut.Find("#tab-media").ClassList);
+            Assert.DoesNotContain("active", cut.Find("#tab-import").ClassList);
         });
     }
 
     [Theory]
+    [InlineData("import", "tab-import")]
     [InlineData("details", "tab-details")]
     [InlineData("media", "tab-media")]
     [InlineData("description", "tab-description")]
