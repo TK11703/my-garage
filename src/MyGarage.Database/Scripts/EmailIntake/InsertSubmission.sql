@@ -1,9 +1,10 @@
 -- A repeated message id changes nothing, except that a failed submission is queued again with the new content (R18).
 -- The id changes with it so the new blobs ({submissionId}/{attachmentId}) match the row; its old attachments are removed first by the caller's transaction.
 INSERT INTO email_submissions (
-    id, message_id, status, arrived_at, received_at, owner_id, sender, subject, body_text, attempt_count, next_attempt_at, skipped_attachments)
+    id, message_id, status, arrived_at, received_at, owner_id, sender, subject, body_text, attempt_count, next_attempt_at, skipped_attachments, origin, preselected_vehicle_id)
 VALUES (
-    @Id, @MessageId, 'queued', @ArrivedAt, @ReceivedAt, @OwnerId, @Sender, @Subject, @BodyText, 0, @ArrivedAt, @SkippedAttachments::jsonb)
+    @Id, @MessageId, 'queued', @ArrivedAt, @ReceivedAt, @OwnerId, @Sender, @Subject, @BodyText, 0, @ArrivedAt, @SkippedAttachments::jsonb, @Origin,
+    (SELECT v.id FROM vehicles v WHERE v.id = @PreselectedVehicleId AND v.owner_id = @OwnerId))
 ON CONFLICT (message_id) DO UPDATE
 SET id = EXCLUDED.id,
     status = 'queued',

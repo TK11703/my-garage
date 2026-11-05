@@ -303,6 +303,22 @@ public class MaintenanceDraftRepositoryTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task Get_AndListOpenPage_CarryTheSubmissionsOrigin()
+    {
+        var (repository, _, dataSource) = await CreateAsync();
+        var upload = await EmailIntakeTestData.InsertSubmissionAsync(dataSource, sender: null, subject: null, bodyText: null, origin: "upload");
+        var email = await EmailIntakeTestData.InsertSubmissionAsync(dataSource);
+        var uploadDraft = await EmailIntakeTestData.InsertDraftAsync(dataSource, "owner-a", upload, createdAt: Now.AddMinutes(-1));
+        var emailDraft = await EmailIntakeTestData.InsertDraftAsync(dataSource, "owner-a", email, createdAt: Now.AddMinutes(-2));
+
+        Assert.Equal("upload", (await repository.GetAsync("owner-a", uploadDraft, CancellationToken.None))!.Origin);
+        Assert.Equal("email", (await repository.GetAsync("owner-a", emailDraft, CancellationToken.None))!.Origin);
+        var page = await repository.ListOpenPageAsync("owner-a", 1, 10, CancellationToken.None);
+        Assert.Equal("upload", page.Items.Single(item => item.Id == uploadDraft).Origin);
+        Assert.Equal("email", page.Items.Single(item => item.Id == emailDraft).Origin);
+    }
+
+    [Fact]
     public async Task Get_OfATextDraftWithPurgedContent_HasNoAttachmentAndNoEmailDetails()
     {
         var (repository, _, dataSource) = await CreateAsync();

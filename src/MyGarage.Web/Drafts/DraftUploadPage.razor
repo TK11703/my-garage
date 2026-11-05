@@ -1,0 +1,159 @@
+@page "/drafts/upload"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject DraftUploadApiClient UploadApi
+@inject VehiclesApiClient VehiclesApi
+@inject NavigationManager Navigation
+
+<PageHeader Title="@(vehicleName is null ? "Add Maintenance" : "Import Record")"
+            Trail="@(new[] { new Crumb("Maintenance Drafts", "/drafts"), new Crumb("Add maintenance") })" />
+
+@if (failure is not null)
+{
+    <ApiFailureAlert Failure="failure.Value" ReturnUrl="@ReturnUrl"
+                     NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+}
+else if (vehicleNotFound)
+{
+    <EmptyState Variant="EmptyStateVariant.NoMatch" Message="@DraftUploadMessages.NotFound"
+                ActionText="Back to my vehicles" ActionHref="/vehicles" />
+}
+else
+{
+    <section class="card border-0 shadow-sm" aria-labelledby="upload-heading" data-testid="upload-record">
+        <div class="card-body vstack gap-3">
+            <div>
+                <h2 id="upload-heading" class="h5">Upload a maintenance record</h2>
+                @if (vehicleName is not null)
+                {
+                    <p class="mb-2" data-testid="upload-vehicle">Importing a record for <strong>@vehicleName</strong>.</p>
+                }
+                <p class="mb-0">
+                    Upload a service invoice or receipt as a PDF, JPG, PNG, or WebP file. My Garage reads it and prepares a draft for you to review.
+                    Nothing becomes a record until you review and include it.
+                </p>
+            </div>
+
+            @if (attempt?.Result is { } result)
+            {
+                <div class="alert alert-success mb-0" role="status" data-testid="upload-notice">
+                    @DraftUploadMessages.Uploaded(result.AcceptedCount)
+                    <a class="alert-link" href="/drafts">View maintenance drafts</a>
+                </div>
+            }
+
+            @if (attempt?.Message is { } message)
+            {
+                <div class="alert alert-@attempt.Level mb-0" role="alert" data-testid="upload-message">@message</div>
+            }
+
+            @if (attempt is { Refused.Count: > 0 } refusedAttempt)
+            {
+                <div class="alert alert-danger mb-0" role="alert" data-testid="upload-refused">
+                    <p class="mb-1">These files were not uploaded:</p>
+                    <ul class="mb-0">
+                        @foreach (var refusal in refusedAttempt.Refused)
+                        {
+                            <li data-testid="upload-refusal"><span class="fw-semibold">@refusal.FileName</span>: @refusal.Message</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            <form method="post" enctype="multipart/form-data" @formname="upload-record" @onsubmit="UploadAsync" class="vstack gap-3">
+                <AntiforgeryToken />
+                @if (vehicleId is { } id)
+                {
+                    <input type="hidden" name="vehicleId" value="@id" />
+                }
+                <div>
+                    <label for="record-files" class="form-label">Choose the files</label>
+                    <input id="record-files" name="recordFiles" type="file" class="form-control" multiple required
+                           accept="@DraftUploadLimits.Accept" aria-describedby="record-files-help" />
+                    <div id="record-files-help" class="form-text">
+                        PDF, JPG, PNG, or WebP. Up to @DraftUploadLimits.MaxFiles files, @(DraftUploadLimits.MaxFileBytes / 1_048_576) MB each, and @(DraftUploadLimits.MaxTotalBytes / 1_048_576) MB in total.
+                        On a phone you can take a photo of the document.
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-3">
+                    <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2" data-busy-text="Uploading..." data-testid="upload-submit">
+                        <Icon Name="IconName.CloudUpload" /> Upload
+                    </button>
+                    <span class="form-text">Reading starts after the upload; the draft appears in your list when it is ready.</span>
+                </div>
+            </form>
+        </div>
+    </section>
+}
+
+@code {
+    private DraftUploadAttempt? attempt;
+    private GarageApiFailure? failure;
+    private bool vehicleNotFound;
+    private Guid? vehicleId;
+    private string? vehicleName;
+
+    // Read as text: a missing or malformed value means no vehicle, not a binding error.
+    [Parameter, SupplyParameterFromQuery(Name = "vehicleId")]
+    public string? VehicleIdText { get; set; }
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string ReturnUrl => vehicleId is { } id ? $"/drafts/upload?vehicleId={id}" : "/drafts/upload";
+
+    protected override async Task OnInitializedAsync()
+    {
+        vehicleId = Guid.TryParse(VehicleIdText, out var fromQuery) && fromQuery != Guid.Empty ? fromQuery : null;
+        if (vehicleId is null && HttpContext is { Request.HasFormContentType: true } http
+            && Guid.TryParse(http.Request.Form["vehicleId"], out var fromForm) && fromForm != Guid.Empty)
+        {
+            vehicleId = fromForm;
+        }
+
+        if (vehicleId is not { } id)
+        {
+            return;
+        }
+
+        try
+        {
+            var result = await VehiclesApi.GetAsync(id);
+            if (result.Value is { } vehicle)
+            {
+                vehicleName = vehicle.Name;
+            }
+            else
+            {
+                vehicleNotFound = true;
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task UploadAsync()
+    {
+        failure = null;
+        try
+        {
+            attempt = await DraftUploadHandler.RunAsync(HttpContext, UploadApi, vehicleId, HttpContext?.RequestAborted ?? default);
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+            return;
+        }
+
+        if (attempt.VehicleNotFound)
+        {
+            vehicleNotFound = true;
+        }
+        else if (attempt is { Result: { } uploaded, Refused.Count: 0 })
+        {
+            Navigation.NavigateTo($"/drafts?uploaded={uploaded.AcceptedCount}");
+        }
+    }
+}

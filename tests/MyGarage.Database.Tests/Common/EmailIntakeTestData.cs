@@ -43,14 +43,16 @@ public static class EmailIntakeTestData
         DateTimeOffset? lockedUntil = null,
         int attemptCount = 0,
         string skippedAttachmentsJson = "[]",
-        DateTimeOffset? contentPurgedAt = null)
+        DateTimeOffset? contentPurgedAt = null,
+        string origin = "email",
+        Guid? preselectedVehicleId = null)
     {
         var id = Guid.CreateVersion7();
         var arrived = arrivedAt ?? DateTimeOffset.UtcNow;
         await ExecuteAsync(
             dataSource,
-            "INSERT INTO email_submissions (id, message_id, status, arrived_at, received_at, owner_id, sender, subject, body_text, attempt_count, next_attempt_at, locked_until, skipped_attachments, content_purged_at) " +
-            "VALUES (@id, @messageId, @status, @arrived, @arrived, @ownerId, @sender, @subject, @bodyText, @attemptCount, @nextAttemptAt, @lockedUntil, @skippedAttachmentsJson::jsonb, @contentPurgedAt)",
+            "INSERT INTO email_submissions (id, message_id, status, arrived_at, received_at, owner_id, sender, subject, body_text, attempt_count, next_attempt_at, locked_until, skipped_attachments, content_purged_at, origin, preselected_vehicle_id) " +
+            "VALUES (@id, @messageId, @status, @arrived, @arrived, @ownerId, @sender, @subject, @bodyText, @attemptCount, @nextAttemptAt, @lockedUntil, @skippedAttachmentsJson::jsonb, @contentPurgedAt, @origin, @preselectedVehicleId)",
             new
             {
                 id,
@@ -66,6 +68,8 @@ public static class EmailIntakeTestData
                 lockedUntil,
                 skippedAttachmentsJson,
                 contentPurgedAt,
+                origin,
+                preselectedVehicleId,
             });
         return id;
     }

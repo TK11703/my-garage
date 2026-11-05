@@ -12,6 +12,9 @@ public sealed class EmailHistoryItemDto
 
     public required EmailHistoryOutcome Outcome { get; init; }
 
+    // Whether the item began as an email or as an upload.
+    public DraftOrigin Origin { get; init; } = DraftOrigin.Email;
+
     // The records created from this email (included drafts only).
     public IReadOnlyList<EmailHistoryRecordDto> Records { get; init; } = [];
 }

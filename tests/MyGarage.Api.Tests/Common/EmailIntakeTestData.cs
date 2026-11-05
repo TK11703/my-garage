@@ -104,15 +104,18 @@ public static class EmailIntakeTestData
         DateTimeOffset? nextAttemptAt = null,
         DateTimeOffset? lockedUntil = null,
         int attemptCount = 0,
-        string skippedAttachmentsJson = "[]")
+        string skippedAttachmentsJson = "[]",
+        string origin = "email",
+        Guid? preselectedVehicleId = null)
     {
         var id = Guid.CreateVersion7();
         var due = nextAttemptAt ?? DateTimeOffset.UtcNow.AddMinutes(-1);
         await factory.ExecuteScalarAsync(
-            "INSERT INTO email_submissions (id, message_id, status, arrived_at, received_at, owner_id, sender, subject, body_text, attempt_count, next_attempt_at, locked_until, skipped_attachments) " +
-            "VALUES (@id, @messageId, @status, @due, @due, @ownerId, 'sender@contoso.test', @subject, @bodyText, @attemptCount, @due, @lockedUntil, @skipped::jsonb)",
+            "INSERT INTO email_submissions (id, message_id, status, arrived_at, received_at, owner_id, sender, subject, body_text, attempt_count, next_attempt_at, locked_until, skipped_attachments, origin, preselected_vehicle_id) " +
+            "VALUES (@id, @messageId, @status, @due, @due, @ownerId, 'sender@contoso.test', @subject, @bodyText, @attemptCount, @due, @lockedUntil, @skipped::jsonb, @origin, @preselected)",
             ("id", id), ("messageId", $"<{id:N}@mail.test>"), ("status", status), ("due", due), ("ownerId", ownerId), ("subject", subject),
-            ("bodyText", bodyText), ("attemptCount", (short)attemptCount), ("lockedUntil", lockedUntil), ("skipped", skippedAttachmentsJson));
+            ("bodyText", bodyText), ("attemptCount", (short)attemptCount), ("lockedUntil", lockedUntil), ("skipped", skippedAttachmentsJson),
+            ("origin", origin), ("preselected", preselectedVehicleId));
         return id;
     }
 

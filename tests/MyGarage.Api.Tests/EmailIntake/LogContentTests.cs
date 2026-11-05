@@ -177,6 +177,45 @@ public class LogContentTests(ApiFactory factory) : IClassFixture<ApiFactory>, IA
         Assert.DoesNotContain(entries, entry => entry.Contains(Sender, StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public async Task AnUpload_KeepsFileNamesContentAndExtractedValuesOutOfTheLogs()
+    {
+        await factory.InsertVehicleAsync(Owner, "QZMAKE", "QZMODEL", 2020);
+        var provider = new CapturingLoggerProvider();
+        using var logged = factory.WithWebHostBuilder(builder => builder.ConfigureLogging(logging =>
+        {
+            logging.SetMinimumLevel(LogLevel.Trace);
+            logging.AddProvider(provider);
+        }));
+        var user = logged.CreateUserClient(Owner, Sender);
+        var processor = logged.Services.GetRequiredService<SubmissionProcessor>();
+        logged.Services.GetRequiredService<ILoggerFactory>().CreateLogger("LogContentTests").LogInformation("capture check");
+
+        using var form = new MultipartFormDataContent();
+        form.Add(new ByteArrayContent([.. IntakeClient.PdfBytes, .. "QZBYTES"u8.ToArray()]), "files", "QZFILE-upload.pdf");
+        form.Add(new ByteArrayContent("QZBYTES not a pdf"u8.ToArray()), "files", "QZFILE-fake.pdf");
+        Assert.Equal(HttpStatusCode.Accepted, (await user.PostAsync("/api/drafts/uploads", form)).StatusCode);
+        using var rejected = new MultipartFormDataContent { { new ByteArrayContent("QZBYTES"u8.ToArray()), "files", "QZFILE-only-bad.pdf" } };
+        Assert.Equal(HttpStatusCode.BadRequest, (await user.PostAsync("/api/drafts/uploads", rejected)).StatusCode);
+
+        factory.Extractor.Enqueue(ServiceRecord("upload"));
+        Assert.True(await processor.ProcessOnceAsync(CancellationToken.None));
+        var draftId = (Guid)(await factory.ExecuteScalarAsync("SELECT id FROM maintenance_drafts"))!;
+        Assert.Equal(HttpStatusCode.OK, (await user.GetAsync($"/api/drafts/{draftId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await user.PostAsync($"/api/drafts/{draftId}/discard", null)).StatusCode);
+
+        var entries = provider.Entries.ToArray();
+        Assert.Contains(entries, entry => entry.Contains("capture check", StringComparison.Ordinal));
+        Assert.Contains(entries, entry => entry.Contains("Upload queued submission", StringComparison.Ordinal));
+        Assert.Contains(entries, entry => entry.Contains("Upload refused all", StringComparison.Ordinal));
+        foreach (var marker in Markers)
+        {
+            Assert.DoesNotContain(entries, entry => entry.Contains(marker, StringComparison.OrdinalIgnoreCase));
+        }
+
+        Assert.DoesNotContain(entries, entry => entry.Contains(Owner, StringComparison.OrdinalIgnoreCase));
+    }
+
     private static void RecordTags(ConcurrentQueue<string> tags, ReadOnlySpan<KeyValuePair<string, object?>> measurementTags)
     {
         foreach (var tag in measurementTags)

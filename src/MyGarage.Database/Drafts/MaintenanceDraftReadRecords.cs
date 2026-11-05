@@ -23,6 +23,9 @@ public sealed class MaintenanceDraftSummaryRecord
     public DateTimeOffset ArrivedAt { get; init; }
 
     public DateTimeOffset ExpiresAt { get; init; }
+
+    // email or upload.
+    public string Origin { get; init; } = "email";
 }
 
 // A draft with the retained email details and attachment metadata; the email columns are null once the content was purged.
@@ -57,6 +60,9 @@ public sealed class MaintenanceDraftDetailRecord
     public string? Sender { get; init; }
 
     public string? Subject { get; init; }
+
+    // email or upload.
+    public string Origin { get; init; } = "email";
 
     public string? AttachmentFileName { get; init; }
 

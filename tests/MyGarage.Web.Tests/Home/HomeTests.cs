@@ -182,6 +182,29 @@ public class HomeTests : VehicleTestContext
     }
 
     [Fact]
+    public void WithVehicles_OffersAddMaintenanceAsASecondaryAction()
+    {
+        var cut = RenderHome();
+
+        cut.WaitForAssertion(() =>
+        {
+            var link = cut.Find("[data-testid='hero'] a[href='/drafts/upload']");
+            Assert.Equal("Add Maintenance", link.TextContent.Trim());
+            Assert.Contains("btn-outline-primary", link.ClassName);
+        });
+    }
+
+    [Fact]
+    public void WithoutVehicles_StillOffersAddMaintenance()
+    {
+        RegisterApiReplacement();
+
+        var cut = RenderHome();
+
+        cut.WaitForAssertion(() => Assert.Equal("Add Maintenance", cut.Find("[data-testid='hero'] a[href='/drafts/upload']").TextContent.Trim()));
+    }
+
+    [Fact]
     public void WhenTheApiIsUnavailable_StillOffersBothEntryPointsWithoutAnAlert()
     {
         RegisterApiReplacement(_ => throw new HttpRequestException("boom"));

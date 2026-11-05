@@ -151,7 +151,7 @@ public sealed class SubmissionProcessor(
         }
 
         var vehicles = await drafts.ListOwnerVehiclesForMatchingAsync(ownerId, cancellationToken);
-        var draft = NewDraft(vehicles, result, proposal, null, SkippedNote(skippedReasons));
+        var draft = NewDraft(vehicles, result, proposal, null, SkippedNote(skippedReasons), submission.PreselectedVehicleId);
         return await CreateDraftsAsync(submission, ownerId, [draft], now, cancellationToken);
     }
 
@@ -193,10 +193,10 @@ public sealed class SubmissionProcessor(
             switch (reading.Outcome)
             {
                 case AttachmentOutcome.Draft:
-                    created.Add(NewDraft(vehicles, reading.Result!, reading.Proposal!, reading.Attachment.Id, skippedNote));
+                    created.Add(NewDraft(vehicles, reading.Result!, reading.Proposal!, reading.Attachment.Id, skippedNote, submission.PreselectedVehicleId));
                     break;
                 case AttachmentOutcome.ManualEntry or AttachmentOutcome.TransientFailure:
-                    created.Add(NewManualEntryDraft(vehicles, reading.Result, reading.Attachment.Id, skippedNote));
+                    created.Add(NewManualEntryDraft(vehicles, reading.Result, reading.Attachment.Id, skippedNote, submission.PreselectedVehicleId));
                     break;
                 default:
                     withoutDraft.Add(reading.Attachment);
@@ -307,9 +307,9 @@ public sealed class SubmissionProcessor(
     }
 
     private static NewMaintenanceDraft NewDraft(
-        IReadOnlyList<VehicleMatchCandidate> vehicles, ExtractionResult result, DraftProposal proposal, Guid? attachmentId, string? skippedNote)
+        IReadOnlyList<VehicleMatchCandidate> vehicles, ExtractionResult result, DraftProposal proposal, Guid? attachmentId, string? skippedNote, Guid? preselectedVehicleId)
     {
-        var match = VehicleMatcher.Match(vehicles, result.VehicleHint);
+        var match = VehicleMatcher.Match(vehicles, result.VehicleHint, preselectedVehicleId);
         return new NewMaintenanceDraft(
             Guid.CreateVersion7(),
             DraftKinds.ToText(DraftState.NeedsReview),
@@ -324,9 +324,9 @@ public sealed class SubmissionProcessor(
 
     // No kind and an empty proposal: the owner picks the type and types the values from the original file.
     private static NewMaintenanceDraft NewManualEntryDraft(
-        IReadOnlyList<VehicleMatchCandidate> vehicles, ExtractionResult? result, Guid attachmentId, string? skippedNote)
+        IReadOnlyList<VehicleMatchCandidate> vehicles, ExtractionResult? result, Guid attachmentId, string? skippedNote, Guid? preselectedVehicleId)
     {
-        var match = VehicleMatcher.Match(vehicles, result?.VehicleHint);
+        var match = VehicleMatcher.Match(vehicles, result?.VehicleHint, preselectedVehicleId);
         return new NewMaintenanceDraft(
             Guid.CreateVersion7(),
             DraftKinds.ToText(DraftState.ManualEntry),

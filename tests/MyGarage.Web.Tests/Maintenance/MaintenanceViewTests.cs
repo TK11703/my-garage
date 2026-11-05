@@ -47,6 +47,23 @@ public class MaintenanceViewTests : VehicleTestContext
     }
 
     [Fact]
+    public void OffersImportRecord_LinkingToTheUploadPageWithThisVehicle()
+    {
+        ServiceRecords = ServiceRecordsPage([]);
+
+        var cut = RenderView();
+
+        cut.WaitForAssertion(() =>
+        {
+            var link = cut.Find("a[data-testid='import-record']");
+            Assert.Equal($"/drafts/upload?vehicleId={vehicleId}", link.GetAttribute("href"));
+            Assert.Contains("Import Record", link.TextContent);
+            Assert.Equal("Import a record for this vehicle", link.GetAttribute("aria-label"));
+            Assert.Contains("btn-outline-primary", link.ClassName);
+        });
+    }
+
+    [Fact]
     public void TheAccordionItemsAreCollapsibleAndOpenIndependently()
     {
         ServiceRecords = ServiceRecordsPage([]);

@@ -13,6 +13,56 @@ public class VehicleMatcherTests
         new(vin, year, make, model, null);
 
     [Fact]
+    public void APreselectedVehicle_IsTheOwnersChoice_EvenWhenTheHintPointsToAnotherVehicle()
+    {
+        var truck = Vehicle("Ford", "F-150", 2018, "1FTEW1EP0JKD00001");
+        var car = Vehicle("Honda", "Civic", 2020, "2HGFC2F69LH500002");
+
+        var result = VehicleMatcher.Match([truck, car], Hint(vin: "2HGFC2F69LH500002", make: "Honda", model: "Civic"), truck.Id);
+
+        Assert.Equal(truck.Id, result.VehicleId);
+        Assert.Equal(VehicleMatch.Selected, result.Match);
+    }
+
+    [Fact]
+    public void APreselectedVehicle_IsUsedWhenThereIsNoHintAtAll()
+    {
+        var truck = Vehicle("Ford", "F-150", 2018);
+        var car = Vehicle("Honda", "Civic", 2020);
+
+        var result = VehicleMatcher.Match([truck, car], null, car.Id);
+
+        Assert.Equal(car.Id, result.VehicleId);
+        Assert.Equal(VehicleMatch.Selected, result.Match);
+    }
+
+    [Fact]
+    public void APreselectedVehicleThatIsNotACandidate_FallsBackToTheNormalOrder()
+    {
+        var truck = Vehicle("Ford", "F-150", 2018, "1FTEW1EP0JKD00001");
+        var car = Vehicle("Honda", "Civic", 2020);
+
+        var byVin = VehicleMatcher.Match([truck, car], Hint(vin: "1FTEW1EP0JKD00001"), Guid.NewGuid());
+        var none = VehicleMatcher.Match([truck, car], null, Guid.NewGuid());
+
+        Assert.Equal(truck.Id, byVin.VehicleId);
+        Assert.Equal(VehicleMatch.Vin, byVin.Match);
+        Assert.Null(none.VehicleId);
+        Assert.Equal(VehicleMatch.None, none.Match);
+    }
+
+    [Fact]
+    public void ANullPreselectedVehicle_BehavesAsBefore()
+    {
+        var only = Vehicle("Ford", "F-150", 2018);
+
+        var result = VehicleMatcher.Match([only], null, null);
+
+        Assert.Equal(only.Id, result.VehicleId);
+        Assert.Equal(VehicleMatch.OnlyVehicle, result.Match);
+    }
+
+    [Fact]
     public void ExactVin_WinsEvenWhenTheDescriptionPointsElsewhere()
     {
         var truck = Vehicle("Ford", "F-150", 2018, "1FTEW1EP0JKD00001");

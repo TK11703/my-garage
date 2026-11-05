@@ -72,6 +72,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
                 ["Drafts:Expiry:Enabled"] = "false",
                 // Many tests read stickers as the same user inside one minute; the rate-limit tests set their own limit.
                 ["StickerImport:RequestsPerMinute"] = "1000",
+                ["DraftUploads:RequestsPerMinute"] = "1000",
                 // Tests call FeatureCategorizationService.CategorizePendingAsync themselves so a background run never categorizes their seeded features.
                 ["FeatureCategories:SweepEnabled"] = "false",
             }));

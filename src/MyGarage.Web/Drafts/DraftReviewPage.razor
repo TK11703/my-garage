@@ -37,7 +37,20 @@ else if (draft is not null)
                         <h2 id="original-heading" class="h5 mb-0">Original</h2>
                     </div>
                     <div class="card-body vstack gap-3">
-                        @if (draft.Email is { } email)
+                        @if (draft.Origin == DraftOrigin.Upload)
+                        {
+                            <dl class="vstack gap-2 mb-0" aria-label="Upload details" data-testid="upload-details">
+                                <div>
+                                    <dt class="small fw-normal text-body-secondary">Uploaded</dt>
+                                    <dd class="mb-0" data-testid="upload-arrived">@(draft.Email is { } uploadedEmail ? DraftFormat.Arrived(uploadedEmail.ArrivedAt) : DisplayFormat.NotSet)</dd>
+                                </div>
+                                <div>
+                                    <dt class="small fw-normal text-body-secondary">File</dt>
+                                    <dd class="mb-0 text-break" data-testid="upload-file-name">@(draft.Source.FileName ?? DisplayFormat.NotSet)</dd>
+                                </div>
+                            </dl>
+                        }
+                        else if (draft.Email is { } email)
                         {
                             <dl class="vstack gap-2 mb-0" aria-label="Email details" data-testid="email-details">
                                 <div>
@@ -57,12 +70,12 @@ else if (draft is not null)
 
                         @if (draft.HasAttachment && IsPdf)
                         {
-                            <iframe src="/drafts/@DraftId/attachment" title="Original document from the email"
+                            <iframe src="/drafts/@DraftId/attachment" title="@(draft.Origin == DraftOrigin.Upload ? "Original uploaded document" : "Original document from the email")"
                                     class="w-100 border rounded mg-original-frame" data-testid="original-pdf"></iframe>
                         }
                         else if (draft.HasAttachment && IsImage)
                         {
-                            <img src="/drafts/@DraftId/attachment" alt="Original image from the email" class="img-fluid border rounded" data-testid="original-image" />
+                            <img src="/drafts/@DraftId/attachment" alt="@(draft.Origin == DraftOrigin.Upload ? "Original uploaded image" : "Original image from the email")" class="img-fluid border rounded" data-testid="original-image" />
                         }
                         else if (!draft.HasAttachment)
                         {

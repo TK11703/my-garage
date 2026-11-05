@@ -40,6 +40,14 @@ builder.Services.AddHttpClient<StickerImportApiClient>(client =>
     })
     .AddHttpMessageHandler<ApiAccessTokenHandler>()
     .RemoveAllResilienceHandlers();
+// Uploading up to 15 MB may take a while on a slow link and a retry would queue the files twice, so it has a 2 minute limit and no retry.
+builder.Services.AddHttpClient<DraftUploadApiClient>(client =>
+    {
+        client.BaseAddress = new Uri("https+http://api");
+        client.Timeout = TimeSpan.FromMinutes(2);
+    })
+    .AddHttpMessageHandler<ApiAccessTokenHandler>()
+    .RemoveAllResilienceHandlers();
 #pragma warning restore EXTEXP0001
 builder.Services.AddHttpClient<LookupsApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
     .AddHttpMessageHandler<ApiAccessTokenHandler>();

@@ -38,8 +38,59 @@ public class DraftsListPageTests : DraftTestContext
 
         cut.WaitForAssertion(() =>
         {
-            Assert.Contains("No drafts waiting. Forward a service invoice or receipt to your My Garage mailbox.", cut.Markup);
+            Assert.Contains("No drafts waiting. Forward a service invoice or receipt to your My Garage mailbox, or upload a file.", cut.Markup);
             Assert.Empty(cut.FindAll("[data-testid='draft']"));
+        });
+    }
+
+    [Fact]
+    public void TheHeaderHasAnAddMaintenanceLinkToTheUploadPage()
+    {
+        DraftList = DraftsPage([]);
+
+        var cut = RenderPage();
+
+        cut.WaitForAssertion(() =>
+        {
+            var link = cut.Find("a[data-testid='add-maintenance']");
+            Assert.Equal("/drafts/upload", link.GetAttribute("href"));
+            Assert.Contains("Add maintenance", link.TextContent);
+        });
+    }
+
+    [Theory]
+    [InlineData("1", "1 file uploaded. It is being read; the draft appears below and in your notifications when ready.")]
+    [InlineData("3", "3 files uploaded. They are being read; each draft appears below and in your notifications when ready.")]
+    public void AnUploadedCount_ShowsAStatusNotice(string count, string expected)
+    {
+        DraftList = DraftsPage([]);
+
+        var cut = RenderPage($"/drafts?uploaded={count}");
+
+        cut.WaitForAssertion(() =>
+        {
+            var notice = cut.Find("[data-testid='upload-notice']");
+            Assert.Equal("status", notice.GetAttribute("role"));
+            Assert.Equal(expected, notice.TextContent.Trim());
+        });
+    }
+
+    [Theory]
+    [InlineData("abc")]
+    [InlineData("0")]
+    [InlineData("-2")]
+    [InlineData("99999999999")]
+    [InlineData("%3Cscript%3E")]
+    public void ABadUploadedCount_ShowsNoNoticeAndNeverBreaksThePage(string count)
+    {
+        DraftList = DraftsPage([DraftSummary()]);
+
+        var cut = RenderPage($"/drafts?uploaded={count}");
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Empty(cut.FindAll("[data-testid='upload-notice']"));
+            Assert.Single(cut.FindAll("[data-testid='draft']"));
         });
     }
 
@@ -67,6 +118,41 @@ public class DraftsListPageTests : DraftTestContext
             Assert.Equal("No vehicle chosen", rows[1].QuerySelector("[data-testid='draft-vehicle']")!.TextContent.Trim());
             Assert.Empty(rows[1].QuerySelectorAll("[data-testid='draft-total']"));
             Assert.Empty(cut.FindAll("table"));
+        });
+    }
+
+    [Fact]
+    public void AnUploadedDraftRow_IsLabelledUploaded_AndAnEmailedOneIsNot()
+    {
+        var uploaded = DraftSummary(origin: DraftOrigin.Upload);
+        var emailed = DraftSummary();
+        DraftList = DraftsPage([uploaded, emailed]);
+
+        var cut = RenderPage();
+
+        cut.WaitForAssertion(() =>
+        {
+            var rows = cut.FindAll("[data-testid='draft']");
+            Assert.Equal("Uploaded", rows[0].QuerySelector("[data-testid='draft-origin']")!.TextContent.Trim());
+            Assert.Empty(rows[1].QuerySelectorAll("[data-testid='draft-origin']"));
+            Assert.Equal("Uploaded Nov 3, 2026", rows[0].QuerySelector("[data-testid='draft-arrived']")!.TextContent.Trim());
+            Assert.Equal("Arrived Nov 3, 2026", rows[1].QuerySelector("[data-testid='draft-arrived']")!.TextContent.Trim());
+        });
+    }
+
+    [Fact]
+    public void AnUploadedHistoryRow_IsLabelledUploaded_AndStillShowsItsOutcome()
+    {
+        HistoryList = HistoryPage([UploadHistoryItem(EmailHistoryOutcome.Discarded), HistoryItem(EmailHistoryOutcome.Discarded)]);
+
+        var cut = RenderPage("/drafts?tab=history");
+
+        cut.WaitForAssertion(() =>
+        {
+            var rows = cut.FindAll("[data-testid='history-item']");
+            Assert.Equal("Uploaded", rows[0].QuerySelector("[data-testid='history-origin']")!.TextContent.Trim());
+            Assert.Empty(rows[1].QuerySelectorAll("[data-testid='history-origin']"));
+            Assert.All(rows, row => Assert.Equal("Discarded", row.QuerySelector("[data-testid='history-outcome']")!.TextContent.Trim()));
         });
     }
 
@@ -283,7 +369,7 @@ public class DraftsListPageTests : DraftTestContext
 
         cut.WaitForAssertion(() =>
         {
-            Assert.Contains("No emails yet. Emails you forward to your My Garage mailbox appear here.", cut.Find("[data-testid='drafts-history']").TextContent);
+            Assert.Contains("No emails or uploads yet. Emails you forward to your My Garage mailbox and files you upload appear here.", cut.Find("[data-testid='drafts-history']").TextContent);
             Assert.Empty(cut.FindAll("[data-testid='history-item']"));
         });
     }
@@ -338,7 +424,7 @@ public class DraftsListPageTests : DraftTestContext
 
         var cut = RenderPage("/drafts?tab=history");
 
-        cut.WaitForAssertion(() => Assert.Contains("No emails yet.", cut.Markup));
+        cut.WaitForAssertion(() => Assert.Contains("No emails or uploads yet.", cut.Markup));
     }
 
     [Fact]

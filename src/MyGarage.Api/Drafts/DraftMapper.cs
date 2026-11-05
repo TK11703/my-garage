@@ -41,6 +41,9 @@ public static class DraftMapper
     public static string? VehicleDisplayName(Guid? vehicleId, int? year, string? make, string? model) =>
         vehicleId is null || make is null || model is null ? null : VehicleName.Compose(year, make, model);
 
+    // Anything but the stored text upload reads as an email, the original source.
+    public static DraftOrigin OriginFromText(string? text) => text == "upload" ? DraftOrigin.Upload : DraftOrigin.Email;
+
     public static MaintenanceDraftSummaryDto ToSummaryDto(MaintenanceDraftSummaryRecord record)
     {
         var kind = DraftKinds.FromText(record.Kind);
@@ -52,6 +55,7 @@ public static class DraftMapper
             VehicleName = VehicleDisplayName(record.VehicleId, record.VehicleYear, record.VehicleMake, record.VehicleModel),
             ArrivedAt = record.ArrivedAt,
             ExpiresAt = record.ExpiresAt,
+            Origin = OriginFromText(record.Origin),
             HeadlineTotal = DraftProposalMapper.HeadlineTotal(WithKind(ReadProposal(record.Proposal), kind)),
         };
     }
@@ -73,6 +77,7 @@ public static class DraftMapper
             SubmissionId = record.SubmissionId,
             ArrivedAt = record.ArrivedAt,
             Outcome = HistoryOutcomeFromText(record.Outcome),
+            Origin = OriginFromText(record.Origin),
             Records =
             [
                 .. record.Records
@@ -141,10 +146,13 @@ public static class DraftMapper
                     SizeBytes = record.AttachmentSizeBytes,
                 }
                 : new DraftSourceDto { Kind = "text" },
-            Email = record.Sender is null && record.Subject is null
-                ? null
-                : new DraftEmailDto { ArrivedAt = record.ArrivedAt, Sender = record.Sender, Subject = record.Subject },
+            Email = OriginFromText(record.Origin) == DraftOrigin.Upload
+                ? new DraftEmailDto { ArrivedAt = record.ArrivedAt }
+                : record.Sender is null && record.Subject is null
+                    ? null
+                    : new DraftEmailDto { ArrivedAt = record.ArrivedAt, Sender = record.Sender, Subject = record.Subject },
             Compatibility = compatibility,
+            Origin = OriginFromText(record.Origin),
             Confidence = record.Confidence,
             Notes = record.Notes,
             HasAttachment = hasAttachment,
