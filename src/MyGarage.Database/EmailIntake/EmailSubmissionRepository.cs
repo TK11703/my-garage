@@ -118,7 +118,8 @@ public sealed class EmailSubmissionRepository(NpgsqlDataSource dataSource, SqlSc
                 row.SubmissionId,
                 row.ArrivedAt,
                 row.Outcome,
-                JsonSerializer.Deserialize<List<EmailHistoryCreatedRecord>>(row.RecordsJson, JsonSerializerOptions.Web) ?? []))
+                JsonSerializer.Deserialize<List<EmailHistoryCreatedRecord>>(row.RecordsJson, JsonSerializerOptions.Web) ?? [],
+                row.Origin))
             .ToList();
         return new PagedResult<EmailHistoryRecord>(items, page, pageSize, total);
     }
@@ -130,6 +131,8 @@ public sealed class EmailSubmissionRepository(NpgsqlDataSource dataSource, SqlSc
         public DateTimeOffset ArrivedAt { get; init; }
 
         public string Outcome { get; init; } = string.Empty;
+
+        public string Origin { get; init; } = "email";
 
         public string RecordsJson { get; init; } = "[]";
     }

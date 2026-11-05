@@ -69,6 +69,7 @@ public static partial class DraftFormat
             VehicleMatch.Vin => "Matched by VIN.",
             VehicleMatch.Description => "Matched by year, make, and model.",
             VehicleMatch.OnlyVehicle => "This is your only vehicle.",
+            VehicleMatch.Selected => "You chose this vehicle when you uploaded the file.",
             _ => "Choose a vehicle.",
         };
 

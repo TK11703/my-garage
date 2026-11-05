@@ -3,6 +3,7 @@
 -- Records lists what the included drafts created, as JSON text; only vehicles that still exist have a link. No sender, subject, or text is selected.
 SELECT s.id AS submission_id,
        s.arrived_at,
+       s.origin,
        CASE
            WHEN s.status IN ('not_applicable', 'failed') THEN s.status
            WHEN EXISTS (SELECT 1 FROM maintenance_drafts d WHERE d.submission_id = s.id AND d.owner_id = @OwnerId AND d.state IN ('needs_review', 'manual_entry')) THEN 'awaiting_review'

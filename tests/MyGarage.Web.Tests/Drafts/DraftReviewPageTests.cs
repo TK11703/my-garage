@@ -223,11 +223,40 @@ public class DraftReviewPageTests : DraftTestContext
     [Theory]
     [InlineData(VehicleMatch.Description, "Matched by year, make, and model.")]
     [InlineData(VehicleMatch.OnlyVehicle, "This is your only vehicle.")]
+    [InlineData(VehicleMatch.Selected, "You chose this vehicle when you uploaded the file.")]
     public void TheMatchNote_SaysHowTheVehicleWasFound(VehicleMatch match, string note)
     {
         var cut = RenderPage(DraftDto(match: match));
 
         cut.WaitForAssertion(() => Assert.Equal(note, cut.Find("[data-testid='vehicle-match']").TextContent.Trim()));
+    }
+
+    [Fact]
+    public void AnUploadedDraft_ShowsAnUploadedBlockWithTheTimeAndFileName_InsteadOfFromAndSubject()
+    {
+        var cut = RenderPage(DraftDto(origin: DraftOrigin.Upload));
+
+        cut.WaitForAssertion(() =>
+        {
+            var block = cut.Find("[data-testid='upload-details']");
+            Assert.Equal("Nov 3, 2026 at 3:30 PM UTC", block.QuerySelector("[data-testid='upload-arrived']")!.TextContent.Trim());
+            Assert.Equal("invoice.pdf", block.QuerySelector("[data-testid='upload-file-name']")!.TextContent.Trim());
+            Assert.Empty(cut.FindAll("[data-testid='email-details']"));
+            Assert.Empty(cut.FindAll("[data-testid='text-source-note']"));
+            Assert.NotNull(cut.Find("[data-testid='original-pdf']"));
+        });
+    }
+
+    [Fact]
+    public void AnEmailedDraft_StillShowsFromAndSubject_AndNoUploadedBlock()
+    {
+        var cut = RenderPage(DraftDto());
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("shop@example.com", cut.Find("[data-testid='email-sender']").TextContent.Trim());
+            Assert.Empty(cut.FindAll("[data-testid='upload-details']"));
+        });
     }
 
     [Fact]

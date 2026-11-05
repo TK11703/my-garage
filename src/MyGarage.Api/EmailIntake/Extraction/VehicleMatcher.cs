@@ -6,11 +6,16 @@ namespace MyGarage.Api.EmailIntake.Extraction;
 public sealed record VehicleMatchResult(Guid? VehicleId, VehicleMatch Match);
 
 // Finds which of the owner's own vehicles an extraction describes. Pure code: the AI model never sees the vehicle list (research R8, R14).
-// Order: exact VIN, then a unique year + make + model, then a unique make + model, then the owner's only vehicle, else none.
+// A vehicle the owner chose when uploading comes first. Otherwise: exact VIN, then a unique year + make + model, then a unique make + model, then the owner's only vehicle, else none.
 public static class VehicleMatcher
 {
-    public static VehicleMatchResult Match(IReadOnlyList<VehicleMatchCandidate> vehicles, VehicleHint? hint)
+    public static VehicleMatchResult Match(IReadOnlyList<VehicleMatchCandidate> vehicles, VehicleHint? hint, Guid? preselectedVehicleId = null)
     {
+        if (preselectedVehicleId is { } chosen && vehicles.Any(vehicle => vehicle.Id == chosen))
+        {
+            return new VehicleMatchResult(chosen, VehicleMatch.Selected);
+        }
+
         if (hint is not null)
         {
             var vin = Normalize(hint.Vin);

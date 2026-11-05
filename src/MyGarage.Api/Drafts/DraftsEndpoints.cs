@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MyGarage.Api.Common;
+using MyGarage.Api.Drafts.Uploads;
 using MyGarage.Api.Vehicles;
 using MyGarage.Database.EmailIntake;
 using MyGarage.Database.VehicleDocuments;
@@ -12,10 +14,17 @@ namespace MyGarage.Api.Drafts;
 
 public static class DraftsEndpoints
 {
+    // 15 MB of files plus the multipart envelope.
+    private const long RequestSizeLimit = 16_777_216;
+
     public static IServiceCollection AddDrafts(this IServiceCollection services)
     {
         services.AddSingleton<IValidator<AcceptDraftRequest>, AcceptDraftRequestValidator>();
         services.AddSingleton<IValidator<ChangeDraftKindRequest>, ChangeDraftKindRequestValidator>();
+        services.AddSingleton<IValidator<DraftUploadRequest>, DraftUploadRequestValidator>();
+        services.AddSingleton<DraftUploadService>();
+        services.AddOptions<DraftUploadOptions>().BindConfiguration(DraftUploadOptions.SectionName);
+        services.AddDraftUploadRateLimiting();
         services.TryAddSingleton<IValidator<PagingQuery>, PagingQueryValidator>();
         services.AddSingleton<IDraftDuplicateLookup, DraftDuplicateLookup>();
         services.AddSingleton<CompatibilityChecker>();
@@ -212,6 +221,41 @@ public static class DraftsEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
+        group.MapPost("/uploads", async (
+                [FromForm] DraftUploadRequest request,
+                ClaimsPrincipal user,
+                DraftUploadService uploads,
+                CancellationToken cancellationToken) =>
+            {
+                if (CurrentOwner.Get(user) is not { } ownerId)
+                {
+                    return VehiclesEndpoints.NoOwner();
+                }
+
+                var result = await uploads.UploadAsync(ownerId, request.Files!, request.VehicleId, cancellationToken);
+                return result.Outcome switch
+                {
+                    DraftUploadOutcome.Accepted => Results.Accepted(value: result.Value),
+                    DraftUploadOutcome.VehicleNotFound => VehiclesEndpoints.NotFound(),
+                    _ => Results.ValidationProblem(result.Errors!),
+                };
+            })
+            .DisableAntiforgery()
+            .RequireRateLimiting(DraftUploadRateLimiting.PolicyName)
+            .Accepts<DraftUploadRequest>("multipart/form-data")
+            .WithMetadata(new RequestSizeLimitAttribute(RequestSizeLimit), new BodySizeLimit(RequestSizeLimit))
+            .AddEndpointFilter<ValidationFilter<DraftUploadRequest>>()
+            .WithName("UploadDraftFiles")
+            .WithSummary("Queue uploaded PDF or image files as draft maintenance items for the caller's review; nothing becomes a record until the user includes it.")
+            .Produces<DraftUploadResultDto>(StatusCodes.Status202Accepted)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+
         return endpoints;
     }
 
@@ -231,6 +275,7 @@ public sealed class DraftStorageFilter(ILogger<DraftStorageFilter> logger) : IEn
         catch (Exception ex) when (ex is IntakeStorageUnavailableException or DocumentStorageUnavailableException)
         {
             logger.LogWarning(ex, "File storage is unavailable");
+            context.HttpContext.Response.Headers.RetryAfter = "30";
             return Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable, title: "File storage is temporarily unavailable.");
         }
     }

@@ -161,6 +161,7 @@ public abstract class VehicleTestContext : BunitContext
         Services.AddSingleton(new NotificationsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
         Services.AddSingleton(new VehicleDocumentsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
         Services.AddSingleton(new StickerImportApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
+        Services.AddSingleton(new DraftUploadApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
     }
 
     private static LookupsDto WithoutHidden(LookupsDto lookups) =>

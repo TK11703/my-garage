@@ -33,6 +33,12 @@ public sealed class EmailSubmissionRecord
     public string SkippedAttachments { get; init; } = "[]";
 
     public DateTimeOffset? ContentPurgedAt { get; init; }
+
+    // email or upload; an upload has no sender, subject, or text.
+    public string Origin { get; init; } = "email";
+
+    // The owner's vehicle chosen when importing from a vehicle's maintenance tab; only an upload has one.
+    public Guid? PreselectedVehicleId { get; init; }
 }
 
 public sealed class EmailAttachmentRecord

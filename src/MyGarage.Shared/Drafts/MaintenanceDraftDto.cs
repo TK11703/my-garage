@@ -16,7 +16,10 @@ public sealed class MaintenanceDraftDto
 
     public required DraftSourceDto Source { get; init; }
 
-    // Null once the email content has been removed (the draft was decided or expired).
+    // Whether the draft began as an email or as a file the user uploaded.
+    public DraftOrigin Origin { get; init; } = DraftOrigin.Email;
+
+    // Null once the email content has been removed (the draft was decided or expired). For an upload it holds only the upload time.
     public DraftEmailDto? Email { get; init; }
 
     public required CompatibilityDto Compatibility { get; init; }

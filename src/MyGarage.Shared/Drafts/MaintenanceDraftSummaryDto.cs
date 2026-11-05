@@ -14,6 +14,8 @@ public sealed class MaintenanceDraftSummaryDto
 
     public required DateTimeOffset ExpiresAt { get; init; }
 
+    // Whether the draft began as an email or as a file the user uploaded.
+    public DraftOrigin Origin { get; init; } = DraftOrigin.Email;
     // The proposed total, amount, or cost when the proposal has one.
     public decimal? HeadlineTotal { get; init; }
 }

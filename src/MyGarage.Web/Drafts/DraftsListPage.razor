@@ -3,7 +3,18 @@
 @attribute [ExcludeFromInteractiveRouting]
 @inject DraftsApiClient Api
 
-<PageHeader Title="Maintenance Drafts" Trail="@(new[] { new Crumb("Maintenance Drafts") })" />
+<PageHeader Title="Maintenance Drafts" Trail="@(new[] { new Crumb("Maintenance Drafts") })">
+    <Actions>
+        <a class="btn btn-outline-primary d-inline-flex align-items-center gap-2" href="/drafts/upload" data-testid="add-maintenance">
+            <Icon Name="IconName.Plus" /> Add maintenance
+        </a>
+    </Actions>
+</PageHeader>
+
+@if (UploadedCount is { } uploaded)
+{
+    <div class="alert alert-success" role="status" data-testid="upload-notice">@DraftUploadMessages.Uploaded(uploaded)</div>
+}
 
 @* Plain links: the app is statically rendered, so each tab is its own page load. *@
 <ul class="nav mg-tabs mb-3" data-testid="drafts-tabs">
@@ -26,7 +37,7 @@ else if (IsHistory && history is not null)
         <div class="card border-0 shadow-sm"><div class="card-body">
         @if (history.TotalCount == 0)
         {
-            <EmptyState Message="No emails yet. Emails you forward to your My Garage mailbox appear here." />
+            <EmptyState Message="No emails or uploads yet. Emails you forward to your My Garage mailbox and files you upload appear here." />
         }
         else
         {
@@ -35,7 +46,13 @@ else if (IsHistory && history is not null)
                 {
                     <li @key="item.SubmissionId" class="list-group-item" data-testid="history-item">
                         <span class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-                            <span data-testid="history-arrived">@DraftFormat.Arrived(item.ArrivedAt)</span>
+                            <span class="d-flex flex-wrap align-items-center gap-2">
+                                <span data-testid="history-arrived">@DraftFormat.Arrived(item.ArrivedAt)</span>
+                                @if (item.Origin == DraftOrigin.Upload)
+                                {
+                                    <span class="badge text-bg-secondary" data-testid="history-origin">Uploaded</span>
+                                }
+                            </span>
                             <span class="badge @DraftFormat.OutcomeBadgeClass(item.Outcome)" data-testid="history-outcome">@DraftFormat.OutcomeLabel(item.Outcome)</span>
                         </span>
                         @if (item.Records.Count > 0)
@@ -62,7 +79,7 @@ else if (!IsHistory && drafts is not null)
         <div class="card border-0 shadow-sm"><div class="card-body">
         @if (drafts.TotalCount == 0)
         {
-            <EmptyState Message="No drafts waiting. Forward a service invoice or receipt to your My Garage mailbox." />
+            <EmptyState Message="No drafts waiting. Forward a service invoice or receipt to your My Garage mailbox, or upload a file." />
         }
         else
         {
@@ -74,6 +91,10 @@ else if (!IsHistory && drafts is not null)
                             <span class="d-flex flex-wrap justify-content-between gap-2">
                                 <span class="d-flex flex-wrap align-items-center gap-2">
                                     <span class="fw-semibold" data-testid="draft-kind">@DraftFormat.KindLabelOrChoose(draft.Kind)</span>
+                                    @if (draft.Origin == DraftOrigin.Upload)
+                                    {
+                                        <span class="badge text-bg-secondary" data-testid="draft-origin">Uploaded</span>
+                                    }
                                     @if (draft.State == DraftState.ManualEntry)
                                     {
                                         <span class="badge text-bg-warning" data-testid="draft-state">Needs details</span>
@@ -86,7 +107,7 @@ else if (!IsHistory && drafts is not null)
                             </span>
                             <span class="d-flex flex-wrap gap-3 small text-body-secondary">
                                 <span data-testid="draft-vehicle">@(draft.VehicleName ?? "No vehicle chosen")</span>
-                                <span data-testid="draft-arrived">Arrived @DisplayFormat.Date(DateOnly.FromDateTime(draft.ArrivedAt.UtcDateTime))</span>
+                                <span data-testid="draft-arrived">@(draft.Origin == DraftOrigin.Upload ? "Uploaded" : "Arrived") @DisplayFormat.Date(DateOnly.FromDateTime(draft.ArrivedAt.UtcDateTime))</span>
                                 <span data-testid="draft-expires">Expires @DisplayFormat.Date(DateOnly.FromDateTime(draft.ExpiresAt.UtcDateTime))</span>
                             </span>
                         </a>
@@ -114,6 +135,13 @@ else if (!IsHistory && drafts is not null)
     public string? Tab { get; set; }
 
     private bool IsHistory => Tab == "history";
+
+    // The number of files just uploaded, set by the upload page; only 1 to 5 is believed.
+    [Parameter, SupplyParameterFromQuery(Name = "uploaded")]
+    public string? Uploaded { get; set; }
+
+    private int? UploadedCount =>
+        int.TryParse(Uploaded, out var count) && count is >= 1 and <= DraftUploadLimits.MaxFiles ? count : null;
 
     private int CurrentPage => int.TryParse(Page, out var parsed) ? Math.Max(1, parsed) : 1;
 

@@ -98,6 +98,21 @@ public class EmailHistoryRepositoryTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task ListHistoryPage_CarriesTheOriginOfEachSubmission()
+    {
+        var (repository, _, dataSource) = await CreateAsync();
+        var email = await SubmissionAsync(dataSource, 1, drafts: [("needs_review", "service_record", null, null)]);
+        var upload = await EmailIntakeTestData.InsertSubmissionAsync(
+            dataSource, status: "ready", sender: null, subject: null, bodyText: null, arrivedAt: T0.AddMinutes(2), origin: "upload");
+        await EmailIntakeTestData.InsertDraftAsync(dataSource, "owner-a", upload);
+
+        var page = await repository.ListHistoryPageAsync("owner-a", 1, 10, CancellationToken.None);
+
+        Assert.Equal("upload", page.Items.Single(item => item.SubmissionId == upload).Origin);
+        Assert.Equal("email", page.Items.Single(item => item.SubmissionId == email).Origin);
+    }
+
+    [Fact]
     public async Task ListHistoryPage_NeverShowsAnotherOwnersEmails()
     {
         var (repository, _, dataSource) = await CreateAsync();

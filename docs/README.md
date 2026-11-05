@@ -22,6 +22,7 @@ Each feature is specified under [`specs/`](../specs) (spec, plan, research, data
 | `006-maintenance-record-types` | Fuel and charging, inspections, registrations, insurance, and taxes |
 | `007-email-ingestion-api` | Email ingestion: a trusted workflow hands over forwarded emails, the app proposes draft records, and the owner reviews them |
 | `008-github-cicd-pipeline` | GitHub Actions CI/CD: verification on every pull request, automatic deployment to the shared Azure Container Apps environment, Bicep, one-time setup scripts, and the email-intake Logic App script (see [infra/README.md](../infra/README.md)) |
+| `011-upload-maintenance-record` | Upload a maintenance record: a file is queued through the email draft pipeline, from the main screen or with a vehicle preselected |
 
 ### Email ingestion (feature 007)
 
@@ -29,3 +30,8 @@ Each feature is specified under [`specs/`](../specs) (spec, plan, research, data
 - **Processing**: a background service reads each queued submission with Azure OpenAI and creates draft maintenance items (never records) for the matched owner. Drafts wait 30 days for review, then expire.
 - **Review**: the owner opens **Email drafts** from the notifications menu, checks the compatibility panel, and saves a draft as a record (optionally keeping the original file under the vehicle's Documents) or discards it. **History** lists what happened to each email.
 - **Privacy**: logs, metrics, and failure reasons carry ids, counts, and statuses only; email text, addresses, file names, and extracted values are never logged. Attachments live in private blob containers (`email-intake`, `vehicle-documents`) and are streamed to the owner through the web app.
+
+### Uploading a record (feature 011)
+
+- **Upload**: **Add Maintenance** on the main screen, or **Import Record** in a vehicle's Maintenance tab (which proposes that vehicle), opens `/drafts/upload`. Up to 5 PDF or image files (10 MB each, 15 MB in total) are posted to `POST /api/drafts/uploads` as the signed-in user.
+- **Same pipeline**: each upload is queued as a submission of origin `upload` and read by the same background service as email attachments, so the drafts, review, keep-original option, expiry, and history are shared. Records created this way carry the same from-email mark. `DraftUploads:RequestsPerMinute` limits uploads per user.

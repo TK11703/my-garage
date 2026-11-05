@@ -278,6 +278,80 @@ public class SubmissionProcessorTests(ApiFactory factory) : IClassFixture<ApiFac
         Assert.True(await factory.IntakeBlobExistsAsync(submission, attachment));
     }
 
+    // An upload as the upload endpoint queues it: no sender, subject, or text, one stored file, and optionally the vehicle chosen by the owner.
+    private async Task<(Guid Submission, Guid Attachment)> SeedUploadAsync(Guid? preselectedVehicleId, string ownerId = Alice)
+    {
+        var submission = await factory.InsertSubmissionAsync(ownerId, subject: null, bodyText: null, origin: "upload", preselectedVehicleId: preselectedVehicleId);
+        var attachment = await factory.InsertAttachmentAsync(submission, ownerId, "invoice.pdf", "application/pdf", Pdf);
+        return (submission, attachment);
+    }
+
+    [Fact]
+    public async Task AnUploadWithAPreselectedVehicle_MakesADraftForThatVehicle_EvenWhenTheFileNamesAnother()
+    {
+        var chosen = await factory.InsertVehicleAsync(Alice, "Ford", "F-150", 2018, "1FTEW1EP0JKD00001");
+        await factory.InsertVehicleAsync(Alice, "Honda", "Civic", 2020, "2HGFC2F69LH500002");
+        var (submission, attachment) = await SeedUploadAsync(chosen);
+        factory.Extractor.Enqueue(ServiceRecord(new VehicleHint("2HGFC2F69LH500002", null, null, null, null)));
+
+        await factory.CreateProcessor().ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal(
+            $"needs_review|service_record|{attachment}|{chosen}|selected",
+            await ScalarAsync("SELECT state || '|' || kind || '|' || attachment_id || '|' || vehicle_id || '|' || vehicle_match FROM maintenance_drafts"));
+        Assert.Equal("ready", (await factory.ReadSubmissionStateAsync(submission)).Status);
+        Assert.Equal(1L, await factory.CountRowsAsync("notifications"));
+        Assert.Null(factory.Extractor.Calls.Single().Text);
+    }
+
+    [Theory]
+    [InlineData("content_filter")]
+    [InlineData("low_confidence")]
+    public async Task AnUploadedFileThatCannotBeRead_BecomesAManualEntryDraft_WithTheOriginalKept(string scenario)
+    {
+        var (submission, attachment) = await SeedUploadAsync(null);
+        factory.Extractor.Enqueue(scenario == "content_filter"
+            ? ExtractionResult.Failed("content_filter")
+            : new ExtractionResult { Kind = ExtractionKind.None, Confidence = 0.1m });
+
+        await factory.CreateProcessor().ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal("manual_entry:null", await DraftSummaryAsync());
+        Assert.Equal(1L, await factory.CountRowsAsync("notifications"));
+        Assert.Equal("ready", (await factory.ReadSubmissionStateAsync(submission)).Status);
+        Assert.True(await factory.IntakeBlobExistsAsync(submission, attachment));
+    }
+
+    [Fact]
+    public async Task AnUploadWithAPreselectedVehicle_KeepsItOnAManualEntryDraftToo()
+    {
+        var chosen = await factory.InsertVehicleAsync(Alice, "Ford", "F-150", 2018);
+        await factory.InsertVehicleAsync(Alice, "Honda", "Civic", 2020);
+        await SeedUploadAsync(chosen);
+        factory.Extractor.IsEnabled = false;
+
+        await factory.CreateProcessor().ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal("manual_entry:null", await DraftSummaryAsync());
+        Assert.Equal($"{chosen}|selected", await ScalarAsync("SELECT vehicle_id || '|' || vehicle_match FROM maintenance_drafts"));
+    }
+
+    [Fact]
+    public async Task AnUploadWhosePreselectedVehicleWasDeleted_FallsBackToTheNormalMatching()
+    {
+        var gone = await factory.InsertVehicleAsync(Alice, "Ford", "F-150", 2018);
+        await factory.InsertVehicleAsync(Alice, "Honda", "Civic", 2020);
+        await factory.InsertVehicleAsync(Alice, "Subaru", "Outback", 2019);
+        await SeedUploadAsync(gone);
+        await factory.ExecuteScalarAsync("DELETE FROM vehicles WHERE id = @id", ("id", gone));
+        factory.Extractor.Enqueue(ServiceRecord());
+
+        await factory.CreateProcessor().ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal("none", await ScalarAsync("SELECT vehicle_match FROM maintenance_drafts"));
+        Assert.Null(await ScalarAsync("SELECT vehicle_id FROM maintenance_drafts"));
+    }
+
     [Fact]
     public async Task TwoAttachments_MakeTwoDrafts_AndTheTextIsNeverAThirdSource()
     {

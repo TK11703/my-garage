@@ -162,7 +162,8 @@ public abstract class DraftTestContext : VehicleTestContext
         string? subject = "Your invoice",
         CompatibilityDto? compatibility = null,
         string? notes = null,
-        bool withoutVehicle = false) =>
+        bool withoutVehicle = false,
+        DraftOrigin origin = DraftOrigin.Email) =>
         new()
         {
             Id = id ?? Guid.NewGuid(),
@@ -183,8 +184,14 @@ public abstract class DraftTestContext : VehicleTestContext
                 ? new DraftSourceDto { Kind = "attachment", FileName = "invoice.pdf", ContentType = contentType, SizeBytes = 120_000 }
                 : new DraftSourceDto { Kind = "text" },
             Email = state is DraftState.NeedsReview or DraftState.ManualEntry
-                ? new DraftEmailDto { ArrivedAt = new DateTimeOffset(2026, 11, 3, 15, 30, 0, TimeSpan.Zero), Sender = sender, Subject = subject }
+                ? new DraftEmailDto
+                {
+                    ArrivedAt = new DateTimeOffset(2026, 11, 3, 15, 30, 0, TimeSpan.Zero),
+                    Sender = origin == DraftOrigin.Upload ? null : sender,
+                    Subject = origin == DraftOrigin.Upload ? null : subject,
+                }
                 : null,
+            Origin = origin,
             Compatibility = compatibility ?? Acceptable(kind),
             Notes = notes,
             HasAttachment = hasAttachment,
@@ -196,13 +203,15 @@ public abstract class DraftTestContext : VehicleTestContext
         DraftState state = DraftState.NeedsReview,
         DraftKind? kind = DraftKind.ServiceRecord,
         string? vehicleName = "2020 Ford F-150",
-        decimal? total = 200m) =>
+        decimal? total = 200m,
+        DraftOrigin origin = DraftOrigin.Email) =>
         new()
         {
             Id = id ?? Guid.NewGuid(),
             State = state,
             Kind = kind,
             VehicleName = vehicleName,
+            Origin = origin,
             ArrivedAt = new DateTimeOffset(2026, 11, 3, 15, 30, 0, TimeSpan.Zero),
             ExpiresAt = new DateTimeOffset(2026, 12, 3, 15, 30, 0, TimeSpan.Zero),
             HeadlineTotal = total,
@@ -217,6 +226,16 @@ public abstract class DraftTestContext : VehicleTestContext
             SubmissionId = Guid.NewGuid(),
             ArrivedAt = arrivedAt ?? new DateTimeOffset(2026, 11, 3, 15, 30, 0, TimeSpan.Zero),
             Outcome = outcome,
+            Records = records,
+        };
+
+    protected static EmailHistoryItemDto UploadHistoryItem(EmailHistoryOutcome outcome = EmailHistoryOutcome.AwaitingReview, params EmailHistoryRecordDto[] records) =>
+        new()
+        {
+            SubmissionId = Guid.NewGuid(),
+            ArrivedAt = new DateTimeOffset(2026, 11, 3, 15, 30, 0, TimeSpan.Zero),
+            Outcome = outcome,
+            Origin = DraftOrigin.Upload,
             Records = records,
         };
 

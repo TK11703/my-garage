@@ -58,6 +58,7 @@ public static class DraftKinds
         VehicleMatch.Vin => "vin",
         VehicleMatch.Description => "description",
         VehicleMatch.OnlyVehicle => "only_vehicle",
+        VehicleMatch.Selected => "selected",
         VehicleMatch.None => "none",
         _ => throw new ArgumentOutOfRangeException(nameof(match), match, "Unknown vehicle match."),
     };
@@ -77,6 +78,7 @@ public static class DraftKinds
         "vin" => VehicleMatch.Vin,
         "description" => VehicleMatch.Description,
         "only_vehicle" => VehicleMatch.OnlyVehicle,
+        "selected" => VehicleMatch.Selected,
         "none" => VehicleMatch.None,
         _ => throw new ArgumentOutOfRangeException(nameof(text), text, "Unknown stored vehicle match."),
     };

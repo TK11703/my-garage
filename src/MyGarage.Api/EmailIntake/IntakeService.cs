@@ -1,6 +1,4 @@
-using System.Security.Cryptography;
 using System.Text.Json;
-using MyGarage.Api.Common;
 using MyGarage.Database.EmailIntake;
 using MyGarage.Database.Users;
 using MyGarage.Shared.EmailIntake;
@@ -17,11 +15,7 @@ public sealed class IntakeService(
     TimeProvider timeProvider,
     ILogger<IntakeService> logger)
 {
-    private const string UnsupportedType = "unsupported_type";
-
-    private sealed record SkippedAttachment(string FileName, string Reason);
-
-    private sealed record StoredAttachment(EmailAttachmentRecord Record, byte[] Content);
+    private sealed record SkippedEntry(string FileName, string Reason);
 
     // The request has already passed IntakeRequestValidator.
     public async Task<IntakeAcknowledgement> AcceptAsync(IntakeEmailRequest request, CancellationToken cancellationToken)
@@ -40,15 +34,13 @@ public sealed class IntakeService(
 
         var ownerId = owners[0];
         var submissionId = Guid.CreateVersion7();
-        var (stored, skipped) = ReadAttachments(request, submissionId, ownerId, now);
+        var prepared = IntakeAttachments.Prepare(submissionId, ownerId, now, ReadFiles(request));
+        var stored = prepared.Stored;
+        var skipped = prepared.Skipped.Select(entry => new SkippedEntry(entry.FileName, entry.Reason)).ToList();
 
         try
         {
-            foreach (var attachment in stored)
-            {
-                await blobs.UploadAsync(
-                    submissionId, attachment.Record.Id, new MemoryStream(attachment.Content, writable: false), attachment.Record.ContentType, cancellationToken);
-            }
+            await IntakeAttachments.UploadAsync(blobs, submissionId, stored, cancellationToken);
 
             var result = await submissions.AddReceivedAsync(
                 new EmailSubmissionRecord
@@ -69,7 +61,7 @@ public sealed class IntakeService(
             // Only this request's own blobs are ever deleted on a lost race: the winner's rows point at theirs.
             if (result.Status == AddSubmissionStatus.Duplicate)
             {
-                await DeleteBlobsAsync(submissionId, stored.Count);
+                await IntakeAttachments.DeleteBlobsAsync(blobs, submissionId, stored.Count, logger);
             }
             else if (result.Status == AddSubmissionStatus.Requeued)
             {
@@ -91,7 +83,7 @@ public sealed class IntakeService(
         }
         catch
         {
-            await DeleteBlobsAsync(submissionId, stored.Count);
+            await IntakeAttachments.DeleteBlobsAsync(blobs, submissionId, stored.Count, logger);
             throw;
         }
     }
@@ -99,47 +91,12 @@ public sealed class IntakeService(
     private static IntakeAcknowledgement Acknowledge(Guid submissionId) => new() { SubmissionId = submissionId };
 
     // Non-inline attachments are typed by their bytes: PDFs and images are stored, anything else is skipped and listed.
-    private static (List<StoredAttachment> Stored, List<SkippedAttachment> Skipped) ReadAttachments(
-        IntakeEmailRequest request, Guid submissionId, string ownerId, DateTimeOffset now)
-    {
-        var stored = new List<StoredAttachment>();
-        var skipped = new List<SkippedAttachment>();
-
-        foreach (var attachment in request.Attachments.Where(attachment => !attachment.IsInline))
-        {
-            var fileName = SafeFileName(attachment.FileName);
-            var content = Convert.FromBase64String(attachment.ContentBase64!);
-            if (FileSignature.Detect(content) is not { } contentType)
-            {
-                skipped.Add(new SkippedAttachment(fileName, UnsupportedType));
-                continue;
-            }
-
-            stored.Add(new StoredAttachment(
-                new EmailAttachmentRecord
-                {
-                    Id = Guid.CreateVersion7(),
-                    SubmissionId = submissionId,
-                    OwnerId = ownerId,
-                    FileName = fileName,
-                    ContentType = contentType,
-                    SizeBytes = content.Length,
-                    Sha256 = Convert.ToHexStringLower(SHA256.HashData(content)),
-                    CreatedAt = now,
-                },
-                content));
-        }
-
-        return (stored, skipped);
-    }
-
-    // A display name only: any path and control characters are dropped, and it is never used as a storage path.
-    private static string SafeFileName(string? fileName)
-    {
-        var name = Path.GetFileName((fileName ?? string.Empty).Replace('\\', '/'));
-        name = new string([.. name.Where(character => !char.IsControl(character))]).Trim();
-        return name.Length == 0 ? "attachment" : name;
-    }
+    private static List<IntakeFile> ReadFiles(IntakeEmailRequest request) =>
+    [
+        .. request.Attachments
+            .Where(attachment => !attachment.IsInline)
+            .Select(attachment => new IntakeFile(attachment.FileName, Convert.FromBase64String(attachment.ContentBase64!))),
+    ];
 
     // The requeued submission's previous files, removed after the commit; a failure only leaves unreferenced blobs for the orphan sweep.
     private async Task DeleteReplacedBlobsAsync(AddSubmissionResult result)
@@ -159,24 +116,6 @@ public sealed class IntakeService(
             {
                 logger.LogWarning(ex, "Could not delete the replaced attachment file {AttachmentId} of submission {SubmissionId}", attachmentId, previousId);
             }
-        }
-    }
-
-    // Best effort: a blob that cannot be removed now is private and unreferenced, and the orphan sweep removes it later.
-    private async Task DeleteBlobsAsync(Guid submissionId, int storedCount)
-    {
-        if (storedCount == 0)
-        {
-            return;
-        }
-
-        try
-        {
-            await blobs.DeleteSubmissionAsync(submissionId, CancellationToken.None);
-        }
-        catch (IntakeStorageUnavailableException ex)
-        {
-            logger.LogWarning(ex, "Could not delete the attachment files of unsaved submission {SubmissionId}", submissionId);
         }
     }
 }

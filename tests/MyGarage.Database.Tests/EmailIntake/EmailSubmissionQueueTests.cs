@@ -68,6 +68,33 @@ public class EmailSubmissionQueueTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task ClaimNext_ReturnsTheOriginAndThePreselectedVehicle()
+    {
+        var (repository, dataSource) = await CreateAsync();
+        var vehicleId = Guid.NewGuid();
+        await using (var connection = await dataSource.OpenConnectionAsync())
+        {
+            await connection.ExecuteAsync(
+                "INSERT INTO vehicles (id, owner_id, make, model, created_at, updated_at, created_by, updated_by) " +
+                "VALUES (@vehicleId, 'owner-a', 'Ford', 'F-150', now(), now(), 'owner-a', 'owner-a')", new { vehicleId });
+        }
+
+        var upload = await EmailIntakeTestData.InsertSubmissionAsync(
+            dataSource, origin: "upload", preselectedVehicleId: vehicleId, sender: null, subject: null, bodyText: null, nextAttemptAt: Now.AddMinutes(-5));
+        var email = await EmailIntakeTestData.InsertSubmissionAsync(dataSource, nextAttemptAt: Now.AddMinutes(-1));
+
+        var first = await repository.ClaimNextAsync(Now, Lease, CancellationToken.None);
+        var second = await repository.ClaimNextAsync(Now, Lease, CancellationToken.None);
+
+        Assert.Equal(upload, first!.Id);
+        Assert.Equal("upload", first.Origin);
+        Assert.Equal(vehicleId, first.PreselectedVehicleId);
+        Assert.Equal(email, second!.Id);
+        Assert.Equal("email", second.Origin);
+        Assert.Null(second.PreselectedVehicleId);
+    }
+
+    [Fact]
     public async Task ClaimNext_ReturnsNull_WhenNothingIsDue()
     {
         var (repository, dataSource) = await CreateAsync();

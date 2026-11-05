@@ -85,6 +85,96 @@ public class EmailSubmissionRepositoryTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task AddReceived_StoresAnUploadWithItsOriginAndTheOwnersPreselectedVehicle()
+    {
+        var (repository, dataSource) = await CreateAsync();
+        var vehicleId = await InsertVehicleAsync(dataSource, "owner-a");
+        var id = Guid.CreateVersion7();
+        var submission = new EmailSubmissionRecord
+        {
+            Id = id,
+            MessageId = $"upload:{id}",
+            ArrivedAt = T0,
+            ReceivedAt = T0,
+            OwnerId = "owner-a",
+            Origin = "upload",
+            PreselectedVehicleId = vehicleId,
+        };
+
+        var result = await repository.AddReceivedAsync(submission, [Attachment(id)], CancellationToken.None);
+
+        Assert.Equal(AddSubmissionStatus.Added, result.Status);
+        var row = await ReadOriginAsync(dataSource, id);
+        Assert.Equal("upload", row.Origin);
+        Assert.Equal(vehicleId, row.PreselectedVehicleId);
+        var stored = await ReadSubmissionAsync(dataSource, id);
+        Assert.Null(stored.Sender);
+        Assert.Null(stored.Subject);
+        Assert.Null(stored.BodyText);
+    }
+
+    [Theory]
+    [InlineData("another-owner")]
+    [InlineData(null)]
+    public async Task AddReceived_KeepsNoPreselectedVehicle_ThatIsNotTheOwners(string? vehicleOwner)
+    {
+        var (repository, dataSource) = await CreateAsync();
+        var vehicleId = vehicleOwner is null ? Guid.NewGuid() : await InsertVehicleAsync(dataSource, vehicleOwner);
+        var id = Guid.CreateVersion7();
+        var submission = new EmailSubmissionRecord
+        {
+            Id = id,
+            MessageId = $"upload:{id}",
+            ArrivedAt = T0,
+            OwnerId = "owner-a",
+            Origin = "upload",
+            PreselectedVehicleId = vehicleId,
+        };
+
+        var result = await repository.AddReceivedAsync(submission, [], CancellationToken.None);
+
+        Assert.Equal(AddSubmissionStatus.Added, result.Status);
+        Assert.Null((await ReadOriginAsync(dataSource, id)).PreselectedVehicleId);
+    }
+
+    [Fact]
+    public async Task AddReceived_DefaultsToTheEmailOriginWithNoPreselectedVehicle()
+    {
+        var (repository, dataSource) = await CreateAsync();
+        var submission = Submission();
+
+        await repository.AddReceivedAsync(submission, [], CancellationToken.None);
+
+        var row = await ReadOriginAsync(dataSource, submission.Id);
+        Assert.Equal("email", row.Origin);
+        Assert.Null(row.PreselectedVehicleId);
+    }
+
+    private sealed class OriginRow
+    {
+        public string Origin { get; init; } = string.Empty;
+
+        public Guid? PreselectedVehicleId { get; init; }
+    }
+
+    private static async Task<OriginRow> ReadOriginAsync(NpgsqlDataSource dataSource, Guid id)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync();
+        return await connection.QuerySingleAsync<OriginRow>(
+            "SELECT origin, preselected_vehicle_id AS PreselectedVehicleId FROM email_submissions WHERE id = @id", new { id });
+    }
+
+    private static async Task<Guid> InsertVehicleAsync(NpgsqlDataSource dataSource, string ownerId)
+    {
+        var id = Guid.NewGuid();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        await connection.ExecuteAsync(
+            "INSERT INTO vehicles (id, owner_id, make, model, created_at, updated_at, created_by, updated_by) " +
+            "VALUES (@id, @ownerId, 'Ford', 'F-150', now(), now(), @ownerId, @ownerId)", new { id, ownerId });
+        return id;
+    }
+
+    [Fact]
     public async Task AddReceived_StoresAQueuedSubmissionWithItsAttachments()
     {
         var (repository, dataSource) = await CreateAsync();
