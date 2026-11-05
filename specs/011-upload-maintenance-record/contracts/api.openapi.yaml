@@ -1,0 +1,138 @@
+openapi: 3.0.3
+info:
+  title: My Garage - upload a maintenance record (feature 011)
+  version: 1.0.0
+  description: >
+    Additions to the drafts API. Only the new upload operation and the schema changes are listed;
+    every other drafts, notifications, and email-history operation is unchanged (see specs/007-email-ingestion-api/contracts).
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+paths:
+  /api/drafts/uploads:
+    post:
+      tags: [Drafts]
+      operationId: UploadDraftFiles
+      summary: Queue uploaded PDF or image files as draft maintenance items for the caller's review.
+      description: >
+        User endpoint (refuses app-only tokens). Each accepted file is stored privately and read later by the same
+        background processor that reads email attachments, producing one draft per file. Nothing becomes a record
+        until the user includes the draft. The owner comes only from the token. When vehicleId is given it must be
+        the caller's vehicle; the draft then starts with that vehicle chosen.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [files]
+              properties:
+                files:
+                  type: array
+                  minItems: 1
+                  maxItems: 5
+                  description: PDF, JPEG, PNG, or WebP. At most 10 MB each and 15 MB in total. Type is decided from the file's bytes.
+                  items:
+                    type: string
+                    format: binary
+                vehicleId:
+                  type: string
+                  format: uuid
+                  description: Optional. One of the caller's vehicles, to preselect on the drafts.
+      responses:
+        '202':
+          description: At least one file was stored and queued. Refused files are listed by their position in the request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DraftUploadResult'
+        '400':
+          description: No file could be accepted (none sent, too many, over the total limit, or every file refused). Errors are keyed files[n].
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblem'
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404':
+          description: vehicleId is not one of the caller's vehicles. Nothing was stored.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413':
+          description: The request is larger than the body limit (about 16 MB).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429':
+          description: More than the allowed uploads per minute for this user; see Retry-After.
+          headers:
+            Retry-After: { schema: { type: integer } }
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503':
+          description: Attachment storage is temporarily unavailable; nothing was queued. Retry.
+          headers:
+            Retry-After: { schema: { type: integer } }
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    Problem:
+      description: Authentication or authorization problem.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+  schemas:
+    DraftUploadResult:
+      type: object
+      required: [submissionId, acceptedCount, refused]
+      properties:
+        submissionId: { type: string, format: uuid }
+        acceptedCount: { type: integer, minimum: 1 }
+        refused:
+          type: array
+          items:
+            type: object
+            required: [index, reason]
+            properties:
+              index: { type: integer, minimum: 0, description: Position of the file in the request. }
+              reason: { type: string, enum: [unsupported_type, empty, too_large] }
+    DraftOrigin:
+      type: string
+      enum: [email, upload]
+      default: email
+    VehicleMatch:
+      type: string
+      enum: [vin, description, only_vehicle, selected, none]
+      description: "'selected' is new: the vehicle was chosen by the user when uploading."
+    MaintenanceDraftOriginFields:
+      description: Added to MaintenanceDraft, MaintenanceDraftSummary, and EmailHistoryItem. For an upload, the draft's email block has only arrivedAt.
+      type: object
+      properties:
+        origin: { $ref: '#/components/schemas/DraftOrigin' }
+    Problem:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+    ValidationProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items: { type: string }
