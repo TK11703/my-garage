@@ -27,7 +27,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
 
         var ledger = (await connection.QueryAsync<(string ScriptId, string Checksum, DateTime AppliedAt)>(
             "SELECT script_id AS ScriptId, checksum AS Checksum, applied_at AS AppliedAt FROM schema_migrations ORDER BY script_id")).ToList();
-        Assert.Equal(15, ledger.Count);
+        Assert.Equal(16, ledger.Count);
         Assert.Equal("0009_create_service_records", ledger[8].ScriptId);
         Assert.Equal("0010_add_vehicle_latest_odometer", ledger[9].ScriptId);
         Assert.Equal("0011_create_maintenance_records", ledger[10].ScriptId);
@@ -35,6 +35,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
         Assert.Equal("0013_pricing_discounts_labor_tax", ledger[12].ScriptId);
         Assert.Equal("0014_add_feature_category", ledger[13].ScriptId);
         Assert.Equal("0015_add_upload_origin", ledger[14].ScriptId);
+        Assert.Equal("0016_create_reminders", ledger[15].ScriptId);
         Assert.Equal("0001_create_vehicles", ledger[0].ScriptId);
         Assert.Equal("0005_create_lookup_items", ledger[4].ScriptId);
         Assert.Equal("0006_add_vehicle_details", ledger[5].ScriptId);
@@ -53,7 +54,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
         await runner.RunAsync();
 
         await using var connection = await dataSource.OpenConnectionAsync();
-        Assert.Equal(15, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
+        Assert.Equal(16, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
     }
 
     [Fact]
@@ -83,7 +84,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
             CreateRunner(dataSource).RunAsync());
 
         await using var connection = await dataSource.OpenConnectionAsync();
-        Assert.Equal(15, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
+        Assert.Equal(16, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
     }
 
     [Theory]
@@ -600,7 +601,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
             "id", "owner_id", "submission_id", "attachment_id", "state", "kind", "vehicle_id", "vehicle_match", "confidence", "proposal",
             "notes", "created_record_kind", "created_record_id", "created_at", "expires_at", "decided_at",
         ],
-        ["notifications"] = ["id", "owner_id", "kind", "draft_id", "title", "created_at", "read_at"],
+        ["notifications"] = ["id", "owner_id", "kind", "draft_id", "title", "created_at", "read_at", "reminder_id"],
         ["vehicle_documents"] = ["id", "vehicle_id", "file_name", "content_type", "size_bytes", "source_kind", "source_record_id", "created_at", "created_by"],
     };
 
@@ -946,7 +947,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
         "0001_create_vehicles", "0002_create_vehicle_tags", "0003_create_journal_notes", "0004_create_vehicle_images",
         "0005_create_lookup_items", "0006_add_vehicle_details", "0007_drop_vehicle_nickname", "0008_create_features",
         "0009_create_service_records", "0010_add_vehicle_latest_odometer", "0011_create_maintenance_records", "0012_create_email_intake",
-        "0013_pricing_discounts_labor_tax", "0014_add_feature_category", "0015_add_upload_origin",
+        "0013_pricing_discounts_labor_tax", "0014_add_feature_category", "0015_add_upload_origin", "0016_create_reminders",
     ];
 
     private static async Task ApplyAsync(NpgsqlConnection connection, SqlScriptStore scripts, params string[] migrations)

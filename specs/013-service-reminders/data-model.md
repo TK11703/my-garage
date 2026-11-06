@@ -47,7 +47,7 @@ Index: `ix_reminder_completions_reminder (reminder_id, done_on DESC, created_at 
 |---|---|
 | `kind` check | Drop `notifications_kind_check`; add a check for `draft_ready`, `reminder_due_soon`, `reminder_overdue`. |
 | `reminder_id uuid NULL` | FK `reminders (id)` ON DELETE CASCADE. |
-| Shape check | `(kind = 'draft_ready' AND draft_id IS NOT NULL AND reminder_id IS NULL) OR (kind <> 'draft_ready' AND reminder_id IS NOT NULL AND draft_id IS NULL)`. |
+| Shape check | `(kind = 'draft_ready' AND reminder_id IS NULL) OR (kind <> 'draft_ready' AND reminder_id IS NOT NULL AND draft_id IS NULL)`. A `draft_ready` row keeps its existing nullable `draft_id`. |
 | Index | `ix_notifications_reminder (reminder_id) WHERE reminder_id IS NOT NULL`. |
 
 Existing rows are all `draft_ready` with a draft, so the shape check holds for them.
