@@ -60,7 +60,7 @@ public class DashboardRepositoryTests(PostgresFixture postgres)
     }
 
     [Fact]
-    public async Task FuelEnergySpend_SumsPerMonthAndKind_ForTheOwnerAcrossVehicles_WithinTheRange()
+    public async Task FuelEnergySpend_SumsPerMonthKindAndVehicle_ForTheOwner_WithinTheRange()
     {
         var (dataSource, dashboard) = await CreateAsync();
         var one = await ReminderTestData.InsertVehicleAsync(dataSource, "owner-1");
@@ -77,8 +77,13 @@ public class DashboardRepositoryTests(PostgresFixture postgres)
         var spend = await dashboard.GetFuelEnergySpendAsync("owner-1", new DateOnly(2026, 3, 1), new DateOnly(2026, 4, 30), CancellationToken.None);
 
         Assert.Equal(
-            [(new DateOnly(2026, 3, 1), "energy", 12m), (new DateOnly(2026, 3, 1), "fuel", 65.50m), (new DateOnly(2026, 4, 1), "fuel", 30m)],
-            spend.Select(row => (row.Month, row.Kind, row.Total)));
+            new[]
+            {
+                (new DateOnly(2026, 3, 1), "energy", one, 12m), (new DateOnly(2026, 3, 1), "fuel", one, 40m),
+                (new DateOnly(2026, 3, 1), "fuel", two, 25.50m), (new DateOnly(2026, 4, 1), "fuel", one, 30m),
+            }.OrderBy(row => row.Item1).ThenBy(row => row.Item2, StringComparer.Ordinal).ThenBy(row => row.Item3),
+            spend.Select(row => (row.Month, row.Kind, row.VehicleId, row.Total)));
+        Assert.All(spend, row => Assert.Equal((2022, "Ford", "F-150"), (row.VehicleYear, row.VehicleMake, row.VehicleModel)));
     }
 
     [Fact]

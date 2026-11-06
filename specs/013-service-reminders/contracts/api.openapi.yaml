@@ -365,6 +365,17 @@ components:
               month: { type: string, format: date, description: First day of the month. }
               fuel: { type: number, minimum: 0, description: Total cost of fuel entries. }
               charging: { type: number, minimum: 0, description: Total cost of charging (energy) entries. }
+              vehicles:
+                type: array
+                description: Each vehicle with a cost that month, so the clients can stack the bars by vehicle. The month's fuel and charging are the sums of these.
+                items:
+                  type: object
+                  required: [vehicleId, vehicleName, fuel, charging]
+                  properties:
+                    vehicleId: { type: string, format: uuid }
+                    vehicleName: { type: string, description: Year, make, and model. }
+                    fuel: { type: number, minimum: 0 }
+                    charging: { type: number, minimum: 0 }
     Notification:
       description: Changed schema of an existing notification item; only the additions are shown.
       type: object

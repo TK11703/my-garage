@@ -147,6 +147,13 @@ public class DashboardEndpointsTests(ApiFactory factory) : IClassFixture<ApiFact
         Assert.Equal(thisMonth, spend[^1].Month);
         Assert.Equal((30m, 0m), (spend[0].Fuel, spend[0].Charging));
         Assert.Equal((50.25m, 7m), (spend[^1].Fuel, spend[^1].Charging));
+        var byVehicle = spend[^1].Vehicles.ToDictionary(vehicle => vehicle.VehicleId);
+        Assert.Equal(2, byVehicle.Count);
+        Assert.Equal((40m, 7m), (byVehicle[one.Id].Fuel, byVehicle[one.Id].Charging));
+        Assert.Equal((10.25m, 0m), (byVehicle[two.Id].Fuel, byVehicle[two.Id].Charging));
+        Assert.All(byVehicle.Values, vehicle => Assert.False(string.IsNullOrWhiteSpace(vehicle.VehicleName)));
+        Assert.Single(spend[0].Vehicles);
+        Assert.DoesNotContain(spend.SelectMany(month => month.Vehicles), vehicle => vehicle.VehicleId == bobs.Id);
         Assert.All(spend.Skip(1).SkipLast(1), month => Assert.Equal((0m, 0m), (month.Fuel, month.Charging)));
     }
 

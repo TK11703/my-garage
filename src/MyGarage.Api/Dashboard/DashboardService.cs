@@ -3,6 +3,7 @@ using MyGarage.Database.Dashboard;
 using MyGarage.Database.Reminders;
 using MyGarage.Shared.Dashboard;
 using MyGarage.Shared.Reminders;
+using MyGarage.Shared.Vehicles;
 
 namespace MyGarage.Api.Dashboard;
 
@@ -41,11 +42,21 @@ public sealed class DashboardService(DashboardRepository dashboard, ReminderRepo
         return [.. Enumerable.Range(0, SpendMonths).Select(offset =>
         {
             var month = first.AddMonths(offset);
+            var vehicles = rows.Where(row => row.Month == month).GroupBy(row => row.VehicleId)
+                .Select(group => new FuelEnergySpendVehicleDto
+                {
+                    VehicleId = group.Key,
+                    VehicleName = VehicleName.Compose(group.First().VehicleYear, group.First().VehicleMake, group.First().VehicleModel),
+                    Fuel = group.Where(row => row.Kind == "fuel").Sum(row => row.Total),
+                    Charging = group.Where(row => row.Kind == "energy").Sum(row => row.Total),
+                })
+                .ToList();
             return new FuelEnergySpendMonthDto
             {
                 Month = month,
-                Fuel = rows.Where(row => row.Month == month && row.Kind == "fuel").Sum(row => row.Total),
-                Charging = rows.Where(row => row.Month == month && row.Kind == "energy").Sum(row => row.Total),
+                Fuel = vehicles.Sum(vehicle => vehicle.Fuel),
+                Charging = vehicles.Sum(vehicle => vehicle.Charging),
+                Vehicles = vehicles,
             };
         })];
     }

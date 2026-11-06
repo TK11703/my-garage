@@ -128,6 +128,8 @@ public class DashboardPageTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             Assert.Equal("Fuel and charging spend", cut.Find("[data-testid='spend'] h2").TextContent);
+            Assert.Contains("card", cut.Find("[data-testid='spend']").ClassName);
+            Assert.NotNull(cut.Find("[data-testid='spend'] .card-body [data-testid='spend-chart']"));
             Assert.NotNull(cut.Find("[data-testid='spend-chart'] svg[role='img']"));
         });
     }

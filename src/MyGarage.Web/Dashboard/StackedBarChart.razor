@@ -1,0 +1,100 @@
+@using System.Globalization
+
+<figure class="mb-0" data-testid="@($"chart-{Kind.ToLowerInvariant()}")">
+    <svg class="w-100 h-auto" viewBox="0 0 @F(Width) @F(Height)" role="img" aria-labelledby="@TitleId" focusable="false">
+        <title id="@TitleId">@Title</title>
+        @foreach (var tick in Ticks)
+        {
+            var y = Top + PlotHeight - tick / YMax * PlotHeight;
+            <line class="text-body-tertiary" x1="@F(Left)" x2="@F(Width - Right)" y1="@F(y)" y2="@F(y)" stroke="currentColor" stroke-width="1" />
+            <SvgLabel Class="text-body-secondary" X="@F(Left - 6)" Y="@F(y + 4)" Anchor="end">@TickLabel(tick)</SvgLabel>
+        }
+
+        @for (var i = 0; i < Months.Count; i++)
+        {
+            var month = Months[i];
+            var barX = Left + i * GroupWidth + (GroupWidth - BarWidth) / 2;
+            var label = month.Month.ToString("MMM yyyy", CultureInfo.InvariantCulture);
+            var stacked = 0d;
+            <g data-testid="month">
+                @foreach (var segment in month.Segments.Where(segment => segment.Amount > 0))
+                {
+                    var segmentHeight = (double)segment.Amount / YMax * PlotHeight;
+                    stacked += segmentHeight;
+                    <rect class="@($"mg-chart-segment {segment.Series.CssClass}")" data-series="@segment.Series.Key" x="@F(barX)" y="@F(Top + PlotHeight - stacked)" width="@F(BarWidth)" height="@F(segmentHeight)" fill="currentColor">
+                        <title>@label @Kind.ToLowerInvariant(), @segment.Series.Name: @DisplayFormat.Money(segment.Amount)</title>
+                    </rect>
+                }
+
+                <SvgLabel Class="text-body-secondary" X="@F(Left + i * GroupWidth + GroupWidth / 2)" Y="@F(Top + PlotHeight + 16)" Anchor="middle">@month.Month.ToString("MMM", CultureInfo.InvariantCulture)</SvgLabel>
+                @if (month.Month.Month == 1 || i == 0)
+                {
+                    <SvgLabel Class="text-body-secondary" X="@F(Left + i * GroupWidth + GroupWidth / 2)" Y="@F(Top + PlotHeight + 30)" Anchor="middle" FontSize="10">@month.Month.Year</SvgLabel>
+                }
+            </g>
+        }
+    </svg>
+</figure>
+
+@code {
+    private const double Width = 720;
+    private const double Height = 230;
+    private const double Left = 56;
+    private const double Right = 12;
+    private const double Top = 12;
+    private const double Bottom = 40;
+    private const double BarWidth = 30;
+    private const int Intervals = 4;
+
+    private static readonly double PlotHeight = Height - Top - Bottom;
+
+    private double GroupWidth => (Width - Left - Right) / Math.Max(Months.Count, 1);
+
+    private double YMax { get; set; } = Intervals;
+
+    private double[] Ticks { get; set; } = [];
+
+    // Fuel or Charging; names the chart for assistive technology and the bar tooltips.
+    [Parameter, EditorRequired]
+    public string Kind { get; set; } = string.Empty;
+
+    // Oldest month first.
+    [Parameter, EditorRequired]
+    public IReadOnlyList<StackedMonth> Months { get; set; } = [];
+
+    private string TitleId => $"{Kind.ToLowerInvariant()}-chart-title";
+
+    private string Title => $"{Kind} cost per month over the last 12 months, stacked by vehicle";
+
+    protected override void OnParametersSet()
+    {
+        var step = NiceStep((double)Months.Select(month => month.Total).DefaultIfEmpty(0).Max() / Intervals);
+        YMax = step * Intervals;
+        Ticks = [.. Enumerable.Range(0, Intervals + 1).Select(index => index * step)];
+    }
+
+    // The smallest 1, 2, 2.5, 5, or 10 times a power of ten that covers the raw step, so the axis labels stay round.
+    private static double NiceStep(double raw)
+    {
+        if (raw <= 0)
+        {
+            return 1;
+        }
+
+        var magnitude = Math.Pow(10, Math.Floor(Math.Log10(raw)));
+        foreach (var factor in new[] { 1d, 2d, 2.5, 5d, 10d })
+        {
+            if (factor * magnitude >= raw)
+            {
+                return factor * magnitude;
+            }
+        }
+
+        return 10 * magnitude;
+    }
+
+    private static string TickLabel(double value) =>
+        "$" + value.ToString(value % 1 == 0 ? "N0" : "N2", CultureInfo.InvariantCulture);
+
+    private static string F(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+}

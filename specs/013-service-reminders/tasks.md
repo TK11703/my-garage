@@ -195,6 +195,7 @@ description: "Task list for Service Reminders"
 - [X] T066 [US6] Fuel and charging spend data: `DashboardRepository.GetFuelEnergySpendAsync` with `Scripts/Dashboard/FuelEnergySpend.sql` (owner-scoped, per month and kind, inclusive date range), `FuelEnergySpendMonthDto` and `DashboardDto.FuelEnergySpend` (12 months, oldest first, zeros filled by `DashboardService`), with Database and Api tests
 - [X] T067 [US6] Spend chart on the dashboard: `SpendChart.razor` (inline SVG, fuel and charging as separate bars, legend totals, tooltips, figures table) and `SvgLabel.razor`, a "Fuel and charging spend" section on `DashboardPage.razor`, with bUnit tests
 - [X] T068 [US6] Document the chart in the contracts, the FAQ, and `docs/README.md`
+- [X] T069 [US6] Stack the spend charts by vehicle in a card: per-vehicle rows from `FuelEnergySpend.sql`, `FuelEnergySpendVehicleDto` and `FuelEnergySpendMonthDto.Vehicles`, a fuel chart and a charging chart (`StackedBarChart.razor`, `StackedMonth.cs`) with a vehicle legend (seven theme colors plus a gray Other layer in `app.css`), a figures table per vehicle, and tests at every layer
 
 ---
 
