@@ -10,6 +10,7 @@ public static class VehicleTabs
         ("media", "Media", IconName.Image),
         ("description", "Description", IconName.FileText),
         ("service-records", "Maintenance", IconName.Wrench),
+        (Reminders, "Reminders", IconName.Bell),
     ];
 
     // Anything that is not a known tab means the first one.
@@ -17,13 +18,15 @@ public static class VehicleTabs
 
     public const string ServiceRecords = "service-records";
 
+    public const string Reminders = "reminders";
+
     // The window-sticker shortcut is the first tab of the add and edit forms (feature 010).
     public const string Import = "import";
 
     public static readonly (string Id, string Label, IconName Icon) ImportTab = (Import, "Import from sticker", IconName.CloudUpload);
 
-    // The edit form has no service records pane; they are managed on their own pages.
-    public static readonly (string Id, string Label, IconName Icon)[] Edit = [.. All.Where(tab => tab.Id != ServiceRecords)];
+    // The edit form has no service records or reminders pane; they are managed on their own pages.
+    public static readonly (string Id, string Label, IconName Icon)[] Edit = [.. All.Where(tab => tab.Id is not (ServiceRecords or Reminders))];
 
     // Details is the default tab of the edit form even though Import from sticker is listed first.
     public static string NormalizeForEdit(string? tab) => tab == Import || Edit.Any(known => known.Id == tab) ? tab! : "details";

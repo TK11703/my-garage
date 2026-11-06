@@ -54,7 +54,7 @@ public class VehicleDetailPageTests : VehicleTestContext
         {
             var tabs = cut.Find("ul.mg-tabs");
             Assert.Null(tabs.Closest(".card"));
-            Assert.Equal(4, tabs.QuerySelectorAll("button svg.bi[aria-hidden='true']").Length);
+            Assert.Equal(5, tabs.QuerySelectorAll("button svg.bi[aria-hidden='true']").Length);
             Assert.NotNull(cut.Find("#group-basic").Closest(".card"));
             Assert.NotNull(cut.Find("#tab-description section.card"));
         });
@@ -84,12 +84,12 @@ public class VehicleDetailPageTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
             Assert.Contains(
-                "This also removes its tags, journal notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, pictures, and kept documents and cannot be undone.",
+                "This also removes its tags, journal notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, reminders, pictures, and kept documents and cannot be undone.",
                 cut.Find("[data-testid='delete-vehicle']").TextContent));
     }
 
     [Fact]
-    public void ShowsFourTabsWithDetailsActiveByDefault()
+    public void ShowsFiveTabsWithDetailsActiveByDefault()
     {
         RegisterApi(_ => Json(Detail(vehicleId)));
 
@@ -98,8 +98,8 @@ public class VehicleDetailPageTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             var tabs = cut.FindAll("ul.mg-tabs[role='tablist'] button[role='tab']");
-            Assert.Equal(["Details", "Media", "Description", "Maintenance"], tabs.Select(tab => tab.TextContent.Trim()));
-            Assert.Equal(["true", "false", "false", "false"], tabs.Select(tab => tab.GetAttribute("aria-selected")));
+            Assert.Equal(["Details", "Media", "Description", "Maintenance", "Reminders"], tabs.Select(tab => tab.TextContent.Trim()));
+            Assert.Equal(["true", "false", "false", "false", "false"], tabs.Select(tab => tab.GetAttribute("aria-selected")));
             Assert.Equal(["tab-details"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
         });
     }
@@ -722,7 +722,7 @@ public class VehicleDetailPageTests : VehicleTestContext
             var section = cut.Find("details[data-testid='delete-vehicle']");
             Assert.False(section.HasAttribute("open"));
             Assert.Contains("Delete 2020 Ford F-150?", section.TextContent);
-            Assert.Contains("tags, journal notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, pictures, and kept documents", section.TextContent);
+            Assert.Contains("tags, journal notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, reminders, pictures, and kept documents", section.TextContent);
             Assert.Equal($"/vehicles/{vehicleId}", cut.Find("details[data-testid='delete-vehicle'] a").GetAttribute("href"));
         });
     }

@@ -34,6 +34,7 @@ public class VehicleTabsTests
     [InlineData("media", "media")]
     [InlineData("description", "description")]
     [InlineData("service-records", "details")]
+    [InlineData("reminders", "details")]
     [InlineData("zzz", "details")]
     [InlineData(null, "details")]
     public void NormalizeForEdit_KnowsTheImportTab_AndDefaultsToDetails(string? tab, string expected)
@@ -42,9 +43,9 @@ public class VehicleTabsTests
     }
 
     [Fact]
-    public void TheDetailPageTabsAreUnchanged()
+    public void TheDetailPageTabsEndWithMaintenanceAndReminders()
     {
-        Assert.Equal(["details", "media", "description", "service-records"], VehicleTabs.All.Select(tab => tab.Id));
+        Assert.Equal(["details", "media", "description", "service-records", "reminders"], VehicleTabs.All.Select(tab => tab.Id));
         Assert.Equal("details", VehicleTabs.Normalize("import"));
     }
 }

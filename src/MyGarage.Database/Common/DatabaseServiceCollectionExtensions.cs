@@ -8,6 +8,7 @@ using MyGarage.Database.JournalNotes;
 using MyGarage.Database.Lookups;
 using MyGarage.Database.Notifications;
 using MyGarage.Database.Registrations;
+using MyGarage.Database.Reminders;
 using MyGarage.Database.ServiceRecords;
 using MyGarage.Database.Tags;
 using MyGarage.Database.Taxes;
@@ -34,6 +35,7 @@ public static class DatabaseServiceCollectionExtensions
         services.AddSingleton<FuelEnergyEntryRepository>();
         services.AddSingleton<InspectionRepository>();
         services.AddSingleton<RegistrationRepository>();
+        services.AddSingleton<ReminderRepository>();
         services.AddSingleton<InsurancePolicyRepository>();
         services.AddSingleton<TaxRepository>();
         services.AddSingleton<IVehicleImageBlobStore, AzureBlobVehicleImageStore>();

@@ -1,0 +1,58 @@
+@page "/vehicles/{VehicleId:guid}/reminders/{ReminderId:guid}"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject RemindersApiClient Api
+
+<ReminderPage Title="@(reminder?.Name ?? "Reminder")" VehicleId="VehicleId" VehicleName="@reminder?.VehicleName" Failure="failure"
+              ReturnUrl="@ReminderLinks.Detail(VehicleId, ReminderId)" NotFound="notFound"
+              NotFoundTitle="Reminder not found" NotFoundMessage="This reminder could not be found. It may have been deleted.">
+    @if (reminder is not null)
+    {
+        @if (ReminderMessages.Saved(Saved) is { } notice)
+        {
+            <div class="alert alert-success" role="status" data-testid="reminder-saved">@notice</div>
+        }
+
+        <section class="card border-0 shadow-sm mb-4" aria-labelledby="reminder-details-heading" data-testid="reminder-details">
+            <div class="card-body">
+                <h2 id="reminder-details-heading" class="h5">Details</h2>
+                <dl class="row g-3 mb-0">
+                    <ViewField Label="Applies to" Value="@ReminderFormat.AppliesTo(reminder)" />
+                    <ViewField Label="Repeats" Value="@ReminderFormat.Interval(reminder)" />
+                    <ViewField Label="Last done" Value="@ReminderFormat.LastDone(reminder)" />
+                    <ViewField Label="Next due" Value="@ReminderFormat.NextDue(reminder)" />
+                </dl>
+            </div>
+        </section>
+    }
+</ReminderPage>
+
+@code {
+    private ReminderDetailDto? reminder;
+    private GarageApiFailure? failure;
+    private bool notFound;
+
+    [Parameter]
+    public Guid VehicleId { get; set; }
+
+    [Parameter]
+    public Guid ReminderId { get; set; }
+
+    // Set after a save, for the notice at the top.
+    [Parameter, SupplyParameterFromQuery(Name = "saved")]
+    public string? Saved { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await Api.GetAsync(VehicleId, ReminderId);
+            reminder = result.Value;
+            notFound = result.IsNotFound;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+}
