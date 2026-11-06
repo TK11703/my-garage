@@ -3,18 +3,28 @@
 <header>
     <nav class="navbar navbar-dark fixed-top mg-navbar" aria-label="Main">
         <div class="container-fluid gap-2">
-            <BrandLink />
+            <div class="d-flex align-items-center gap-1 mg-navbar-start">
+                @if (isSignedIn)
+                {
+                    <button type="button" class="btn mg-nav-btn d-md-none" aria-label="Open menu"
+                            aria-controls="mg-sidebar" aria-expanded="false" data-mg-sidebar-toggle>
+                        <Icon Name="IconName.List" Size="24" />
+                    </button>
+                }
+
+                <BrandLink />
+            </div>
 
             @if (isSignedIn)
             {
                 <div class="collapse d-md-block mg-search" id="navbar-search">
-                    <form method="get" action="/vehicles" role="search">
-                        <div class="input-group input-group-sm">
+                    <form method="get" action="/search" role="search">
+                        <div class="mg-search-field">
+                            <button type="submit" class="mg-search-submit" aria-label="Search">
+                                <Icon Name="IconName.Search" Size="18" />
+                            </button>
                             <input type="search" name="q" class="form-control" maxlength="100"
                                    placeholder="Search vehicles" aria-label="Search vehicles" />
-                            <button type="submit" class="btn btn-outline-light" aria-label="Search">
-                                <Icon Name="IconName.Search" />
-                            </button>
                         </div>
                     </form>
                 </div>
@@ -31,61 +41,23 @@
 
                     <NotificationsMenu OnCountLoaded="OnCountLoaded" />
                 }
-
-                <div class="dropdown">
-                    <button type="button" class="btn mg-nav-btn" aria-label="Help"
-                            data-bs-toggle="dropdown" aria-expanded="false">
-                        <Icon Name="IconName.QuestionCircle" Size="20" />
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end mg-menu">
-                        <li><a class="dropdown-item" href="/faq">FAQ</a></li>
-                        <li><a class="dropdown-item" href="/about">About</a></li>
-                    </ul>
-                </div>
-
-                @if (isSignedIn)
+                else
                 {
                     <div class="dropdown">
-                        <button type="button" class="btn mg-nav-btn d-flex align-items-center gap-2"
-                                aria-label="Account menu for @displayName"
+                        <button type="button" class="btn mg-nav-btn" aria-label="Help"
                                 data-bs-toggle="dropdown" aria-expanded="false">
-                            <span class="mg-avatar" aria-hidden="true">
-                                @if (initials.Length > 0)
-                                {
-                                    @initials
-                                }
-                                else
-                                {
-                                    <Icon Name="IconName.PersonCircle" />
-                                }
-                            </span>
-                            <span class="d-none d-sm-inline text-truncate mg-profile-name">@displayName</span>
+                            <Icon Name="IconName.QuestionCircle" Size="20" />
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end mg-menu">
-                            <li><span class="dropdown-item-text fw-semibold text-break">@displayName</span></li>
-                            <li><a class="dropdown-item" href="/vehicles">My Vehicles</a></li>
-                            <li>
-                                <a class="dropdown-item d-flex justify-content-between align-items-center gap-3" href="/drafts">
-                                    Drafts
-                                    @if (draftsAwaitingReview > 0)
-                                    {
-                                        <span class="badge text-bg-secondary" data-testid="account-drafts-count" aria-hidden="true">@draftsAwaitingReview</span>
-                                        <span class="visually-hidden">@draftsAwaitingReview awaiting review</span>
-                                    }
-                                </a>
-                            </li>
-                            <li><a class="dropdown-item" href="/preferences">Preferences</a></li>
-                            <li><hr class="dropdown-divider" /></li>
-                            <li>
-                                <form method="post" action="/authentication/logout">
-                                    <AntiforgeryToken />
-                                    <button type="submit" class="dropdown-item">Sign out</button>
-                                </form>
-                            </li>
+                            <li><a class="dropdown-item" href="/faq">FAQ</a></li>
+                            <li><a class="dropdown-item" href="/about">About</a></li>
                         </ul>
                     </div>
                 }
-                else
+
+                <ThemeToggle />
+
+                @if (!isSignedIn)
                 {
                     <a class="btn btn-outline-light btn-sm ms-1" href="/authentication/login">Sign in</a>
                 }
@@ -96,18 +68,14 @@
 
 @code {
     private bool isSignedIn;
-    private string displayName = ClaimsPrincipalExtensions.NeutralName;
-    private string initials = string.Empty;
-    private int draftsAwaitingReview;
 
-    // The notifications menu reports the counts it loads, so the account menu can show how many drafts wait.
-    private void OnCountLoaded(UnreadCountDto count) => draftsAwaitingReview = count.DraftsAwaitingReview;
+    // Reports the unread and awaiting-review counts the bell loads, so the layout can show the drafts count in the menu.
+    [Parameter]
+    public EventCallback<UnreadCountDto> OnCountLoaded { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         isSignedIn = state.User.Identity?.IsAuthenticated ?? false;
-        displayName = state.User.GetDisplayName();
-        initials = state.User.GetInitials();
     }
 }

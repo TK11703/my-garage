@@ -9,10 +9,6 @@
             }
         </button>
     </h2>
-    <AccordionAddMenu Label="Add to Charging and Fueling">
-        <li><a class="dropdown-item" href="/vehicles/@VehicleId/fuel-energy-entries/new?kind=fuel" data-testid="add-fuel">Add fuel</a></li>
-        <li><a class="dropdown-item" href="/vehicles/@VehicleId/fuel-energy-entries/new?kind=energy" data-testid="add-charge">Add charge</a></li>
-    </AccordionAddMenu>
     <div id="maintenance-fuel" class="accordion-collapse collapse @(Expanded ? "show" : null)">
         <div class="accordion-body">
             <FuelEnergyEntryList VehicleId="VehicleId" Entries="entries" Failure="failure"

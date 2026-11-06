@@ -22,8 +22,7 @@ public class PreferencesPageTests : VehicleTestContext
         Assert.Single(cut.FindAll("h1"));
         Assert.Equal("Preferences", cut.Find("h1").TextContent);
         var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-        Assert.Equal(["Home", "Preferences"], items.Select(item => item.TextContent.Trim()));
-        Assert.Equal("page", items[1].GetAttribute("aria-current"));
+        Assert.Equal(["Home"], items.Select(item => item.TextContent.Trim()));
     }
 
     [Fact]

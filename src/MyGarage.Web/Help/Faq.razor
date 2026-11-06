@@ -3,40 +3,94 @@
 
 <PageHeader Title="Frequently Asked Questions" Trail="@(new[] { new Crumb("FAQ") })" />
 
-<div class="row">
-    <div class="col-lg-8">
-        <div class="accordion" id="faq-accordion">
-            @foreach (var (id, question, answer) in Items)
-            {
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                data-bs-target="#faq-@id" aria-expanded="false" aria-controls="faq-@id">
-                            @question
-                        </button>
-                    </h2>
-                    <div id="faq-@id" class="accordion-collapse collapse" data-bs-parent="#faq-accordion">
-                        <div class="accordion-body">@answer</div>
-                    </div>
-                </div>
-            }
-        </div>
+<section class="text-center mb-4" aria-labelledby="faq-help-heading">
+    <h2 id="faq-help-heading" class="h4 mb-2">How can we help you?</h2>
+    <p class="text-body-secondary mb-3">Find the answers to common questions here, or type a keyword below to get started.</p>
+    <div class="mg-faq-search mx-auto">
+        <span class="mg-faq-search-icon" aria-hidden="true"><Icon Name="IconName.Search" /></span>
+        <input type="search" class="form-control" placeholder="Type keywords to find answers..." aria-label="Search the questions"
+               autocomplete="off" data-faq-search data-testid="faq-search" />
     </div>
+    <p class="text-body-secondary mt-3 mb-0" data-faq-empty hidden role="status">No questions match those words. Try a different keyword.</p>
+</section>
+
+<div class="row row-cols-1 row-cols-lg-2 row-cols-xl-3 g-4 mg-faq" data-faq-grid>
+    @foreach (var category in Categories)
+    {
+        <div class="col" data-faq-category data-testid="faq-category">
+            <section class="card h-100 mg-faq-card" aria-labelledby="faq-@category.Id">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h2 id="faq-@category.Id" class="h6 mb-0">@category.Title</h2>
+                        <span class="text-body-secondary" aria-hidden="true"><Icon Name="category.Icon" Size="20" /></span>
+                    </div>
+                    <ul class="list-unstyled mg-faq-list mb-3">
+                        @foreach (var item in category.Items)
+                        {
+                            <li data-faq-item data-testid="faq-item">
+                                <details>
+                                    <summary>@item.Question</summary>
+                                    <p class="mg-faq-answer">@item.Answer</p>
+                                </details>
+                            </li>
+                        }
+                    </ul>
+                    <button type="button" class="mg-faq-more mt-auto" data-faq-expand aria-expanded="false">
+                        <span>Browse all questions</span> <Icon Name="IconName.ArrowRight" />
+                    </button>
+                </div>
+            </section>
+        </div>
+    }
 </div>
 
 @code {
-    private static readonly (string Id, string Question, string Answer)[] Items =
+    private sealed record Item(string Question, string Answer);
+
+    private sealed record Category(string Id, string Title, IconName Icon, Item[] Items);
+
+    private static readonly Category[] Categories =
     [
-        ("add", "How do I add a vehicle?", "Open My Vehicles and choose Add vehicle. Enter the year, make, and model; the other details are optional. The vehicle is named from its year, make, and model."),
-        ("edit", "How do I change or delete a vehicle?", "Open the vehicle and choose Edit to update its details. To remove it, use Delete vehicle at the bottom of the page and confirm; this also removes its tags, notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, and pictures."),
-        ("tags", "What are tags?", "Tags are short free-text words that describe a vehicle's features, such as \"tow package\" or \"sunroof\". You can search and filter by tag."),
-        ("journal", "What is the journal?", "Each vehicle has a journal of notes. Give a note an optional category of your own choosing, such as \"Maintenance\" or \"Trips\"."),
-        ("service", "How do I keep track of services?", "Open the vehicle and choose its Maintenance tab and open Service Records. Choose the + button in its header and Add service record, then enter the date, the odometer reading, and the shop or person, then add a line item for each service performed, priced as a flat cost or as labor hours and parts. The record shows the total cost, and the latest odometer reading updates the mileage on the vehicle's card."),
-        ("fuel", "How do I record fuel and charging?", "Open the vehicle, choose its Maintenance tab, and open Charging and Fueling. Choose the + button in its header, then Add fuel to enter the price per gallon, the total gallons, and the total, or Add charge to enter the price per kWh, the kWh delivered, and the total session cost. If you leave the total empty it is calculated from the price and the amount."),
-        ("records", "How do I record inspections, registrations, insurance, and taxes?", "Open the vehicle, choose its Maintenance tab, and open Inspections, Registrations, Insurance, and Taxes. Each has its own list; choose the + button in the header and then the kind to add: an inspection has a type, date, cost, and an optional next due date; a registration has a state, cost, and expiration date; insurance has a start date, an end date, how often the premium is paid, and the cost of each payment; a tax has a type, an amount, and how often it recurs. Use Edit on any row to correct or delete it."),
-        ("upload", "How do I add a record from a file?", "Choose Add Maintenance on the main screen, or open a vehicle, choose its Maintenance tab, and choose Import Record to start with that vehicle already chosen. Upload up to 5 PDF, JPG, PNG, or WebP files, 10 MB each. My Garage reads each file and prepares a draft; open Maintenance Drafts to review it, correct anything, choose whether to keep the original file, and include or discard it. Nothing becomes a record until you include it."),
-        ("pictures", "How many pictures can I add?", "Each vehicle holds up to 10 pictures of up to 5 MB each. Choose one as the main picture to show on its card."),
-        ("search", "How do I find a vehicle?", "Use the search box at the top of any page, or the search and filters on My Vehicles to narrow by make, color, doors, tag, or mileage."),
-        ("privacy", "Who can see my vehicles?", "Only you. Your vehicles, notes, and pictures are private to your account."),
+        new("getting-started", "Getting started", IconName.HouseDoor,
+        [
+            new("How do I add a vehicle?", "Open My Vehicles and choose Add vehicle. Enter the year, make, and model; the other details are optional. The vehicle is named from its year, make, and model."),
+            new("Can I fill in a vehicle from its window sticker?", "Yes. On the Add vehicle page open the Import from sticker tab, choose a photo or PDF of the window sticker, and choose Accept import. My Garage reads it and fills in the details and features for you to check. Nothing is saved until you choose Save."),
+            new("How do I find a vehicle?", "Use the search box at the top of any page, or the search and filters on My Vehicles to narrow by make, color, doors, tag, or mileage."),
+            new("How do I move around the app?", "The menu on the left lists everything: Home, your vehicles, maintenance drafts, and help. On a tablet it shrinks to icons, and on a phone it opens from the menu button at the top left."),
+        ]),
+        new("vehicles", "Vehicles and pictures", IconName.CarFront,
+        [
+            new("How do I change or delete a vehicle?", "Open the vehicle and choose Edit to update its details. To remove it, choose Delete and confirm; this also removes its tags, notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, and pictures. Edit opens on the tab you were looking at."),
+            new("What are tags?", "Tags are short free-text words that describe a vehicle's features, such as \"tow package\" or \"sunroof\". You can search and filter by tag."),
+            new("What is the journal?", "Each vehicle has a journal of notes. Give a note an optional category of your own choosing, such as \"Maintenance\" or \"Trips\"."),
+            new("How many pictures can I add?", "Each vehicle holds up to 10 pictures of up to 5 MB each. Choose one as the main picture to show on its card. A vehicle with no picture shows a car icon instead."),
+        ]),
+        new("maintenance", "Maintenance records", IconName.Wrench,
+        [
+            new("How do I add maintenance records to my vehicle?", "There are three ways. 1) Create a record yourself: open the vehicle, choose Add at the top of the page, then Add service record. 2) Upload a PDF or image of the maintenance record: choose Add Maintenance and upload the file, and My Garage prepares a draft for you to review. 3) Send an email with the maintenance record in the body of the message or as an attachment to the application's mailbox, mygarage_intake@outlook.com, and it appears as a draft for you to review. Nothing from an upload or an email becomes a record until you include it."),
+            new("How do I keep track of services?", "Open the vehicle and choose Add in the bar at the top of the page, then Add service record. Enter the date, the odometer reading, and the shop or person, then add a line item for each service performed, priced as a flat cost or as labor hours and parts. The record shows the total cost, and the latest odometer reading updates the mileage on the vehicle's card."),
+            new("How do I record fuel and charging?", "Open the vehicle, choose Add at the top of the page, then Add fuel to enter the price per gallon, the total gallons, and the total, or Add charge to enter the price per kWh, the kWh delivered, and the total session cost. If you leave the total empty it is calculated from the price and the amount. Your entries are listed under Charging and Fueling on the Maintenance tab."),
+            new("How do I record inspections, registrations, insurance, and taxes?", "Open the vehicle, choose Add at the top of the page, and pick the kind under Compliance: an inspection has a type, date, cost, and an optional next due date; a registration has a state, cost, and expiration date; insurance has a start date, an end date, how often the premium is paid, and the cost of each payment; a tax has a type, an amount, and how often it recurs. They are listed under Compliance on the Maintenance tab; use Edit on any row to correct or delete it."),
+            new("What does a negative amount mean?", "A discount or a credit. It is shown with a minus sign and subtracts from the total."),
+        ]),
+        new("email", "Email and drafts", IconName.Envelope,
+        [
+            new("How do I add a record from a file?", "Choose Add Maintenance on the main screen, or open a vehicle, choose its Maintenance tab, and choose Import Record to start with that vehicle already chosen. Upload up to 5 PDF, JPG, PNG, or WebP files, 10 MB each. My Garage reads each file and prepares a draft; open Maintenance Drafts to review it, correct anything, choose whether to keep the original file, and include or discard it. Nothing becomes a record until you include it."),
+            new("Can I email an invoice instead?", "Yes. Forward a service invoice or receipt from your account's email address to your My Garage mailbox. It is read the same way as an uploaded file and appears as a draft for you to review."),
+            new("What happens to drafts I do not review?", "A draft waits for you for 30 days. After that it expires and is not turned into a record."),
+            new("What does the History tab show?", "What became of each email or upload: awaiting review, included, discarded, expired, not applicable, or failed. Use the Status filter to show only one of them. For included items it links to the records that were created."),
+        ]),
+        new("preferences", "Preferences and appearance", IconName.Sliders,
+        [
+            new("How do I change the vehicle types, fuel types, and other choices?", "Open Preferences from your name at the top of the left menu. Each list has the standard choices plus any you add; switch a choice off to hide it from your forms."),
+            new("How do I switch between light and dark mode?", "Use the moon or sun button at the right end of the top bar. Light and dark apply to this browser only; a new browser or a private window starts from your device's setting."),
+            new("How do I sign out?", "Open the account menu at the top of the left menu and choose Sign out."),
+        ]),
+        new("privacy", "Privacy and your data", IconName.ShieldCheck,
+        [
+            new("Who can see my vehicles?", "Only you. Your vehicles, notes, and pictures are private to your account."),
+            new("Does My Garage keep the files I upload?", "Only with your say-so. When you include a draft you can keep the original file with the record, where it appears under Documents on the vehicle; otherwise it is not kept with the vehicle."),
+            new("Is my information shared?", "Not with other users. Uploaded files and email text are sent to an AI reading service only to turn them into a draft for you, and their text is never written to the application's logs."),
+        ]),
     ];
 }

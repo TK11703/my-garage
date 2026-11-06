@@ -6,10 +6,11 @@
 
 <PageHeader Title="@($"Welcome, {displayName}")" />
 
-<section class="card border-0 shadow-sm overflow-hidden mb-5" aria-labelledby="hero-heading" data-testid="hero">
-    <div class="row g-0">
-        <div class="col-lg-6 p-4 p-lg-5 d-flex flex-column justify-content-center gap-3">
-            <h2 id="hero-heading" class="display-6 fw-bold mb-0">Your whole garage, in one place</h2>
+<section class="mg-hero card border-0 shadow-sm overflow-hidden mb-5" aria-labelledby="hero-heading" data-testid="hero">
+    <img class="mg-hero-photo" src="@Assets["images/home-garage.jpg"]" alt="" data-testid="hero-photo" />
+    <div class="mg-hero-shade" aria-hidden="true"></div>
+    <div class="mg-hero-content p-4 p-lg-5 d-flex flex-column justify-content-center gap-3">
+        <h2 id="hero-heading" class="display-6 fw-bold mb-0">Keep every vehicle's story, from first mile to latest service</h2>
             <p class="lead mb-0">My Garage keeps a private list of your vehicles, with their details, pictures, journal notes, and service history in one place.</p>
 
             <ul class="list-unstyled d-flex flex-wrap gap-2 mb-0" data-testid="hero-highlights">
@@ -39,39 +40,15 @@
                 @if (vehicleCount is { } count)
                 {
                     <div class="col-6">
-                        <dt class="fw-normal text-body-secondary small">In your garage</dt>
+                        <dt class="fw-normal mg-hero-label small">In your garage</dt>
                         <dd class="h4 mb-0" data-testid="vehicle-count">@count @(count == 1 ? "vehicle" : "vehicles")</dd>
                     </div>
                 }
                 <div class="col-6">
-                    <dt class="fw-normal text-body-secondary small">Who can see it</dt>
+                    <dt class="fw-normal mg-hero-label small">Who can see it</dt>
                     <dd class="h4 mb-0">Only you</dd>
                 </div>
             </dl>
-        </div>
-
-        <div class="col-lg-6 mg-hero-art d-flex align-items-center justify-content-center p-4" aria-hidden="true">
-            <svg class="w-100 mg-hero-car" viewBox="0 0 480 260" xmlns="http://www.w3.org/2000/svg" focusable="false">
-                <circle cx="240" cy="130" r="118" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="2" />
-                <circle cx="240" cy="130" r="92" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="2" />
-                <path d="M96 190 A 150 150 0 0 1 384 190" fill="none" stroke="#F5A623" stroke-opacity="0.55" stroke-width="4" stroke-linecap="round" stroke-dasharray="3 12" />
-                <path d="M40 176 L40 150 Q40 134 62 130 L134 114 L178 72 Q188 64 204 64 L308 64 Q324 64 334 74 L374 114 L418 122 Q444 128 444 150 L444 176 Z" fill="#DCE8F5" />
-                <path d="M158 112 L190 80 Q194 76 202 76 L240 76 L240 112 Z" fill="#0F2A43" fill-opacity="0.85" />
-                <path d="M252 76 L304 76 Q312 76 318 82 L346 112 L252 112 Z" fill="#0F2A43" fill-opacity="0.85" />
-                <rect x="40" y="150" width="404" height="6" fill="#0B4F8A" fill-opacity="0.35" />
-                <path d="M410 134 L440 138 Q444 140 444 146 L444 152 L418 152 Z" fill="#F5A623" />
-                <rect x="40" y="140" width="16" height="10" rx="3" fill="#E5484D" />
-                <circle cx="130" cy="178" r="40" fill="#0F2A43" />
-                <circle cx="130" cy="178" r="32" fill="#0A1B2C" />
-                <circle cx="130" cy="178" r="16" fill="#B9CCE0" />
-                <circle cx="130" cy="178" r="5" fill="#0F2A43" />
-                <circle cx="352" cy="178" r="40" fill="#0F2A43" />
-                <circle cx="352" cy="178" r="32" fill="#0A1B2C" />
-                <circle cx="352" cy="178" r="16" fill="#B9CCE0" />
-                <circle cx="352" cy="178" r="5" fill="#0F2A43" />
-                <path d="M16 222 H464" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="3" stroke-linecap="round" stroke-dasharray="26 18" />
-            </svg>
-        </div>
     </div>
 </section>
 

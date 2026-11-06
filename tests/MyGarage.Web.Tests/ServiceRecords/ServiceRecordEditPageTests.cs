@@ -40,9 +40,9 @@ public class ServiceRecordEditPageTests : VehicleTestContext
             Assert.Equal("Joe's Garage", cut.Find("#shop-or-person").GetAttribute("value"));
             var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
             Assert.Equal(
-                ["Home", "Vehicles", "2020 Ford F-150", "Service record May 1, 2026", "Edit"],
+                ["Home", "Garage", "Vehicles", "2020 Ford F-150", "Service record May 1, 2026"],
                 items.Select(item => item.TextContent.Trim()));
-            Assert.Equal($"/vehicles/{vehicleId}/service-records/{recordId}", items[3].QuerySelector("a")!.GetAttribute("href"));
+            Assert.Equal($"/vehicles/{vehicleId}/service-records/{recordId}", items[4].QuerySelector("a")!.GetAttribute("href"));
         });
     }
 

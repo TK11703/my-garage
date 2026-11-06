@@ -8,7 +8,10 @@ public class UiStandardConformanceTests
 {
     private static readonly string[] Sources = FindSources();
     private static readonly string WebProject = FindWebProject();
-    private static readonly string[] Scripts = ["lease-toggle.js", "pricing-toggle.js", "labor-total.js", "dropzone.js", "feature-suggest.js", "auto-submit.js", "clear-error.js", "submit-busy.js", "sticker-preview.js"];
+    private static readonly string[] Scripts = ["lease-toggle.js", "pricing-toggle.js", "labor-total.js", "dropzone.js", "feature-suggest.js", "auto-submit.js", "clear-error.js", "submit-busy.js", "sticker-preview.js", "tab-memory.js", "faq-search.js"];
+
+    // Classic scripts (not modules) so docs/theme-preview.html can load them from a file:// page.
+    private static readonly string[] ShellScripts = ["theme-init.js", "app-shell.js"];
 
     private static string FindWebProject([CallerFilePath] string? sourceFile = null)
     {
@@ -270,6 +273,8 @@ public class UiStandardConformanceTests
     [InlineData("clear-error.js")]
     [InlineData("submit-busy.js")]
     [InlineData("sticker-preview.js")]
+    [InlineData("tab-memory.js")]
+    [InlineData("faq-search.js")]
     public void EachScript_ExistsAndIsLoadedAsAModuleFromTheAppShell(string script)
     {
         Assert.True(File.Exists(Path.Combine(WebProject, "wwwroot", "js", script)));
@@ -283,7 +288,31 @@ public class UiStandardConformanceTests
     {
         var files = Directory.GetFiles(Path.Combine(WebProject, "wwwroot", "js"), "*.js").Select(Path.GetFileName);
 
-        Assert.Equal(Scripts.Order(), files.Order());
+        Assert.Equal(Scripts.Concat(ShellScripts).Order(), files.Order());
+    }
+
+    [Theory]
+    [InlineData("theme-init.js")]
+    [InlineData("app-shell.js")]
+    public void EachShellScript_ExistsAndIsLoadedAsAClassicScriptFromTheAppShell(string script)
+    {
+        Assert.True(File.Exists(Path.Combine(WebProject, "wwwroot", "js", script)));
+
+        var shell = File.ReadAllText(Path.Combine(WebProject, "Components", "App.razor"));
+        Assert.Matches(new Regex($"<script (?:defer )?src=\"@Assets\\[\"js/{Regex.Escape(script)}\"\\]\"></script>"), shell);
+        Assert.DoesNotMatch(new Regex($"type=\"module\" src=\"@Assets\\[\"js/{Regex.Escape(script)}\""), shell);
+    }
+
+    [Fact]
+    public void TheThemeChoiceIsKeptOnlyInTheBrowser()
+    {
+        foreach (var script in ShellScripts)
+        {
+            var source = File.ReadAllText(Path.Combine(WebProject, "wwwroot", "js", script));
+
+            Assert.DoesNotMatch(new Regex(@"fetch\(|XMLHttpRequest|sendBeacon"), source);
+            Assert.DoesNotMatch(new Regex(@"\bdocument\.cookie\b"), source);
+        }
     }
 
     [Theory]
@@ -296,6 +325,10 @@ public class UiStandardConformanceTests
     [InlineData("clear-error.js")]
     [InlineData("submit-busy.js")]
     [InlineData("sticker-preview.js")]
+    [InlineData("tab-memory.js")]
+    [InlineData("faq-search.js")]
+    [InlineData("theme-init.js")]
+    [InlineData("app-shell.js")]
     public void Scripts_UseNoJQueryEvalOrInnerHtml(string script)
     {
         var source = File.ReadAllText(Path.Combine(WebProject, "wwwroot", "js", script));

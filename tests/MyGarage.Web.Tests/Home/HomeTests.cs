@@ -19,7 +19,7 @@ public class HomeTests : VehicleTestContext
     private IRenderedComponent<MyGarage.Web.Home.Home> RenderHome() => Render<MyGarage.Web.Home.Home>();
 
     [Fact]
-    public void ShowsPageHeaderWithHomeAsTheCurrentPageAndGreetingTitle()
+    public void ShowsPageHeaderWithGreetingTitleAndNoBreadcrumb()
     {
         auth.SetClaims(new Claim("name", "Alice Garage"));
 
@@ -29,9 +29,7 @@ public class HomeTests : VehicleTestContext
         {
             Assert.Single(cut.FindAll("h1"));
             Assert.Equal("Welcome, Alice Garage", cut.Find("h1").TextContent);
-            var item = Assert.Single(cut.FindAll("nav[aria-label='Breadcrumb'] li"));
-            Assert.Equal("Home", item.TextContent.Trim());
-            Assert.Equal("page", item.GetAttribute("aria-current"));
+            Assert.Empty(cut.FindAll("nav[aria-label='Breadcrumb']"));
         });
     }
 
@@ -114,16 +112,20 @@ public class HomeTests : VehicleTestContext
     }
 
     [Fact]
-    public void Hero_HasADecorativeCarIllustrationHiddenFromAssistiveTechnology()
+    public void Hero_HasADecorativeGaragePhotoBehindTheText_HiddenFromAssistiveTechnology()
     {
         var cut = RenderHome();
 
         cut.WaitForAssertion(() =>
         {
-            var art = cut.Find("[data-testid='hero'] .mg-hero-art");
-            Assert.Equal("true", art.GetAttribute("aria-hidden"));
-            Assert.NotNull(art.QuerySelector("svg"));
-            Assert.Equal("hero-heading", cut.Find("[data-testid='hero']").GetAttribute("aria-labelledby"));
+            var hero = cut.Find("[data-testid='hero']");
+            var photo = hero.QuerySelector("img.mg-hero-photo")!;
+            Assert.Equal(string.Empty, photo.GetAttribute("alt"));
+            Assert.Contains("home-garage", photo.GetAttribute("src"));
+            Assert.Equal("true", hero.QuerySelector(".mg-hero-shade")!.GetAttribute("aria-hidden"));
+            Assert.NotNull(hero.QuerySelector(".mg-hero-content h2#hero-heading"));
+            Assert.Empty(hero.QuerySelectorAll("svg.mg-hero-car"));
+            Assert.Equal("hero-heading", hero.GetAttribute("aria-labelledby"));
         });
     }
 

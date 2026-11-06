@@ -20,6 +20,21 @@ public static class ClaimsPrincipalExtensions
         return NeutralName;
     }
 
+    // The email claim, else a sign-in name that looks like an address; empty when neither is present.
+    public static string GetEmail(this ClaimsPrincipal user)
+    {
+        foreach (var claimType in new[] { "email", ClaimTypes.Email, "preferred_username" })
+        {
+            var value = user.FindFirst(claimType)?.Value;
+            if (!string.IsNullOrWhiteSpace(value) && value.Contains('@'))
+            {
+                return value;
+            }
+        }
+
+        return string.Empty;
+    }
+
     // Up to two uppercase letters: first letter of the first and last name words; empty for the neutral name.
     public static string GetInitials(this ClaimsPrincipal user)
     {

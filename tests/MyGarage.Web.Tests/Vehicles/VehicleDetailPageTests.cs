@@ -69,7 +69,7 @@ public class VehicleDetailPageTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            var header = cut.Find("h1").ParentElement!;
+            var header = cut.Find(".mg-pagebar");
             Assert.Equal("ul", header.NextElementSibling!.TagName.ToLowerInvariant());
             Assert.Contains("mg-tabs", header.NextElementSibling.ClassList);
         });
@@ -538,6 +538,27 @@ public class VehicleDetailPageTests : VehicleTestContext
         cut.WaitForAssertion(() => Assert.True(cut.FindAll("dd").Count(dd => dd.TextContent == "Not set") >= 3));
     }
 
+    [Theory]
+    [InlineData("media", "edit?tab=media")]
+    [InlineData("description", "edit?tab=description")]
+    [InlineData("details", "edit")]
+    [InlineData("service-records", "edit")]
+    [InlineData("bogus", "edit")]
+    public void TheEditLink_OpensTheTabBeingViewed(string tab, string suffix)
+    {
+        RegisterApi(_ => Json(Detail(vehicleId)));
+        Services.GetRequiredService<NavigationManager>().NavigateTo($"/vehicles/{vehicleId}?tab={tab}");
+
+        var cut = RenderDetail();
+
+        cut.WaitForAssertion(() =>
+        {
+            var edit = cut.Find("a[data-testid='edit-vehicle']");
+            Assert.Equal($"/vehicles/{vehicleId}/{suffix}", edit.GetAttribute("href"));
+            Assert.True(edit.HasAttribute("data-tab-link"));
+        });
+    }
+
     [Fact]
     public void HasEditLinkAndBackLink()
     {
@@ -563,10 +584,10 @@ public class VehicleDetailPageTests : VehicleTestContext
         {
             Assert.Single(cut.FindAll("h1"));
             var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-            Assert.Equal(["Home", "Vehicles", "2020 Ford F-150"], items.Select(item => item.TextContent.Trim()));
-            Assert.Equal("/vehicles", items[1].QuerySelector("a")!.GetAttribute("href"));
-            Assert.Equal("page", items[2].GetAttribute("aria-current"));
-            Assert.NotNull(cut.Find("h1").ParentElement!.QuerySelector("a[data-testid='edit-vehicle']"));
+            Assert.Equal(["Home", "Garage", "Vehicles"], items.Select(item => item.TextContent.Trim()));
+            Assert.Equal("/vehicles", items[2].QuerySelector("a")!.GetAttribute("href"));
+            Assert.NotNull(cut.Find(".mg-pagebar").QuerySelector("a[data-testid='edit-vehicle']"));
+            Assert.NotNull(cut.Find(".mg-pagebar [data-testid='add-maintenance-menu']"));
             Assert.DoesNotContain("My garage", cut.Markup);
         });
     }
@@ -582,7 +603,7 @@ public class VehicleDetailPageTests : VehicleTestContext
         {
             Assert.Equal("Vehicle not found", cut.Find("h1").TextContent);
             var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-            Assert.Equal(["Home", "Vehicles"], items.Select(item => item.TextContent.Trim()));
+            Assert.Equal(["Home", "Garage"], items.Select(item => item.TextContent.Trim()));
         });
     }
 
@@ -596,7 +617,7 @@ public class VehicleDetailPageTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             Assert.Equal("Vehicle", cut.Find("h1").TextContent);
-            Assert.Equal("Vehicles", cut.FindAll("nav[aria-label='Breadcrumb'] li").Last().TextContent.Trim());
+            Assert.Equal("Garage", cut.FindAll("nav[aria-label='Breadcrumb'] li").Last().TextContent.Trim());
         });
     }
 
@@ -624,7 +645,7 @@ public class VehicleDetailPageTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            var row = cut.Find("h1").ParentElement!;
+            var row = cut.Find(".mg-pagebar");
             var edit = row.QuerySelector("a[data-testid='edit-vehicle']")!;
             var delete = row.QuerySelector("details[data-testid='delete-vehicle']")!;
             Assert.Equal("Edit this vehicle", edit.GetAttribute("title"));

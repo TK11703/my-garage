@@ -1,6 +1,31 @@
-﻿@page "/not-found"
+@page "/not-found"
 @layout MainLayout
 
-<PageHeader Title="Page not found" Trail="@(new[] { new Crumb("Not found") })" />
+<PageHeader Title="404 Error" Trail="@(new[] { new Crumb("Not found") })" />
 
-<p>Sorry, the content you are looking for does not exist.</p>
+<section class="card border-0 shadow-sm" aria-labelledby="not-found-heading">
+    <div class="card-body mg-notfound" data-testid="not-found">
+        <svg class="mg-notfound-art" viewBox="0 0 240 200" fill="none" stroke="currentColor" stroke-width="4"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M58 22h70l34 34v108a8 8 0 0 1-8 8H58a8 8 0 0 1-8-8V30a8 8 0 0 1 8-8Z" fill="currentColor" fill-opacity="0.08" />
+            <path d="M128 22v26a8 8 0 0 0 8 8h26" />
+            <path d="M70 80h40M70 100h30M70 120h24M70 140h40" stroke-opacity="0.45" />
+            <circle cx="150" cy="130" r="30" fill="var(--bs-body-bg)" />
+            <circle cx="150" cy="130" r="30" fill="currentColor" fill-opacity="0.12" />
+            <path d="m172 152 30 30" stroke-width="10" />
+            <path d="M139 119l22 22M161 119l-22 22" stroke-width="5" />
+        </svg>
+
+        <div class="mg-notfound-body">
+            <p class="mg-notfound-code" aria-hidden="true">404</p>
+            <h2 id="not-found-heading" class="mg-notfound-label">Page not found</h2>
+            <p class="text-body-secondary mb-4">
+                It's looking like you may have taken a wrong turn. Don't worry... it happens to the best of us.
+                Here's a little tip that might help you get back on track.
+            </p>
+            <a class="btn btn-outline-primary d-inline-flex align-items-center gap-2" href="/" data-testid="return-home">
+                <Icon Name="IconName.ArrowLeft" /> Return Home
+            </a>
+        </div>
+    </div>
+</section>

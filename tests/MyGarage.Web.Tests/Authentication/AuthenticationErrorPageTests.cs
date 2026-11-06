@@ -48,7 +48,7 @@ public class AuthenticationErrorPageTests : BunitContext
         Assert.Single(cut.FindAll("h1"));
         Assert.Equal("Sign-in problem", cut.Find("h1").TextContent);
         var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-        Assert.Equal(["Home", "Sign-in problem"], items.Select(item => item.TextContent.Trim()));
+        Assert.Equal(["Home"], items.Select(item => item.TextContent.Trim()));
     }
 
     [Fact]

@@ -20,6 +20,22 @@ public class IconTests : BunitContext
     [InlineData(IconName.Image)]
     [InlineData(IconName.FileText)]
     [InlineData(IconName.Wrench)]
+    [InlineData(IconName.Sun)]
+    [InlineData(IconName.MoonStars)]
+    [InlineData(IconName.List)]
+    [InlineData(IconName.HouseDoor)]
+    [InlineData(IconName.CarFront)]
+    [InlineData(IconName.Inbox)]
+    [InlineData(IconName.BoxArrowRight)]
+    [InlineData(IconName.ChevronDown)]
+    [InlineData(IconName.PlusCircle)]
+    [InlineData(IconName.XLg)]
+    [InlineData(IconName.Gear)]
+    [InlineData(IconName.ClockHistory)]
+    [InlineData(IconName.Funnel)]
+    [InlineData(IconName.Envelope)]
+    [InlineData(IconName.ShieldCheck)]
+    [InlineData(IconName.ArrowRight)]
     public void RendersDecorativeInlineSvg(IconName name)
     {
         var cut = Render<Icon>(ps => ps.Add(p => p.Name, name));

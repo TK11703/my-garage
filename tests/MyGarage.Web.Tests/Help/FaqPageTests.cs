@@ -32,7 +32,7 @@ public class FaqPageTests : IClassFixture<WebAppFactory>
         Assert.Single(Regex.Matches(html, "<h1[ >]"));
         Assert.Contains("Frequently Asked Questions</h1>", html);
         Assert.Contains("aria-label=\"Breadcrumb\"", html);
-        Assert.Matches("aria-current=\"page\"[^>]*>(<[^>]+>)*\\s*FAQ", html);
+        Assert.DoesNotMatch("breadcrumb-item[^>]*>(<[^>]+>)*\\s*FAQ", html);
     }
 
     [Fact]
@@ -71,5 +71,59 @@ public class FaqPageTests : IClassFixture<WebAppFactory>
         Assert.Contains("How do I add a vehicle?", html);
         Assert.Contains("Enter the year, make, and model; the other details are optional. The vehicle is named from its year, make, and model.", html);
         Assert.DoesNotContain("nickname", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ItIsLaidOutAsASearchFieldAndCardsOfQuestions()
+    {
+        var (_, html) = await GetAsync();
+        var document = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+
+        Assert.Contains("How can we help you?", document.QuerySelector("h2")!.TextContent);
+        var search = document.QuerySelector("input[data-faq-search]")!;
+        Assert.Equal("search", search.GetAttribute("type"));
+        Assert.False(string.IsNullOrWhiteSpace(search.GetAttribute("aria-label")));
+
+        var cards = document.QuerySelectorAll("[data-faq-category]");
+        Assert.Equal(6, cards.Length);
+        Assert.All(cards, card =>
+        {
+            Assert.NotNull(card.QuerySelector("h2"));
+            Assert.NotNull(card.QuerySelector("svg.bi"));
+            Assert.NotEmpty(card.QuerySelectorAll("[data-faq-item] details > summary"));
+            Assert.NotNull(card.QuerySelector("button[data-faq-expand]"));
+        });
+        Assert.True(document.QuerySelectorAll("[data-faq-item]").Length >= 20);
+    }
+
+    [Fact]
+    public async Task MaintenanceRecordsExplainsTheThreeWaysToAddARecord()
+    {
+        var (_, html) = await GetAsync();
+        var document = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+
+        var card = document.QuerySelectorAll("[data-faq-category]").Single(c => c.QuerySelector("h2")!.TextContent == "Maintenance records");
+        var first = card.QuerySelector("[data-faq-item] details")!;
+        Assert.Equal("How do I add maintenance records to my vehicle?", first.QuerySelector("summary")!.TextContent.Trim());
+        var answer = first.QuerySelector("p")!.TextContent;
+        Assert.Contains("Create a record yourself", answer);
+        Assert.Contains("Upload a PDF or image", answer);
+        Assert.Contains("body of the message or as an attachment", answer);
+        Assert.Contains("mygarage_intake@outlook.com", answer);
+    }
+
+    [Fact]
+    public async Task EveryQuestionHasAnAnswer_AndTheMaintenanceAnswersPointToTheAddMenu()
+    {
+        var (_, html) = await GetAsync();
+        var document = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+
+        Assert.All(document.QuerySelectorAll("[data-faq-item] details"), item =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(item.QuerySelector("summary")!.TextContent));
+            Assert.False(string.IsNullOrWhiteSpace(item.QuerySelector("p")!.TextContent));
+        });
+        Assert.DoesNotContain("+ button", html);
+        Assert.Contains("choose Add in the bar at the top of the page", html);
     }
 }

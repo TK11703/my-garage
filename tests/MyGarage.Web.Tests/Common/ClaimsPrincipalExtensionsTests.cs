@@ -39,4 +39,20 @@ public class ClaimsPrincipalExtensionsTests
     {
         Assert.True(UserNamed("name", "One Two Three Four Five").GetInitials().Length <= 2);
     }
+
+    [Theory]
+    [InlineData("email", "ada@example.com")]
+    [InlineData("preferred_username", "ada@example.com")]
+    [InlineData(ClaimTypes.Email, "ada@example.com")]
+    public void GetEmail_ReadsTheEmailOrAnAddressShapedSignInName(string claimType, string value)
+    {
+        Assert.Equal(value, UserNamed(claimType, value).GetEmail());
+    }
+
+    [Fact]
+    public void GetEmail_IgnoresASignInNameThatIsNotAnAddress_AndIsEmptyWithoutClaims()
+    {
+        Assert.Equal(string.Empty, UserNamed("preferred_username", "ada").GetEmail());
+        Assert.Equal(string.Empty, new ClaimsPrincipal(new ClaimsIdentity()).GetEmail());
+    }
 }

@@ -67,7 +67,7 @@ public class NotificationsMenuTests : VehicleTestContext
     }
 
     [Fact]
-    public void WithUnreadNotifications_TheBadgeShowsTheCountAndTheButtonNamesIt()
+    public void WithUnreadNotifications_ADotIsShownAndTheButtonNamesTheCount()
     {
         unread = new UnreadCountDto { Unread = 3, DraftsAwaitingReview = 4 };
         latest = [Notification()];
@@ -79,12 +79,12 @@ public class NotificationsMenuTests : VehicleTestContext
             var toggle = cut.Find("button[data-bs-toggle='dropdown']");
             Assert.Equal("Notifications, 3 unread", toggle.GetAttribute("aria-label"));
             Assert.Equal("false", toggle.GetAttribute("aria-expanded"));
-            Assert.Equal("3", cut.Find("[data-testid='notification-badge']").TextContent.Trim());
+            Assert.NotNull(cut.Find("[data-testid='notification-badge']"));
         });
     }
 
     [Fact]
-    public void WithNoUnreadNotifications_NoBadgeIsShownAndTheButtonIsJustNotifications()
+    public void WithNoUnreadNotifications_NoDotIsShownAndTheButtonIsJustNotifications()
     {
         latest = [Notification(isRead: true)];
 
@@ -99,7 +99,7 @@ public class NotificationsMenuTests : VehicleTestContext
     }
 
     [Fact]
-    public void AVeryLargeCount_IsCappedOnTheBadge()
+    public void AVeryLargeCount_ShowsOneDotAndTheFullCountInTheName()
     {
         unread = new UnreadCountDto { Unread = 250, DraftsAwaitingReview = 250 };
 
@@ -107,7 +107,7 @@ public class NotificationsMenuTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            Assert.Equal("99+", cut.Find("[data-testid='notification-badge']").TextContent.Trim());
+            Assert.NotNull(cut.Find("[data-testid='notification-badge']"));
             Assert.Equal("Notifications, 250 unread", cut.Find("button[data-bs-toggle='dropdown']").GetAttribute("aria-label"));
         });
     }
@@ -217,19 +217,19 @@ public class NotificationsMenuTests : VehicleTestContext
     {
         unread = new UnreadCountDto { Unread = 1, DraftsAwaitingReview = 1 };
         var cut = RenderMenu();
-        cut.WaitForAssertion(() => Assert.Equal("1", cut.Find("[data-testid='notification-badge']").TextContent.Trim()));
+        cut.WaitForAssertion(() => Assert.Equal("Notifications, 1 unread", cut.Find("button[data-bs-toggle='dropdown']").GetAttribute("aria-label")));
         Assert.Equal(1, time.ActiveTimers);
 
         unread = new UnreadCountDto { Unread = 4, DraftsAwaitingReview = 4 };
         latest = [Notification("A newer draft")];
         time.Advance(TimeSpan.FromSeconds(59));
-        Assert.Equal("1", cut.Find("[data-testid='notification-badge']").TextContent.Trim());
+        Assert.Equal("Notifications, 1 unread", cut.Find("button[data-bs-toggle='dropdown']").GetAttribute("aria-label"));
 
         time.Advance(TimeSpan.FromSeconds(1));
 
         cut.WaitForAssertion(() =>
         {
-            Assert.Equal("4", cut.Find("[data-testid='notification-badge']").TextContent.Trim());
+            Assert.Equal("Notifications, 4 unread", cut.Find("button[data-bs-toggle='dropdown']").GetAttribute("aria-label"));
             Assert.Contains("A newer draft", cut.Markup);
         });
     }

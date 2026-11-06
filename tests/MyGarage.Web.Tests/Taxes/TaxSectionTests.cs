@@ -24,7 +24,7 @@ public class TaxSectionTests : VehicleTestContext
     }
 
     [Fact]
-    public void NoTaxes_ShowsTheEmptyStateWithAnAddAction()
+    public void NoTaxes_ShowsTheEmptyState()
     {
         var cut = RenderView();
 
@@ -32,9 +32,6 @@ public class TaxSectionTests : VehicleTestContext
         {
             var section = cut.Find("[data-testid='compliance-taxes']");
             Assert.Contains("No taxes yet. Add the first tax for this vehicle.", section.TextContent);
-            var add = cut.Find("[data-testid='add-tax']");
-            Assert.Equal($"/vehicles/{vehicleId}/taxes/new", add.GetAttribute("href"));
-            Assert.Equal("Add tax", add.TextContent.Trim());
             Assert.Equal("Taxes", section.QuerySelector("h3")!.TextContent.Trim());
         });
     }
@@ -106,7 +103,6 @@ public class TaxSectionTests : VehicleTestContext
             Assert.Single(cut.FindAll("[data-testid='registration']"));
             Assert.Single(cut.FindAll("[data-testid='insurance-policy']"));
             Assert.Equal("1 inspection, 1 registration, 1 insurance", cut.Find("[data-testid='compliance-summary']").TextContent.Trim());
-            Assert.NotNull(cut.Find("[data-testid='add-tax']"));
         });
     }
 

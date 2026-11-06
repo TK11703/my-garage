@@ -43,8 +43,8 @@ public class DraftReviewPageTests : DraftTestContext
         {
             Assert.Equal("Review draft", cut.Find("h1").TextContent);
             var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-            Assert.Equal(["Home", "Maintenance Drafts", "Review draft"], items.Select(item => item.TextContent.Trim()));
-            Assert.Equal("/drafts", items[1].QuerySelector("a")!.GetAttribute("href"));
+            Assert.Equal(["Home", "Maintenance", "Maintenance Drafts"], items.Select(item => item.TextContent.Trim()));
+            Assert.Equal("/drafts", items[2].QuerySelector("a")!.GetAttribute("href"));
         });
     }
 

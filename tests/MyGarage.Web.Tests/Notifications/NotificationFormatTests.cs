@@ -23,11 +23,4 @@ public class NotificationFormatTests
     [Fact]
     public void ANotificationFromTheFuture_IsJustNow() =>
         Assert.Equal("just now", NotificationFormat.Relative(Now + TimeSpan.FromMinutes(5), Now));
-
-    [Theory]
-    [InlineData(1, "1")]
-    [InlineData(99, "99")]
-    [InlineData(100, "99+")]
-    [InlineData(5000, "99+")]
-    public void Badge_NeverGrowsPast99Plus(int unread, string expected) => Assert.Equal(expected, NotificationFormat.Badge(unread));
 }

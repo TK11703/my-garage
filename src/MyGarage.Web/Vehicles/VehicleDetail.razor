@@ -20,10 +20,13 @@ else if (notFound)
 }
 else if (vehicle is not null)
 {
+    var current = VehicleTabs.Normalize(Tab);
+
     <PageHeader Title="@vehicle.Name" Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(vehicle.Name) })">
         <Actions>
-            <div class="d-flex flex-wrap align-items-start gap-2">
-                <a class="btn btn-outline-primary d-inline-flex align-items-center gap-2" href="/vehicles/@VehicleId/edit" data-testid="edit-vehicle" title="Edit this vehicle">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <AddMaintenanceMenu VehicleId="VehicleId" />
+                <a class="btn btn-outline-primary d-inline-flex align-items-center gap-2" href="@EditHref(current)" data-tab-link data-testid="edit-vehicle" title="Edit this vehicle">
                     <Icon Name="IconName.Pencil" /> Edit
                 </a>
                 <details class="position-relative" data-testid="delete-vehicle">
@@ -42,8 +45,6 @@ else if (vehicle is not null)
             </div>
         </Actions>
     </PageHeader>
-
-    var current = VehicleTabs.Normalize(Tab);
 
     @if (Saved == "draft")
     {
@@ -121,6 +122,10 @@ else if (vehicle is not null)
     private VehicleDetailDto? vehicle;
     private bool notFound;
     private GarageApiFailure? failure;
+
+    // The edit form opens on the tab being viewed (it has no Maintenance tab, so that one and Details open on Details).
+    private string EditHref(string tab) =>
+        tab is "media" or "description" ? $"/vehicles/{VehicleId}/edit?tab={tab}" : $"/vehicles/{VehicleId}/edit";
 
     [Parameter]
     public Guid VehicleId { get; set; }

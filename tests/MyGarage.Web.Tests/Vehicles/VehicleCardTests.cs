@@ -32,7 +32,10 @@ public class VehicleCardTests : VehicleTestContext
         var cut = RenderCard(Summary());
 
         Assert.Empty(cut.FindAll("img"));
-        Assert.NotEmpty(cut.FindAll("[data-testid='vehicle-placeholder']"));
+        var placeholder = cut.Find("[data-testid='vehicle-placeholder']");
+        Assert.NotNull(placeholder.QuerySelector("svg.bi"));
+        Assert.Equal(string.Empty, placeholder.TextContent.Trim());
+        Assert.StartsWith("No picture for", placeholder.GetAttribute("aria-label"));
     }
 
     [Fact]

@@ -1,44 +1,46 @@
 <PageTitle>@Title – My Garage</PageTitle>
 
-<nav aria-label="Breadcrumb">
-    <ol class="breadcrumb mb-1">
-        @if (Trail.Count == 0)
+<div class="mg-pagebar">
+    <div class="mg-pagebar-heading">
+        <h1 class="mg-pagebar-title">@Title</h1>
+        @if (Trail.Count > 0)
         {
-            <li class="breadcrumb-item active" aria-current="page"><span class="mg-crumb text-truncate d-inline-block">Home</span></li>
+            @* The last crumb is the page itself, which the title already names; the menu group it sits under is shown instead. *@
+            var group = NavMenu.GroupOf(Trail[0].Label);
+            <nav aria-label="Breadcrumb" class="mg-pagebar-trail">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><span class="mg-crumb text-truncate d-inline-block"><a href="/">Home</a></span></li>
+                    @if (group is not null)
+                    {
+                        <li class="breadcrumb-item"><span class="mg-crumb text-truncate d-inline-block">@group</span></li>
+                    }
+                    @for (var i = 0; i < Trail.Count - 1; i++)
+                    {
+                        var crumb = Trail[i];
+                        if (crumb.Href is not null)
+                        {
+                            <li class="breadcrumb-item"><span class="mg-crumb text-truncate d-inline-block"><a href="@crumb.Href">@crumb.Label</a></span></li>
+                        }
+                        else
+                        {
+                            <li class="breadcrumb-item"><span class="mg-crumb text-truncate d-inline-block">@crumb.Label</span></li>
+                        }
+                    }
+                </ol>
+            </nav>
         }
-        else
-        {
-            <li class="breadcrumb-item"><span class="mg-crumb text-truncate d-inline-block"><a href="/">Home</a></span></li>
-            @for (var i = 0; i < Trail.Count; i++)
-            {
-                var crumb = Trail[i];
-                if (i == Trail.Count - 1)
-                {
-                    <li class="breadcrumb-item active" aria-current="page"><span class="mg-crumb text-truncate d-inline-block">@crumb.Label</span></li>
-                }
-                else if (crumb.Href is not null)
-                {
-                    <li class="breadcrumb-item"><span class="mg-crumb text-truncate d-inline-block"><a href="@crumb.Href">@crumb.Label</a></span></li>
-                }
-                else
-                {
-                    <li class="breadcrumb-item"><span class="mg-crumb text-truncate d-inline-block">@crumb.Label</span></li>
-                }
-            }
-        }
-    </ol>
-</nav>
-
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <h1 class="h2 mb-0">@Title</h1>
-    @Actions
+    </div>
+    @if (Actions is not null)
+    {
+        <div class="mg-pagebar-actions">@Actions</div>
+    }
 </div>
 
 @code {
     [Parameter, EditorRequired]
     public string Title { get; set; } = string.Empty;
 
-    // Crumbs after the implicit "Home"; the last one is the current page and is never a link.
+    // Crumbs after the implicit "Home"; the last one names the current page and is not shown.
     [Parameter]
     public IReadOnlyList<Crumb> Trail { get; set; } = [];
 

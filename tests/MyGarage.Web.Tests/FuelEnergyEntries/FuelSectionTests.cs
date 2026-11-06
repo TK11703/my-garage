@@ -21,17 +21,13 @@ public class FuelSectionTests : VehicleTestContext
     }
 
     [Fact]
-    public void NoEntries_ShowsTheEmptyStateWithAddFuelAndAddChargeActions()
+    public void NoEntries_ShowsTheEmptyState()
     {
         var cut = RenderView();
 
         cut.WaitForAssertion(() =>
         {
             Assert.Contains("No fuel or charging entries yet. Add the first one for this vehicle.", cut.Find("#maintenance-fuel").TextContent);
-            Assert.Equal($"/vehicles/{vehicleId}/fuel-energy-entries/new?kind=fuel", cut.Find("[data-testid='add-fuel']").GetAttribute("href"));
-            Assert.Equal($"/vehicles/{vehicleId}/fuel-energy-entries/new?kind=energy", cut.Find("[data-testid='add-charge']").GetAttribute("href"));
-            Assert.Equal("Add fuel", cut.Find("[data-testid='add-fuel']").TextContent.Trim());
-            Assert.Equal("Add charge", cut.Find("[data-testid='add-charge']").TextContent.Trim());
             Assert.Empty(cut.FindAll("[data-testid='fuel-last']"));
             Assert.Equal("Charging and Fueling (0)", cut.Find("[data-testid='fuel-count']").TextContent.Trim());
         });
@@ -112,7 +108,7 @@ public class FuelSectionTests : VehicleTestContext
     }
 
     [Fact]
-    public void AnApiFailure_ShowsAnAlertAndTheAddActionsStayAvailable()
+    public void AnApiFailure_ShowsAnAlert()
     {
         MaintenanceListFailures["fuel-energy-entries"] = HttpStatusCode.InternalServerError;
 
@@ -122,8 +118,6 @@ public class FuelSectionTests : VehicleTestContext
         {
             Assert.NotNull(cut.Find("#maintenance-fuel [role='alert']"));
             Assert.Empty(cut.FindAll("[data-testid='fuel-energy-entry']"));
-            Assert.NotNull(cut.Find("[data-testid='add-fuel']"));
-            Assert.NotNull(cut.Find("[data-testid='add-charge']"));
             Assert.Empty(cut.FindAll("[data-testid='fuel-count'] + [data-testid='fuel-last']"));
         });
     }

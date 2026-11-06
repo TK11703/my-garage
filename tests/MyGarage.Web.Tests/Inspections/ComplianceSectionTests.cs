@@ -21,16 +21,13 @@ public class ComplianceSectionTests : VehicleTestContext
     }
 
     [Fact]
-    public void NoInspections_ShowsTheEmptyStateWithAnAddAction()
+    public void NoInspections_ShowsTheEmptyState()
     {
         var cut = RenderView();
 
         cut.WaitForAssertion(() =>
         {
             Assert.Contains("No inspections yet. Add the first inspection for this vehicle.", cut.Find("#maintenance-compliance").TextContent);
-            var add = cut.Find("[data-testid='add-inspection']");
-            Assert.Equal($"/vehicles/{vehicleId}/inspections/new", add.GetAttribute("href"));
-            Assert.Equal("Add inspection", add.TextContent.Trim());
             Assert.Equal("Inspections", cut.Find("[data-testid='compliance-inspections'] h3").TextContent.Trim());
         });
     }
@@ -89,7 +86,6 @@ public class ComplianceSectionTests : VehicleTestContext
             Assert.NotNull(cut.Find("#maintenance-compliance [role='alert']"));
             Assert.Empty(cut.FindAll("[data-testid='inspection']"));
             Assert.StartsWith("0 registrations", cut.Find("[data-testid='compliance-summary']").TextContent.Trim());
-            Assert.NotNull(cut.Find("[data-testid='add-inspection']"));
             Assert.NotNull(cut.Find("[data-testid='accordion-service-records']"));
             Assert.NotNull(cut.Find("[data-testid='accordion-fuel']"));
         });
