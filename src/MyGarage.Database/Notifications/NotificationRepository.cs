@@ -36,6 +36,21 @@ public sealed class NotificationRepository(NpgsqlDataSource dataSource, SqlScrip
             scripts.Get("Notifications/MarkAllRead"), new { OwnerId = ownerId, Now = now }, cancellationToken: cancellationToken));
     }
 
+    // False when the notification is not the owner's.
+    public async Task<bool> DeleteAsync(string ownerId, Guid notificationId, CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        return await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
+            scripts.Get("Notifications/Delete"), new { NotificationId = notificationId, OwnerId = ownerId }, cancellationToken: cancellationToken)) is not null;
+    }
+
+    public async Task DeleteReadAsync(string ownerId, CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        await connection.ExecuteAsync(new CommandDefinition(
+            scripts.Get("Notifications/DeleteRead"), new { OwnerId = ownerId }, cancellationToken: cancellationToken));
+    }
+
     // Opening a draft reads its notification.
     public async Task MarkReadForDraftAsync(string ownerId, Guid draftId, DateTimeOffset now, CancellationToken cancellationToken)
     {
