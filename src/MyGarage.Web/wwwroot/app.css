@@ -466,7 +466,7 @@ main:focus {
 /* Unread notifications: a small dot under the bell, in amber so it stands apart from the white icon. */
 .mg-nav-dot {
     position: absolute;
-    bottom: 0.3125rem;
+    bottom: 0;
     left: 50%;
     width: 0.4375rem;
     height: 0.4375rem;
@@ -1041,6 +1041,130 @@ form[data-sticker-import] .btn {
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+}
+
+/* ---------- Notification bell ---------- */
+
+/* While something is unread the bell shakes for under a second, then rests until the next 5 s cycle. */
+.mg-bell-ring {
+    transform-origin: 50% 10%;
+    animation: mg-bell-shake 5s ease-in-out 0.4s infinite;
+}
+
+@keyframes mg-bell-shake {
+    0%, 16%, 100% { transform: rotate(0); }
+    2.4% { transform: rotate(16deg); }
+    4.8% { transform: rotate(-14deg); }
+    7.2% { transform: rotate(10deg); }
+    9.6% { transform: rotate(-8deg); }
+    12% { transform: rotate(4deg); }
+    14.4% { transform: rotate(-2deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mg-bell-ring {
+        animation: none;
+    }
+}
+
+/* The dropdown: a header, a list that scrolls when it is long, and a footer action. */
+.mg-notif-menu {
+    width: 22rem;
+    overflow: hidden;
+}
+
+.mg-notif-head,
+.mg-notif-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+}
+
+.mg-notif-head {
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.mg-notif-foot {
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.mg-notif-count {
+    background-color: var(--mg-mark-bg);
+    color: var(--mg-mark-text);
+}
+
+.mg-notif-list {
+    max-height: min(24rem, 60vh);
+    overflow-y: auto;
+}
+
+.mg-notif-item {
+    display: flex;
+    align-items: center;
+}
+
+.mg-notif-item + .mg-notif-item {
+    border-top: 1px solid var(--bs-border-color-translucent);
+}
+
+.mg-notif-link {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.625rem 0.5rem 0.625rem 1rem;
+}
+
+a.mg-notif-link:hover,
+a.mg-notif-link:focus-visible {
+    background-color: var(--bs-tertiary-bg);
+}
+
+.mg-notif-dismiss {
+    flex: none;
+    padding-right: 0.5rem;
+}
+
+.mg-notif-dismiss-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem;
+    color: var(--bs-secondary-color);
+    border: 0;
+}
+
+.mg-notif-dismiss-btn:hover,
+.mg-notif-dismiss-btn:focus-visible {
+    color: var(--bs-body-color);
+    background-color: var(--bs-tertiary-bg);
+}
+
+.mg-notif-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.5rem;
+    background-color: rgba(25, 118, 210, 0.14);
+    color: var(--mg-primary-text);
+}
+
+.mg-notif-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.mg-notif-unread {
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background-color: var(--mg-primary-text);
 }
 
 /* ---------- Content area and page bar ---------- */

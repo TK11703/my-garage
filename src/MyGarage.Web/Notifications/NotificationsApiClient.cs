@@ -16,4 +16,10 @@ public sealed class NotificationsApiClient(HttpClient http)
 
     public Task<ApiResult<bool>> MarkAllReadAsync(CancellationToken cancellationToken = default) =>
         ApiCalls.SendAsync<bool>(http, HttpMethod.Post, "api/notifications/read-all", null, cancellationToken);
+
+    public Task<ApiResult<bool>> DeleteAsync(Guid notificationId, CancellationToken cancellationToken = default) =>
+        ApiCalls.SendAsync<bool>(http, HttpMethod.Delete, $"api/notifications/{notificationId}", null, cancellationToken);
+
+    public Task<ApiResult<bool>> DeleteReadAsync(CancellationToken cancellationToken = default) =>
+        ApiCalls.SendAsync<bool>(http, HttpMethod.Delete, "api/notifications/read", null, cancellationToken);
 }

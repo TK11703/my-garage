@@ -7,66 +7,102 @@
 @* The bell: a badge with the unread count, the latest notifications, and a way to the drafts.
    The page loads it once; while the circuit is interactive it also refreshes itself every minute. *@
 <div class="dropdown" data-testid="notifications-menu">
-    <button type="button" class="btn mg-nav-btn position-relative" aria-label="@ToggleLabel"
+    <button type="button" class="btn mg-nav-btn position-relative" aria-label="@ToggleLabel" title="@ToggleLabel"
             data-bs-toggle="dropdown" aria-expanded="false">
-        <Icon Name="IconName.Bell" Size="20" />
+        @* Keyed on the count so a new unread item restarts the short shake. *@
+        <span @key="unread" class="mg-bell d-inline-flex @(unread > 0 ? "mg-bell-ring" : null)" data-testid="notification-bell">
+            <Icon Name="IconName.Bell" Size="20" />
+        </span>
         @if (unread > 0)
         {
             <span class="mg-nav-dot" data-testid="notification-badge" aria-hidden="true"></span>
         }
     </button>
-    <div class="dropdown-menu dropdown-menu-end p-3 mg-menu">
+    <div class="dropdown-menu dropdown-menu-end p-0 mg-menu mg-notif-menu">
+        <div class="mg-notif-head">
+            <span class="fw-semibold">Notifications</span>
+            @if (unread > 0)
+            {
+                <span class="badge rounded-pill mg-notif-count" data-testid="notification-count">@unread new</span>
+            }
+        </div>
+
         @if (failed)
         {
-            <p class="mb-0 text-body-secondary">Notifications are not available right now.</p>
+            <p class="mb-0 p-3 text-body-secondary">Notifications are not available right now.</p>
         }
         else if (items.Count == 0)
         {
-            <p class="mb-0 text-body-secondary">You have no notifications.</p>
+            <p class="mb-0 p-3 text-body-secondary">You have no notifications.</p>
         }
         else
         {
-            <ul class="list-unstyled vstack gap-2 mb-0">
+            <ul class="list-unstyled mb-0 mg-notif-list">
                 @foreach (var item in items)
                 {
-                    <li @key="item.Id" data-testid="notification">
+                    RenderFragment row = @<text>
+                        <span class="mg-notif-icon" aria-hidden="true"><Icon Name="@(item.DraftId is null ? IconName.Bell : IconName.FileText)" Size="18" /></span>
+                        <span class="mg-notif-body">
+                            <span class="d-block @(item.IsRead ? null : "fw-semibold")">
+                                @if (!item.IsRead)
+                                {
+                                    <span class="visually-hidden">Unread: </span>
+                                }
+                                @item.Title
+                            </span>
+                            <span class="d-block small text-body-secondary">@NotificationFormat.Relative(item.CreatedAt, Time.GetUtcNow())</span>
+                        </span>
+                        @if (!item.IsRead)
+                        {
+                            <span class="mg-notif-unread" aria-hidden="true"></span>
+                        }
+                    </text>;
+
+                    <li @key="item.Id" class="mg-notif-item" data-testid="notification">
                         @if (item.DraftId is { } draftId)
                         {
-                            <a class="d-block text-decoration-none text-reset" href="/drafts/@draftId">
-                                <span class="@(item.IsRead ? null : "fw-semibold")">
-                                    @if (!item.IsRead)
-                                    {
-                                        <span class="visually-hidden">Unread: </span>
-                                    }
-                                    @item.Title
-                                </span>
-                                <span class="d-block small text-body-secondary">@NotificationFormat.Relative(item.CreatedAt, Time.GetUtcNow())</span>
-                            </a>
+                            <a class="mg-notif-link text-decoration-none text-reset" href="/drafts/@draftId">@row</a>
                         }
                         else
                         {
-                            <span class="@(item.IsRead ? null : "fw-semibold")">@item.Title</span>
-                            <span class="d-block small text-body-secondary">@NotificationFormat.Relative(item.CreatedAt, Time.GetUtcNow())</span>
+                            <div class="mg-notif-link">@row</div>
                         }
+                        <form method="post" class="mg-notif-dismiss" @formname="@($"dismiss-notification-{item.Id}")" @onsubmit="() => DismissAsync(item.Id)" data-testid="dismiss-notification">
+                            <AntiforgeryToken />
+                            <button type="submit" class="btn btn-sm mg-notif-dismiss-btn" title="Dismiss notification" aria-label="Dismiss notification: @item.Title">
+                                <Icon Name="IconName.XLg" Size="12" />
+                            </button>
+                        </form>
                     </li>
                 }
             </ul>
         }
 
-        @if (unread > 0)
+        @if (unread > 0 || items.Any(item => item.IsRead))
         {
-            <hr class="dropdown-divider" />
-            <form method="post" @formname="mark-all-read" @onsubmit="MarkAllReadAsync" data-testid="mark-all-read">
-                <AntiforgeryToken />
-                <button type="submit" class="btn btn-link btn-sm p-0">Mark all as read</button>
-            </form>
+            <div class="mg-notif-foot">
+                @if (unread > 0)
+                {
+                    <form method="post" @formname="mark-all-read" @onsubmit="MarkAllReadAsync" data-testid="mark-all-read">
+                        <AntiforgeryToken />
+                        <button type="submit" class="btn btn-link btn-sm p-0">Mark all as read</button>
+                    </form>
+                }
+                @if (items.Any(item => item.IsRead))
+                {
+                    <form method="post" class="ms-auto" @formname="clear-read-notifications" @onsubmit="ClearReadAsync" data-testid="clear-read">
+                        <AntiforgeryToken />
+                        <button type="submit" class="btn btn-link btn-sm p-0" title="Remove all read notifications">Clear read</button>
+                    </form>
+                }
+            </div>
         }
     </div>
 </div>
 
 @code {
     private static readonly TimeSpan RefreshEvery = TimeSpan.FromSeconds(60);
-    private const int Latest = 5;
+    private const int Latest = 20;
 
     private ITimer? timer;
     private int unread;
@@ -143,15 +179,21 @@
         }
     }
 
-    private async Task MarkAllReadAsync()
+    private async Task MarkAllReadAsync() => await ChangeAsync(() => Api.MarkAllReadAsync());
+
+    private async Task DismissAsync(Guid notificationId) => await ChangeAsync(() => Api.DeleteAsync(notificationId));
+
+    private async Task ClearReadAsync() => await ChangeAsync(() => Api.DeleteReadAsync());
+
+    private async Task ChangeAsync(Func<Task> change)
     {
         try
         {
-            await Api.MarkAllReadAsync();
+            await change();
         }
         catch (GarageApiException)
         {
-            // The list below says what is still unread.
+            // The list below says what is still there.
         }
 
         await LoadAsync();

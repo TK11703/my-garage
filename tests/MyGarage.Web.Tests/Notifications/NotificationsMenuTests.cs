@@ -60,6 +60,25 @@ public class NotificationsMenuTests : VehicleTestContext
                 return new HttpResponseMessage(HttpStatusCode.NoContent);
             }
 
+            if (request.Method == HttpMethod.Delete && path == "/api/notifications/read")
+            {
+                latest = [.. latest.Where(item => !item.IsRead)];
+                return new HttpResponseMessage(HttpStatusCode.NoContent);
+            }
+
+            if (request.Method == HttpMethod.Delete && path.StartsWith("/api/notifications/", StringComparison.Ordinal))
+            {
+                var id = Guid.Parse(path["/api/notifications/".Length..]);
+                var removed = latest.FirstOrDefault(item => item.Id == id);
+                latest = [.. latest.Where(item => item.Id != id)];
+                if (removed is { IsRead: false })
+                {
+                    unread = new UnreadCountDto { Unread = unread.Unread - 1, DraftsAwaitingReview = unread.DraftsAwaitingReview };
+                }
+
+                return new HttpResponseMessage(HttpStatusCode.NoContent);
+            }
+
             return new HttpResponseMessage(HttpStatusCode.NotFound);
         });
 
@@ -78,8 +97,10 @@ public class NotificationsMenuTests : VehicleTestContext
         {
             var toggle = cut.Find("button[data-bs-toggle='dropdown']");
             Assert.Equal("Notifications, 3 unread", toggle.GetAttribute("aria-label"));
+            Assert.Equal("Notifications, 3 unread", toggle.GetAttribute("title"));
             Assert.Equal("false", toggle.GetAttribute("aria-expanded"));
             Assert.NotNull(cut.Find("[data-testid='notification-badge']"));
+            Assert.Contains("mg-bell-ring", cut.Find("[data-testid='notification-bell']").ClassList);
         });
     }
 
@@ -94,6 +115,7 @@ public class NotificationsMenuTests : VehicleTestContext
         {
             Assert.Equal("Notifications", cut.Find("button[data-bs-toggle='dropdown']").GetAttribute("aria-label"));
             Assert.Empty(cut.FindAll("[data-testid='notification-badge']"));
+            Assert.DoesNotContain("mg-bell-ring", cut.Find("[data-testid='notification-bell']").ClassList);
             Assert.Empty(cut.FindAll("form[data-testid='mark-all-read']"));
         });
     }
@@ -136,17 +158,17 @@ public class NotificationsMenuTests : VehicleTestContext
     }
 
     [Fact]
-    public void NoMoreThanFiveAreShown_AndTheRequestAsksForFive()
+    public void NoMoreThanTwentyAreShown_AndTheRequestAsksForTwenty()
     {
-        unread = new UnreadCountDto { Unread = 8, DraftsAwaitingReview = 8 };
-        latest = [.. Enumerable.Range(0, 8).Select(index => Notification($"Draft {index}"))];
+        unread = new UnreadCountDto { Unread = 25, DraftsAwaitingReview = 25 };
+        latest = [.. Enumerable.Range(0, 25).Select(index => Notification($"Draft {index}"))];
 
         var cut = RenderMenu();
 
         cut.WaitForAssertion(() =>
         {
-            Assert.Equal(5, cut.FindAll("[data-testid='notification']").Count);
-            Assert.Contains(Requests, request => request.RequestUri!.AbsolutePath == "/api/notifications" && request.RequestUri.Query.Contains("take=5", StringComparison.Ordinal));
+            Assert.Equal(20, cut.FindAll("[data-testid='notification']").Count);
+            Assert.Contains(Requests, request => request.RequestUri!.AbsolutePath == "/api/notifications" && request.RequestUri.Query.Contains("take=20", StringComparison.Ordinal));
         });
     }
 
@@ -196,6 +218,67 @@ public class NotificationsMenuTests : VehicleTestContext
             Assert.Contains(Requests, request => request.Method == HttpMethod.Post && request.RequestUri!.AbsolutePath == "/api/notifications/read-all");
             Assert.Empty(cut.FindAll("[data-testid='notification-badge']"));
             Assert.Equal("Notifications", cut.Find("button[data-bs-toggle='dropdown']").GetAttribute("aria-label"));
+        });
+    }
+
+    [Fact]
+    public void Dismiss_RemovesThatNotification_AndNamesItInTheButton()
+    {
+        var first = Notification("First draft");
+        var second = Notification("Second draft", isRead: true);
+        unread = new UnreadCountDto { Unread = 1, DraftsAwaitingReview = 2 };
+        latest = [first, second];
+        var cut = RenderMenu();
+        cut.WaitForElement("[data-testid='notification']");
+
+        var forms = cut.FindAll("form[data-testid='dismiss-notification']");
+        Assert.Equal(2, forms.Count);
+        Assert.Equal("Dismiss notification: First draft", forms[0].QuerySelector("button")!.GetAttribute("aria-label"));
+        Assert.Equal("Dismiss notification", forms[0].QuerySelector("button")!.GetAttribute("title"));
+        forms[1].Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains(Requests, request => request.Method == HttpMethod.Delete && request.RequestUri!.AbsolutePath == $"/api/notifications/{second.Id}");
+            var remaining = cut.FindAll("[data-testid='notification']");
+            Assert.Single(remaining);
+            Assert.Contains("First draft", remaining[0].TextContent);
+        });
+    }
+
+    [Fact]
+    public void ClearRead_IsOfferedOnlyWhenSomethingIsRead_AndRemovesTheReadOnes()
+    {
+        unread = new UnreadCountDto { Unread = 1, DraftsAwaitingReview = 1 };
+        latest = [Notification("Unread draft"), Notification("Read draft", isRead: true)];
+        var cut = RenderMenu();
+        cut.WaitForElement("[data-testid='clear-read']");
+        Assert.Equal("Remove all read notifications", cut.Find("form[data-testid='clear-read'] button").GetAttribute("title"));
+
+        cut.Find("form[data-testid='clear-read']").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains(Requests, request => request.Method == HttpMethod.Delete && request.RequestUri!.AbsolutePath == "/api/notifications/read");
+            var remaining = cut.FindAll("[data-testid='notification']");
+            Assert.Single(remaining);
+            Assert.Contains("Unread draft", remaining[0].TextContent);
+            Assert.Empty(cut.FindAll("form[data-testid='clear-read']"));
+        });
+    }
+
+    [Fact]
+    public void WithOnlyUnreadNotifications_ClearReadIsNotOffered()
+    {
+        unread = new UnreadCountDto { Unread = 1, DraftsAwaitingReview = 1 };
+        latest = [Notification()];
+
+        var cut = RenderMenu();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.NotNull(cut.Find("form[data-testid='mark-all-read']"));
+            Assert.Empty(cut.FindAll("form[data-testid='clear-read']"));
         });
     }
 
