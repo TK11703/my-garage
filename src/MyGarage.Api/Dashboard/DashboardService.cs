@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using MyGarage.Api.Reminders;
 using MyGarage.Database.Dashboard;
 using MyGarage.Database.Reminders;
@@ -8,10 +9,12 @@ using MyGarage.Shared.Vehicles;
 namespace MyGarage.Api.Dashboard;
 
 // Reminder figures come from the same calculator as every other view, so the dashboard never disagrees with the reminder lists.
-public sealed class DashboardService(DashboardRepository dashboard, ReminderRepository reminders, TimeProvider timeProvider)
+public sealed partial class DashboardService(DashboardRepository dashboard, ReminderRepository reminders, TimeProvider timeProvider)
 {
     private const int AttentionLimit = 5;
     private const int SpendMonths = 12;
+    private const int RecentActivityLimit = 10;
+    private const int ExcerptLength = 120;
 
     public async Task<DashboardDto> GetAsync(string ownerId, CancellationToken cancellationToken)
     {
@@ -30,8 +33,33 @@ public sealed class DashboardService(DashboardRepository dashboard, ReminderRepo
             RemindersDueSoon = all.Count(item => item.Status == ReminderStatus.DueSoon),
             Attention = [.. attention.Take(AttentionLimit)],
             FuelEnergySpend = await GetFuelEnergySpendAsync(ownerId, today, cancellationToken),
+            RecentActivity = await GetRecentActivityAsync(ownerId, cancellationToken),
         };
     }
+
+    private async Task<IReadOnlyList<RecentActivityDto>> GetRecentActivityAsync(string ownerId, CancellationToken cancellationToken) =>
+    [
+        .. (await dashboard.GetRecentActivityAsync(ownerId, RecentActivityLimit, cancellationToken)).Select(note => new RecentActivityDto
+        {
+            NoteId = note.NoteId,
+            VehicleId = note.VehicleId,
+            VehicleName = VehicleName.Compose(note.VehicleYear, note.VehicleMake, note.VehicleModel),
+            VehicleMainImageId = note.VehicleMainImageId,
+            Category = note.Category,
+            Excerpt = Excerpt(note.Body),
+            CreatedAt = note.CreatedAt,
+        }),
+    ];
+
+    // One line: whitespace runs collapse to a space and a long note is cut with an ellipsis.
+    private static string Excerpt(string body)
+    {
+        var line = WhitespaceRun().Replace(body, " ").Trim();
+        return line.Length <= ExcerptLength ? line : line[..(ExcerptLength - 1)].TrimEnd() + "…";
+    }
+
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex WhitespaceRun();
 
     private async Task<IReadOnlyList<FuelEnergySpendMonthDto>> GetFuelEnergySpendAsync(string ownerId, DateOnly today, CancellationToken cancellationToken)
     {

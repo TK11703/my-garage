@@ -12,6 +12,8 @@
 
 **Refinement (2026-11-06, after the first build)**: The dashboard also shows a graph of the money spent on fuel and on charging over the last 12 months, with fuel and charging kept separate, and each month's bar stacked by vehicle.
 
+**Refinement (2026-11-06, dashboard layout)**: The four counts become compact cards, the separate overdue and due-soon cards are dropped because the Needs attention card already lists those reminders, Needs attention becomes a card of dated rows, and a Recent updates card with a Recent activity list (the last 10 journal entries across the user's vehicles) sits beside the spend card, six columns each.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Set up a recurring reminder for a vehicle (Priority: P1)
@@ -165,7 +167,7 @@ The user opens a garage dashboard from the main navigation. It summarizes the wh
 - **FR-019**: Reminders and notifications about them MUST be visible and actionable only by the vehicle's owner; any attempt to access another user's reminder MUST behave as not found.
 - **FR-020**: Add, edit, and mark-done forms MUST validate input and identify each problem clearly without losing what the user entered.
 - **FR-021**: Reminder details MUST NOT be disclosed in logs, and every change MUST be attributable to the signed-in user.
-- **FR-022**: The system MUST provide a garage dashboard, reachable from the main navigation, showing the signed-in user's count of vehicles, service records, fuel and charging entries, overdue reminders, due-soon reminders, and drafts awaiting review, plus up to five reminders needing attention (overdue first), each linking to its vehicle.
+- **FR-022**: The system MUST provide a garage dashboard, reachable from the main navigation, showing the signed-in user's count of vehicles, service records, fuel and charging entries, and drafts awaiting review, plus up to five reminders needing attention (overdue first), each linking to its vehicle, a fuel and charging spend chart, and a list of the last 10 journal entries across their vehicles.
 - **FR-023**: The dashboard MUST show only information the system already holds and MUST handle an empty garage by showing zeros and an invitation to add a vehicle. Its figures MUST be scoped to the signed-in user.
 
 ### Key Entities

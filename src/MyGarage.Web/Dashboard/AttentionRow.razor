@@ -1,0 +1,54 @@
+@using System.Globalization
+
+<li class="list-group-item d-flex align-items-center gap-3 px-0 py-3" data-testid="reminder">
+    <div class="@TileClass" data-testid="due-tile">
+        @if (Reminder.NextDueDate is { } due)
+        {
+            <span class="small lh-1" aria-hidden="true">@due.ToString("MMM", CultureInfo.InvariantCulture)</span>
+            <span class="fw-semibold lh-1" aria-hidden="true">@due.ToString("dd", CultureInfo.InvariantCulture)</span>
+            <span class="visually-hidden">Next due @DisplayFormat.Date(due)</span>
+        }
+        else
+        {
+            <Icon Name="IconName.Speedometer" />
+            <span class="visually-hidden">Due by mileage</span>
+        }
+    </div>
+    <div class="flex-grow-1 overflow-hidden">
+        <a class="fw-semibold text-body text-decoration-none" href="@ReminderLinks.Detail(Reminder.VehicleId, Reminder.Id)" data-testid="reminder-link">@Reminder.Name</a>
+        <div class="small text-body-secondary text-truncate">
+            <a class="text-body-secondary" href="@ReminderLinks.Tab(Reminder.VehicleId)" data-testid="reminder-vehicle">@Reminder.VehicleName</a>
+        </div>
+        @if (ReminderFormat.RemainingParts(Reminder) is { Count: > 0 } parts)
+        {
+            <div class="small" data-testid="reminder-remaining">
+                @for (var i = 0; i < parts.Count; i++)
+                {
+                    if (i > 0)
+                    {
+                        <span aria-hidden="true"> &middot; </span>
+                    }
+
+                    if (parts[i].Urgent)
+                    {
+                        <span class="fw-semibold">@parts[i].Text<span class="visually-hidden"> (most urgent)</span></span>
+                    }
+                    else
+                    {
+                        <span>@parts[i].Text</span>
+                    }
+                }
+            </div>
+        }
+    </div>
+    <ReminderStatusBadge Status="Reminder.Status" />
+</li>
+
+@code {
+    [Parameter, EditorRequired]
+    public ReminderDto Reminder { get; set; } = default!;
+
+    // The status color carries the urgency; the badge and the remaining text say it in words.
+    private string TileClass => "mg-date-tile rounded d-flex flex-column align-items-center justify-content-center flex-shrink-0 "
+        + (Reminder.Status == ReminderStatus.Overdue ? "bg-danger-subtle text-danger-emphasis" : "bg-warning-subtle text-warning-emphasis");
+}

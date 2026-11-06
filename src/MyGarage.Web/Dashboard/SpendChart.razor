@@ -12,11 +12,11 @@
     </ul>
 
     <div class="row g-4">
-        <div class="col-12 col-xl-6" data-testid="fuel-panel">
+        <div class="col-12" data-testid="fuel-panel">
             <h3 class="h6 mb-1">Fuel <span class="fw-normal text-body-secondary" data-testid="fuel-total">@DisplayFormat.Money(FuelTotal)</span></h3>
             <StackedBarChart Kind="Fuel" Months="fuelMonths" />
         </div>
-        <div class="col-12 col-xl-6" data-testid="charging-panel">
+        <div class="col-12" data-testid="charging-panel">
             <h3 class="h6 mb-1">Charging <span class="fw-normal text-body-secondary" data-testid="charging-total">@DisplayFormat.Money(ChargingTotal)</span></h3>
             <StackedBarChart Kind="Charging" Months="chargingMonths" />
         </div>

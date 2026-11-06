@@ -1,11 +1,14 @@
 <li class="col" data-testid="@("metric-" + Id)">
-    <div class="card h-100 shadow-sm @CardClass">
-        <div class="card-body">
-            <div class="small text-body-secondary">@Label</div>
-            <div class="display-6 @ValueClass" data-testid="metric-value">@Value</div>
+    <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body position-relative py-3 px-3">
+            <div class="fs-4 fw-semibold lh-1 mb-1 @ValueClass" data-testid="metric-value">@Value</div>
             @if (Href is not null)
             {
-                <a class="stretched-link small" href="@Href">View<span class="visually-hidden"> @Label</span></a>
+                <a class="stretched-link small text-body text-decoration-none" href="@Href">@Label</a>
+            }
+            else
+            {
+                <div class="small">@Label</div>
             }
         </div>
     </div>
@@ -21,15 +24,19 @@
     [Parameter, EditorRequired]
     public int Value { get; set; }
 
-    // The page that lists these items, when there is one.
+    // The page that lists these items, when there is one; the label is the link.
     [Parameter]
     public string? Href { get; set; }
 
-    // danger or warning: the card is tinted only when there is something to see; the label and number always say it in text.
+    // primary, success, warning, or danger: the number's color. The label always says what it counts.
     [Parameter]
-    public string? Tone { get; set; }
+    public string? Accent { get; set; }
 
-    private string? CardClass => Tone is not null && Value > 0 ? $"border-{Tone}" : null;
+    // Color the number only when there is something to see (a zero stays plain).
+    [Parameter]
+    public bool AccentWhenPositive { get; set; }
 
-    private string? ValueClass => Tone is not null && Value > 0 ? (Tone == "danger" ? "text-danger" : "text-warning-emphasis") : null;
+    private string? ValueClass => Accent is null || (AccentWhenPositive && Value <= 0)
+        ? null
+        : Accent == "warning" ? "text-warning-emphasis" : $"text-{Accent}";
 }

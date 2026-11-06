@@ -1200,6 +1200,17 @@ a.mg-notif-link:focus-visible {
     stroke-width: 1;
 }
 
+/* Dashboard: the due-date tile on a reminder row and the round avatar on a journal entry. */
+.mg-date-tile {
+    width: 2.75rem;
+    height: 3rem;
+}
+
+.mg-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
 /* The page scrolls under the fixed navbar; the sidebar is fixed on its left. */
 .mg-content {
     padding: 0 1rem 1.5rem;

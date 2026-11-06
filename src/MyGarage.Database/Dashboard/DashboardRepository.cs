@@ -21,4 +21,12 @@ public sealed class DashboardRepository(NpgsqlDataSource dataSource, SqlScriptSt
         return [.. await connection.QueryAsync<FuelEnergySpendRecord>(new CommandDefinition(
             scripts.Get("Dashboard/FuelEnergySpend"), new { OwnerId = ownerId, From = from, To = to }, cancellationToken: cancellationToken))];
     }
+
+    // The newest journal entries across the owner's vehicles.
+    public async Task<IReadOnlyList<RecentActivityRecord>> GetRecentActivityAsync(string ownerId, int limit, CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        return [.. await connection.QueryAsync<RecentActivityRecord>(new CommandDefinition(
+            scripts.Get("Dashboard/RecentActivity"), new { OwnerId = ownerId, Limit = limit }, cancellationToken: cancellationToken))];
+    }
 }

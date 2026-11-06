@@ -95,6 +95,80 @@ public class DashboardRepositoryTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task RecentActivity_IsTheNewestJournalEntriesAcrossTheOwnersVehicles_AndNobodyElses()
+    {
+        var (dataSource, dashboard) = await CreateAsync();
+        var one = await ReminderTestData.InsertVehicleAsync(dataSource, "owner-1", make: "Ford", model: "F-150", year: 2020);
+        var two = await ReminderTestData.InsertVehicleAsync(dataSource, "owner-1", make: "Honda", model: "Civic", year: 2018);
+        var theirs = await ReminderTestData.InsertVehicleAsync(dataSource, "owner-2");
+        var now = DateTimeOffset.UtcNow;
+        await InsertNoteAsync(dataSource, one, "oldest", now.AddDays(-5), "Maintenance");
+        var newest = await InsertNoteAsync(dataSource, two, "newest", now.AddMinutes(-1), null);
+        var middle = await InsertNoteAsync(dataSource, one, "middle", now.AddHours(-2), "Trip");
+        await InsertNoteAsync(dataSource, theirs, "not mine", now, null);
+
+        var recent = await dashboard.GetRecentActivityAsync("owner-1", 10, CancellationToken.None);
+
+        Assert.Equal(["newest", "middle", "oldest"], recent.Select(note => note.Body));
+        Assert.Equal([newest, middle], recent.Take(2).Select(note => note.NoteId));
+        Assert.Equal((two, 2018, "Honda", "Civic", (string?)null), (recent[0].VehicleId, recent[0].VehicleYear, recent[0].VehicleMake, recent[0].VehicleModel, recent[0].Category));
+        Assert.Equal("Trip", recent[1].Category);
+    }
+
+    [Fact]
+    public async Task RecentActivity_IsLimited_AndCarriesTheVehiclesMainPicture()
+    {
+        var (dataSource, dashboard) = await CreateAsync();
+        var vehicle = await ReminderTestData.InsertVehicleAsync(dataSource, "owner-1");
+        var bare = await ReminderTestData.InsertVehicleAsync(dataSource, "owner-1");
+        var now = DateTimeOffset.UtcNow;
+        for (var index = 0; index < 12; index++)
+        {
+            await InsertNoteAsync(dataSource, vehicle, $"note {index}", now.AddMinutes(-index), null);
+        }
+
+        await InsertNoteAsync(dataSource, bare, "bare vehicle", now.AddDays(-30), null);
+        var imageId = await InsertMainImageAsync(dataSource, vehicle);
+
+        var recent = await dashboard.GetRecentActivityAsync("owner-1", 10, CancellationToken.None);
+
+        Assert.Equal(10, recent.Count);
+        Assert.All(recent, note => Assert.Equal(imageId, note.VehicleMainImageId));
+        var all = await dashboard.GetRecentActivityAsync("owner-1", 50, CancellationToken.None);
+        Assert.Null(all.Single(note => note.Body == "bare vehicle").VehicleMainImageId);
+    }
+
+    [Fact]
+    public async Task RecentActivity_ForAnOwnerWithNothing_IsEmpty()
+    {
+        var (_, dashboard) = await CreateAsync();
+
+        Assert.Empty(await dashboard.GetRecentActivityAsync("nobody", 10, CancellationToken.None));
+    }
+
+    private static async Task<Guid> InsertNoteAsync(NpgsqlDataSource dataSource, Guid vehicleId, string body, DateTimeOffset createdAt, string? category)
+    {
+        var id = Guid.CreateVersion7();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        await Dapper.SqlMapper.ExecuteAsync(
+            connection,
+            "INSERT INTO journal_notes (id, vehicle_id, category, body, created_at, updated_at, created_by, updated_by) VALUES (@id, @vehicleId, @category, @body, @createdAt, @createdAt, 'seed', 'seed')",
+            new { id, vehicleId, category, body, createdAt });
+        return id;
+    }
+
+    private static async Task<Guid> InsertMainImageAsync(NpgsqlDataSource dataSource, Guid vehicleId)
+    {
+        var id = Guid.CreateVersion7();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        await Dapper.SqlMapper.ExecuteAsync(
+            connection,
+            "INSERT INTO vehicle_images (id, vehicle_id, content_type, size_bytes, is_main, created_at, created_by) VALUES (@id, @vehicleId, 'image/png', 10, true, now(), 'seed')",
+            new { id, vehicleId });
+        return id;
+    }
+
+    [Fact]
     public async Task TheDraftCount_MatchesTheNotificationsDraftsAwaitingReviewRule()
     {
         var (dataSource, dashboard) = await CreateAsync();

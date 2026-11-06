@@ -4,6 +4,7 @@ using MyGarage.Api.Tests.Common;
 using MyGarage.Api.Tests.FuelEnergyEntries;
 using MyGarage.Shared.Dashboard;
 using MyGarage.Shared.FuelEnergyEntries;
+using MyGarage.Shared.Vehicles;
 using MyGarage.Shared.Reminders;
 using static MyGarage.Api.Tests.Reminders.ReminderApiTestData;
 using static MyGarage.Api.Tests.ServiceRecords.ServiceRecordTestData;
@@ -164,6 +165,60 @@ public class DashboardEndpointsTests(ApiFactory factory) : IClassFixture<ApiFact
 
         Assert.Equal(12, spend.Count);
         Assert.All(spend, month => Assert.Equal((0m, 0m), (month.Fuel, month.Charging)));
+    }
+
+    [Fact]
+    public async Task RecentActivity_IsTheLast10JournalEntriesNewestFirst_FromAnyOfTheCallersVehicles()
+    {
+        var alice = factory.CreateClientForUser(Alice);
+        var bob = factory.CreateClientForUser(Bob);
+        var one = await CreateVehicleAsync(alice);
+        var two = await CreateVehicleAsync(alice);
+        var bobs = await CreateVehicleAsync(bob);
+        for (var index = 1; index <= 11; index++)
+        {
+            await AddNoteAsync(alice, index % 2 == 0 ? one.Id : two.Id, $"note {index}", index == 11 ? "Trip" : null);
+        }
+
+        await AddNoteAsync(bob, bobs.Id, "bob's note");
+
+        var recent = (await GetAsync(alice)).RecentActivity;
+
+        Assert.Equal(10, recent.Count);
+        Assert.Equal(Enumerable.Range(2, 10).Reverse().Select(index => $"note {index}"), recent.Select(entry => entry.Excerpt));
+        Assert.Equal("Trip", recent[0].Category);
+        Assert.Equal(two.Id, recent[0].VehicleId);
+        Assert.Equal(one.Id, recent[1].VehicleId);
+        Assert.All(recent, entry => Assert.False(string.IsNullOrWhiteSpace(entry.VehicleName)));
+        Assert.DoesNotContain(recent, entry => entry.Excerpt.Contains("bob", StringComparison.Ordinal));
+        Assert.True(recent[0].CreatedAt >= recent[^1].CreatedAt);
+    }
+
+    [Fact]
+    public async Task RecentActivity_ShowsALongMultiLineNoteAsOneShortenedLine()
+    {
+        var alice = factory.CreateClientForUser(Alice);
+        var vehicle = await CreateVehicleAsync(alice);
+        await AddNoteAsync(alice, vehicle.Id, "First line\n\n   second   line " + new string('x', 300));
+
+        var entry = Assert.Single((await GetAsync(alice)).RecentActivity);
+
+        Assert.StartsWith("First line second line xxx", entry.Excerpt);
+        Assert.DoesNotContain('\n', entry.Excerpt);
+        Assert.Equal(120, entry.Excerpt.Length);
+        Assert.EndsWith("\u2026", entry.Excerpt);
+    }
+
+    [Fact]
+    public async Task RecentActivity_ForAnEmptyGarage_IsEmpty()
+    {
+        Assert.Empty((await GetAsync(factory.CreateClientForUser(Alice))).RecentActivity);
+    }
+
+    private static async Task AddNoteAsync(HttpClient client, Guid vehicleId, string body, string? category = null)
+    {
+        var response = await client.PostAsJsonAsync($"/api/vehicles/{vehicleId}/notes", new JournalNoteRequest { Body = body, Category = category });
+        response.EnsureSuccessStatusCode();
     }
 
     [Fact]

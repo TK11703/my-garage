@@ -22,4 +22,7 @@ public sealed class DashboardDto
 
     // Fuel and charging cost for each of the last 12 calendar months, oldest first, including months with nothing spent.
     public IReadOnlyList<FuelEnergySpendMonthDto> FuelEnergySpend { get; init; } = [];
+
+    // The last 10 journal entries across the user's vehicles, newest first.
+    public IReadOnlyList<RecentActivityDto> RecentActivity { get; init; } = [];
 }

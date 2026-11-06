@@ -376,6 +376,21 @@ components:
                     vehicleName: { type: string, description: Year, make, and model. }
                     fuel: { type: number, minimum: 0 }
                     charging: { type: number, minimum: 0 }
+        recentActivity:
+          type: array
+          maxItems: 10
+          description: The last 10 journal entries across the caller's vehicles, newest first.
+          items:
+            type: object
+            required: [noteId, vehicleId, vehicleName, excerpt, createdAt]
+            properties:
+              noteId: { type: string, format: uuid }
+              vehicleId: { type: string, format: uuid }
+              vehicleName: { type: string }
+              vehicleMainImageId: { type: string, format: uuid, nullable: true }
+              category: { type: string, nullable: true }
+              excerpt: { type: string, maxLength: 120, description: The note on one line, cut with an ellipsis when long. }
+              createdAt: { type: string, format: date-time }
     Notification:
       description: Changed schema of an existing notification item; only the additions are shown.
       type: object
