@@ -50,7 +50,7 @@ Page header "Dashboard". An empty garage (no vehicles) shows every figure as zer
 | Block | Content |
 |---|---|
 | Metric cards (Bootstrap `row-cols`) | Vehicles (links to `/vehicles`), Service records (no link), Fuel and charging entries (no link), Drafts awaiting review (links to `/drafts`), Reminders overdue (links to `/reminders?status=overdue`), Reminders due soon (links to `/reminders?status=due-soon`). Each card has a visible label and number; the overdue card uses the danger color and the due-soon card warning, both with text. |
-| Needs attention | Up to five reminders, overdue first, each with its vehicle name, status badge, remaining amount, and a link to the reminder. Hidden when there are none, replaced by a short "Nothing needs attention" message when the user has reminders. |
+| Needs attention | Up to five reminders, overdue first, each with its vehicle name, status badge, remaining amount, and a link to the reminder. For a garage with vehicles and nothing due it shows "Nothing needs attention right now."; for an empty garage the section is absent because the first-vehicle invitation is shown instead. |
 
 New metrics later add cards to this page; existing cards and the Api fields behind them do not change.
 

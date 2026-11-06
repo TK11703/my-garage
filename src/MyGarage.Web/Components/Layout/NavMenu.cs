@@ -12,6 +12,10 @@ internal static class NavMenu
     // Shown above the groups, with no heading.
     public static readonly NavItem Home = new("Home", "/", IconName.HouseDoor, Exact: true);
 
+    public static readonly NavItem Dashboard = new("Dashboard", "/dashboard", IconName.Speedometer, Exact: true);
+
+    public static readonly NavItem[] Start = [Home, Dashboard];
+
     public static readonly NavGroup[] Groups =
     [
         new("garage", "Garage",

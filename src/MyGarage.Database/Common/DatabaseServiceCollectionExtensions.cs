@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using MyGarage.Database.Dashboard;
 using MyGarage.Database.Drafts;
 using MyGarage.Database.EmailIntake;
 using MyGarage.Database.FuelEnergyEntries;
@@ -36,6 +37,7 @@ public static class DatabaseServiceCollectionExtensions
         services.AddSingleton<InspectionRepository>();
         services.AddSingleton<RegistrationRepository>();
         services.AddSingleton<ReminderRepository>();
+        services.AddSingleton<DashboardRepository>();
         services.AddSingleton<InsurancePolicyRepository>();
         services.AddSingleton<TaxRepository>();
         services.AddSingleton<IVehicleImageBlobStore, AzureBlobVehicleImageStore>();

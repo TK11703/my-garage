@@ -89,10 +89,10 @@ public class AppSidebarTests : BunitContext
         var lists = cut.FindAll("ul.mg-nav-list");
         Assert.Equal(4, lists.Count);
         Assert.Equal("Home", lists[0].QuerySelector(".mg-nav-label")!.TextContent.Trim());
-        Assert.Single(lists[0].QuerySelectorAll("a"));
+        Assert.Equal(2, lists[0].QuerySelectorAll("a").Length);
         Assert.All(lists.Skip(1), list => Assert.False(string.IsNullOrEmpty(list.GetAttribute("aria-labelledby"))));
         Assert.Equal(
-            ["Home", "My Vehicles", "Add Vehicle", "Reminders", "Maintenance Drafts", "Add Maintenance", "FAQ", "About"],
+            ["Home", "Dashboard", "My Vehicles", "Add Vehicle", "Reminders", "Maintenance Drafts", "Add Maintenance", "FAQ", "About"],
             cut.FindAll("a.mg-nav-link").Select(link => link.QuerySelector(".mg-nav-label")!.TextContent.Trim()));
         Assert.All(cut.FindAll("a.mg-nav-link"), link =>
         {
@@ -108,6 +108,7 @@ public class AppSidebarTests : BunitContext
     [InlineData("/vehicles/3f2b6f1e-0000-0000-0000-000000000000/edit", "My Vehicles")]
     [InlineData("/vehicles/new", "Add Vehicle")]
     [InlineData("/reminders", "Reminders")]
+    [InlineData("/dashboard", "Dashboard")]
     [InlineData("/reminders?status=overdue", "Reminders")]
     [InlineData("/drafts", "Maintenance Drafts")]
     [InlineData("/drafts/3f2b6f1e-0000-0000-0000-000000000000", "Maintenance Drafts")]

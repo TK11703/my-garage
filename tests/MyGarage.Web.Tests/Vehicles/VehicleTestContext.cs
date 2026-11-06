@@ -15,6 +15,7 @@ using MyGarage.Web.Inspections;
 using MyGarage.Web.Insurance;
 using MyGarage.Web.Registrations;
 using MyGarage.Web.Reminders;
+using MyGarage.Web.Dashboard;
 using MyGarage.Web.Lookups;
 using MyGarage.Web.Notifications;
 using MyGarage.Web.ServiceRecords;
@@ -158,6 +159,7 @@ public abstract class VehicleTestContext : BunitContext
         Services.AddSingleton(new InspectionsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
         Services.AddSingleton(new RegistrationsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
         Services.AddSingleton(new RemindersApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
+        Services.AddSingleton(new DashboardApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
         Services.AddSingleton(new InsuranceApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
         Services.AddSingleton(new TaxesApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));
         Services.AddSingleton(new DraftsApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://api.test/") }));

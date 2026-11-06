@@ -1,0 +1,35 @@
+<li class="col" data-testid="@("metric-" + Id)">
+    <div class="card h-100 shadow-sm @CardClass">
+        <div class="card-body">
+            <div class="small text-body-secondary">@Label</div>
+            <div class="display-6 @ValueClass" data-testid="metric-value">@Value</div>
+            @if (Href is not null)
+            {
+                <a class="stretched-link small" href="@Href">View<span class="visually-hidden"> @Label</span></a>
+            }
+        </div>
+    </div>
+</li>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public int Value { get; set; }
+
+    // The page that lists these items, when there is one.
+    [Parameter]
+    public string? Href { get; set; }
+
+    // danger or warning: the card is tinted only when there is something to see; the label and number always say it in text.
+    [Parameter]
+    public string? Tone { get; set; }
+
+    private string? CardClass => Tone is not null && Value > 0 ? $"border-{Tone}" : null;
+
+    private string? ValueClass => Tone is not null && Value > 0 ? (Tone == "danger" ? "text-danger" : "text-warning-emphasis") : null;
+}
