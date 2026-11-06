@@ -2,56 +2,228 @@ h1:focus {
     outline: none;
 }
 
-/* Brand tokens: Bootstrap 5.3 variables are overridden here (no custom Bootstrap build). */
-:root {
-    --bs-primary: #0B4F8A;
-    --bs-primary-rgb: 11, 79, 138;
-    --bs-link-color: #0B4F8A;
-    --bs-link-color-rgb: 11, 79, 138;
-    --bs-link-hover-color: #083A66;
-    --bs-link-hover-color-rgb: 8, 58, 102;
-    --bs-focus-ring-color: rgba(11, 79, 138, 0.25);
+/* Brand tokens: Bootstrap 5.3 variables are overridden here (no custom Bootstrap build).
+   Every colour is a variable so a `data-bs-theme` attribute on any element switches that subtree.
+   docs/theme-preview.html shows both themes next to each other. */
+:root,
+[data-bs-theme="light"] {
+    --bs-primary: #1565C0;
+    --bs-primary-rgb: 21, 101, 192;
+    --bs-link-color: #1565C0;
+    --bs-link-color-rgb: 21, 101, 192;
+    --bs-link-hover-color: #0D47A1;
+    --bs-link-hover-color-rgb: 13, 71, 161;
+    --bs-focus-ring-color: rgba(21, 101, 192, 0.25);
+    --bs-border-color: #E1E5EB;
+    --bs-border-color-translucent: rgba(16, 24, 40, 0.1);
+    --mg-primary: #1976D2;
+    --mg-primary-hover: #1565C0;
+    --mg-primary-active: #0D47A1;
+    --mg-primary-text: #1565C0;
     --mg-secondary: #5C6773;
-    --mg-navbar-bg: #0F2A43;
+    --mg-secondary-strong: #2F3945;
+    --mg-outline-bg: #FFFFFF;
+    --mg-outline-hover-bg: #F1F3F6;
+    --mg-outline-hover-border: #CBD2DC;
+    --mg-destructive-bg: #CE3F4A;
+    --mg-destructive-hover: #B93540;
+    --mg-destructive-text: #FFFFFF;
+    --mg-danger-text: #BB2D3B;
+    --bs-border-radius: 0.5rem;
+    --bs-border-radius-sm: 0.375rem;
+    --bs-border-radius-lg: 0.75rem;
+    --bs-primary-bg-subtle: #DCEBFD;
+    --bs-primary-border-subtle: #DCEBFD;
+    --bs-primary-text-emphasis: #1A68C2;
+    --bs-success-bg-subtle: #D8F3E9;
+    --bs-success-border-subtle: #D8F3E9;
+    --bs-success-text-emphasis: #0B7A4B;
+    --bs-warning-bg-subtle: #FDEEDD;
+    --bs-warning-border-subtle: #FDEEDD;
+    --bs-warning-text-emphasis: #9F5504;
+    --bs-danger-bg-subtle: #FDEBEB;
+    --bs-danger-border-subtle: #FDEBEB;
+    --bs-danger-text-emphasis: #C73636;
+    --bs-info-bg-subtle: #DAF2F8;
+    --bs-info-border-subtle: #DAF2F8;
+    --bs-info-text-emphasis: #087088;
+    --bs-secondary-bg-subtle: #E8ECF1;
+    --bs-secondary-border-subtle: #E8ECF1;
+    --bs-secondary-text-emphasis: #55606C;
     --mg-accent: #F5A623;
+    --mg-night: #0F2A43;
     --mg-focus-on-dark: #FFFFFF;
+    --mg-navbar-bg: #1976D2;
+    --mg-page-bg: #F1F3F6;
+    --mg-sidebar-bg: #2B3036;
+    --mg-sidebar-text: #D5DAE1;
+    --mg-sidebar-muted: #9AA3AF;
+    --mg-sidebar-border: rgba(255, 255, 255, 0.08);
+    --mg-sidebar-hover: rgba(255, 255, 255, 0.07);
+    --mg-sidebar-active-bg: rgba(66, 165, 245, 0.22);
+    --mg-sidebar-active-icon: #64B5F6;
+    --mg-card-radius: 0.75rem;
+    --mg-card-shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.08);
     --mg-navbar-height: 3.75rem;
-    --mg-page-bg: #EEF4FB;
+    --mg-pagebar-height: 2.75rem;
+    --mg-sidebar-width: 16.5rem;
+    --mg-mark-text: #B84500;
+    --mg-mark-bg: rgba(245, 166, 35, 0.2);
+    --mg-notfound-code: #1976D2;
+    --mg-notfound-shadow: #C5DBF4;
+    --mg-notfound-label: #C2185B;
+}
+
+[data-bs-theme="dark"] {
+    --bs-body-color: #D3E2F1;
+    --bs-body-color-rgb: 211, 226, 241;
+    --bs-secondary-color: rgba(211, 226, 241, 0.72);
+    --bs-body-bg: #142637;
+    --bs-body-bg-rgb: 20, 38, 55;
+    --bs-secondary-bg: #1B3247;
+    --bs-secondary-bg-rgb: 27, 50, 71;
+    --bs-tertiary-bg: #182C40;
+    --bs-tertiary-bg-rgb: 24, 44, 64;
+    --bs-border-color: #26405A;
+    --bs-border-color-translucent: rgba(140, 190, 240, 0.14);
+    --bs-primary: #1976D2;
+    --bs-primary-rgb: 25, 118, 210;
+    --bs-link-color: #6CB6FF;
+    --bs-link-color-rgb: 108, 182, 255;
+    --bs-link-hover-color: #9CCDFF;
+    --bs-link-hover-color-rgb: 156, 205, 255;
+    --bs-focus-ring-color: rgba(108, 182, 255, 0.35);
+    --mg-primary: #1976D2;
+    --mg-primary-hover: #1E88E5;
+    --mg-primary-active: #2A94F0;
+    --mg-primary-text: #6CB6FF;
+    --mg-secondary: #A9BCD0;
+    --mg-secondary-strong: #E4EEF8;
+    --mg-outline-bg: #1B3247;
+    --mg-outline-hover-bg: #234059;
+    --mg-outline-hover-border: #35577A;
+    --mg-destructive-bg: #A94A4F;
+    --mg-destructive-hover: #BD565C;
+    --mg-destructive-text: #FFF0F0;
+    --mg-danger-text: #EA868F;
+    --bs-primary-bg-subtle: #1F4660;
+    --bs-primary-border-subtle: #1F4660;
+    --bs-primary-text-emphasis: #6CBDFA;
+    --bs-success-bg-subtle: #1D4E47;
+    --bs-success-border-subtle: #1D4E47;
+    --bs-success-text-emphasis: #3FD9A3;
+    --bs-warning-bg-subtle: #46463A;
+    --bs-warning-border-subtle: #46463A;
+    --bs-warning-text-emphasis: #F8B95C;
+    --bs-danger-bg-subtle: #3A3A44;
+    --bs-danger-border-subtle: #3A3A44;
+    --bs-danger-text-emphasis: #F58B8E;
+    --bs-info-bg-subtle: #1B4955;
+    --bs-info-border-subtle: #1B4955;
+    --bs-info-text-emphasis: #49CCE6;
+    --bs-secondary-bg-subtle: #2B4054;
+    --bs-secondary-border-subtle: #2B4054;
+    --bs-secondary-text-emphasis: #B6C6D6;
+    --mg-navbar-bg: #0C2135;
+    --mg-page-bg: #0E1B29;
+    --mg-sidebar-bg: #0A141F;
+    --mg-sidebar-text: #C3D3E3;
+    --mg-sidebar-muted: #7E95AB;
+    --mg-sidebar-border: rgba(140, 190, 240, 0.1);
+    --mg-sidebar-hover: rgba(140, 190, 240, 0.08);
+    --mg-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+    --mg-mark-text: #FFB74D;
+    --mg-mark-bg: rgba(255, 183, 77, 0.16);
+    --mg-notfound-code: #6CB6FF;
+    --mg-notfound-shadow: #1B3A5C;
+    --mg-notfound-label: #F48FB1;
+}
+
+@media (max-width: 1199.98px) {
+    :root {
+        --mg-sidebar-width: 4.5rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    :root {
+        --mg-sidebar-width: 0rem;
+    }
 }
 
 .btn-primary {
-    --bs-btn-bg: #0B4F8A;
-    --bs-btn-border-color: #0B4F8A;
-    --bs-btn-hover-bg: #083A66;
-    --bs-btn-hover-border-color: #083A66;
-    --bs-btn-focus-shadow-rgb: 11, 79, 138;
-    --bs-btn-active-bg: #072F52;
-    --bs-btn-active-border-color: #072F52;
-    --bs-btn-disabled-bg: #0B4F8A;
-    --bs-btn-disabled-border-color: #0B4F8A;
+    --bs-btn-bg: var(--mg-primary);
+    --bs-btn-border-color: var(--mg-primary);
+    --bs-btn-hover-bg: var(--mg-primary-hover);
+    --bs-btn-hover-border-color: var(--mg-primary-hover);
+    --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+    --bs-btn-active-bg: var(--mg-primary-active);
+    --bs-btn-active-border-color: var(--mg-primary-active);
+    --bs-btn-disabled-bg: var(--mg-primary);
+    --bs-btn-disabled-border-color: var(--mg-primary);
 }
 
 .btn-outline-primary {
-    --bs-btn-color: #0B4F8A;
-    --bs-btn-border-color: #0B4F8A;
-    --bs-btn-hover-bg: #0B4F8A;
-    --bs-btn-hover-border-color: #0B4F8A;
-    --bs-btn-focus-shadow-rgb: 11, 79, 138;
-    --bs-btn-active-bg: #0B4F8A;
-    --bs-btn-active-border-color: #0B4F8A;
-    --bs-btn-disabled-color: #0B4F8A;
-    --bs-btn-disabled-border-color: #0B4F8A;
+    --bs-btn-color: var(--mg-primary-text);
+    --bs-btn-border-color: var(--mg-primary);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--mg-primary);
+    --bs-btn-hover-border-color: var(--mg-primary);
+    --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--mg-primary);
+    --bs-btn-active-border-color: var(--mg-primary);
+    --bs-btn-disabled-color: var(--mg-primary-text);
+    --bs-btn-disabled-border-color: var(--mg-primary);
 }
 
+/* Secondary actions (cancel, back, keep): a quiet bordered button. */
 .btn-outline-secondary {
-    --bs-btn-color: #5C6773;
-    --bs-btn-border-color: #5C6773;
-    --bs-btn-hover-bg: #5C6773;
-    --bs-btn-hover-border-color: #5C6773;
-    --bs-btn-active-bg: #5C6773;
-    --bs-btn-active-border-color: #5C6773;
-    --bs-btn-disabled-color: #5C6773;
-    --bs-btn-disabled-border-color: #5C6773;
+    --bs-btn-color: var(--mg-secondary);
+    --bs-btn-bg: var(--mg-outline-bg);
+    --bs-btn-border-color: var(--bs-border-color);
+    --bs-btn-hover-color: var(--mg-secondary-strong);
+    --bs-btn-hover-bg: var(--mg-outline-hover-bg);
+    --bs-btn-hover-border-color: var(--mg-outline-hover-border);
+    --bs-btn-active-color: var(--mg-secondary-strong);
+    --bs-btn-active-bg: var(--mg-outline-hover-bg);
+    --bs-btn-active-border-color: var(--mg-outline-hover-border);
+    --bs-btn-disabled-color: var(--mg-secondary);
+    --bs-btn-disabled-bg: var(--mg-outline-bg);
+    --bs-btn-disabled-border-color: var(--bs-border-color);
+}
+
+/* Destructive: soft red, filled to confirm, outlined to open. */
+.btn-danger {
+    --bs-btn-color: var(--mg-destructive-text);
+    --bs-btn-bg: var(--mg-destructive-bg);
+    --bs-btn-border-color: var(--mg-destructive-bg);
+    --bs-btn-hover-color: var(--mg-destructive-text);
+    --bs-btn-hover-bg: var(--mg-destructive-hover);
+    --bs-btn-hover-border-color: var(--mg-destructive-hover);
+    --bs-btn-active-color: var(--mg-destructive-text);
+    --bs-btn-active-bg: var(--mg-destructive-hover);
+    --bs-btn-active-border-color: var(--mg-destructive-hover);
+    --bs-btn-disabled-color: var(--mg-destructive-text);
+    --bs-btn-disabled-bg: var(--mg-destructive-bg);
+    --bs-btn-disabled-border-color: var(--mg-destructive-bg);
+}
+
+.btn-outline-danger {
+    --bs-btn-color: var(--mg-danger-text);
+    --bs-btn-border-color: var(--mg-destructive-bg);
+    --bs-btn-hover-color: var(--mg-destructive-text);
+    --bs-btn-hover-bg: var(--mg-destructive-bg);
+    --bs-btn-hover-border-color: var(--mg-destructive-bg);
+    --bs-btn-active-color: var(--mg-destructive-text);
+    --bs-btn-active-bg: var(--mg-destructive-hover);
+    --bs-btn-active-border-color: var(--mg-destructive-hover);
+    --bs-btn-disabled-color: var(--mg-danger-text);
+    --bs-btn-disabled-border-color: var(--mg-destructive-bg);
+}
+
+.btn-link {
+    --bs-btn-color: var(--mg-primary-text);
 }
 
 .valid.modified:not([type=checkbox]) {
@@ -113,7 +285,7 @@ body {
 }
 
 html {
-    scroll-padding-top: calc(var(--mg-navbar-height) + 0.5rem);
+    scroll-padding-top: calc(var(--mg-navbar-height) + var(--mg-pagebar-height) + 0.5rem);
 }
 
 main:focus {
@@ -127,13 +299,14 @@ main:focus {
     z-index: 1100;
     padding: 0.5rem 1rem;
     background: #fff;
-    color: var(--bs-primary);
+    color: #1565C0;
     border-radius: 0.375rem;
 }
 
 .mg-navbar {
     background-color: var(--mg-navbar-bg);
     min-height: var(--mg-navbar-height);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
 }
 
 .mg-navbar .container-fluid {
@@ -147,16 +320,26 @@ main:focus {
 }
 
 .mg-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    height: 2.5rem;
     color: #fff;
     border: 0;
-    padding: 0.375rem 0.5rem;
+    padding: 0 0.5rem;
+}
+
+.mg-navbar .dropdown {
+    display: flex;
+    align-items: center;
 }
 
 .mg-nav-btn:hover,
 .mg-nav-btn:active,
 .mg-nav-btn.show {
     color: #fff;
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(255, 255, 255, 0.18);
 }
 
 .mg-navbar :focus-visible {
@@ -172,25 +355,87 @@ main:focus {
 
 .mg-search {
     flex: 1 1 auto;
-    max-width: 36rem;
+    max-width: 40rem;
 }
 
-/* From md up the bar is three columns so the search box sits in the middle of the page, whatever the widths of the brand and the icons. */
+/* A darker pane on the blue bar keeps the white text above 4.5:1 */
+.mg-search-field {
+    display: flex;
+    align-items: center;
+    height: 2.5rem;
+    border-radius: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.2);
+    transition: background-color 0.15s ease-in-out;
+}
+
+.mg-search-field:hover {
+    background-color: rgba(0, 0, 0, 0.26);
+}
+
+.mg-search-field:focus-within {
+    background-color: rgba(0, 0, 0, 0.32);
+    outline: 2px solid var(--mg-focus-on-dark);
+}
+
+.mg-search-submit {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #fff;
+}
+
+.mg-search .form-control {
+    height: 100%;
+    padding-left: 0;
+    border: 0;
+    background-color: transparent;
+    color: #fff;
+    box-shadow: none;
+}
+
+.mg-search .form-control:focus,
+.mg-search .form-control:focus-visible {
+    outline: 0;
+    box-shadow: none;
+}
+
+.mg-search .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* The theme toggle shows the icon of the theme it switches to */
+.mg-theme-icon-sun,
+.mg-theme-icon-moon {
+    display: inline-flex;
+}
+
+[data-bs-theme="light"] .mg-theme-icon-sun,
+[data-bs-theme="dark"] .mg-theme-icon-moon {
+    display: none;
+}
+
+/* From md up the bar is one row: the brand takes the menu's width so the search field starts where the content starts, and the icons sit at the right. */
 @media (min-width: 768px) {
     .mg-navbar .container-fluid {
-        display: grid;
-        grid-template-columns: 1fr minmax(0, 36rem) 1fr;
-        align-items: center;
+        flex-wrap: nowrap;
+    }
+
+    .mg-navbar .container-fluid > .mg-navbar-start {
+        flex: 0 0 calc(max(var(--mg-sidebar-width), 13rem) - 0.75rem);
     }
 
     .mg-search {
-        grid-column: 2;
-        max-width: none;
+        flex: 1 1 auto;
     }
 
     .mg-navbar .container-fluid > .ms-auto {
-        grid-column: 3;
-        justify-self: end;
+        margin-left: auto;
     }
 }
 
@@ -208,28 +453,9 @@ main:focus {
     max-width: calc(100vw - 1.5rem);
 }
 
-/* The "+" add menu floats over the right end of an accordion header, left of the chevron.
-   The item cannot clip (overflow) or the menu would be cut off, so the header button rounds its own corners. */
-.mg-accordion-item {
-    position: relative;
-}
-
+/* Accordion headers round their own corners so an open item keeps a clean edge. */
 .mg-accordion-item > .accordion-header > .accordion-button {
     border-radius: calc(var(--bs-border-radius) - var(--bs-border-width));
-}
-
-/* Empty space before the chevron, where the "+" menu sits. */
-.mg-accordion-item > .accordion-header > .accordion-button::before {
-    content: "";
-    order: 1;
-    flex-shrink: 0;
-    width: 3.5rem;
-    margin-left: auto;
-}
-
-.mg-accordion-item > .accordion-header > .accordion-button::after {
-    order: 2;
-    margin-left: 0;
 }
 
 .mg-accordion-item > .accordion-header > .accordion-button:not(.collapsed) {
@@ -237,16 +463,16 @@ main:focus {
     border-bottom-right-radius: 0;
 }
 
-/* Above the header button, which rises on hover and focus (z-index 2 and 3). */
-.mg-accordion-add {
+/* Unread notifications: a small dot under the bell, in amber so it stands apart from the white icon. */
+.mg-nav-dot {
     position: absolute;
-    top: 0.75rem;
-    right: 3.25rem;
-    z-index: 4;
-}
-
-.mg-accordion-add:has(.show) {
-    z-index: 1000;
+    bottom: 0;
+    left: 50%;
+    width: 0.4375rem;
+    height: 0.4375rem;
+    margin-left: -0.21875rem;
+    border-radius: 50%;
+    background-color: #FFD54F;
 }
 
 /* Keep brand and icons on one row at 320 px so the bar stays one row tall. */
@@ -270,7 +496,7 @@ main:focus {
     height: 2rem;
     border-radius: 50%;
     background-color: var(--mg-accent);
-    color: var(--mg-navbar-bg);
+    color: var(--mg-night);
     font-size: 0.8rem;
     font-weight: 600;
     line-height: 1;
@@ -306,7 +532,7 @@ main:focus {
 }
 
 .mg-vehicle-card .card-title a:hover {
-    color: var(--bs-primary) !important;
+    color: var(--mg-primary-text) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -353,10 +579,10 @@ main:focus {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.75rem 0.25rem;
+    padding: 0.75rem 0.5rem;
     border: 0;
     border-bottom: 2px solid transparent;
-    border-radius: 0;
+    border-radius: 0.375rem 0.375rem 0 0;
     background: transparent;
     color: var(--bs-secondary-color);
     font-weight: 500;
@@ -365,11 +591,13 @@ main:focus {
 
 .mg-tabs .nav-link:hover {
     color: var(--bs-body-color);
+    background-color: var(--bs-tertiary-bg);
 }
 
 .mg-tabs .nav-link.active {
-    color: var(--bs-primary);
-    border-bottom-color: var(--bs-primary);
+    color: var(--mg-primary-text);
+    border-bottom-color: var(--mg-primary);
+    font-weight: 600;
 }
 
 /* Click-or-drop picture upload area; the real file input covers it so a click or a drop on it picks files */
@@ -537,19 +765,155 @@ form[data-sticker-import] .btn {
     flex: 1 0 100%;
 }
 
-/* Home page hero and feature grid */
-.mg-hero-art {
-    background: linear-gradient(135deg, var(--mg-navbar-bg) 0%, #0B4F8A 100%);
-    min-height: 16rem;
+/* Home page hero: a wide photo (mirrored so the garage sits at the right) under a navy shade, with the text laid over it. */
+.mg-hero {
+    position: relative;
+    min-height: 26rem;
+    color: #fff;
+    background-color: var(--mg-night);
 }
 
-.mg-hero-car {
-    max-width: 32rem;
+.mg-hero-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 72%;
+    transform: scaleX(-1);
+}
+
+.mg-hero-shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(10, 28, 48, 0.9) 0%, rgba(10, 28, 48, 0.78) 45%, rgba(10, 28, 48, 0.2) 100%);
+}
+
+@media (max-width: 991.98px) {
+    .mg-hero-shade {
+        background: rgba(10, 28, 48, 0.8);
+    }
+}
+
+.mg-hero-content {
+    position: relative;
+    min-height: inherit;
+    max-width: 44rem;
+}
+
+.mg-hero-label {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.mg-hero hr {
+    border-color: rgba(255, 255, 255, 0.5);
+    opacity: 1;
+}
+
+.mg-hero .badge {
+    background-color: rgba(255, 255, 255, 0.14) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    color: #fff !important;
+}
+
+.mg-hero .btn-outline-primary,
+.mg-hero .btn-outline-secondary {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: rgba(255, 255, 255, 0.1);
+    --bs-btn-border-color: rgba(255, 255, 255, 0.6);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: rgba(255, 255, 255, 0.22);
+    --bs-btn-hover-border-color: #fff;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: rgba(255, 255, 255, 0.3);
+    --bs-btn-active-border-color: #fff;
 }
 
 .mg-feature-icon {
     width: 2.75rem;
     height: 2.75rem;
+}
+
+/* FAQ: a search field and cards of questions that open in place. */
+.mg-faq-search {
+    position: relative;
+    max-width: 25rem;
+}
+
+.mg-faq-search .form-control {
+    padding-left: 2.5rem;
+    background-color: var(--bs-secondary-bg);
+}
+
+.mg-faq-search-icon {
+    position: absolute;
+    top: 50%;
+    left: 0.875rem;
+    z-index: 4;
+    transform: translateY(-50%);
+    color: var(--bs-secondary-color);
+    pointer-events: none;
+}
+
+.mg-faq-list li {
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.mg-faq-list summary {
+    padding: 0.625rem 0;
+    color: var(--bs-secondary-color);
+    cursor: pointer;
+    list-style: none;
+}
+
+.mg-faq-list summary::-webkit-details-marker {
+    display: none;
+}
+
+.mg-faq-list summary:hover,
+.mg-faq-list details[open] > summary {
+    color: var(--mg-primary-text);
+}
+
+.mg-faq-list summary:focus-visible {
+    outline: 2px solid var(--mg-primary-text);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+}
+
+.mg-faq-answer {
+    margin: 0 0 0.75rem;
+    padding-left: 0.75rem;
+    border-left: 2px solid var(--bs-border-color);
+    font-size: 0.875rem;
+}
+
+.mg-faq-more {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.5rem 0 0;
+    border: 0;
+    background: transparent;
+    color: var(--bs-secondary-color);
+    text-align: left;
+}
+
+.mg-faq-more:hover {
+    color: var(--mg-primary-text);
+}
+
+.mg-step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background-color: var(--bs-primary-bg-subtle);
+    color: var(--bs-primary-text-emphasis);
+    font-weight: 600;
 }
 
 .mg-narrow {
@@ -565,4 +929,742 @@ form[data-sticker-import] .btn {
 /* Extra-small text, one step below Bootstrap's .small, for dense feature lists. */
 .mg-text-xs {
     font-size: 0.8125rem;
+}
+
+/* ---------- Search results ---------- */
+
+.mg-mark {
+    padding: 0 0.125rem;
+    border-radius: 0.2rem;
+    background-color: var(--mg-mark-bg);
+    color: var(--mg-mark-text);
+    font-weight: 600;
+}
+
+.mg-hit {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.25rem 1.5rem;
+    padding: 0.875rem 1.25rem;
+    background-color: transparent;
+}
+
+.mg-hit:hover {
+    background-color: var(--bs-tertiary-bg);
+}
+
+.mg-hit-body {
+    flex: 1 1 18rem;
+    min-width: 0;
+}
+
+.mg-hit-title {
+    color: var(--bs-body-color);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.mg-hit-title:hover {
+    color: var(--mg-primary-text);
+}
+
+.mg-hit-context {
+    margin-top: 0.25rem;
+    color: var(--bs-secondary-color);
+    font-size: 0.875rem;
+}
+
+.mg-hit-field {
+    display: inline-block;
+    min-width: 4.5rem;
+    margin-right: 0.25rem;
+    color: var(--bs-secondary-color);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.mg-hit-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    color: var(--bs-secondary-color);
+    font-size: 0.8125rem;
+    text-align: right;
+}
+
+@media (max-width: 575.98px) {
+    .mg-hit-meta {
+        flex-direction: row;
+        gap: 0.75rem;
+    }
+}
+
+/* ---------- Not found ---------- */
+
+.mg-notfound {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem 4rem;
+    padding: 2rem 1rem;
+}
+
+.mg-notfound-art {
+    flex: 0 0 auto;
+    width: min(100%, 15rem);
+    color: var(--mg-notfound-code);
+}
+
+.mg-notfound-body {
+    flex: 1 1 20rem;
+    max-width: 34rem;
+}
+
+.mg-notfound-code {
+    margin: 0;
+    color: var(--mg-notfound-code);
+    font-size: clamp(5rem, 18vw, 9rem);
+    font-weight: 800;
+    line-height: 1;
+    text-shadow: 0.06em 0.06em 0 var(--mg-notfound-shadow);
+}
+
+.mg-notfound-label {
+    margin: 0.5rem 0 1rem;
+    color: var(--mg-notfound-label);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+/* ---------- Notification bell ---------- */
+
+/* While something is unread the bell shakes for under a second, then rests until the next 5 s cycle. */
+.mg-bell-ring {
+    transform-origin: 50% 10%;
+    animation: mg-bell-shake 5s ease-in-out 0.4s infinite;
+}
+
+@keyframes mg-bell-shake {
+    0%, 16%, 100% { transform: rotate(0); }
+    2.4% { transform: rotate(16deg); }
+    4.8% { transform: rotate(-14deg); }
+    7.2% { transform: rotate(10deg); }
+    9.6% { transform: rotate(-8deg); }
+    12% { transform: rotate(4deg); }
+    14.4% { transform: rotate(-2deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mg-bell-ring {
+        animation: none;
+    }
+}
+
+/* The dropdown: a header, a list that scrolls when it is long, and a footer action. */
+.mg-notif-menu {
+    width: 22rem;
+    overflow: hidden;
+}
+
+.mg-notif-head,
+.mg-notif-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+}
+
+.mg-notif-head {
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.mg-notif-foot {
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.mg-notif-count {
+    background-color: var(--mg-mark-bg);
+    color: var(--mg-mark-text);
+}
+
+.mg-notif-list {
+    max-height: min(24rem, 60vh);
+    overflow-y: auto;
+}
+
+.mg-notif-item {
+    display: flex;
+    align-items: center;
+}
+
+.mg-notif-item + .mg-notif-item {
+    border-top: 1px solid var(--bs-border-color-translucent);
+}
+
+.mg-notif-link {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.625rem 0.5rem 0.625rem 1rem;
+}
+
+a.mg-notif-link:hover,
+a.mg-notif-link:focus-visible {
+    background-color: var(--bs-tertiary-bg);
+}
+
+.mg-notif-dismiss {
+    flex: none;
+    padding-right: 0.5rem;
+}
+
+.mg-notif-dismiss-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem;
+    color: var(--bs-secondary-color);
+    border: 0;
+}
+
+.mg-notif-dismiss-btn:hover,
+.mg-notif-dismiss-btn:focus-visible {
+    color: var(--bs-body-color);
+    background-color: var(--bs-tertiary-bg);
+}
+
+.mg-notif-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.5rem;
+    background-color: rgba(25, 118, 210, 0.14);
+    color: var(--mg-primary-text);
+}
+
+.mg-notif-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.mg-notif-unread {
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background-color: var(--mg-primary-text);
+}
+
+/* ---------- Content area and page bar ---------- */
+
+/* The page scrolls under the fixed navbar; the sidebar is fixed on its left. */
+.mg-content {
+    padding: 0 1rem 1.5rem;
+    min-height: calc(100vh - var(--mg-navbar-height));
+}
+
+.mg-content-with-sidebar {
+    margin-left: var(--mg-sidebar-width);
+}
+
+@media (min-width: 768px) {
+    .mg-content {
+        padding-inline: 1.5rem;
+    }
+}
+
+/* Title, trail, and page actions stay pinned to the top of the content area. Its negative margins make it full bleed. */
+.mg-pagebar {
+    position: sticky;
+    top: var(--mg-navbar-height);
+    z-index: 1020;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    min-height: var(--mg-pagebar-height);
+    margin: 0 -1rem 1rem;
+    padding: 0.25rem 1rem;
+    background-color: var(--mg-sidebar-bg);
+    color: var(--mg-sidebar-text);
+}
+
+.mg-pagebar :focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+/* The heading takes programmatic focus after navigation; it is not a control, so it shows no ring. */
+.mg-pagebar h1:focus,
+.mg-pagebar h1:focus-visible {
+    outline: 0;
+}
+
+@media (min-width: 768px) {
+    .mg-pagebar {
+        margin-inline: -1.5rem;
+        padding-inline: 1.5rem;
+    }
+}
+
+.mg-pagebar-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 1rem;
+    min-width: 0;
+}
+
+.mg-pagebar-title {
+    margin: 0;
+    color: #fff;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+}
+
+.mg-pagebar-trail .breadcrumb {
+    --bs-breadcrumb-font-size: 0.875rem;
+    --bs-breadcrumb-margin-bottom: 0;
+    --bs-breadcrumb-divider-color: var(--mg-sidebar-muted);
+    --bs-breadcrumb-item-active-color: var(--mg-sidebar-muted);
+    align-items: center;
+    flex-wrap: nowrap;
+    line-height: 1.25rem;
+}
+
+.mg-pagebar-trail .mg-crumb {
+    vertical-align: middle;
+}
+
+.mg-pagebar-trail .breadcrumb-item {
+    color: var(--mg-sidebar-muted);
+}
+
+.mg-pagebar-trail .breadcrumb-item a {
+    color: var(--mg-sidebar-text);
+}
+
+.mg-pagebar-trail .breadcrumb-item a:hover {
+    color: #fff;
+}
+
+@media (min-width: 576px) {
+    .mg-pagebar-trail {
+        padding-left: 1rem;
+        border-left: 1px solid rgba(255, 255, 255, 0.18);
+    }
+}
+
+.mg-pagebar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.5rem;
+}
+
+/* Page actions read as text links, not filled buttons. The delete confirmation panel keeps real buttons. */
+.mg-pagebar-actions .btn:not(.mg-confirm-panel .btn) {
+    --bs-btn-color: var(--mg-sidebar-text);
+    --bs-btn-bg: transparent;
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--mg-sidebar-hover);
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--mg-sidebar-active-bg);
+    --bs-btn-active-border-color: transparent;
+    --bs-btn-disabled-color: var(--mg-sidebar-muted);
+    --bs-btn-disabled-bg: transparent;
+    --bs-btn-disabled-border-color: transparent;
+    --bs-btn-padding-x: 0.625rem;
+    --bs-btn-padding-y: 0.25rem;
+    --bs-btn-font-size: 0.875rem;
+    --bs-btn-font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.mg-pagebar-actions .btn-primary:not(.mg-confirm-panel .btn) {
+    --bs-btn-color: var(--mg-sidebar-active-icon);
+    --bs-btn-hover-color: var(--mg-sidebar-active-icon);
+    --bs-btn-active-color: var(--mg-sidebar-active-icon);
+}
+
+.mg-pagebar-actions :is(.btn-danger, .btn-outline-danger):not(.mg-confirm-panel .btn) {
+    --bs-btn-color: #F0959B;
+    --bs-btn-hover-color: #F0959B;
+    --bs-btn-active-color: #F0959B;
+}
+
+/* ---------- Left sidebar ---------- */
+
+.mg-sidebar {
+    position: fixed;
+    top: var(--mg-navbar-height);
+    bottom: 0;
+    left: 0;
+    z-index: 1025;
+    display: flex;
+    flex-direction: column;
+    width: var(--mg-sidebar-width);
+    background-color: var(--mg-sidebar-bg);
+    color: var(--mg-sidebar-text);
+}
+
+.mg-sidebar :focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
+    box-shadow: none;
+}
+
+.mg-sidebar .dropdown-menu :focus-visible {
+    outline-color: var(--bs-primary);
+}
+
+.mg-sidebar-backdrop {
+    display: none;
+}
+
+.mg-profile {
+    position: relative;
+    flex: 0 0 auto;
+    padding: 0.75rem;
+}
+
+.mg-profile-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.5rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+}
+
+.mg-profile-btn:hover,
+.mg-profile-btn.show {
+    background-color: var(--mg-sidebar-hover);
+}
+
+.mg-profile-text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.mg-profile-name {
+    color: #fff;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.mg-profile-email {
+    color: var(--mg-sidebar-muted);
+    font-size: 0.75rem;
+    line-height: 1.25;
+}
+
+.mg-profile-chevron {
+    flex: 0 0 auto;
+    color: var(--mg-sidebar-muted);
+}
+
+.mg-profile-btn.show .mg-profile-chevron {
+    transform: rotate(180deg);
+}
+
+.mg-profile-menu {
+    min-width: 14rem;
+}
+
+.mg-avatar-lg {
+    flex: 0 0 auto;
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 0.9rem;
+}
+
+.mg-sidebar-nav {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 0.25rem 0.75rem 1rem;
+}
+
+.mg-nav-heading {
+    display: block;
+    padding: 1.25rem 0.75rem 0.375rem;
+    color: var(--mg-sidebar-muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.mg-nav-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.mg-nav-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5625rem 0.75rem;
+    border-radius: 0.5rem;
+    color: var(--mg-sidebar-text);
+    font-size: 0.9375rem;
+    text-decoration: none;
+}
+
+.mg-nav-link .bi {
+    flex: 0 0 auto;
+}
+
+.mg-nav-link:hover {
+    background-color: var(--mg-sidebar-hover);
+    color: #fff;
+}
+
+.mg-nav-link.active {
+    background-color: var(--mg-sidebar-active-bg);
+    color: #fff;
+    font-weight: 500;
+}
+
+.mg-nav-link.active .bi {
+    color: var(--mg-sidebar-active-icon);
+}
+
+/* Tablet: the menu shrinks to a rail of icons; names stay available to screen readers and as tooltips. */
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    .mg-profile {
+        padding: 0.75rem 0.5rem;
+    }
+
+    .mg-profile-btn {
+        justify-content: center;
+        padding: 0.375rem;
+    }
+
+    .mg-profile-text,
+    .mg-profile-chevron,
+    .mg-nav-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .mg-sidebar-nav {
+        padding-inline: 0.5rem;
+    }
+
+    .mg-nav-heading {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+
+    .mg-nav-list ~ .mg-nav-list {
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid var(--mg-sidebar-border);
+    }
+
+    .mg-nav-link {
+        justify-content: center;
+        padding: 0.65rem 0;
+    }
+
+    .mg-nav-badge {
+        position: absolute;
+        top: 0.1rem;
+        right: 0.25rem;
+        padding: 0.2rem 0.4rem;
+        font-size: 0.6rem;
+    }
+}
+
+/* Phone: the menu is hidden until the hamburger button opens it over the page. */
+@media (max-width: 767.98px) {
+    .mg-sidebar {
+        width: 17rem;
+        max-width: 85vw;
+        visibility: hidden;
+        transform: translateX(-100%);
+        transition: transform 0.2s ease-in-out, visibility 0.2s;
+    }
+
+    .mg-sidebar-open .mg-sidebar {
+        visibility: visible;
+        transform: none;
+        box-shadow: 0 0 2rem rgba(0, 0, 0, 0.45);
+    }
+
+    .mg-sidebar-open .mg-sidebar-backdrop {
+        position: fixed;
+        inset: var(--mg-navbar-height) 0 0 0;
+        z-index: 1024;
+        display: block;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .mg-sidebar-open {
+        overflow: hidden;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mg-sidebar {
+        transition: none;
+    }
+}
+
+/* ---------- Cards, tabs, accordions ---------- */
+
+.card {
+    --bs-card-border-color: var(--bs-border-color);
+    --bs-card-border-radius: var(--mg-card-radius);
+    --bs-card-inner-border-radius: calc(var(--mg-card-radius) - 1px);
+    --bs-card-cap-bg: transparent;
+    --bs-card-cap-padding-x: 1.25rem;
+    --bs-card-cap-padding-y: 0.9375rem;
+    --bs-card-spacer-x: 1.25rem;
+    --bs-card-spacer-y: 1.25rem;
+    box-shadow: var(--mg-card-shadow);
+}
+
+/* Cards written as "border-0 shadow-sm" get the same soft outline and shadow as every other card. */
+.card.border-0 {
+    border: 1px solid var(--bs-card-border-color) !important;
+}
+
+.card.shadow-sm {
+    box-shadow: var(--mg-card-shadow) !important;
+}
+
+.card-header,
+.card-footer {
+    background-color: var(--bs-card-cap-bg);
+}
+
+.card-header {
+    border-bottom: 0;
+    font-weight: 600;
+}
+
+.card-header + .card-body {
+    padding-top: 0.25rem;
+}
+
+/* Optional header pieces: a muted line under the title and icon buttons at the right. */
+.mg-card-subtitle {
+    display: block;
+    color: var(--bs-secondary-color);
+    font-size: 0.8125rem;
+    font-weight: 400;
+}
+
+.accordion {
+    --bs-accordion-bg: var(--bs-body-bg);
+    --bs-accordion-border-color: var(--bs-border-color);
+    --bs-accordion-border-radius: var(--mg-card-radius);
+    --bs-accordion-inner-border-radius: calc(var(--mg-card-radius) - 1px);
+    --bs-accordion-btn-padding-x: 1.25rem;
+    --bs-accordion-btn-padding-y: 1rem;
+    --bs-accordion-body-padding-x: 1.25rem;
+    --bs-accordion-active-color: var(--mg-primary-text);
+    --bs-accordion-active-bg: var(--bs-body-bg);
+    --bs-accordion-btn-focus-box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+    box-shadow: var(--mg-card-shadow);
+    border-radius: var(--mg-card-radius);
+}
+
+.accordion.vstack {
+    box-shadow: none;
+}
+
+.accordion-item.border {
+    border-color: var(--bs-border-color) !important;
+    background-color: var(--bs-body-bg);
+    box-shadow: var(--mg-card-shadow);
+}
+
+.accordion-button {
+    font-weight: 600;
+}
+
+.accordion-button:not(.collapsed) {
+    box-shadow: inset 0 -1px 0 var(--bs-border-color);
+}
+
+/* The badge colors Bootstrap fixes for "light" are too bright on a dark surface. */
+[data-bs-theme="dark"] .text-bg-light {
+    background-color: var(--bs-secondary-bg) !important;
+    color: var(--bs-body-color) !important;
+}
+
+/* Alerts and badges share one soft palette: a tinted background with matching text, no border. */
+.alert {
+    --bs-alert-border-radius: 0.5rem;
+    --bs-alert-padding-x: 1.25rem;
+}
+
+.badge.text-bg-primary,
+.badge.text-bg-success,
+.badge.text-bg-warning,
+.badge.text-bg-danger,
+.badge.text-bg-info,
+.badge.text-bg-secondary {
+    font-weight: 500;
+}
+
+.badge.text-bg-primary { background-color: var(--bs-primary-bg-subtle) !important; color: var(--bs-primary-text-emphasis) !important; }
+.badge.text-bg-success { background-color: var(--bs-success-bg-subtle) !important; color: var(--bs-success-text-emphasis) !important; }
+.badge.text-bg-warning { background-color: var(--bs-warning-bg-subtle) !important; color: var(--bs-warning-text-emphasis) !important; }
+.badge.text-bg-danger { background-color: var(--bs-danger-bg-subtle) !important; color: var(--bs-danger-text-emphasis) !important; }
+.badge.text-bg-info { background-color: var(--bs-info-bg-subtle) !important; color: var(--bs-info-text-emphasis) !important; }
+.badge.text-bg-secondary { background-color: var(--bs-secondary-bg-subtle) !important; color: var(--bs-secondary-text-emphasis) !important; }
+
+/* Count badges on the blue bar and the dark menu stay solid so they read at a glance. */
+.mg-navbar .badge.text-bg-warning,
+.mg-sidebar .badge.text-bg-warning {
+    background-color: var(--mg-accent) !important;
+    color: #1B1B1B !important;
 }

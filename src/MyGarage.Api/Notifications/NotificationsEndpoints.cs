@@ -119,6 +119,47 @@ public static class NotificationsEndpoints
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
 
+        group.MapDelete("/{notificationId:guid}", async (
+                Guid notificationId,
+                ClaimsPrincipal user,
+                NotificationRepository notifications,
+                CancellationToken cancellationToken) =>
+            {
+                if (CurrentOwner.Get(user) is not { } ownerId)
+                {
+                    return VehiclesEndpoints.NoOwner();
+                }
+
+                return await notifications.DeleteAsync(ownerId, notificationId, cancellationToken)
+                    ? Results.NoContent()
+                    : VehiclesEndpoints.NotFound();
+            })
+            .WithName("DeleteNotification")
+            .WithSummary("Remove one notification; the draft it points to is untouched.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapDelete("/read", async (
+                ClaimsPrincipal user,
+                NotificationRepository notifications,
+                CancellationToken cancellationToken) =>
+            {
+                if (CurrentOwner.Get(user) is not { } ownerId)
+                {
+                    return VehiclesEndpoints.NoOwner();
+                }
+
+                await notifications.DeleteReadAsync(ownerId, cancellationToken);
+                return Results.NoContent();
+            })
+            .WithName("DeleteReadNotifications")
+            .WithSummary("Remove all of the caller's read notifications.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
+
         return endpoints;
     }
 }

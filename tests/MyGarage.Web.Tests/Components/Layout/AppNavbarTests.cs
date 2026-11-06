@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Security.Claims;
 using Bunit;
 using Bunit.TestDoubles;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.DependencyInjection;
 using MyGarage.Shared.Notifications;
@@ -71,12 +72,21 @@ public class AppNavbarTests : BunitContext
             markup.IndexOf("navbar-brand", StringComparison.Ordinal),
             markup.IndexOf("role=\"search\"", StringComparison.Ordinal),
             markup.IndexOf("aria-label=\"Notifications\"", StringComparison.Ordinal),
-            markup.IndexOf("aria-label=\"Help\"", StringComparison.Ordinal),
-            markup.IndexOf("aria-label=\"Account menu for Ada Lovelace\"", StringComparison.Ordinal),
+            markup.IndexOf("data-mg-theme-toggle", StringComparison.Ordinal),
         };
 
         Assert.All(order, index => Assert.True(index >= 0));
         Assert.Equal(order.OrderBy(i => i), order);
+    }
+
+    [Fact]
+    public void TheAccountAndHelpMenusLiveInTheSidebar_NotTheBar()
+    {
+        var cut = Render<AppNavbar>();
+
+        Assert.Empty(cut.FindAll("button[aria-label^='Account menu']"));
+        Assert.Empty(cut.FindAll("button[aria-label='Help']"));
+        Assert.Empty(cut.FindAll("a[href='/preferences']"));
     }
 
     [Fact]
@@ -89,13 +99,37 @@ public class AppNavbarTests : BunitContext
     }
 
     [Fact]
-    public void SearchIsAGetFormToTheVehicleList()
+    public void TheMenuButtonOpensTheSidebarOnAPhone()
+    {
+        var cut = Render<AppNavbar>();
+
+        var button = cut.Find("button[data-mg-sidebar-toggle]");
+        Assert.Equal("Open menu", button.GetAttribute("aria-label"));
+        Assert.Equal("mg-sidebar", button.GetAttribute("aria-controls"));
+        Assert.Equal("false", button.GetAttribute("aria-expanded"));
+        Assert.Contains("d-md-none", button.ClassName);
+    }
+
+    [Fact]
+    public void TheThemeToggleIsAButtonAtTheFarRight()
+    {
+        var cut = Render<AppNavbar>();
+
+        var toggle = cut.Find("button[data-mg-theme-toggle]");
+        Assert.Equal("Dark mode", toggle.GetAttribute("aria-label"));
+        Assert.Equal("false", toggle.GetAttribute("aria-pressed"));
+        Assert.Equal("button", toggle.GetAttribute("type"));
+        Assert.Equal(toggle.OuterHtml, toggle.ParentElement!.Children.Last().OuterHtml);
+    }
+
+    [Fact]
+    public void SearchIsAGetFormToTheSearchPage()
     {
         var cut = Render<AppNavbar>();
 
         var form = cut.Find("form[role='search']");
         Assert.Equal("get", form.GetAttribute("method"), ignoreCase: true);
-        Assert.Equal("/vehicles", form.GetAttribute("action"));
+        Assert.Equal("/search", form.GetAttribute("action"));
 
         var input = form.QuerySelector("input[type='search']")!;
         Assert.Equal("q", input.GetAttribute("name"));
@@ -150,82 +184,23 @@ public class AppNavbarTests : BunitContext
         cut.WaitForAssertion(() =>
         {
             Assert.Equal("Notifications, 3 unread", cut.Find("button[data-bs-toggle='dropdown'][aria-label^='Notifications']").GetAttribute("aria-label"));
-            Assert.Equal("3", cut.Find("[data-testid='notification-badge']").TextContent.Trim());
+            Assert.NotNull(cut.Find("[data-testid='notification-badge']"));
         });
     }
 
     [Fact]
-    public void HelpMenuLinksToFaqAndAbout()
-    {
-        var cut = Render<AppNavbar>();
-
-        var toggle = cut.Find("button[aria-label='Help']");
-        Assert.Equal("dropdown", toggle.GetAttribute("data-bs-toggle"));
-
-        var menu = toggle.ParentElement!.QuerySelector(".dropdown-menu")!;
-        Assert.Equal("/faq", menu.QuerySelector("a[href='/faq']")!.GetAttribute("href"));
-        Assert.Equal("FAQ", menu.QuerySelector("a[href='/faq']")!.TextContent.Trim());
-        Assert.Equal("About", menu.QuerySelector("a[href='/about']")!.TextContent.Trim());
-    }
-
-    [Fact]
-    public void ProfileMenuShowsInitialsNameMyVehiclesEmailDraftsPreferencesAndSignOut()
-    {
-        var cut = Render<AppNavbar>();
-
-        var toggle = cut.Find("button[aria-label='Account menu for Ada Lovelace']");
-        Assert.Equal("dropdown", toggle.GetAttribute("data-bs-toggle"));
-        Assert.Contains("AL", toggle.TextContent);
-
-        var menu = toggle.ParentElement!.QuerySelector(".dropdown-menu")!;
-        Assert.Contains("Ada Lovelace", menu.TextContent);
-        Assert.Equal("My Vehicles", menu.QuerySelector("a[href='/vehicles']")!.TextContent.Trim());
-        Assert.Equal("Preferences", menu.QuerySelector("a[href='/preferences']")!.TextContent.Trim());
-        Assert.Equal(
-            ["Ada Lovelace", "My Vehicles", "Drafts", "Preferences", "Sign out"],
-            menu.QuerySelectorAll(".dropdown-item, .dropdown-item-text").Select(item => item.TextContent.Trim()));
-        Assert.NotNull(menu.QuerySelector(".dropdown-divider"));
-
-        var form = menu.QuerySelector("form")!;
-        Assert.Equal("/authentication/logout", form.GetAttribute("action"));
-        Assert.Equal("post", form.GetAttribute("method"), ignoreCase: true);
-        Assert.NotNull(form.QuerySelector("input[name='__RequestVerificationToken']"));
-        var signOut = form.QuerySelector("button[type='submit']")!;
-        Assert.Equal("Sign out", signOut.TextContent.Trim());
-        Assert.Contains("dropdown-item", signOut.ClassName);
-    }
-
-    [Fact]
-    public void TheDraftsEntry_LinksToTheList_AndShowsTheAwaitingReviewCount()
+    public void TheLoadedCountsAreReportedToTheLayout()
     {
         unread = new UnreadCountDto { Unread = 1, DraftsAwaitingReview = 4 };
+        UnreadCountDto? reported = null;
 
-        var cut = Render<AppNavbar>();
+        Render<AppNavbar>(ps => ps.Add(p => p.OnCountLoaded, EventCallback.Factory.Create<UnreadCountDto>(this, count => reported = count)));
 
-        cut.WaitForAssertion(() =>
-        {
-            var entry = cut.Find(".dropdown-menu a.dropdown-item[href='/drafts']");
-            Assert.StartsWith("Drafts", entry.TextContent.Trim());
-            var count = entry.QuerySelector("[data-testid='account-drafts-count']")!;
-            Assert.Equal("4", count.TextContent.Trim());
-            Assert.Contains("4 awaiting review", entry.TextContent);
-        });
+        Assert.Equal(4, reported?.DraftsAwaitingReview);
     }
 
     [Fact]
-    public void TheEmailDraftsEntry_ShowsNoCountWhenNothingIsWaiting()
-    {
-        var cut = Render<AppNavbar>();
-
-        cut.WaitForAssertion(() =>
-        {
-            Assert.NotNull(cut.Find(".dropdown-menu a.dropdown-item[href='/drafts']"));
-            Assert.Empty(cut.FindAll("[data-testid='account-drafts-count']"));
-        });
-    }
-
-    [Fact]
-    public void WhenTheNotificationsApiFails_TheBarStillRenders_WithNoBadgeAndNoCount()
+    public void WhenTheNotificationsApiFails_TheBarStillRenders_WithNoBadge()
     {
         notificationsFailure = HttpStatusCode.InternalServerError;
 
@@ -235,20 +210,7 @@ public class AppNavbarTests : BunitContext
         {
             Assert.NotNull(cut.Find("button[aria-label='Notifications']"));
             Assert.Empty(cut.FindAll("[data-testid='notification-badge']"));
-            Assert.Empty(cut.FindAll("[data-testid='account-drafts-count']"));
-            Assert.NotNull(cut.Find("button[aria-label='Account menu for Ada Lovelace']"));
+            Assert.NotNull(cut.Find("button[data-mg-theme-toggle]"));
         });
-    }
-
-    [Fact]
-    public void DisplayNameIsEncoded()
-    {
-        auth.SetClaims(new Claim("name", "<b>x</b>"));
-
-        var cut = Render<AppNavbar>();
-
-        Assert.Empty(cut.FindAll("b"));
-        var menuName = cut.Find(".dropdown-item-text");
-        Assert.Equal("<b>x</b>", menuName.TextContent);
     }
 }

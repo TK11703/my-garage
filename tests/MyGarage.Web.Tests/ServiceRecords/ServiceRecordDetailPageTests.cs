@@ -37,8 +37,8 @@ public class ServiceRecordDetailPageTests : VehicleTestContext
         {
             Assert.Equal("Service record May 1, 2026", cut.Find("h1").TextContent);
             var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-            Assert.Equal(["Home", "Vehicles", "2020 Ford F-150", "Service record May 1, 2026"], items.Select(item => item.TextContent.Trim()));
-            Assert.Equal($"/vehicles/{vehicleId}?tab=service-records", items[2].QuerySelector("a")!.GetAttribute("href"));
+            Assert.Equal(["Home", "Garage", "Vehicles", "2020 Ford F-150"], items.Select(item => item.TextContent.Trim()));
+            Assert.Equal($"/vehicles/{vehicleId}?tab=service-records", items[3].QuerySelector("a")!.GetAttribute("href"));
 
             Assert.Equal(
                 ["Date serviced", "Odometer reading", "Shop name or person"],

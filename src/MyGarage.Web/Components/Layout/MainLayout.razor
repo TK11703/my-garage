@@ -1,10 +1,16 @@
 @inherits LayoutComponentBase
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <a class="visually-hidden-focusable mg-skip-link" href="#main-content">Skip to main content</a>
 
-<AppNavbar />
+<AppNavbar OnCountLoaded="OnCountLoaded" />
 
-<main id="main-content" class="container-fluid py-3" tabindex="-1">
+@if (isSignedIn)
+{
+    <AppSidebar DraftsAwaitingReview="draftsAwaitingReview" />
+}
+
+<main id="main-content" class="mg-content @(isSignedIn ? "mg-content-with-sidebar" : null)" tabindex="-1">
     @Body
 </main>
 
@@ -13,3 +19,17 @@
     <a href=".">Reload</a>
     <span class="dismiss">&#128473;</span>
 </div>
+
+@code {
+    private bool isSignedIn;
+    private int draftsAwaitingReview;
+
+    // The bell loads the counts; the menu shows how many drafts wait.
+    private void OnCountLoaded(UnreadCountDto count) => draftsAwaitingReview = count.DraftsAwaitingReview;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        isSignedIn = state.User.Identity?.IsAuthenticated ?? false;
+    }
+}

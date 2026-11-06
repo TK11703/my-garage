@@ -1,7 +1,19 @@
 SELECT v.id, v.year, v.make, v.model,
        GREATEST(lr.odometer_reading, v.latest_odometer_reading, v.mileage) AS mileage,
        mi.id AS main_image_id,
-       ft.name AS fuel_type_name, tr.name AS transmission_name, v.ownership, v.purchased_on
+       ft.name AS fuel_type_name, tr.name AS transmission_name, v.ownership, v.purchased_on,
+       -- The other fields the search text was found in (name parts are already shown), for the search results page.
+       CASE WHEN @Pattern::text IS NULL THEN '[]' ELSE (
+           SELECT COALESCE(jsonb_agg(jsonb_build_object('field', m.field, 'text', m.text) ORDER BY m.ord), '[]'::jsonb)::text
+           FROM (
+               SELECT 1 AS ord, 'Trim'::text AS field, v.trim::text AS text WHERE v.trim ILIKE @Pattern ESCAPE '\'
+               UNION ALL SELECT 2, 'Color', v.color::text WHERE v.color ILIKE @Pattern ESCAPE '\'
+               UNION ALL SELECT 3, 'VIN', v.vin::text WHERE v.vin ILIKE @Pattern ESCAPE '\'
+               UNION ALL SELECT 4, 'Engine', v.engine::text WHERE v.engine ILIKE @Pattern ESCAPE '\'
+               UNION ALL SELECT 5, 'Feature', f.name::text
+                         FROM vehicle_tags t JOIN features f ON f.id = t.feature_id
+                         WHERE t.vehicle_id = v.id AND f.name ILIKE @Pattern ESCAPE '\'
+           ) m) END AS matches_json
 FROM vehicles v
 LEFT JOIN lookup_items ft ON ft.id = v.fuel_type_id
 LEFT JOIN lookup_items tr ON tr.id = v.transmission_id

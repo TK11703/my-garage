@@ -98,8 +98,8 @@ public sealed record VehicleListCriteria
         return string.Join('&', parts);
     }
 
-    // Link to the garage with these criteria and the first page.
-    public string ToHref() => ToQueryString() is { Length: > 0 } query ? $"/vehicles?{query}" : "/vehicles";
+    // Link to the search page with these criteria and the first page.
+    public string ToHref() => ToQueryString() is { Length: > 0 } query ? $"/search?{query}" : "/search";
 
     // One removable badge per active criterion; Without() gives the criteria with that one cleared.
     // Lookup choices are named from the user's own filter options and never shown as identifiers.
@@ -189,6 +189,9 @@ public sealed record VehicleListCriteria
             "drivetrainId" => this with { DrivetrainId = null },
             _ => this,
         };
+
+    // Only the search text survives; every filter is cleared.
+    public VehicleListCriteria WithoutFilters() => None with { Query = Query };
 
     private static string NameOf(IReadOnlyList<LookupValueDto>? choices, Guid id) =>
         choices?.FirstOrDefault(choice => choice.Id == id)?.Name ?? "selected";

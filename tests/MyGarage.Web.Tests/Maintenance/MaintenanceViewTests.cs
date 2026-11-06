@@ -37,7 +37,7 @@ public class MaintenanceViewTests : VehicleTestContext
             Assert.Equal(4, buttons.Count);
             Assert.StartsWith("Service Records", buttons[0].TextContent.Trim());
             Assert.StartsWith("Charging and Fueling", buttons[1].TextContent.Trim());
-            Assert.StartsWith("Inspections, Registrations, Insurance, and Taxes", buttons[2].TextContent.Trim());
+            Assert.StartsWith("Compliance", buttons[2].TextContent.Trim());
             Assert.StartsWith("Documents", buttons[3].TextContent.Trim());
             Assert.NotNull(cut.Find("[data-testid='accordion-service-records']"));
             Assert.NotNull(cut.Find("[data-testid='accordion-fuel']"));
@@ -121,7 +121,7 @@ public class MaintenanceViewTests : VehicleTestContext
     }
 
     [Fact]
-    public void NoRecords_ShowsTheEmptyStateAndAnAddAction()
+    public void NoRecords_ShowsTheEmptyState()
     {
         ServiceRecords = ServiceRecordsPage([]);
 
@@ -130,18 +130,15 @@ public class MaintenanceViewTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             Assert.Contains("No service records yet", cut.Markup);
-            var add = cut.Find("[data-testid='add-service-record']");
-            Assert.Equal($"/vehicles/{vehicleId}/service-records/new", add.GetAttribute("href"));
-            Assert.Equal("Add service record", add.TextContent.Trim());
             Assert.Empty(cut.FindAll("[data-testid='service-record']"));
         });
     }
 
     [Theory]
-    [InlineData("accordion-service-records", "Add to Service Records", "add-service-record")]
-    [InlineData("accordion-fuel", "Add to Charging and Fueling", "add-fuel,add-charge")]
-    [InlineData("accordion-compliance", "Add to Inspections, Registrations, Insurance, and Taxes", "add-inspection,add-registration,add-insurance,add-tax")]
-    public void TheAddActions_LiveInAPlusDropdownOnTheAccordionHeader(string item, string label, string testIds)
+    [InlineData("accordion-service-records")]
+    [InlineData("accordion-fuel")]
+    [InlineData("accordion-compliance")]
+    public void TheAccordionItemsHaveNoAddActions_TheyLiveInTheVehiclePageBar(string item)
     {
         ServiceRecords = ServiceRecordsPage([]);
 
@@ -149,14 +146,10 @@ public class MaintenanceViewTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            var menu = cut.Find($"[data-testid='{item}'] > .mg-accordion-add");
-            var toggle = menu.QuerySelector("button[data-bs-toggle='dropdown']")!;
-            Assert.Equal(label, toggle.GetAttribute("aria-label"));
-            Assert.Equal("false", toggle.GetAttribute("aria-expanded"));
-            Assert.NotNull(toggle.QuerySelector("svg.bi"));
-            Assert.Equal(testIds.Split(','), menu.QuerySelectorAll(".dropdown-menu a.dropdown-item").Select(link => link.GetAttribute("data-testid")));
-            Assert.Empty(cut.FindAll($"[data-testid='{item}'] .accordion-body [data-testid^='add-']"));
-            Assert.Empty(cut.FindAll($"[data-testid='{item}'] .accordion-header [data-testid^='add-']"));
+            Assert.NotNull(cut.Find($"[data-testid='{item}']"));
+            Assert.Empty(cut.FindAll($"[data-testid='{item}'] [data-testid^='add-']"));
+            Assert.Empty(cut.FindAll($"[data-testid='{item}'] .mg-accordion-add"));
+            Assert.Empty(cut.FindAll($"[data-testid='{item}'] button[data-bs-toggle='dropdown']"));
         });
     }
 
@@ -295,7 +288,7 @@ public class MaintenanceViewTests : VehicleTestContext
     }
 
     [Fact]
-    public void ApiFailure_ShowsAnAlertAndTheAddActionStaysAvailable()
+    public void ApiFailure_ShowsAnAlert()
     {
         ServiceRecordsFailure = HttpStatusCode.InternalServerError;
 
@@ -305,7 +298,6 @@ public class MaintenanceViewTests : VehicleTestContext
         {
             Assert.NotNull(cut.Find("[role='alert']"));
             Assert.Empty(cut.FindAll("[data-testid='service-record']"));
-            Assert.NotNull(cut.Find("[data-testid='add-service-record']"));
         });
     }
 

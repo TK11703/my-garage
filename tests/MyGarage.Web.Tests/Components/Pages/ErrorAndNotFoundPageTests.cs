@@ -24,9 +24,13 @@ public class ErrorAndNotFoundPageTests : IClassFixture<WebAppFactory>
         var html = await GetHtmlAsync("/this-page-does-not-exist");
 
         Assert.Single(Regex.Matches(html, "<h1[ >]"));
-        Assert.Contains("Page not found</h1>", html);
+        Assert.Contains("404 Error</h1>", html);
+        Assert.Contains("PAGE NOT FOUND", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("wrong turn", html);
+        Assert.Contains("data-testid=\"return-home\"", html);
+        Assert.Matches("class=\"btn btn-outline-primary[^\"]*\"[^>]*data-testid=\"return-home\"", html);
+        Assert.Contains("Return Home", html);
         Assert.Contains("aria-label=\"Breadcrumb\"", html);
-        Assert.Contains("Not found", html);
         Assert.Contains("href=\"#main-content\"", html);
         Assert.Contains("aria-label=\"Main\"", html);
     }

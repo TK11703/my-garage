@@ -13,7 +13,7 @@ public class SignedOutPageTests : BunitContext
         Assert.Single(cut.FindAll("h1"));
         Assert.Equal("You have been signed out", cut.Find("h1").TextContent);
         var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-        Assert.Equal(["Home", "Signed out"], items.Select(item => item.TextContent.Trim()));
+        Assert.Equal(["Home"], items.Select(item => item.TextContent.Trim()));
     }
 
     [Fact]

@@ -58,6 +58,29 @@ public class SharedHeadTests : IClassFixture<WebAppFactory>
     {
         var html = await GetSignedOutPageAsync();
 
-        Assert.Matches("<meta[^>]*name=\"theme-color\"[^>]*content=\"#0F2A43\"", html);
+        Assert.Matches("<meta[^>]*name=\"theme-color\"[^>]*content=\"#1976D2\"", html);
+    }
+
+    [Fact]
+    public async Task Head_AppliesTheSavedThemeBeforeTheStylesheetsAreUsed_AndTheShellScriptLoadsDeferred()
+    {
+        var html = await GetSignedOutPageAsync();
+
+        var init = Regex.Match(html, "<script[^>]*theme-init[^>]*>", RegexOptions.IgnoreCase);
+        Assert.True(init.Success, "No theme-init script found.");
+        Assert.DoesNotContain("defer", init.Value);
+        Assert.DoesNotContain("async", init.Value);
+        Assert.True(init.Index < html.IndexOf("</head>", StringComparison.Ordinal), "theme-init must be in the head.");
+
+        var shell = Regex.Match(html, "<script[^>]*app-shell[^>]*>", RegexOptions.IgnoreCase);
+        Assert.True(shell.Success, "No app-shell script found.");
+        Assert.Contains("defer", shell.Value);
+
+        foreach (var tag in new[] { init.Value, shell.Value })
+        {
+            var src = Regex.Match(tag, "src=\"([^\"]+)\"").Groups[1].Value;
+            var response = await factory.CreateClient().GetAsync(src.StartsWith('/') ? src : "/" + src);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
     }
 }

@@ -104,8 +104,8 @@ public class FuelEnergyEntryCreatePageTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-            Assert.Equal(["Home", "Vehicles", "2020 Ford F-150", "Add charge"], items.Select(item => item.TextContent.Trim()));
-            Assert.Equal($"/vehicles/{vehicleId}?tab=service-records&section=fuel", items[2].QuerySelector("a")!.GetAttribute("href"));
+            Assert.Equal(["Home", "Garage", "Vehicles", "2020 Ford F-150"], items.Select(item => item.TextContent.Trim()));
+            Assert.Equal($"/vehicles/{vehicleId}?tab=service-records&section=fuel", items[3].QuerySelector("a")!.GetAttribute("href"));
             Assert.Equal($"/vehicles/{vehicleId}?tab=service-records&section=fuel", cut.Find("a.btn-outline-secondary").GetAttribute("href"));
         });
     }
@@ -213,7 +213,7 @@ public class FuelEnergyEntryEditPageTests : VehicleTestContext
             Assert.Equal("energy", cut.Find("input[type='hidden']").GetAttribute("value"));
             Assert.Equal("Price per kWh", cut.Find("label[for='unit-price']").TextContent.Replace("*", string.Empty).Trim());
             var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-            Assert.Equal(["Home", "Vehicles", "2020 Ford F-150", "Edit charge"], items.Select(item => item.TextContent.Trim()));
+            Assert.Equal(["Home", "Garage", "Vehicles", "2020 Ford F-150"], items.Select(item => item.TextContent.Trim()));
         });
     }
 

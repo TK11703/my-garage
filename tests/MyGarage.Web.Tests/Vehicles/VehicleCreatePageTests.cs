@@ -17,9 +17,8 @@ public class VehicleCreatePageTests : VehicleTestContext
         Assert.Single(cut.FindAll("h1"));
         Assert.Equal("Add Vehicle", cut.Find("h1").TextContent);
         var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-        Assert.Equal(["Home", "Vehicles", "New vehicle"], items.Select(item => item.TextContent.Trim()));
-        Assert.Equal("/vehicles", items[1].QuerySelector("a")!.GetAttribute("href"));
-        Assert.Equal("page", items[2].GetAttribute("aria-current"));
+        Assert.Equal(["Home", "Garage", "Vehicles"], items.Select(item => item.TextContent.Trim()));
+        Assert.Equal("/vehicles", items[2].QuerySelector("a")!.GetAttribute("href"));
     }
 
     [Fact]

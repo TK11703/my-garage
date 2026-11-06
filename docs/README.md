@@ -6,7 +6,8 @@ Keep documentation current as implementation and workflows evolve.
 
 ## Contents
 
-- [UI standard](ui-standard.md): logo, palette, page frame, breadcrumb and title rules, and component patterns for every page, including the notifications menu, the email drafts pages, and the compatibility panel.
+- [UI standard](ui-standard.md): logo, palette and light/dark themes, page frame (top bar, left menu, page bar), breadcrumb and title rules, and component patterns for every page, including the notifications menu, the email drafts pages, and the compatibility panel.
+- [Theme preview](theme-preview.html): open in a browser to see the light and dark themes, the page frame at desktop, tablet, and phone widths, color swatches, and sample cards, tabs, accordions, and forms. It loads the web application's own stylesheet.
 
 ## Features
 

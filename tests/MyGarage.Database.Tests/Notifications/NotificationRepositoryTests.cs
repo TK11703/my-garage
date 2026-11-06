@@ -114,6 +114,37 @@ public class NotificationRepositoryTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task Delete_RemovesOnlyTheOwnersNotification()
+    {
+        var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        var repository = new NotificationRepository(dataSource, new SqlScriptStore());
+        var mine = await EmailIntakeTestData.InsertNotificationAsync(dataSource, "owner-a");
+        var theirs = await EmailIntakeTestData.InsertNotificationAsync(dataSource, "owner-b");
+
+        Assert.True(await repository.DeleteAsync("owner-a", mine, CancellationToken.None));
+        Assert.False(await repository.DeleteAsync("owner-a", mine, CancellationToken.None));
+        Assert.False(await repository.DeleteAsync("owner-a", theirs, CancellationToken.None));
+
+        Assert.Empty(await repository.ListAsync("owner-a", false, 5, CancellationToken.None));
+        Assert.Single(await repository.ListAsync("owner-b", false, 5, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task DeleteRead_RemovesOnlyTheOwnersReadRows()
+    {
+        var dataSource = await postgres.CreateMigratedDatabaseAsync();
+        var repository = new NotificationRepository(dataSource, new SqlScriptStore());
+        await EmailIntakeTestData.InsertNotificationAsync(dataSource, "owner-a", readAt: Now);
+        var unread = await EmailIntakeTestData.InsertNotificationAsync(dataSource, "owner-a");
+        var theirs = await EmailIntakeTestData.InsertNotificationAsync(dataSource, "owner-b", readAt: Now);
+
+        await repository.DeleteReadAsync("owner-a", CancellationToken.None);
+
+        Assert.Equal([unread], (await repository.ListAsync("owner-a", false, 5, CancellationToken.None)).Select(item => item.Id));
+        Assert.Equal([theirs], (await repository.ListAsync("owner-b", false, 5, CancellationToken.None)).Select(item => item.Id));
+    }
+
+    [Fact]
     public async Task MarkReadForDraft_ReadsTheDraftsNotificationOfThatOwnerOnly()
     {
         var dataSource = await postgres.CreateMigratedDatabaseAsync();

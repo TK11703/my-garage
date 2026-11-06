@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Garage theme preview</title>
+    <!-- Uses the application's own stylesheet and scripts, so this page cannot drift from the real look. Open it straight from disk. -->
+    <link rel="stylesheet" href="../src/MyGarage.Web/wwwroot/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../src/MyGarage.Web/wwwroot/app.css" />
+    <script src="../src/MyGarage.Web/wwwroot/js/theme-init.js"></script>
+    <style>
+        /* Preview-only layout; nothing here ships with the application. */
+        body { padding-top: 0; }
+        .pv-wrap { max-width: 1320px; margin: 0 auto; padding: 1.5rem; }
+        .pv-intro { padding: 1.5rem 0 1rem; }
+        .pv-section { margin-top: 3rem; }
+        .pv-section > h2 { font-size: 1.25rem; font-weight: 600; }
+        .pv-lead { color: var(--bs-secondary-color); max-width: 60rem; }
+        .pv-nav a { margin-right: 1rem; white-space: nowrap; }
+
+        /* Shell mock: the transform makes the real fixed navbar and sidebar position inside the frame instead of the window. */
+        .pv-frame { position: relative; height: 780px; overflow: hidden; transform: translateZ(0); border: 1px solid var(--bs-border-color); border-radius: .75rem; background: var(--mg-page-bg); }
+        .pv-scroll { height: calc(100% - var(--mg-navbar-height)); margin-top: var(--mg-navbar-height); overflow: auto; }
+        .pv-frame .mg-pagebar { top: 0; }
+        .pv-frame .mg-content { min-height: 0; }
+
+        .pv-pane { padding: 1.5rem; background: var(--mg-page-bg); color: var(--bs-body-color); border: 1px solid var(--bs-border-color); border-radius: .75rem; }
+        .pv-pane-title { font-size: .75rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--bs-secondary-color); margin-bottom: 1rem; }
+
+        .pv-token { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); gap: .75rem; align-items: center; padding: .5rem 0; border-bottom: 1px solid var(--bs-border-color); }
+        .pv-token:last-child { border-bottom: 0; }
+        .pv-chip-cell { display: flex; align-items: center; gap: .75rem; padding: .5rem .75rem; border-radius: .5rem; background: var(--mg-page-bg); color: var(--bs-body-color); border: 1px solid var(--bs-border-color); }
+        .pv-chip { flex: 0 0 auto; width: 2.5rem; height: 2.5rem; border-radius: .5rem; border: 1px solid rgba(128, 128, 128, .35); }
+        .pv-hex { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .8125rem; }
+        .pv-var { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .75rem; color: var(--bs-secondary-color); }
+        .pv-token-head { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); gap: .75rem; font-size: .75rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--bs-secondary-color); padding-bottom: .5rem; border-bottom: 1px solid var(--bs-border-color); }
+
+        .pv-stat-value { font-size: 1.75rem; font-weight: 600; line-height: 1.1; }
+        .pv-device { border: 1px solid var(--bs-border-color); border-radius: .75rem; background: var(--bs-body-bg); max-width: 100%; }
+
+        /* Shown only when this page is loaded inside the responsive frames below. */
+        html.pv-shell-only body > .pv-wrap > :not(#shell) { display: none; }
+        html.pv-shell-only .pv-wrap { padding: 0; max-width: none; }
+        html.pv-shell-only #shell > :not(.pv-frame) { display: none; }
+        html.pv-shell-only #shell { margin: 0; }
+        html.pv-shell-only .pv-frame { height: 100vh; border: 0; border-radius: 0; }
+        @media (max-width: 991.98px) { .pv-token, .pv-token-head { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="pv-wrap">
+
+    <header class="pv-intro">
+        <h1 class="h3 mb-1">My Garage theme preview</h1>
+        <p class="pv-lead mb-3">The light and dark themes, the page frame, and the shared components. This page loads the web application's real <code>app.css</code>, <code>theme-init.js</code>, and <code>app-shell.js</code>, so it always shows what the application shows. Use the moon or sun button in the sample bar to switch the whole page; the choice is kept only in this browser.</p>
+        <nav class="pv-nav" aria-label="Sections">
+            <a href="#shell">Page frame</a><a href="#responsive">Responsive menu</a><a href="#themes">Light and dark</a><a href="#swatches">Color swatches</a><a href="#components">Components</a>
+        </nav>
+    </header>
+
+    <!-- ===================== Page frame ===================== -->
+    <section class="pv-section" id="shell">
+        <h2>Page frame</h2>
+        <p class="pv-lead">A fixed blue bar across the top, a fixed dark-grey menu down the left, and a scrollable content area with its own pinned page bar (title, then breadcrumb, then page actions). Scroll the content to see the page bar stay put.</p>
+
+        <div class="pv-frame">
+            <header>
+                <nav class="navbar navbar-dark fixed-top mg-navbar" aria-label="Main">
+                    <div class="container-fluid gap-2">
+                        <div class="d-flex align-items-center gap-1 mg-navbar-start">
+                            <button type="button" class="btn mg-nav-btn d-md-none" aria-label="Open menu" aria-controls="mg-sidebar" aria-expanded="false" data-mg-sidebar-toggle><i data-icon="List" data-size="24"></i></button>
+                            <a class="navbar-brand d-flex align-items-center gap-2" href="#shell">
+                                <img src="../src/MyGarage.Web/wwwroot/images/logo-mark-on-dark.svg" alt="" width="32" height="32" />
+                                <span>My Garage</span>
+                            </a>
+                        </div>
+                        <div class="collapse d-md-block mg-search" id="pv-search">
+                            <form role="search" onsubmit="return false">
+                                <div class="mg-search-field">
+                                    <button type="submit" class="mg-search-submit" aria-label="Search"><i data-icon="Search" data-size="18"></i></button>
+                                    <input type="search" class="form-control" placeholder="Search vehicles" aria-label="Search vehicles" />
+                                </div>
+                            </form>
+                        </div>
+                        <div class="d-flex align-items-center gap-1 ms-auto">
+                            <button type="button" class="btn mg-nav-btn d-md-none" aria-label="Toggle search" data-bs-toggle="collapse" data-bs-target="#pv-search" aria-controls="pv-search" aria-expanded="false"><i data-icon="Search" data-size="20"></i></button>
+                            <div class="dropdown">
+                                <button type="button" class="btn mg-nav-btn position-relative" aria-label="Notifications, 3 unread" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i data-icon="Bell" data-size="20"></i>
+                                    <span class="mg-nav-dot" aria-hidden="true"></span>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end p-3 mg-menu">
+                                    <ul class="list-unstyled vstack gap-2 mb-0">
+                                        <li><a class="d-block text-decoration-none text-reset" href="#shell"><span class="fw-semibold">Draft ready to review</span><span class="d-block small text-body-secondary">5 minutes ago</span></a></li>
+                                        <li><a class="d-block text-decoration-none text-reset" href="#shell"><span>Registration reminder</span><span class="d-block small text-body-secondary">2 days ago</span></a></li>
+                                    </ul>
+                                    <hr class="dropdown-divider" />
+                                    <button type="button" class="btn btn-link btn-sm p-0">Mark all as read</button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn mg-nav-btn mg-theme-toggle" aria-label="Dark mode" aria-pressed="false" title="Switch between light and dark" data-mg-theme-toggle>
+                                <span class="mg-theme-icon-moon"><i data-icon="MoonStars" data-size="20"></i></span>
+                                <span class="mg-theme-icon-sun"><i data-icon="Sun" data-size="20"></i></span>
+                            </button>
+                        </div>
+                    </div>
+                </nav>
+            </header>
+
+            <div class="mg-sidebar-backdrop" data-mg-sidebar-close></div>
+            <aside id="mg-sidebar" class="mg-sidebar" aria-label="Site menu">
+                <div class="dropdown mg-profile">
+                    <button type="button" class="mg-profile-btn" aria-label="Account menu for Ada Lovelace" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="mg-avatar mg-avatar-lg" aria-hidden="true">AL</span>
+                        <span class="mg-profile-text">
+                            <span class="mg-profile-name text-truncate">Ada Lovelace</span>
+                            <span class="mg-profile-email text-truncate">ada@example.com</span>
+                        </span>
+                        <span class="mg-profile-chevron" aria-hidden="true"><i data-icon="ChevronDown" data-size="14"></i></span>
+                    </button>
+                    <ul class="dropdown-menu mg-menu mg-profile-menu" data-bs-theme="dark">
+                        <li><a class="dropdown-item d-flex align-items-center gap-2" href="#shell"><i data-icon="Sliders"></i> Preferences</a></li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li><button type="button" class="dropdown-item d-flex align-items-center gap-2"><i data-icon="BoxArrowRight"></i> Sign out</button></li>
+                    </ul>
+                </div>
+                <nav class="mg-sidebar-nav" aria-label="Primary">
+                    <span class="mg-nav-heading" id="pv-g1">Garage</span>
+                    <ul class="mg-nav-list" aria-labelledby="pv-g1">
+                        <li><a class="mg-nav-link" href="#shell" title="Home"><i data-icon="HouseDoor" data-size="18"></i><span class="mg-nav-label">Home</span></a></li>
+                        <li><a class="mg-nav-link active" href="#shell" title="My Vehicles" aria-current="page"><i data-icon="CarFront" data-size="18"></i><span class="mg-nav-label">My Vehicles</span></a></li>
+                        <li><a class="mg-nav-link" href="#shell" title="Add Vehicle"><i data-icon="PlusCircle" data-size="18"></i><span class="mg-nav-label">Add Vehicle</span></a></li>
+                    </ul>
+                    <span class="mg-nav-heading" id="pv-g2">Maintenance</span>
+                    <ul class="mg-nav-list" aria-labelledby="pv-g2">
+                        <li><a class="mg-nav-link" href="#shell" title="Maintenance Drafts"><i data-icon="Inbox" data-size="18"></i><span class="mg-nav-label">Maintenance Drafts</span><span class="badge rounded-pill text-bg-warning ms-auto mg-nav-badge" aria-hidden="true">2</span></a></li>
+                        <li><a class="mg-nav-link" href="#shell" title="Add Maintenance"><i data-icon="CloudUpload" data-size="18"></i><span class="mg-nav-label">Add Maintenance</span></a></li>
+                    </ul>
+                    <span class="mg-nav-heading" id="pv-g3">Help</span>
+                    <ul class="mg-nav-list" aria-labelledby="pv-g3">
+                        <li><a class="mg-nav-link" href="#shell" title="FAQ"><i data-icon="QuestionCircle" data-size="18"></i><span class="mg-nav-label">FAQ</span></a></li>
+                        <li><a class="mg-nav-link" href="#shell" title="About"><i data-icon="InfoCircle" data-size="18"></i><span class="mg-nav-label">About</span></a></li>
+                    </ul>
+                </nav>
+            </aside>
+
+            <div class="pv-scroll">
+                <main class="mg-content mg-content-with-sidebar">
+                    <div class="mg-pagebar">
+                        <div class="mg-pagebar-heading">
+                            <h2 class="mg-pagebar-title">My Vehicles</h2>
+                            <nav aria-label="Breadcrumb" class="mg-pagebar-trail">
+                                <ol class="breadcrumb mb-0"><li class="breadcrumb-item"><span class="mg-crumb text-truncate d-inline-block"><a href="#shell">Home</a></span></li><li class="breadcrumb-item"><span class="mg-crumb text-truncate d-inline-block">Garage</span></li></ol>
+                            </nav>
+                        </div>
+                        <div class="mg-pagebar-actions">
+                            <div class="dropdown">
+                                <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" data-bs-toggle="dropdown" aria-expanded="false"><i data-icon="Plus"></i> Add <i data-icon="ChevronDown" data-size="12"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end mg-menu">
+                                    <li><h6 class="dropdown-header">Service</h6></li>
+                                    <li><a class="dropdown-item" href="#shell">Add service record</a></li>
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li><h6 class="dropdown-header">Charging and fueling</h6></li>
+                                    <li><a class="dropdown-item" href="#shell">Add fuel</a></li>
+                                    <li><a class="dropdown-item" href="#shell">Add charge</a></li>
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li><h6 class="dropdown-header">Compliance</h6></li>
+                                    <li><a class="dropdown-item" href="#shell">Add inspection</a></li>
+                                    <li><a class="dropdown-item" href="#shell">Add registration</a></li>
+                                    <li><a class="dropdown-item" href="#shell">Add insurance</a></li>
+                                    <li><a class="dropdown-item" href="#shell">Add tax</a></li>
+                                </ul>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary">Filters</button>
+                            <button type="button" class="btn btn-primary">Add vehicle</button>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-6 col-xl-3"><div class="card"><div class="card-body"><div class="pv-stat-value text-primary-emphasis">4</div><div class="text-body-secondary small">Vehicles</div></div></div></div>
+                        <div class="col-6 col-xl-3"><div class="card"><div class="card-body"><div class="pv-stat-value text-success">12</div><div class="text-body-secondary small">Service records</div></div></div></div>
+                        <div class="col-6 col-xl-3"><div class="card"><div class="card-body"><div class="pv-stat-value text-warning-emphasis">2</div><div class="text-body-secondary small">Drafts to review</div></div></div></div>
+                        <div class="col-6 col-xl-3"><div class="card"><div class="card-body"><div class="pv-stat-value text-danger">1</div><div class="text-body-secondary small">Registration due</div></div></div></div>
+                    </div>
+
+                    <ul class="nav mg-tabs mb-3" role="tablist">
+                        <li class="nav-item" role="presentation"><button type="button" class="nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#pv-f-details" aria-selected="true"><i data-icon="Sliders"></i><span>Details</span></button></li>
+                        <li class="nav-item" role="presentation"><button type="button" class="nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#pv-f-media" aria-selected="false"><i data-icon="Image"></i><span>Media</span></button></li>
+                        <li class="nav-item" role="presentation"><button type="button" class="nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#pv-f-maint" aria-selected="false"><i data-icon="Wrench"></i><span>Maintenance</span></button></li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="pv-f-details" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-lg-6">
+                                    <div class="card h-100">
+                                        <div class="card-header">Basic<span class="mg-card-subtitle">Year, make, model, and ownership</span></div>
+                                        <div class="card-body"><dl class="row mb-0"><dt class="col-5 text-body-secondary fw-normal">Year</dt><dd class="col-7">2020</dd><dt class="col-5 text-body-secondary fw-normal">Make</dt><dd class="col-7">Ford</dd><dt class="col-5 text-body-secondary fw-normal">Model</dt><dd class="col-7">F-150</dd><dt class="col-5 text-body-secondary fw-normal">Purchased</dt><dd class="col-7 mb-0">Mar 14, 2022</dd></dl></div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="card h-100">
+                                        <div class="card-header">Specifications<span class="mg-card-subtitle">Engine, drivetrain, and sizes</span></div>
+                                        <div class="card-body"><dl class="row mb-0"><dt class="col-5 text-body-secondary fw-normal">Engine</dt><dd class="col-7">3.5L V6 EcoBoost</dd><dt class="col-5 text-body-secondary fw-normal">Drivetrain</dt><dd class="col-7">4WD</dd><dt class="col-5 text-body-secondary fw-normal">Fuel type</dt><dd class="col-7">Gasoline</dd><dt class="col-5 text-body-secondary fw-normal">Tire size</dt><dd class="col-7 mb-0">275/65R18</dd></dl></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="pv-f-media" role="tabpanel"><div class="card"><div class="card-header">Uploaded Images (0)</div><div class="card-body text-body-secondary">No pictures yet.</div></div></div>
+                        <div class="tab-pane fade" id="pv-f-maint" role="tabpanel"><div class="card"><div class="card-header">Service Records (3)</div><div class="card-body text-body-secondary">Oil change, tire rotation, brake service.</div></div></div>
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-header">Recent Journal Entries</div>
+                        <div class="card-body">
+                            <ol class="mg-timeline">
+                                <li class="mg-timeline-item"><span class="mg-timeline-marker"></span><span class="mg-timeline-time">2026-11-02 14:05:00 UTC</span><strong>Note</strong> Replaced the cabin air filter.</li>
+                                <li class="mg-timeline-item"><span class="mg-timeline-marker"></span><span class="mg-timeline-time">2026-10-12 09:30:00 UTC</span><strong>Service</strong> Oil change at 52,400 miles.</li>
+                                <li class="mg-timeline-item"><span class="mg-timeline-marker"></span><span class="mg-timeline-time">2026-09-01 18:10:00 UTC</span><strong>Note</strong> New wiper blades.</li>
+                            </ol>
+                        </div>
+                    </div>
+                    <div class="card mt-3"><div class="card-header">More content</div><div class="card-body" style="min-height: 18rem;">Scroll this area: the page bar above stays pinned under the blue bar, and the menu never moves.</div></div>
+                </main>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== Responsive ===================== -->
+    <section class="pv-section" id="responsive">
+        <h2>Responsive menu</h2>
+        <p class="pv-lead">Wide screens (1200 px and up) show the full menu. From 768 px to 1199 px the menu shrinks to a rail of icons (names appear as tooltips and stay available to screen readers). Under 768 px the menu is hidden behind the hamburger button and slides over the page. These two frames load this page at those widths.</p>
+        <div class="row g-4">
+            <div class="col-auto">
+                <div class="pv-pane-title">Tablet, 1000 px: icon rail</div>
+                <iframe class="pv-device" title="Tablet layout" src="theme-preview.html#shell-only" width="1000" height="560"></iframe>
+            </div>
+            <div class="col-auto">
+                <div class="pv-pane-title">Phone, 390 px: hamburger</div>
+                <iframe class="pv-device" title="Phone layout" src="theme-preview.html#shell-only" width="390" height="560"></iframe>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== Light and dark ===================== -->
+    <section class="pv-section" id="themes">
+        <h2>Light and dark</h2>
+        <p class="pv-lead">Both themes side by side, whichever one the page is showing. Content sits on a grey page color so cards, forms, and tables can be white (light) or a raised charcoal (dark).</p>
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="pv-pane" data-bs-theme="light">
+                    <div class="pv-pane-title">Light</div>
+                    <div data-theme-sample></div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="pv-pane" data-bs-theme="dark">
+                    <div class="pv-pane-title">Dark</div>
+                    <div data-theme-sample></div>
+                </div>
+            </div>
+        </div>
+
+        <template id="pv-sample">
+            <div class="card mb-3">
+                <div class="card-header">Card title<span class="mg-card-subtitle">A muted line explaining the card</span></div>
+                <div class="card-body">
+                    <p>Body text on the surface color, with a <a href="#themes">link</a> and <span class="text-body-secondary">secondary text</span>.</p>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <button type="button" class="btn btn-primary">Primary</button>
+                        <button type="button" class="btn btn-outline-primary">Outline</button>
+                        <button type="button" class="btn btn-outline-secondary">Secondary</button>
+                        <button type="button" class="btn btn-outline-danger">Delete</button>
+                    </div>
+                    <div class="form-floating mb-3"><input type="text" class="form-control" placeholder="Make" value="Ford" /><label>Make</label></div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge text-bg-primary">Primary</span><span class="badge text-bg-success">Success</span><span class="badge text-bg-warning">Warning</span><span class="badge text-bg-danger">Danger</span><span class="badge text-bg-info">Info</span><span class="badge text-bg-secondary">Secondary</span>
+                    </div>
+                </div>
+                <div class="card-footer d-flex gap-2"><button type="button" class="btn btn-primary btn-sm">Save</button><button type="button" class="btn btn-outline-secondary btn-sm">Cancel</button></div>
+            </div>
+            <ul class="nav mg-tabs mb-3" role="tablist"><li class="nav-item"><span class="nav-link active">Details</span></li><li class="nav-item"><span class="nav-link">Media</span></li><li class="nav-item"><span class="nav-link">Maintenance</span></li></ul>
+            <div class="alert alert-primary mb-2" role="status">A simple primary alert, check it out!</div>
+            <div class="alert alert-success mb-2" role="status">A simple success alert, check it out!</div>
+            <div class="alert alert-warning mb-2" role="alert">A simple warning alert, check it out!</div>
+            <div class="alert alert-danger mb-0" role="alert">A simple danger alert, check it out!</div>
+        </template>
+    </section>
+
+    <!-- ===================== Swatches ===================== -->
+    <section class="pv-section" id="swatches">
+        <h2>Color swatches</h2>
+        <p class="pv-lead">Every color is a CSS variable in <code>app.css</code>. A <code>data-bs-theme</code> attribute on any element switches that subtree, which is how both themes show here at once. Text on the blue bar and the dark menu meets WCAG AA (4.5:1).</p>
+        <div class="card">
+            <div class="card-body">
+                <div class="pv-token-head"><span>Token</span><span>Light</span><span>Dark</span></div>
+                <div id="pv-tokens"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== Components ===================== -->
+    <section class="pv-section" id="components">
+        <h2>Components</h2>
+        <p class="pv-lead">Cards, tabs, and accordions follow the reference admin template: soft rounded white surfaces on a grey page, header with a muted subtitle, underline tabs, and bordered accordion blocks.</p>
+
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <h3 class="h6 text-body-secondary text-uppercase">Buttons</h3>
+                <div class="card mb-4"><div class="card-body d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-primary">Default</button>
+                    <button type="button" class="btn btn-outline-secondary">Outline</button>
+                    <button type="button" class="btn btn-danger">Destructive</button>
+                    <button type="button" class="btn btn-outline-danger">Delete</button>
+                    <button type="button" class="btn btn-outline-primary">Highlight</button>
+                    <button type="button" class="btn">Ghost</button>
+                    <button type="button" class="btn btn-link">Link</button>
+                    <button type="button" class="btn btn-primary" disabled>Disabled</button>
+                    <button type="button" class="btn btn-primary btn-sm">Small</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1"><i data-icon="Pencil"></i> Edit</button>
+                </div></div>
+
+                <h3 class="h6 text-body-secondary text-uppercase">Card with header actions and footer</h3>
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-start gap-3">
+                        <div>Sprint-style card<span class="mg-card-subtitle">Muted line under the title</span></div>
+                        <div class="d-flex gap-1">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" aria-label="About this card"><i data-icon="InfoCircle"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" aria-label="Card options"><i data-icon="Sliders"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-1"><span>Oil life</span><span class="text-body-secondary">72%</span></div>
+                        <div class="progress mb-3" role="progressbar" aria-label="Oil life" aria-valuenow="72" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar" style="width: 72%"></div></div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between px-0"><span>Oil change<br /><small class="text-body-secondary">Oct 12, 2026 &middot; 52,400 mi</small></span><span class="fw-semibold">$84.50</span></li>
+                            <li class="list-group-item d-flex justify-content-between px-0"><span>Tire rotation<br /><small class="text-body-secondary">Aug 3, 2026 &middot; 49,900 mi</small></span><span class="fw-semibold">$30.00</span></li>
+                        </ul>
+                    </div>
+                    <div class="card-footer d-flex justify-content-between align-items-center"><span class="text-body-secondary small">Showing 1 to 2 of 12 entries</span>
+                        <ul class="pagination pagination-sm mb-0"><li class="page-item disabled"><span class="page-link">Previous</span></li><li class="page-item active"><span class="page-link">1</span></li><li class="page-item"><a class="page-link" href="#components">2</a></li><li class="page-item"><a class="page-link" href="#components">Next</a></li></ul>
+                    </div>
+                </div>
+
+                <h3 class="h6 text-body-secondary text-uppercase">Tabs</h3>
+                <ul class="nav mg-tabs mb-3" role="tablist">
+                    <li class="nav-item" role="presentation"><button type="button" class="nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#pv-t1" aria-selected="true"><i data-icon="Sliders"></i><span>Account</span></button></li>
+                    <li class="nav-item" role="presentation"><button type="button" class="nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#pv-t2" aria-selected="false"><i data-icon="Wrench"></i><span>Maintenance</span></button></li>
+                    <li class="nav-item" role="presentation"><button type="button" class="nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#pv-t3" aria-selected="false"><i data-icon="FileText"></i><span>Description</span></button></li>
+                </ul>
+                <div class="tab-content mb-4">
+                    <div class="tab-pane fade show active" id="pv-t1" role="tabpanel"><div class="card"><div class="card-header">Account</div><div class="card-body">Update your name, email, and public profile from here.</div></div></div>
+                    <div class="tab-pane fade" id="pv-t2" role="tabpanel"><div class="card"><div class="card-header">Maintenance</div><div class="card-body">Service records, fuel and charging, and compliance entries.</div></div></div>
+                    <div class="tab-pane fade" id="pv-t3" role="tabpanel"><div class="card"><div class="card-header">Description</div><div class="card-body">Features and journal entries.</div></div></div>
+                </div>
+
+                <h3 class="h6 text-body-secondary text-uppercase">Accordion</h3>
+                <div class="accordion vstack gap-3 mb-4" id="pv-acc">
+                    <div class="accordion-item mg-accordion-item border rounded">
+                        <h2 class="accordion-header"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#pv-a1" aria-expanded="true">Service Records (3) <span class="ms-2 small text-body-secondary fw-normal">Last Service Oct 12, 2026</span></button></h2>
+                        <div id="pv-a1" class="accordion-collapse collapse show"><div class="accordion-body">Oil change, tire rotation, and brake service rows live here.</div></div>
+                    </div>
+                    <div class="accordion-item mg-accordion-item border rounded">
+                        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#pv-a2" aria-expanded="false">Charging and Fueling (5) <span class="ms-2 small text-body-secondary fw-normal">Last entry Nov 1, 2026</span></button></h2>
+                        <div id="pv-a2" class="accordion-collapse collapse"><div class="accordion-body">Fuel and charge entries.</div></div>
+                    </div>
+                </div>
+
+                <h3 class="h6 text-body-secondary text-uppercase">Plain accordion (FAQ)</h3>
+                <div class="accordion" id="pv-faq">
+                    <div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#pv-q1">Who can see my vehicles?</button></h2><div id="pv-q1" class="accordion-collapse collapse" data-bs-parent="#pv-faq"><div class="accordion-body">Only you.</div></div></div>
+                    <div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#pv-q2">How do I forward an invoice?</button></h2><div id="pv-q2" class="accordion-collapse collapse" data-bs-parent="#pv-faq"><div class="accordion-body">Email it to your My Garage mailbox.</div></div></div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <h3 class="h6 text-body-secondary text-uppercase">Vehicle card</h3>
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-6">
+                        <div class="card mg-vehicle-card border-0 shadow-sm h-100">
+                            <div class="ratio ratio-16x9 bg-body-secondary d-flex align-items-center justify-content-center text-body-secondary"><i data-icon="CarFront" data-size="48"></i></div>
+                            <div class="card-body">
+                                <h4 class="h6 card-title"><a class="text-decoration-none text-reset" href="#components">2020 Ford F-150</a></h4>
+                                <div class="d-flex flex-wrap gap-1 mb-2"><span class="badge text-bg-secondary">Gasoline</span><span class="badge text-bg-secondary">Automatic</span></div>
+                                <div class="small text-body-secondary d-flex align-items-center gap-1"><i data-icon="Speedometer"></i> 52,400 mi</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="card mg-vehicle-card border-0 shadow-sm h-100">
+                            <div class="ratio ratio-16x9 bg-body-secondary d-flex align-items-center justify-content-center text-body-secondary"><i data-icon="CarFront" data-size="48"></i></div>
+                            <div class="card-body">
+                                <h4 class="h6 card-title"><a class="text-decoration-none text-reset" href="#components">2023 Rivian R1T</a></h4>
+                                <div class="d-flex flex-wrap gap-1 mb-2"><span class="badge text-bg-info">Electric</span></div>
+                                <div class="small text-body-secondary d-flex align-items-center gap-1"><i data-icon="Speedometer"></i> 11,030 mi</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="h6 text-body-secondary text-uppercase">Form</h3>
+                <div class="card mb-4">
+                    <div class="card-header">Basic</div>
+                    <div class="card-body">
+                        <p class="small text-body-secondary">* Required</p>
+                        <div class="row g-3">
+                            <div class="col-md-4"><div class="form-floating"><input class="form-control" id="pv-year" placeholder="Year" value="2020" /><label for="pv-year">Year *</label></div></div>
+                            <div class="col-md-4"><div class="form-floating"><input class="form-control" id="pv-make" placeholder="Make" value="Ford" /><label for="pv-make">Make *</label></div></div>
+                            <div class="col-md-4"><div class="form-floating"><select class="form-select" id="pv-type"><option>Not set</option><option selected>Truck</option></select><label for="pv-type">Vehicle type</label></div></div>
+                            <div class="col-12"><div class="form-floating"><input class="form-control is-invalid" id="pv-vin" placeholder="VIN" value="1FTEW1EP" /><label for="pv-vin">VIN</label><div class="invalid-feedback d-block">A VIN is 17 characters.</div></div></div>
+                            <div class="col-12"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="pv-sw" checked /><label class="form-check-label" for="pv-sw">Shown</label></div></div>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex gap-2"><button type="button" class="btn btn-primary d-inline-flex align-items-center gap-1"><i data-icon="Save"></i> Save changes</button><button type="button" class="btn btn-outline-secondary">Cancel</button></div>
+                </div>
+
+                <h3 class="h6 text-body-secondary text-uppercase">Picture upload</h3>
+                <div class="mg-dropzone d-flex flex-column align-items-center justify-content-center text-center p-4 mb-4"><i data-icon="CloudUpload" data-size="40"></i><div class="fw-semibold mt-2">Drag &amp; Drop Images Here</div><div class="small">or click to browse</div></div>
+
+                <h3 class="h6 text-body-secondary text-uppercase">Feedback</h3>
+                <div class="alert alert-success" role="status">Vehicle saved.</div>
+                <div class="alert alert-info" role="status">Drafts expire after 14 days.</div>
+                <div class="alert alert-warning" role="alert">The year is missing. Add it on the Details tab.</div>
+                <div class="alert alert-danger mb-4" role="alert">We could not reach the service. Try again.</div>
+
+                <h3 class="h6 text-body-secondary text-uppercase">Breadcrumb and list group</h3>
+                <nav aria-label="Breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="#components">Home</a></li><li class="breadcrumb-item"><a href="#components">Vehicles</a></li><li class="breadcrumb-item active" aria-current="page">2020 Ford F-150</li></ol></nav>
+                <ul class="list-group mb-2">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">Inspection <span class="badge text-bg-info">From email</span></li>
+                    <li class="list-group-item active" aria-current="true">Active item</li>
+                    <li class="list-group-item disabled" aria-disabled="true">Disabled item</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script src="../src/MyGarage.Web/wwwroot/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../src/MyGarage.Web/wwwroot/js/app-shell.js"></script>
+<script>
+    // Preview-only helpers: inline icons (same Bootstrap Icons glyphs as Common/Icon.razor), the theme sample, and the token table.
+    (function () {
+        var ICONS = {
+            Search: '<path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>',
+            Bell: '<path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/>',
+            QuestionCircle: '<path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94"/>',
+            Speedometer: '<path d="M8 4a.5.5 0 0 1 .5.5V6a.5.5 0 0 1-1 0V4.5A.5.5 0 0 1 8 4M3.732 5.732a.5.5 0 0 1 .707 0l.915.914a.5.5 0 1 1-.708.708l-.914-.915a.5.5 0 0 1 0-.707M2 10a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1A.5.5 0 0 1 2 10m9.5 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5m.754-4.246a.39.39 0 0 0-.527-.02L7.547 9.31a.91.91 0 1 0 1.302 1.258l3.434-4.297a.39.39 0 0 0-.029-.518z"/><path fill-rule="evenodd" d="M0 10a8 8 0 1 1 15.547 2.661c-.442 1.253-1.845 1.602-2.932 1.25C11.309 13.488 9.475 13 8 13c-1.474 0-3.31.488-4.615.911-1.087.352-2.49.003-2.932-1.25A8 8 0 0 1 0 10m8-7a7 7 0 0 0-6.603 9.329c.203.575.923.876 1.68.63C4.397 12.533 6.358 12 8 12s3.604.532 4.923.96c.757.245 1.477-.056 1.68-.631A7 7 0 0 0 8 3"/>',
+            Pencil: '<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/>',
+            Plus: '<path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/>',
+            InfoCircle: '<path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>',
+            Sliders: '<path fill-rule="evenodd" d="M11.5 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M9.05 3a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0V3zM4.5 7a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M2.05 8a2.5 2.5 0 0 1 4.9 0H16v1H6.95a2.5 2.5 0 0 1-4.9 0H0V8zm9.45 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m-2.45 1a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0v-1z"/>',
+            Image: '<path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0"/><path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1z"/>',
+            FileText: '<path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5M5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1z"/><path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1"/>',
+            CloudUpload: '<path fill-rule="evenodd" d="M4.406 1.342A5.53 5.53 0 0 1 8 0c2.69 0 4.923 2 5.166 4.579C14.758 4.804 16 6.137 16 7.773 16 9.569 14.502 11 12.687 11H10a.5.5 0 0 1 0-1h2.688C13.979 10 15 8.988 15 7.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 2.825 10.328 1 8 1a4.53 4.53 0 0 0-2.941 1.1c-.757.652-1.153 1.438-1.153 2.055v.448l-.445.049C2.064 4.805 1 5.952 1 7.318 1 8.785 2.23 10 3.781 10H6a.5.5 0 0 1 0 1H3.781C1.708 11 0 9.366 0 7.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383"/><path fill-rule="evenodd" d="M7.646 4.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V14.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708z"/>',
+            Wrench: '<path d="M.102 2.223A3.004 3.004 0 0 0 3.78 5.897l6.341 6.252A3.003 3.003 0 0 0 13 16a3 3 0 1 0-.851-5.878L5.897 3.781A3.004 3.004 0 0 0 2.223.1l2.141 2.142L4 4l-1.757.364zm13.37 9.019.528.026.287.445.445.287.026.529L15 13l-.242.471-.026.529-.445.287-.287.445-.529.026L13 15l-.471-.242-.529-.026-.287-.445-.445-.287-.026-.529L11 13l.242-.471.026-.529.445-.287.287-.445.529-.026L13 11z"/>',
+            Sun: '<path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0m9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708"/>',
+            MoonStars: '<path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278M4.858 1.311A7.27 7.27 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.32 7.32 0 0 0 5.205-2.162q-.506.063-1.029.063c-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286"/><path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.73 1.73 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.73 1.73 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.73 1.73 0 0 0 1.097-1.097zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.16 1.16 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.16 1.16 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732z"/>',
+            List: '<path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5"/>',
+            HouseDoor: '<path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5v-4h2v4a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293zM2.5 14V7.707l5.5-5.5 5.5 5.5V14H10v-4a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5v4z"/>',
+            CarFront: '<path d="M4 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0m10 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0M6 8a1 1 0 0 0 0 2h4a1 1 0 1 0 0-2zM4.862 4.276 3.906 6.19a.51.51 0 0 0 .497.731c.91-.073 2.35-.17 3.597-.17s2.688.097 3.597.17a.51.51 0 0 0 .497-.731l-.956-1.913A.5.5 0 0 0 10.691 4H5.309a.5.5 0 0 0-.447.276"/><path d="M2.52 3.515A2.5 2.5 0 0 1 4.82 2h6.362c1 0 1.904.596 2.298 1.515l.792 1.848c.075.175.21.319.38.404.5.25.855.715.965 1.262l.335 1.679q.05.242.049.49v.413c0 .814-.39 1.543-1 1.997V13.5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-1.338c-1.292.048-2.745.088-4 .088s-2.708-.04-4-.088V13.5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-1.892c-.61-.454-1-1.183-1-1.997v-.413a2.5 2.5 0 0 1 .049-.49l.335-1.68c.11-.546.465-1.012.964-1.261a.8.8 0 0 0 .381-.404l.792-1.848ZM4.82 3a1.5 1.5 0 0 0-1.379.91l-.792 1.847a1.8 1.8 0 0 1-.853.904.8.8 0 0 0-.43.564L1.03 8.904a1.5 1.5 0 0 0-.03.294v.413c0 .796.62 1.448 1.408 1.484 1.555.07 3.786.155 5.592.155s4.037-.084 5.592-.155A1.48 1.48 0 0 0 15 9.611v-.413q0-.148-.03-.294l-.335-1.68a.8.8 0 0 0-.43-.563 1.8 1.8 0 0 1-.853-.904l-.792-1.848A1.5 1.5 0 0 0 11.18 3z"/>',
+            Inbox: '<path d="M4.98 4a.5.5 0 0 0-.39.188L1.54 8H6a.5.5 0 0 1 .5.5 1.5 1.5 0 1 0 3 0A.5.5 0 0 1 10 8h4.46l-3.05-3.812A.5.5 0 0 0 11.02 4zm9.954 5H10.45a2.5 2.5 0 0 1-4.9 0H1.066l.32 2.562a.5.5 0 0 0 .497.438h12.234a.5.5 0 0 0 .496-.438zM3.809 3.563A1.5 1.5 0 0 1 4.981 3h6.038a1.5 1.5 0 0 1 1.172.563l3.7 4.625a.5.5 0 0 1 .105.374l-.39 3.124A1.5 1.5 0 0 1 14.117 13H1.883a1.5 1.5 0 0 1-1.489-1.314l-.39-3.124a.5.5 0 0 1 .106-.374z"/>',
+            BoxArrowRight: '<path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z"/><path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z"/>',
+            ChevronDown: '<path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708"/>',
+            PlusCircle: '<path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/>',
+            Save: '<path d="M11 2H9v3h2z"/><path d="M1.5 0h11.586a1.5 1.5 0 0 1 1.06.44l1.415 1.414A1.5 1.5 0 0 1 16 2.914V14.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5v-13A1.5 1.5 0 0 1 1.5 0M1 1.5v13a.5.5 0 0 0 .5.5H2v-4.5A1.5 1.5 0 0 1 3.5 9h9a1.5 1.5 0 0 1 1.5 1.5V15h.5a.5.5 0 0 0 .5-.5V2.914a.5.5 0 0 0-.146-.353l-1.415-1.415A.5.5 0 0 0 13.086 1H13v4.5A1.5 1.5 0 0 1 11.5 7h-7A1.5 1.5 0 0 1 3 5.5V1H1.5a.5.5 0 0 0-.5.5m3 4a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5V1H4zM3 15h10v-4.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5z"/>'
+        };
+
+        if (window.location.hash === "#shell-only") {
+            document.documentElement.classList.add("pv-shell-only");
+        }
+
+        var sample = document.getElementById("pv-sample");
+        document.querySelectorAll("[data-theme-sample]").forEach(function (target) {
+            target.appendChild(sample.content.cloneNode(true));
+        });
+
+        // [css variable, label, light hex, dark hex, where it is used]
+        var TOKENS = [
+            ["--mg-navbar-bg", "Top bar", "#1976D2", "#0C2135", "Fixed bar across the top, with a soft shadow under it; white text 4.60:1 and 16.4:1"],
+            ["--mg-sidebar-bg", "Left menu", "#2B3036", "#0A141F", "Fixed vertical menu"],
+            ["--mg-sidebar-text", "Menu text", "#D5DAE1", "#C3D3E3", "Menu items"],
+            ["--mg-sidebar-muted", "Menu group label", "#9AA3AF", "#7E95AB", "Small muted group headings, profile email"],
+            ["--mg-sidebar-active-icon", "Menu active icon", "#64B5F6", "#64B5F6", "Current page icon; the item also gets a tinted pill"],
+            ["--mg-page-bg", "Content background", "#F1F3F6", "#0E1B29", "Behind every page; the lighter grey area (light) or deep blue (dark)"],
+            ["--bs-body-bg", "Surface (cards, forms, page bar)", "#FFFFFF", "#142637", "Anything raised above the content background"],
+            ["--bs-border-color", "Border", "#E1E5EB", "#26405A", "Cards, dividers, tab strip"],
+            ["--mg-primary", "Primary", "#1976D2", "#1976D2", "Primary buttons (white text 4.60:1)"],
+            ["--mg-primary-text", "Primary text and links", "#1565C0", "#6CB6FF", "Outline buttons, links, active tab, page actions"],
+            ["--mg-secondary", "Secondary", "#5C6773", "#A9BCD0", "Secondary (outline) buttons"],
+            ["--mg-accent", "Accent", "#F5A623", "#F5A623", "Avatar and logo accent; never body text"],
+            ["--bs-primary-bg-subtle", "Primary alert/badge background", "#DCEBFD", "#1F4660", "Alerts and badges"],
+            ["--bs-primary-text-emphasis", "Primary alert/badge text", "#1A68C2", "#6CBDFA", "4.56:1 and 4.90:1"],
+            ["--bs-success-bg-subtle", "Success background", "#D8F3E9", "#1D4E47", "Alerts and badges"],
+            ["--bs-success-text-emphasis", "Success text", "#0B7A4B", "#3FD9A3", "4.59:1 and 5.22:1"],
+            ["--bs-warning-bg-subtle", "Warning background", "#FDEEDD", "#46463A", "Alerts and badges"],
+            ["--bs-warning-text-emphasis", "Warning text", "#9F5504", "#F8B95C", "4.89:1 and 5.50:1"],
+            ["--bs-danger-bg-subtle", "Danger background", "#FDEBEB", "#3A3A44", "Alerts and badges"],
+            ["--bs-danger-text-emphasis", "Danger text", "#C73636", "#F58B8E", "4.55:1 and 4.80:1"],
+            ["--bs-info-bg-subtle", "Info background", "#DAF2F8", "#1B4955", "Alerts and badges"],
+            ["--bs-info-text-emphasis", "Info text", "#087088", "#49CCE6", "4.90:1 and 5.19:1"]
+        ];
+
+        var rows = document.getElementById("pv-tokens");
+        TOKENS.forEach(function (token) {
+            var row = document.createElement("div");
+            row.className = "pv-token";
+            row.innerHTML = '<div><div class="fw-semibold">' + token[1] + '</div><div class="pv-var">' + token[0] + '</div><div class="small text-body-secondary">' + token[4] + '</div></div>' +
+                ["light", "dark"].map(function (theme, index) {
+                    return '<div class="pv-chip-cell" data-bs-theme="' + theme + '"><span class="pv-chip" style="background:var(' + token[0] + ')"></span><span class="pv-hex">' + token[2 + index] + '</span></div>';
+                }).join("");
+            rows.appendChild(row);
+        });
+
+        document.querySelectorAll("[data-icon]").forEach(function (placeholder) {
+            var size = placeholder.getAttribute("data-size") || "16";
+            var svg = '<svg class="bi" aria-hidden="true" focusable="false" fill="currentColor" viewBox="0 0 16 16" width="' + size + '" height="' + size + '">' + ICONS[placeholder.getAttribute("data-icon")] + '</svg>';
+            placeholder.outerHTML = svg;
+        });
+    })();
+</script>
+</body>
+</html>

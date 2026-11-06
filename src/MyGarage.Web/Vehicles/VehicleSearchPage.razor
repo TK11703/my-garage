@@ -1,0 +1,245 @@
+@page "/search"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject VehiclesApiClient Api
+
+<PageHeader Title="Search" Trail="@(new[] { new Crumb("Search") })">
+    <Actions>
+        @if (ShowFilterToggle)
+        {
+            <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" data-bs-toggle="collapse" data-bs-target="#filter-panel"
+                    aria-controls="filter-panel" data-testid="toggle-filters" title="Show or hide the filters">
+                <Icon Name="IconName.Sliders" /> Filter
+            </button>
+        }
+    </Actions>
+</PageHeader>
+
+@if (failure is not null)
+{
+    <ApiFailureAlert Failure="failure.Value" ReturnUrl="/search"
+                     NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+}
+else if (vehicles is not null)
+{
+    @if (vehicles.TotalCount == 0 && !criteria.HasAny && errors.Count == 0)
+    {
+        <EmptyState Message="You have no vehicles yet." ActionText="Add your first vehicle" ActionHref="/vehicles/new" />
+    }
+    else
+    {
+        <VehicleSearchCard Criteria="criteria" />
+        <VehicleFilterPanel Criteria="criteria" Options="filterOptions" />
+
+        <section class="card border-0 shadow-sm mg-results" aria-label="Search results">
+            <div class="card-header bg-transparent d-flex flex-wrap align-items-center gap-2 py-3" aria-live="polite" data-testid="result-summary">
+                <span class="fw-medium" data-testid="result-count">@Summary</span>
+                @if (badges.Count > 0)
+                {
+                    <ul class="list-unstyled d-flex flex-wrap gap-2 mb-0" aria-label="Active search and filters">
+                        @foreach (var (key, label) in badges)
+                        {
+                            <li @key="key">
+                                <span class="badge bg-info-subtle text-info-emphasis fw-normal d-inline-flex align-items-center gap-2" data-testid="active-criterion">
+                                    @label
+                                    <a class="text-reset text-decoration-none" href="@criteria.Without(key).ToHref()" aria-label="Remove filter @label"><span aria-hidden="true">&times;</span></a>
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+
+            @if (errors.Count > 0)
+            {
+                <div class="alert alert-danger m-3 mb-0" role="alert">
+                    <ul class="mb-0">
+                        @foreach (var message in errors.Values.SelectMany(messages => messages))
+                        {
+                            <li>@message</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @if (vehicles.TotalCount == 0)
+            {
+                <div class="card-body">
+                    <EmptyState Variant="EmptyStateVariant.NoMatch" Message="No vehicles match your search."
+                                ActionText="Clear search" ActionHref="/search" data-testid="no-match-clear" />
+                </div>
+            }
+            else
+            {
+                <ul class="list-group list-group-flush mg-hits" data-testid="search-hits">
+                    @foreach (var vehicle in vehicles.Items)
+                    {
+                        <li class="list-group-item mg-hit" @key="vehicle.Id" data-testid="search-hit">
+                            <div class="mg-hit-body">
+                                <a class="mg-hit-title stretched-link text-break" href="/vehicles/@vehicle.Id">
+                                    <Highlight Text="@vehicle.Name" Term="@criteria.Query" />
+                                </a>
+                                @if (vehicle.Matches.Count > 0)
+                                {
+                                    <ul class="mg-hit-context list-unstyled mb-0" aria-label="Where the search text was found">
+                                        @foreach (var match in vehicle.Matches.Take(MaxMatchesShown))
+                                        {
+                                            <li class="text-break">
+                                                <span class="mg-hit-field">@match.Field</span>
+                                                <Highlight Text="@match.Text" Term="@criteria.Query" Context="40" />
+                                            </li>
+                                        }
+                                        @if (vehicle.Matches.Count > MaxMatchesShown)
+                                        {
+                                            <li class="text-body-secondary" data-testid="more-matches">+ @(vehicle.Matches.Count - MaxMatchesShown) more</li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                            <div class="mg-hit-meta">
+                                <span>@VehicleFormat.Mileage(vehicle.Mileage)</span>
+                                @if (Detail(vehicle) is { Length: > 0 } detail)
+                                {
+                                    <span>@detail</span>
+                                }
+                            </div>
+                        </li>
+                    }
+                </ul>
+
+                @if (vehicles.TotalPages > 1)
+                {
+                    <div class="card-footer bg-transparent py-3">
+                        <Pager Page="vehicles.Page" TotalPages="vehicles.TotalPages" JustifyEnd="true"
+                               HrefFor="@(p => $"/search?{criteria.ToQueryString(p)}")" />
+                    </div>
+                }
+            }
+        </section>
+    }
+}
+
+@code {
+    // More matched fields than this are summarized as "+ N more".
+    private const int MaxMatchesShown = 3;
+
+    private PagedResultDto<VehicleSummaryDto>? vehicles;
+    private VehicleFilterOptionsDto? filterOptions;
+    private VehicleListCriteria criteria = VehicleListCriteria.None;
+    private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
+    private GarageApiFailure? failure;
+
+    // Query-string values are read as text: a bad value must be ignored, not throw a binding error.
+    [Parameter, SupplyParameterFromQuery(Name = "page")]
+    public string? Page { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "q")]
+    public string? Q { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "make")]
+    public string? Make { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "color")]
+    public string? Color { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "doors")]
+    public string? Doors { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "tag")]
+    public string? Tag { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "minMileage")]
+    public string? MinMileage { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "maxMileage")]
+    public string? MaxMileage { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "minYear")]
+    public string? MinYear { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "maxYear")]
+    public string? MaxYear { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "vehicleTypeId")]
+    public string? VehicleTypeId { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "fuelTypeId")]
+    public string? FuelTypeId { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "transmissionId")]
+    public string? TransmissionId { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "drivetrainId")]
+    public string? DrivetrainId { get; set; }
+
+    // The filter panel is only on the page when there is something to search.
+    private bool ShowFilterToggle =>
+        failure is null && vehicles is not null && (vehicles.TotalCount > 0 || criteria.HasAny || errors.Count > 0);
+
+    private List<(string Key, string Label)> badges => [.. criteria.Active(filterOptions)];
+
+    private string Summary
+    {
+        get
+        {
+            var total = vehicles!.TotalCount;
+            var noun = criteria.HasAny ? (total == 1 ? "result" : "results") : (total == 1 ? "vehicle" : "vehicles");
+            var suffix = criteria.HasAny ? " for" : string.Empty;
+            if (total == 0)
+            {
+                return $"0 {noun}{suffix}";
+            }
+
+            var from = (vehicles.Page - 1) * vehicles.PageSize + 1;
+            var to = Math.Min(vehicles.Page * vehicles.PageSize, total);
+            return $"Showing {from} to {to} of {total} {noun}{suffix}";
+        }
+    }
+
+    private static string Detail(VehicleSummaryDto vehicle) =>
+        string.Join(" \u00B7 ", new[] { vehicle.FuelType, vehicle.Transmission }.Where(value => !string.IsNullOrWhiteSpace(value)));
+
+    protected override async Task OnParametersSetAsync()
+    {
+        criteria = VehicleListCriteria.FromQuery(
+            Q, Make, Color, Doors, Tag, MinMileage, MaxMileage, MinYear, MaxYear, VehicleTypeId, FuelTypeId, TransmissionId, DrivetrainId);
+        var requestedPage = int.TryParse(Page, out var parsed) ? Math.Max(1, parsed) : 1;
+        errors = new Dictionary<string, string[]>();
+
+        try
+        {
+            var result = await Api.ListAsync(criteria, requestedPage);
+            if (result.Outcome == ApiOutcome.Invalid)
+            {
+                // Show why the criteria were rejected and fall back to the whole garage.
+                errors = result.Errors;
+                criteria = VehicleListCriteria.None;
+                result = await Api.ListAsync(criteria, requestedPage);
+            }
+
+            vehicles = result.Value;
+
+            if (vehicles is not null && (vehicles.TotalCount > 0 || criteria.HasAny))
+            {
+                await LoadFilterOptionsAsync();
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    // The filter choices are a convenience: without them the search still shows and the number filters still work.
+    private async Task LoadFilterOptionsAsync()
+    {
+        try
+        {
+            filterOptions = (await Api.GetFilterOptionsAsync()).Value;
+        }
+        catch (GarageApiException)
+        {
+            filterOptions = null;
+        }
+    }
+}

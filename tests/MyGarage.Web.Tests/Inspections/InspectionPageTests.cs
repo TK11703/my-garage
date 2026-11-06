@@ -97,8 +97,8 @@ public class InspectionCreatePageTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-            Assert.Equal(["Home", "Vehicles", "2020 Ford F-150", "Add inspection"], items.Select(item => item.TextContent.Trim()));
-            Assert.Equal($"/vehicles/{vehicleId}?tab=service-records&section=compliance", items[2].QuerySelector("a")!.GetAttribute("href"));
+            Assert.Equal(["Home", "Garage", "Vehicles", "2020 Ford F-150"], items.Select(item => item.TextContent.Trim()));
+            Assert.Equal($"/vehicles/{vehicleId}?tab=service-records&section=compliance", items[3].QuerySelector("a")!.GetAttribute("href"));
             Assert.Equal($"/vehicles/{vehicleId}?tab=service-records&section=compliance", cut.Find("a.btn-outline-secondary").GetAttribute("href"));
         });
     }
@@ -223,7 +223,7 @@ public class InspectionEditPageTests : VehicleTestContext
             Assert.Equal("25.5", cut.Find("#cost").GetAttribute("value"));
             Assert.Equal("2027-05-01", cut.Find("#next-due-date").GetAttribute("value"));
             var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-            Assert.Equal(["Home", "Vehicles", "2020 Ford F-150", "Edit inspection"], items.Select(item => item.TextContent.Trim()));
+            Assert.Equal(["Home", "Garage", "Vehicles", "2020 Ford F-150"], items.Select(item => item.TextContent.Trim()));
         });
     }
 

@@ -34,6 +34,11 @@ else
                 </p>
             </div>
 
+            <div class="alert alert-info d-flex align-items-center gap-2 mb-0" role="note" data-testid="upload-email-tip">
+                <Icon Name="IconName.InfoCircle" Size="20" />
+                <span>You can also send an email to <a class="alert-link" href="mailto:mygarage_intake@outlook.com">mygarage_intake@outlook.com</a> to provide maintenance information.</span>
+            </div>
+
             @if (attempt?.Result is { } result)
             {
                 <div class="alert alert-success mb-0" role="status" data-testid="upload-notice">

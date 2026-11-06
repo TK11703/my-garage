@@ -73,7 +73,7 @@ public class ServiceLineItemFormTests : VehicleTestContext
         {
             Assert.Equal("Add line item", cut.Find("h1").TextContent);
             Assert.Equal(
-                ["Home", "Vehicles", "2020 Ford F-150", "Service record May 1, 2026", "Add line item"],
+                ["Home", "Garage", "Vehicles", "2020 Ford F-150", "Service record May 1, 2026"],
                 cut.FindAll("nav[aria-label='Breadcrumb'] li").Select(item => item.TextContent.Trim()));
 
             var description = cut.Find("input#line-description");

@@ -1,0 +1,82 @@
+@* Text with every occurrence of Term wrapped in <mark>. Segments are rendered as encoded text, never as markup. *@
+@foreach (var (part, isMatch) in Segments())
+{
+    if (isMatch)
+    {
+        <mark class="mg-mark">@part</mark>
+    }
+    else
+    {
+        @part
+    }
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Term { get; set; }
+
+    // When set, long text is cut to about this many characters on each side of the first match.
+    [Parameter]
+    public int? Context { get; set; }
+
+    private IEnumerable<(string Part, bool IsMatch)> Segments()
+    {
+        var text = Text ?? string.Empty;
+        var first = string.IsNullOrEmpty(Term) ? -1 : text.IndexOf(Term, StringComparison.OrdinalIgnoreCase);
+        var start = 0;
+        var end = text.Length;
+        var leading = false;
+        var trailing = false;
+
+        if (Context is { } size && first >= 0)
+        {
+            if (first - size > 0)
+            {
+                start = first - size;
+                leading = true;
+            }
+
+            if (first + Term!.Length + size < text.Length)
+            {
+                end = first + Term.Length + size;
+                trailing = true;
+            }
+        }
+
+        if (leading)
+        {
+            yield return ("\u2026", false);
+        }
+
+        var position = start;
+        while (first >= 0 && position < end)
+        {
+            var hit = text.IndexOf(Term!, position, end - position, StringComparison.OrdinalIgnoreCase);
+            if (hit < 0)
+            {
+                break;
+            }
+
+            if (hit > position)
+            {
+                yield return (text[position..hit], false);
+            }
+
+            yield return (text.Substring(hit, Term!.Length), true);
+            position = hit + Term.Length;
+        }
+
+        if (position < end)
+        {
+            yield return (text[position..end], false);
+        }
+
+        if (trailing)
+        {
+            yield return ("\u2026", false);
+        }
+    }
+}

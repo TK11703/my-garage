@@ -23,7 +23,7 @@ public class InsuranceSectionTests : VehicleTestContext
     }
 
     [Fact]
-    public void NoInsurance_ShowsTheEmptyStateWithAnAddAction()
+    public void NoInsurance_ShowsTheEmptyState()
     {
         var cut = RenderView();
 
@@ -31,9 +31,6 @@ public class InsuranceSectionTests : VehicleTestContext
         {
             var section = cut.Find("[data-testid='compliance-insurance']");
             Assert.Contains("No insurance yet. Add the first policy for this vehicle.", section.TextContent);
-            var add = cut.Find("[data-testid='add-insurance']");
-            Assert.Equal($"/vehicles/{vehicleId}/insurance/new", add.GetAttribute("href"));
-            Assert.Equal("Add insurance", add.TextContent.Trim());
             Assert.Equal("Insurance", section.QuerySelector("h3")!.TextContent.Trim());
         });
     }
@@ -98,7 +95,6 @@ public class InsuranceSectionTests : VehicleTestContext
             Assert.Single(cut.FindAll("[data-testid='inspection']"));
             Assert.Single(cut.FindAll("[data-testid='registration']"));
             Assert.Equal("1 inspection, 1 registration, 0 taxes", cut.Find("[data-testid='compliance-summary']").TextContent.Trim());
-            Assert.NotNull(cut.Find("[data-testid='add-insurance']"));
         });
     }
 

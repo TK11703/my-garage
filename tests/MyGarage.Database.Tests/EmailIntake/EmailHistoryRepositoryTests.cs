@@ -98,6 +98,30 @@ public class EmailHistoryRepositoryTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task ListHistoryPage_WithAnOutcome_KeepsOnlyThatOutcome_AndCountsOnlyThose()
+    {
+        var (repository, _, dataSource) = await CreateAsync();
+        var failedOne = await SubmissionAsync(dataSource, 1, status: "failed");
+        await SubmissionAsync(dataSource, 2, drafts: [("needs_review", "service_record", null, null)]);
+        var failedTwo = await SubmissionAsync(dataSource, 3, status: "failed");
+        await SubmissionAsync(dataSource, 4, drafts: [("discarded", "tax", null, null)]);
+        await SubmissionAsync(dataSource, 5, ownerId: "owner-b", status: "failed");
+
+        var failed = await repository.ListHistoryPageAsync("owner-a", 1, 10, CancellationToken.None, "failed");
+        var firstOfOne = await repository.ListHistoryPageAsync("owner-a", 1, 1, CancellationToken.None, "failed");
+        var none = await repository.ListHistoryPageAsync("owner-a", 1, 10, CancellationToken.None, "included");
+        var all = await repository.ListHistoryPageAsync("owner-a", 1, 10, CancellationToken.None);
+
+        Assert.Equal(2, failed.TotalCount);
+        Assert.Equal([failedTwo, failedOne], failed.Items.Select(item => item.SubmissionId));
+        Assert.All(failed.Items, item => Assert.Equal("failed", item.Outcome));
+        Assert.Equal(2, firstOfOne.TotalPages);
+        Assert.Single(firstOfOne.Items);
+        Assert.Equal(0, none.TotalCount);
+        Assert.Equal(4, all.TotalCount);
+    }
+
+    [Fact]
     public async Task ListHistoryPage_CarriesTheOriginOfEachSubmission()
     {
         var (repository, _, dataSource) = await CreateAsync();

@@ -1,37 +1,17 @@
 @using System.Globalization
 
-<section class="card border-0 shadow-sm mb-3 mg-filter-card" aria-labelledby="filters-heading">
-    <div class="card-header bg-transparent d-flex flex-wrap align-items-center justify-content-between gap-2">
-        <h2 id="filters-heading" class="h6 mb-0">
-            <button type="button" class="btn btn-link p-0 fw-semibold text-decoration-none"
-                    data-bs-toggle="collapse" data-bs-target="#filter-panel" aria-controls="filter-panel"
-                    aria-expanded="@(open ? "true" : "false")">Filters</button>
-        </h2>
-        @if (Criteria.HasAny)
-        {
-            <a class="small" href="/vehicles" data-testid="clear-all">Clear all</a>
-        }
-    </div>
+<div class="accordion mb-3 mg-filter-card">
+    <div class="accordion-item mg-accordion-item border rounded">
+    <h2 class="accordion-header" id="filters-heading">
+        <button type="button" class="accordion-button @(open ? null : "collapsed")"
+                data-bs-toggle="collapse" data-bs-target="#filter-panel" aria-controls="filter-panel"
+                aria-expanded="@(open ? "true" : "false")">
+            <span class="d-inline-flex align-items-center gap-2 fw-semibold"><Icon Name="IconName.Funnel" /> Filters</span>
+        </button>
+    </h2>
 
-    @if (badges.Count > 0)
-    {
-        <div class="card-body pb-0">
-            <ul class="list-unstyled d-flex flex-wrap gap-2 mb-0" aria-label="Active search and filters">
-                @foreach (var (key, label) in badges)
-                {
-                    <li @key="key">
-                        <span class="badge text-bg-secondary fw-normal d-inline-flex align-items-center gap-2" data-testid="active-criterion">
-                            @label
-                            <a class="link-light text-decoration-none" href="@Criteria.Without(key).ToHref()" aria-label="Remove filter @label"><span aria-hidden="true">&times;</span></a>
-                        </span>
-                    </li>
-                }
-            </ul>
-        </div>
-    }
-
-    <div id="filter-panel" class="collapse @(open ? "show" : null)">
-        <div class="card-body">
+    <div id="filter-panel" class="accordion-collapse collapse @(open ? "show" : null)">
+        <div class="accordion-body">
             <div class="row g-3">
                 @if (Options is not null)
                 {
@@ -164,15 +144,20 @@
                     </div>
                 </div>
             </div>
-            <button type="submit" form="vehicle-search" class="btn btn-primary mt-3">Apply</button>
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                <button type="submit" form="vehicle-search" class="btn btn-primary">Apply</button>
+                @if (Criteria.HasFilters)
+                {
+                    <a class="btn btn-link" href="@Criteria.WithoutFilters().ToHref()" data-testid="clear-all">Clear all</a>
+                }
+            </div>
         </div>
     </div>
-</section>
+    </div>
+</div>
 
 @code {
     private bool open => Criteria.HasFilters;
-
-    private List<(string Key, string Label)> badges => [.. Criteria.Active(Options)];
 
     [Parameter, EditorRequired]
     public VehicleListCriteria Criteria { get; set; } = VehicleListCriteria.None;

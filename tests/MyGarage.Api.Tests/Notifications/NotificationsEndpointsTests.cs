@@ -124,6 +124,37 @@ public class NotificationsEndpointsTests(ApiFactory factory) : IClassFixture<Api
     }
 
     [Fact]
+    public async Task Delete_Returns204ForTheCallersNotification_KeepsItsDraft_AndIs404ForAnotherUsersOrUnknown()
+    {
+        var draft = await SeedDraftAsync(Alice);
+        var mine = await factory.InsertNotificationAsync(Alice, draft);
+        var theirs = await factory.InsertNotificationAsync(Bob, await SeedDraftAsync(Bob));
+
+        Assert.Equal(HttpStatusCode.NoContent, (await AliceClient().DeleteAsync($"/api/notifications/{mine}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await AliceClient().DeleteAsync($"/api/notifications/{theirs}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await AliceClient().DeleteAsync($"/api/notifications/{Guid.NewGuid()}")).StatusCode);
+
+        Assert.Equal(0L, await factory.ExecuteScalarAsync("SELECT count(*) FROM notifications WHERE id = @id", ("id", mine)));
+        Assert.Equal(1L, await factory.ExecuteScalarAsync("SELECT count(*) FROM notifications WHERE id = @id", ("id", theirs)));
+        Assert.Equal(1L, await factory.ExecuteScalarAsync("SELECT count(*) FROM maintenance_drafts WHERE id = @id", ("id", draft)));
+    }
+
+    [Fact]
+    public async Task DeleteRead_Returns204_AndRemovesOnlyTheCallersReadRows()
+    {
+        var read = await factory.InsertNotificationAsync(Alice, await SeedDraftAsync(Alice), read: true);
+        var unread = await factory.InsertNotificationAsync(Alice, await SeedDraftAsync(Alice));
+        var theirs = await factory.InsertNotificationAsync(Bob, await SeedDraftAsync(Bob), read: true);
+
+        var response = await AliceClient().DeleteAsync("/api/notifications/read");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(0L, await factory.ExecuteScalarAsync("SELECT count(*) FROM notifications WHERE id = @id", ("id", read)));
+        Assert.Equal(1L, await factory.ExecuteScalarAsync("SELECT count(*) FROM notifications WHERE id = @id", ("id", unread)));
+        Assert.Equal(1L, await factory.ExecuteScalarAsync("SELECT count(*) FROM notifications WHERE id = @id", ("id", theirs)));
+    }
+
+    [Fact]
     public async Task EveryRoute_Is401WithoutAToken_AndRefusesTheWorkflowToken()
     {
         var id = Guid.NewGuid();
@@ -133,6 +164,8 @@ public class NotificationsEndpointsTests(ApiFactory factory) : IClassFixture<Api
             (HttpMethod.Get, "/api/notifications/unread-count"),
             (HttpMethod.Post, $"/api/notifications/{id}/read"),
             (HttpMethod.Post, "/api/notifications/read-all"),
+            (HttpMethod.Delete, $"/api/notifications/{id}"),
+            (HttpMethod.Delete, "/api/notifications/read"),
         ];
         var anonymous = factory.CreateClientWithToken(null);
         var workflow = factory.CreateClientForWorkflow();

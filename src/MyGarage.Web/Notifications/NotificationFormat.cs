@@ -5,9 +5,6 @@ namespace MyGarage.Web.Notifications;
 
 public static class NotificationFormat
 {
-    // The badge never grows wider than "99+".
-    public static string Badge(int unread) => unread > 99 ? "99+" : unread.ToString(CultureInfo.InvariantCulture);
-
     // "just now", "5 minutes ago", "3 hours ago", "2 days ago", then the date.
     public static string Relative(DateTimeOffset createdAt, DateTimeOffset now)
     {

@@ -178,9 +178,8 @@ public class VehicleEditPageTests : VehicleTestContext
             Assert.Single(cut.FindAll("h1"));
             Assert.Equal("Edit 2020 Ford F-150", cut.Find("h1").TextContent);
             var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-            Assert.Equal(["Home", "Vehicles", "2020 Ford F-150", "Edit"], items.Select(item => item.TextContent.Trim()));
-            Assert.Equal($"/vehicles/{vehicleId}", items[2].QuerySelector("a")!.GetAttribute("href"));
-            Assert.Equal("page", items[3].GetAttribute("aria-current"));
+            Assert.Equal(["Home", "Garage", "Vehicles", "2020 Ford F-150"], items.Select(item => item.TextContent.Trim()));
+            Assert.Equal($"/vehicles/{vehicleId}", items[3].QuerySelector("a")!.GetAttribute("href"));
         });
     }
 
@@ -195,7 +194,7 @@ public class VehicleEditPageTests : VehicleTestContext
         {
             Assert.Equal("Vehicle not found", cut.Find("h1").TextContent);
             var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-            Assert.Equal(["Home", "Vehicles"], items.Select(item => item.TextContent.Trim()));
+            Assert.Equal(["Home", "Garage"], items.Select(item => item.TextContent.Trim()));
         });
     }
 
@@ -361,7 +360,7 @@ public class VehicleEditPageTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            var back = cut.Find("h1").ParentElement!.QuerySelector("a.btn")!;
+            var back = cut.Find(".mg-pagebar").QuerySelector("a.btn")!;
             Assert.Equal("Back to vehicle", back.TextContent.Trim());
             Assert.Equal("Back to the vehicle details", back.GetAttribute("title"));
             Assert.Equal("true", back.QuerySelector("svg.bi")!.GetAttribute("aria-hidden"));

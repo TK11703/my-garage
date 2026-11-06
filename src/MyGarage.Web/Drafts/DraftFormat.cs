@@ -77,6 +77,17 @@ public static partial class DraftFormat
     public static string Arrived(DateTimeOffset value) =>
         value.ToUniversalTime().ToString("MMM d, yyyy 'at' h:mm tt 'UTC'", System.Globalization.CultureInfo.InvariantCulture);
 
+    // The History tab's status filter: the value sent to the API and shown in the address, and its label.
+    public static readonly (string Value, string Label)[] HistoryStatuses =
+    [
+        ("awaiting_review", "Awaiting review"),
+        ("included", "Included"),
+        ("discarded", "Discarded"),
+        ("expired", "Expired"),
+        ("not_applicable", "Not applicable"),
+        ("failed", "Failed"),
+    ];
+
     public static string OutcomeLabel(EmailHistoryOutcome outcome) =>
         outcome switch
         {

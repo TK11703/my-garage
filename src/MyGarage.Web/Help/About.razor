@@ -1,16 +1,144 @@
 @page "/about"
 @attribute [AllowAnonymous]
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageHeader Title="About My Garage" Trail="@(new[] { new Crumb("About") })" />
 
-<div class="row">
-    <div class="col-lg-8">
-        <p class="lead">My Garage keeps a private list of the vehicles you own.</p>
-        <p>
-            For each vehicle you can record details such as make, model, trim, color, mileage, and doors, add tags that
-            describe its features, keep a journal of notes, build a small gallery of pictures, and keep a service history
-            with the work done and what it cost.
-        </p>
-        <p>Your vehicles are visible only to you.</p>
+<section class="card mb-4" aria-labelledby="about-intro-heading">
+    <div class="card-body p-4 p-lg-5">
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-8">
+                <h2 id="about-intro-heading" class="h4">A private home for everything about your vehicles</h2>
+                <p class="lead">My Garage keeps a private list of the vehicles you own.</p>
+                <p class="mb-3">
+                    For each vehicle you can record details such as make, model, trim, color, mileage, and doors, add tags that
+                    describe its features, keep a journal of notes, build a small gallery of pictures, and keep a service history
+                    with the work done and what it cost. Fuel and charging, inspections, registrations, insurance, and taxes
+                    each have a place too, so the whole story of a vehicle is in one spot when you need it.
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    @if (signedIn)
+                    {
+                        <a class="btn btn-primary" href="/vehicles">My vehicles</a>
+                        <a class="btn btn-outline-secondary" href="/faq">Read the FAQ</a>
+                    }
+                    else
+                    {
+                        <a class="btn btn-primary" href="/authentication/login">Sign in</a>
+                        <a class="btn btn-outline-secondary" href="/faq">Read the FAQ</a>
+                    }
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <dl class="mb-0 vstack gap-3" data-testid="about-facts">
+                    <div>
+                        <dt class="fw-normal text-body-secondary small">Who can see your vehicles</dt>
+                        <dd class="h5 mb-0">Only you</dd>
+                    </div>
+                    <div>
+                        <dt class="fw-normal text-body-secondary small">Works on</dt>
+                        <dd class="h5 mb-0">Phone, tablet, and desktop</dd>
+                    </div>
+                    <div>
+                        <dt class="fw-normal text-body-secondary small">Look</dt>
+                        <dd class="h5 mb-0">Light or dark</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
     </div>
-</div>
+</section>
+
+<section class="mb-4" aria-labelledby="about-features-heading">
+    <h2 id="about-features-heading" class="h5 mb-3">What you can do</h2>
+    <ul class="list-unstyled row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-0">
+        @foreach (var feature in Features)
+        {
+            <li class="col" data-testid="about-feature">
+                <div class="card h-100">
+                    <div class="card-body d-flex gap-3">
+                        <span class="mg-feature-icon flex-shrink-0 d-inline-flex align-items-center justify-content-center rounded bg-primary-subtle text-primary-emphasis">
+                            <Icon Name="feature.Icon" Size="22" />
+                        </span>
+                        <div>
+                            <h3 class="h6 mb-1">@feature.Title</h3>
+                            <p class="small text-body-secondary mb-0">@feature.Description</p>
+                        </div>
+                    </div>
+                </div>
+            </li>
+        }
+    </ul>
+</section>
+
+<section class="mb-4" aria-labelledby="about-how-heading">
+    <h2 id="about-how-heading" class="h5 mb-3">How it works</h2>
+    <ol class="list-unstyled row row-cols-1 row-cols-lg-3 g-3 mb-0">
+        @for (var i = 0; i < Steps.Length; i++)
+        {
+            var step = Steps[i];
+            <li class="col" data-testid="about-step">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <span class="mg-step-number" aria-hidden="true">@(i + 1)</span>
+                        <h3 class="h6 mt-3 mb-1">@step.Title</h3>
+                        <p class="small text-body-secondary mb-0">@step.Description</p>
+                    </div>
+                </div>
+            </li>
+        }
+    </ol>
+</section>
+
+<section class="card" aria-labelledby="about-privacy-heading">
+    <div class="card-body d-flex gap-3">
+        <span class="mg-feature-icon flex-shrink-0 d-inline-flex align-items-center justify-content-center rounded bg-success-subtle text-success-emphasis">
+            <Icon Name="IconName.ShieldCheck" Size="22" />
+        </span>
+        <div>
+            <h2 id="about-privacy-heading" class="h6 mb-1">Your vehicles are visible only to you</h2>
+            <p class="small text-body-secondary mb-2">
+                Every vehicle, note, picture, and record belongs to your account, and no one else can see or change them.
+                You sign in with your Microsoft account, so there is no extra password to remember.
+            </p>
+            <p class="small text-body-secondary mb-0">
+                When you add a record from a file or an email, the file is read only to prepare a draft for you. Nothing becomes
+                part of your garage until you review it and include it, and what you upload is never written to the application's logs.
+            </p>
+        </div>
+    </div>
+</section>
+
+@code {
+    private sealed record Feature(IconName Icon, string Title, string Description);
+
+    private sealed record Step(string Title, string Description);
+
+    private static readonly Feature[] Features =
+    [
+        new(IconName.CarFront, "Every vehicle in one list", "Year, make, model, VIN, specifications, mileage, and a main picture on each garage card."),
+        new(IconName.Image, "Pictures", "Upload photos, choose a main picture, and add captions."),
+        new(IconName.FileText, "Journal and features", "Dated notes about trips and repairs, and tags for the features each vehicle has."),
+        new(IconName.Wrench, "Service history", "Service records with line items, labor, and parts, and the total cost of each visit."),
+        new(IconName.Calendar, "Fuel, charging, and compliance", "Fuel and charging entries, inspections, registrations, insurance, and taxes with their due dates."),
+        new(IconName.Envelope, "Records from email and files", "Forward an invoice or upload a file and review the draft before anything is saved."),
+        new(IconName.CloudUpload, "Window sticker import", "Fill in a new vehicle from a photo or PDF of its window sticker."),
+        new(IconName.Sliders, "Make it yours", "Choose the vehicle types, fuel types, transmissions, and drivetrains you see in your forms."),
+        new(IconName.MoonStars, "Light and dark", "Switch the look with one button; your choice stays in your browser."),
+    ];
+
+    private static readonly Step[] Steps =
+    [
+        new("Add your vehicles", "Enter a vehicle by hand or start from its window sticker, then add pictures and notes."),
+        new("Keep the records", "Add services, fuel and charging, and compliance entries as they happen, or let a forwarded invoice become a draft."),
+        new("Find it when you need it", "Search from the top bar and open any vehicle to see its details, history, and documents."),
+    ];
+
+    private bool signedIn;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        signedIn = state.User.Identity?.IsAuthenticated ?? false;
+    }
+}

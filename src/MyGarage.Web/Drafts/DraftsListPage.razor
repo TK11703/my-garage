@@ -19,12 +19,31 @@
 @* Plain links: the app is statically rendered, so each tab is its own page load. *@
 <ul class="nav mg-tabs mb-3" data-testid="drafts-tabs">
     <li class="nav-item">
-        <a class="nav-link @(IsHistory ? null : "active")" href="@PageHref(1)" aria-current="@(IsHistory ? null : "page")">Awaiting review</a>
+        <a class="nav-link @(IsHistory ? null : "active")" href="@PageHref(1)" aria-current="@(IsHistory ? null : "page")">
+            <Icon Name="IconName.Inbox" /> <span>Awaiting review</span>
+        </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link @(IsHistory ? "active" : null)" href="@HistoryHref(1)" aria-current="@(IsHistory ? "page" : null)">History</a>
+        <a class="nav-link @(IsHistory ? "active" : null)" href="@HistoryTabHref" aria-current="@(IsHistory ? "page" : null)">
+            <Icon Name="IconName.ClockHistory" /> <span>History</span>
+        </a>
     </li>
 </ul>
+
+@if (IsHistory)
+{
+    <form method="get" action="/drafts" class="d-flex flex-wrap align-items-center justify-content-end gap-2 mb-3" data-testid="history-filter">
+        <input type="hidden" name="tab" value="history" />
+        <label for="history-status" class="form-label small fw-medium mb-0 d-inline-flex align-items-center gap-1"><Icon Name="IconName.Funnel" Size="14" /> Status</label>
+        <select id="history-status" name="status" class="form-select form-select-sm w-auto" data-auto-submit>
+            <option value="" selected="@(ActiveStatus is null)">All statuses</option>
+            @foreach (var option in DraftFormat.HistoryStatuses)
+            {
+                <option value="@option.Value" selected="@(ActiveStatus == option.Value)">@option.Label</option>
+            }
+        </select>
+    </form>
+}
 
 @if (failure is not null)
 {
@@ -37,7 +56,7 @@ else if (IsHistory && history is not null)
         <div class="card border-0 shadow-sm"><div class="card-body">
         @if (history.TotalCount == 0)
         {
-            <EmptyState Message="No emails or uploads yet. Emails you forward to your My Garage mailbox and files you upload appear here." />
+            <EmptyState Message="@(ActiveStatus is null ? "No emails or uploads yet. Emails you forward to your My Garage mailbox and files you upload appear here." : "Nothing has this status.")" />
         }
         else
         {
@@ -136,6 +155,12 @@ else if (!IsHistory && drafts is not null)
 
     private bool IsHistory => Tab == "history";
 
+    // The History tab's status filter; anything that is not a known status means all of them.
+    [Parameter, SupplyParameterFromQuery(Name = "status")]
+    public string? Status { get; set; }
+
+    private string? ActiveStatus => DraftFormat.HistoryStatuses.Any(option => option.Value == Status) ? Status : null;
+
     // The number of files just uploaded, set by the upload page; only 1 to 5 is believed.
     [Parameter, SupplyParameterFromQuery(Name = "uploaded")]
     public string? Uploaded { get; set; }
@@ -152,7 +177,7 @@ else if (!IsHistory && drafts is not null)
         {
             if (IsHistory)
             {
-                var result = await Api.ListEmailHistoryAsync(CurrentPage);
+                var result = await Api.ListEmailHistoryAsync(CurrentPage, ActiveStatus);
                 history = result.Value ?? new PagedResultDto<EmailHistoryItemDto> { Items = [], Page = 1, PageSize = 10, TotalCount = 0, TotalPages = 0 };
             }
             else
@@ -170,5 +195,17 @@ else if (!IsHistory && drafts is not null)
     // The first page keeps a clean address.
     private static string PageHref(int page) => page <= 1 ? "/drafts" : $"/drafts?page={page}";
 
-    private static string HistoryHref(int page) => page <= 1 ? "/drafts?tab=history" : $"/drafts?tab=history&page={page}";
+    private const string HistoryTabHref = "/drafts?tab=history";
+
+    // Paging keeps the chosen status.
+    private string HistoryHref(int page)
+    {
+        var href = HistoryTabHref;
+        if (ActiveStatus is not null)
+        {
+            href += $"&status={ActiveStatus}";
+        }
+
+        return page <= 1 ? href : $"{href}&page={page}";
+    }
 }

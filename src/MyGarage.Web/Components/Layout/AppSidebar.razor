@@ -1,0 +1,123 @@
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<div class="mg-sidebar-backdrop" data-mg-sidebar-close></div>
+
+<aside id="mg-sidebar" class="mg-sidebar" aria-label="Site menu">
+    <div class="dropdown mg-profile">
+        <button type="button" class="mg-profile-btn" aria-label="Account menu for @displayName"
+                data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="mg-avatar mg-avatar-lg" aria-hidden="true">
+                @if (initials.Length > 0)
+                {
+                    @initials
+                }
+                else
+                {
+                    <Icon Name="IconName.PersonCircle" Size="24" />
+                }
+            </span>
+            <span class="mg-profile-text">
+                <span class="mg-profile-name text-truncate">@displayName</span>
+                @if (email.Length > 0)
+                {
+                    <span class="mg-profile-email text-truncate" data-testid="profile-email">@email</span>
+                }
+            </span>
+            <span class="mg-profile-chevron" aria-hidden="true"><Icon Name="IconName.ChevronDown" Size="14" /></span>
+        </button>
+        <ul class="dropdown-menu mg-menu mg-profile-menu" data-bs-theme="dark">
+            <li>
+                <a class="dropdown-item d-flex align-items-center gap-2" href="/preferences">
+                    <Icon Name="IconName.Sliders" /> Preferences
+                </a>
+            </li>
+            <li><hr class="dropdown-divider" /></li>
+            <li>
+                <form method="post" action="/authentication/logout">
+                    <AntiforgeryToken />
+                    <button type="submit" class="dropdown-item d-flex align-items-center gap-2">
+                        <Icon Name="IconName.BoxArrowRight" /> Sign out
+                    </button>
+                </form>
+            </li>
+        </ul>
+    </div>
+
+    <nav class="mg-sidebar-nav" aria-label="Primary">
+        <ul class="mg-nav-list mg-nav-start" aria-label="Start">
+            <li>
+                @{ var homeActive = IsActive(NavMenu.Home); }
+                <a class="mg-nav-link @(homeActive ? "active" : null)" href="@NavMenu.Home.Href" title="@NavMenu.Home.Label"
+                   aria-current="@(homeActive ? "page" : null)">
+                    <Icon Name="NavMenu.Home.Icon" Size="18" />
+                    <span class="mg-nav-label">@NavMenu.Home.Label</span>
+                </a>
+            </li>
+        </ul>
+        @foreach (var group in NavMenu.Groups)
+        {
+            var headingId = $"nav-group-{group.Id}";
+            <span class="mg-nav-heading" id="@headingId">@group.Label</span>
+            <ul class="mg-nav-list" aria-labelledby="@headingId">
+                @foreach (var item in group.Items)
+                {
+                    var active = IsActive(item);
+                    <li>
+                        <a class="mg-nav-link @(active ? "active" : null)" href="@item.Href" title="@item.Label"
+                           aria-current="@(active ? "page" : null)">
+                            <Icon Name="item.Icon" Size="18" />
+                            <span class="mg-nav-label">@item.Label</span>
+                            @if (item.Href == "/drafts" && DraftsAwaitingReview > 0)
+                            {
+                                <span class="badge rounded-pill text-bg-warning ms-auto mg-nav-badge" data-testid="nav-drafts-count" aria-hidden="true">@DraftsAwaitingReview</span>
+                                <span class="visually-hidden">@DraftsAwaitingReview awaiting review</span>
+                            }
+                        </a>
+                    </li>
+                }
+            </ul>
+        }
+    </nav>
+</aside>
+
+@code {
+    private string displayName = ClaimsPrincipalExtensions.NeutralName;
+    private string initials = string.Empty;
+    private string email = string.Empty;
+
+    [Parameter]
+    public int DraftsAwaitingReview { get; set; }
+
+    private string CurrentPath
+    {
+        get
+        {
+            var relative = Navigation.ToBaseRelativePath(Navigation.Uri);
+            var end = relative.IndexOfAny(['?', '#']);
+            return "/" + (end >= 0 ? relative[..end] : relative).TrimEnd('/');
+        }
+    }
+
+    private static bool Under(string path, string href) =>
+        path.Equals(href, StringComparison.OrdinalIgnoreCase) || path.StartsWith(href + "/", StringComparison.OrdinalIgnoreCase);
+
+    private bool IsActive(NavItem item)
+    {
+        var path = CurrentPath;
+        if (item.Exact)
+        {
+            return path.Equals(item.Href, StringComparison.OrdinalIgnoreCase);
+        }
+
+        return Under(path, item.Href) && !item.Excluding.Any(excluded => Under(path, excluded));
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        displayName = state.User.GetDisplayName();
+        initials = state.User.GetInitials();
+        email = state.User.GetEmail();
+    }
+}

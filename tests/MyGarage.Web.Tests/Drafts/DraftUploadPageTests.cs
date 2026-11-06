@@ -20,11 +20,23 @@ public class DraftUploadPageTests : DraftTestContext
         var cut = RenderPage();
 
         Assert.Equal("Add Maintenance", cut.Find("h1").TextContent);
-        Assert.Equal(["Home", "Maintenance Drafts", "Add maintenance"], cut.FindAll("nav[aria-label='Breadcrumb'] li").Select(item => item.TextContent.Trim()));
+        Assert.Equal(["Home", "Maintenance", "Maintenance Drafts"], cut.FindAll("nav[aria-label='Breadcrumb'] li").Select(item => item.TextContent.Trim()));
         Assert.Equal("/drafts", cut.Find("nav[aria-label='Breadcrumb'] li a[href='/drafts']").GetAttribute("href"));
         var text = cut.Find("[data-testid='upload-record']").TextContent;
         Assert.Contains("PDF, JPG, PNG, or WebP", text);
         Assert.Contains("Nothing becomes a record until you review and include it.", text);
+    }
+
+    [Fact]
+    public void ShowsAnInfoAlertWithAnIconAboutEmailingMaintenanceInformation()
+    {
+        var cut = RenderPage();
+
+        var alert = cut.Find("[data-testid='upload-email-tip']");
+        Assert.Contains("alert-info", alert.ClassList);
+        Assert.Equal("true", alert.QuerySelector("svg.bi")!.GetAttribute("aria-hidden"));
+        Assert.Equal("You can also send an email to mygarage_intake@outlook.com to provide maintenance information.", alert.TextContent.Trim());
+        Assert.Equal("mailto:mygarage_intake@outlook.com", alert.QuerySelector("a")!.GetAttribute("href"));
     }
 
     [Fact]

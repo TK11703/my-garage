@@ -25,7 +25,7 @@ public class DraftsListPageTests : DraftTestContext
         cut.WaitForAssertion(() =>
         {
             Assert.Equal("Maintenance Drafts", cut.Find("h1").TextContent);
-            Assert.Equal(["Home", "Maintenance Drafts"], cut.FindAll("nav[aria-label='Breadcrumb'] li").Select(item => item.TextContent.Trim()));
+            Assert.Equal(["Home", "Maintenance"], cut.FindAll("nav[aria-label='Breadcrumb'] li").Select(item => item.TextContent.Trim()));
         });
     }
 
@@ -272,6 +272,97 @@ public class DraftsListPageTests : DraftTestContext
             Assert.Null(tabs[1].GetAttribute("aria-current"));
             Assert.Empty(awaiting.FindAll("[data-testid='drafts-history']"));
         });
+    }
+
+    [Fact]
+    public void EachTab_HasAnIcon()
+    {
+        DraftList = DraftsPage([]);
+
+        var cut = RenderPage();
+
+        cut.WaitForAssertion(() =>
+        {
+            var tabs = cut.FindAll("[data-testid='drafts-tabs'] a");
+            Assert.All(tabs, tab => Assert.NotNull(tab.QuerySelector("svg.bi")));
+        });
+    }
+
+    [Fact]
+    public void TheAwaitingTab_HasNoStatusFilter()
+    {
+        DraftList = DraftsPage([]);
+
+        var cut = RenderPage();
+
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll("[data-testid='history-filter']")));
+    }
+
+    [Fact]
+    public void TheHistoryTab_OffersAStatusFilter_WithEveryStatusAndAllSelected()
+    {
+        HistoryList = HistoryPage([HistoryItem()]);
+
+        var cut = RenderPage("/drafts?tab=history");
+
+        cut.WaitForAssertion(() =>
+        {
+            var form = cut.Find("form[data-testid='history-filter']");
+            Assert.Equal("get", form.GetAttribute("method"), ignoreCase: true);
+            Assert.Equal("history", form.QuerySelector("input[name='tab']")!.GetAttribute("value"));
+            Assert.NotNull(form.QuerySelector("label[for='history-status']"));
+
+            var select = form.QuerySelector("select#history-status")!;
+            Assert.Equal("status", select.GetAttribute("name"));
+            Assert.Equal(
+                ["All statuses", "Awaiting review", "Included", "Discarded", "Expired", "Not applicable", "Failed"],
+                select.QuerySelectorAll("option").Select(option => option.TextContent.Trim()));
+            Assert.Equal(["awaiting_review", "included", "discarded", "expired", "not_applicable", "failed"], select.QuerySelectorAll("option").Skip(1).Select(option => option.GetAttribute("value")));
+            Assert.Equal("", select.QuerySelectorAll("option").Single(option => option.HasAttribute("selected")).GetAttribute("value"));
+            Assert.Empty(form.QuerySelectorAll("button, a"));
+            Assert.Contains("justify-content-end", form.ClassList);
+            Assert.True(select.HasAttribute("data-auto-submit"));
+        });
+    }
+
+    [Fact]
+    public void AStatus_IsSentToTheApi_SelectedInTheFilter_AndKeptByTheTabAndPagerLinks()
+    {
+        HistoryList = HistoryPage([HistoryItem(EmailHistoryOutcome.Included)], page: 2, totalCount: 25);
+
+        var cut = RenderPage("/drafts?tab=history&status=included&page=2");
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains(Calls, call => call.Path == "/api/emails?page=2&outcome=included");
+            Assert.Equal("included", cut.Find("select#history-status option[selected]").GetAttribute("value"));
+            Assert.Equal("/drafts?tab=history&status=included", cut.Find("[data-testid='pager-previous'] a").GetAttribute("href"));
+            Assert.Equal("/drafts?tab=history&status=included&page=3", cut.Find("[data-testid='pager-next'] a").GetAttribute("href"));
+            Assert.Equal("/drafts?tab=history", cut.FindAll("[data-testid='drafts-tabs'] a")[1].GetAttribute("href"));
+        });
+    }
+
+    [Fact]
+    public void AnUnknownStatus_MeansAllStatuses()
+    {
+        HistoryList = HistoryPage([HistoryItem()]);
+
+        var cut = RenderPage("/drafts?tab=history&status=bogus");
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains(Calls, call => call.Path == "/api/emails?page=1");
+        });
+    }
+
+    [Fact]
+    public void AFilterWithNoMatches_SaysSo()
+    {
+        HistoryList = HistoryPage([]);
+
+        var cut = RenderPage("/drafts?tab=history&status=failed");
+
+        cut.WaitForAssertion(() => Assert.Contains("Nothing has this status.", cut.Find("[data-testid='drafts-history']").TextContent));
     }
 
     [Fact]

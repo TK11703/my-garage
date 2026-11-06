@@ -77,8 +77,8 @@ public class TaxCreatePageTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-            Assert.Equal(["Home", "Vehicles", "2020 Ford F-150", "Add tax"], items.Select(item => item.TextContent.Trim()));
-            Assert.Equal($"/vehicles/{vehicleId}?tab=service-records&section=compliance", items[2].QuerySelector("a")!.GetAttribute("href"));
+            Assert.Equal(["Home", "Garage", "Vehicles", "2020 Ford F-150"], items.Select(item => item.TextContent.Trim()));
+            Assert.Equal($"/vehicles/{vehicleId}?tab=service-records&section=compliance", items[3].QuerySelector("a")!.GetAttribute("href"));
             Assert.Equal($"/vehicles/{vehicleId}?tab=service-records&section=compliance", cut.Find("a.btn-outline-secondary").GetAttribute("href"));
         });
     }
@@ -186,7 +186,7 @@ public class TaxEditPageTests : VehicleTestContext
             Assert.Equal("640.5", cut.Find("#amount").GetAttribute("value"));
             Assert.Contains("selected", cut.Find("#recurrence option[value='BiAnnual']").OuterHtml);
             var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-            Assert.Equal(["Home", "Vehicles", "2020 Ford F-150", "Edit tax"], items.Select(item => item.TextContent.Trim()));
+            Assert.Equal(["Home", "Garage", "Vehicles", "2020 Ford F-150"], items.Select(item => item.TextContent.Trim()));
         });
     }
 
