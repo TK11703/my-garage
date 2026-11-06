@@ -11,17 +11,6 @@
               NotFoundTitle="Vehicle not found" NotFoundMessage="@VehicleMessages.NotFound">
     @if (Model is not null)
     {
-        <nav aria-label="Reminder types" class="mb-3">
-            <p class="form-text mb-1">Start from a type, then change anything you like:</p>
-            <div class="d-flex flex-wrap gap-2">
-                @foreach (var preset in ReminderPresets.All)
-                {
-                    <a class="btn btn-sm btn-outline-primary" href="@ReminderLinks.New(VehicleId, preset.Id)" data-preset="@preset.Id">@preset.Name</a>
-                }
-                <a class="btn btn-sm btn-outline-secondary" href="@ReminderLinks.New(VehicleId, "custom")" data-preset="custom">Custom</a>
-            </div>
-        </nav>
-
         @if (IsDuplicate)
         {
             <div class="alert alert-warning" role="status" data-testid="duplicate-name">
@@ -37,7 +26,20 @@
         }
 
         <ReminderForm Model="Model" FormName="create-reminder" SubmitText="Save" SubmitTitle="Save this reminder"
-                      CancelHref="@ReminderLinks.Tab(VehicleId)" Errors="errors" OnSubmit="SubmitAsync" />
+                      CancelHref="@ReminderLinks.Tab(VehicleId)" Errors="errors" OnSubmit="SubmitAsync">
+            <Header>
+                <nav aria-label="Reminder types">
+                    <p class="form-text mb-1">Start from a type, then change anything you like:</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var preset in ReminderPresets.All)
+                        {
+                            <a class="btn btn-sm btn-outline-primary" href="@ReminderLinks.New(VehicleId, preset.Id)" data-preset="@preset.Id">@preset.Name</a>
+                        }
+                        <a class="btn btn-sm btn-outline-secondary" href="@ReminderLinks.New(VehicleId, "custom")" data-preset="custom">Custom</a>
+                    </div>
+                </nav>
+            </Header>
+        </ReminderForm>
     }
 </ReminderPage>
 

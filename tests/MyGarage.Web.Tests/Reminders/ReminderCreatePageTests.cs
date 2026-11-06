@@ -108,12 +108,30 @@ public class ReminderCreatePageTests : VehicleTestContext
             var card = cut.Find("div.card");
             Assert.Empty(card.QuerySelectorAll(".card-footer"));
             Assert.Empty(card.QuerySelectorAll("button[type='submit']"));
-            Assert.Empty(card.QuerySelectorAll("a.btn"));
+            Assert.Empty(card.QuerySelectorAll("a.btn:not([data-preset])"));
             var actions = cut.Find("[data-testid='form-actions']");
             Assert.Same(card.ParentElement, actions.ParentElement);
             Assert.Equal("create-reminder", actions.QuerySelector("button[type='submit']")!.GetAttribute("form"));
             Assert.Contains("Save", actions.QuerySelector("button[type='submit']")!.TextContent);
             Assert.Equal("Cancel", actions.QuerySelector("a.btn")!.TextContent.Trim());
+        });
+    }
+
+    [Fact]
+    public void ThePresetChooserIsInsideTheFormCard_AboveTheFields()
+    {
+        var cut = RenderPage();
+
+        cut.WaitForAssertion(() =>
+        {
+            var card = cut.Find("div.card");
+            var chooser = card.QuerySelector("nav[aria-label='Reminder types']")!;
+            Assert.Contains("Start from a type, then change anything you like:", chooser.TextContent);
+            Assert.Equal(5, chooser.QuerySelectorAll("a[data-preset]").Length);
+            Assert.Single(cut.FindAll("nav[aria-label='Reminder types']"));
+            var form = card.QuerySelector("form")!;
+            Assert.True((chooser.CompareDocumentPosition(form) & AngleSharp.Dom.DocumentPositions.Following) != 0);
+            Assert.Null(form.QuerySelector("nav[aria-label='Reminder types']"));
         });
     }
 

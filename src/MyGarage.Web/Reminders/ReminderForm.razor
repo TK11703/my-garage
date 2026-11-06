@@ -1,4 +1,5 @@
 <MaintenanceFormCard FormId="@FormName" SubmitText="@SubmitText" SubmitTitle="@SubmitTitle" CancelHref="@CancelHref" ActionsOutside="true">
+    @Header
     <EditForm EditContext="editContext" id="@FormName" FormName="@FormName" OnValidSubmit="OnSubmit" class="vstack gap-3">
         <div class="row g-3">
             <div class="col-md-6">
@@ -127,6 +128,10 @@
 
     [Parameter, EditorRequired]
     public EventCallback OnSubmit { get; set; }
+
+    // Shown at the top of the card, above the fields (the add page puts the preset chooser here).
+    [Parameter]
+    public RenderFragment? Header { get; set; }
 
     // The model field an API error key belongs to; the time value is nested in the request.
     private static string FieldOf(string key) =>
