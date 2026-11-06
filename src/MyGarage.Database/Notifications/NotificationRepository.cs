@@ -51,6 +51,14 @@ public sealed class NotificationRepository(NpgsqlDataSource dataSource, SqlScrip
             scripts.Get("Notifications/DeleteRead"), new { OwnerId = ownerId }, cancellationToken: cancellationToken));
     }
 
+    // Marking a reminder done or pausing it reads its alerts.
+    public async Task MarkReadForReminderAsync(string ownerId, Guid reminderId, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        await connection.ExecuteAsync(new CommandDefinition(
+            scripts.Get("Notifications/MarkReadForReminder"), new { ReminderId = reminderId, OwnerId = ownerId, Now = now }, cancellationToken: cancellationToken));
+    }
+
     // Opening a draft reads its notification.
     public async Task MarkReadForDraftAsync(string ownerId, Guid draftId, DateTimeOffset now, CancellationToken cancellationToken)
     {

@@ -1,7 +1,7 @@
 namespace MyGarage.Database.Reminders;
 
 // The vehicle's name is composed from these parts in the Api; the vehicle has no stored name.
-public sealed record ReminderRecord
+public record ReminderRecord
 {
     public Guid Id { get; init; }
 

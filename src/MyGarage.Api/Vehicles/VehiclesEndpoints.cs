@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FluentValidation;
 using MyGarage.Api.Common;
+using MyGarage.Api.Reminders;
 using MyGarage.Database.Tags;
 using MyGarage.Shared.Vehicles;
 
@@ -95,7 +96,7 @@ public static class VehiclesEndpoints
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
-        group.MapPut("/{vehicleId:guid}", async (Guid vehicleId, VehicleRequest request, ClaimsPrincipal user, VehicleService service, VehicleLookupChecker checker, CancellationToken cancellationToken) =>
+        group.MapPut("/{vehicleId:guid}", async (Guid vehicleId, VehicleRequest request, ClaimsPrincipal user, VehicleService service, VehicleLookupChecker checker, ReminderEvaluator reminderEvaluator, CancellationToken cancellationToken) =>
             {
                 if (CurrentOwner.Get(user) is not { } ownerId)
                 {
@@ -109,6 +110,11 @@ public static class VehiclesEndpoints
                 }
 
                 var updated = await service.UpdateAsync(ownerId, vehicleId, request, cancellationToken);
+                if (updated.Vehicle is not null)
+                {
+                    await reminderEvaluator.TryEvaluateVehicleAsync(ownerId, vehicleId, cancellationToken);
+                }
+
                 return updated switch
                 {
                     { Vehicle: { } vehicle } => Results.Ok(vehicle),

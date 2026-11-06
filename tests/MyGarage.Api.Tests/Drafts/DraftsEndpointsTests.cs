@@ -287,6 +287,18 @@ public class DraftsEndpointsTests(ApiFactory factory) : IClassFixture<ApiFactory
     }
 
     [Fact]
+    public async Task Accept_AServiceRecordRaisingTheMileagePastAReminder_RaisesItsNotification()
+    {
+        var vehicle = await factory.InsertVehicleAsync(Alice);
+        var reminder = await MyGarage.Api.Tests.Reminders.ReminderSeed.InsertReminderAsync(factory, vehicle);
+        var seeded = await SeedAsync(Alice, ServiceProposal(45_500));
+
+        var (response, _) = await AcceptAsync(seeded, ServiceProposal(45_500), vehicleId: vehicle);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Equal(["reminder_overdue"], await MyGarage.Api.Tests.Reminders.ReminderSeed.NotificationKindsAsync(factory, Alice, reminder));
+    }
+    [Fact]
     public async Task Accept_CreatesTheServiceRecordFromEmail_AndTheDraftLeavesTheList()
     {
         var seeded = await SeedAsync(Alice, ServiceProposal(), withAttachment: true);

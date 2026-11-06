@@ -96,6 +96,60 @@ public sealed class ReminderRepository(NpgsqlDataSource dataSource, SqlScriptSto
         return await GetAsync(connection, ownerId, vehicleId, reminderId, cancellationToken);
     }
 
+    // The active reminders (not paused) of one vehicle, one owner, or everyone, for the notifier; null filters match all.
+    public async Task<IReadOnlyList<ReminderForEvaluationRecord>> ListForEvaluationAsync(string? ownerId, Guid? vehicleId, CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        return (await connection.QueryAsync<ReminderForEvaluationRecord>(new CommandDefinition(
+            scripts.Get("Reminders/ListForEvaluation"), new { OwnerId = ownerId, VehicleId = vehicleId }, cancellationToken: cancellationToken))).ToList();
+    }
+
+    // Records a state change that needs no notification; false when another caller already moved the reminder on.
+    public async Task<bool> TryAdvanceNotifiedStateAsync(Guid reminderId, string? expectedState, string? newState, CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        return await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
+            scripts.Get("Reminders/SetNotifiedState"),
+            new { ReminderId = reminderId, ExpectedState = expectedState, NewState = newState },
+            cancellationToken: cancellationToken)) is not null;
+    }
+
+    // Moves the notified state and inserts the notification in one transaction; false (nothing written) when another caller got there first.
+    public async Task<bool> InsertNotificationAndAdvanceAsync(
+        string ownerId,
+        Guid reminderId,
+        string? expectedState,
+        string newState,
+        Guid notificationId,
+        string kind,
+        string title,
+        DateTimeOffset createdAt,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+
+        var advanced = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
+            scripts.Get("Reminders/SetNotifiedState"),
+            new { ReminderId = reminderId, ExpectedState = expectedState, NewState = newState },
+            transaction,
+            cancellationToken: cancellationToken));
+        if (advanced is null)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return false;
+        }
+
+        await connection.ExecuteAsync(new CommandDefinition(
+            scripts.Get("Notifications/InsertForReminder"),
+            new { Id = notificationId, OwnerId = ownerId, Kind = kind, ReminderId = reminderId, Title = title, CreatedAt = createdAt },
+            transaction,
+            cancellationToken: cancellationToken));
+
+        await transaction.CommitAsync(cancellationToken);
+        return true;
+    }
+
     // Every reminder of every vehicle the owner has, oldest first.
     public async Task<IReadOnlyList<ReminderRecord>> ListForOwnerAsync(string ownerId, CancellationToken cancellationToken)
     {
