@@ -1,6 +1,6 @@
 @* One "Add" dropdown for the page bar. It holds every add action that used to sit on the accordion headers. *@
 <div class="dropdown" data-testid="add-maintenance-menu">
-    <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" title="Add a service record, fuel, charge, or compliance entry"
+    <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" title="Add a service record, fuel, charge, compliance entry, or reminder"
             data-bs-toggle="dropdown" aria-expanded="false">
         <Icon Name="IconName.Plus" /> Add <Icon Name="IconName.ChevronDown" Size="12" />
     </button>
@@ -17,6 +17,9 @@
         <li><a class="dropdown-item" href="/vehicles/@VehicleId/registrations/new" data-testid="add-registration">Add registration</a></li>
         <li><a class="dropdown-item" href="/vehicles/@VehicleId/insurance/new" data-testid="add-insurance">Add insurance</a></li>
         <li><a class="dropdown-item" href="/vehicles/@VehicleId/taxes/new" data-testid="add-tax">Add tax</a></li>
+        <li><hr class="dropdown-divider" /></li>
+        <li><h6 class="dropdown-header">Reminders</h6></li>
+        <li><a class="dropdown-item" href="@ReminderLinks.New(VehicleId)" data-testid="add-reminder">Add reminder</a></li>
     </ul>
 </div>
 

@@ -197,6 +197,7 @@ description: "Task list for Service Reminders"
 - [X] T068 [US6] Document the chart in the contracts, the FAQ, and `docs/README.md`
 - [X] T069 [US6] Stack the spend charts by vehicle in a card: per-vehicle rows from `FuelEnergySpend.sql`, `FuelEnergySpendVehicleDto` and `FuelEnergySpendMonthDto.Vehicles`, a fuel chart and a charging chart (`StackedBarChart.razor`, `StackedMonth.cs`) with a vehicle legend (seven theme colors plus a gray Other layer in `app.css`), a figures table per vehicle, and tests at every layer
 - [X] T070 [US6] Rework the dashboard layout: compact metric cards (overdue and due-soon cards removed), a Needs attention card of dated rows (`AttentionRow.razor`), and a Recent updates card with a Recent activity list beside the spend card, six columns each; `RecentActivityDto`, `DashboardDto.RecentActivity`, `Scripts/Dashboard/RecentActivity.sql`, `DashboardRepository.GetRecentActivityAsync`, `RecentActivityItem.razor`, with tests at every layer
+- [X] T071 [US1] Restyle the vehicle's Reminders tab as a card of dated rows (the shared `ReminderDueRow.razor`, which the dashboard's Needs attention card also uses) and move Add reminder from the tab into the page bar's Add dropdown (`AddMaintenanceMenu.razor`), with tests
 
 ---
 

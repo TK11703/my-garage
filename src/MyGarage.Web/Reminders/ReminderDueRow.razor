@@ -16,10 +16,22 @@
     </div>
     <div class="flex-grow-1 overflow-hidden">
         <a class="fw-semibold text-body text-decoration-none" href="@ReminderLinks.Detail(Reminder.VehicleId, Reminder.Id)" data-testid="reminder-link">@Reminder.Name</a>
-        <div class="small text-body-secondary text-truncate">
-            <a class="text-body-secondary" href="@ReminderLinks.Tab(Reminder.VehicleId)" data-testid="reminder-vehicle">@Reminder.VehicleName</a>
-        </div>
-        @if (ReminderFormat.RemainingParts(Reminder) is { Count: > 0 } parts)
+        @if (ShowVehicle)
+        {
+            <div class="small text-body-secondary text-truncate">
+                <a class="text-body-secondary" href="@ReminderLinks.Tab(Reminder.VehicleId)" data-testid="reminder-vehicle">@Reminder.VehicleName</a>
+            </div>
+        }
+        else
+        {
+            <div class="small text-body-secondary">@ReminderFormat.AppliesTo(Reminder) &middot; @ReminderFormat.Interval(Reminder)</div>
+            <div class="small text-body-secondary">Last done: @ReminderFormat.LastDone(Reminder) &middot; Next due: @ReminderFormat.NextDue(Reminder)</div>
+        }
+        @if (Reminder.Status == ReminderStatus.MileageNeeded)
+        {
+            <div class="small text-body-secondary">Record the vehicle's mileage to see how far away this is.</div>
+        }
+        else if (Reminder.Status != ReminderStatus.Paused && ReminderFormat.RemainingParts(Reminder) is { Count: > 0 } parts)
         {
             <div class="small" data-testid="reminder-remaining">
                 @for (var i = 0; i < parts.Count; i++)
@@ -48,7 +60,17 @@
     [Parameter, EditorRequired]
     public ReminderDto Reminder { get; set; } = default!;
 
-    // The status color carries the urgency; the badge and the remaining text say it in words.
-    private string TileClass => "mg-date-tile rounded d-flex flex-column align-items-center justify-content-center flex-shrink-0 "
-        + (Reminder.Status == ReminderStatus.Overdue ? "bg-danger-subtle text-danger-emphasis" : "bg-warning-subtle text-warning-emphasis");
+    // The dashboard names the vehicle each reminder belongs to; a vehicle's own list shows what the reminder applies to and its intervals instead.
+    [Parameter]
+    public bool ShowVehicle { get; set; }
+
+    // The tile color follows the status; the badge and the remaining text say the same in words.
+    private string TileClass => "mg-date-tile rounded d-flex flex-column align-items-center justify-content-center flex-shrink-0 " + Reminder.Status switch
+    {
+        ReminderStatus.Overdue => "bg-danger-subtle text-danger-emphasis",
+        ReminderStatus.DueSoon => "bg-warning-subtle text-warning-emphasis",
+        ReminderStatus.MileageNeeded => "bg-info-subtle text-info-emphasis",
+        ReminderStatus.Paused => "bg-secondary-subtle text-secondary-emphasis",
+        _ => "bg-success-subtle text-success-emphasis",
+    };
 }

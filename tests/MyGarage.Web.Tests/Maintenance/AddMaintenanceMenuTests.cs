@@ -29,10 +29,10 @@ public class AddMaintenanceMenuTests : BunitContext
 
         var items = cut.FindAll(".dropdown-menu a.dropdown-item");
         Assert.Equal(
-            ["add-service-record", "add-fuel", "add-charge", "add-inspection", "add-registration", "add-insurance", "add-tax"],
+            ["add-service-record", "add-fuel", "add-charge", "add-inspection", "add-registration", "add-insurance", "add-tax", "add-reminder"],
             items.Select(link => link.GetAttribute("data-testid")));
         Assert.Equal(
-            ["Add service record", "Add fuel", "Add charge", "Add inspection", "Add registration", "Add insurance", "Add tax"],
+            ["Add service record", "Add fuel", "Add charge", "Add inspection", "Add registration", "Add insurance", "Add tax", "Add reminder"],
             items.Select(link => link.TextContent.Trim()));
         Assert.Equal(
             [
@@ -43,6 +43,7 @@ public class AddMaintenanceMenuTests : BunitContext
                 $"/vehicles/{vehicleId}/registrations/new",
                 $"/vehicles/{vehicleId}/insurance/new",
                 $"/vehicles/{vehicleId}/taxes/new",
+                $"/vehicles/{vehicleId}/reminders/new",
             ],
             items.Select(link => link.GetAttribute("href")));
     }
@@ -52,6 +53,6 @@ public class AddMaintenanceMenuTests : BunitContext
     {
         var cut = RenderMenu();
 
-        Assert.Equal(["Service", "Charging and fueling", "Compliance"], cut.FindAll(".dropdown-header").Select(header => header.TextContent.Trim()));
+        Assert.Equal(["Service", "Charging and fueling", "Compliance", "Reminders"], cut.FindAll(".dropdown-header").Select(header => header.TextContent.Trim()));
     }
 }

@@ -24,7 +24,7 @@ else
         </div>
     }
 
-    <ul class="list-unstyled row row-cols-2 row-cols-xl-4 g-3 mb-4" aria-label="Garage figures">
+    <ul class="list-unstyled row row-cols-2 row-cols-lg-4 g-3 mb-4" aria-label="Garage figures">
         <Metric Id="vehicles" Label="Vehicles" Value="dashboard.Vehicles" Href="/vehicles" Accent="primary" />
         <Metric Id="service-records" Label="Service records" Value="dashboard.ServiceRecords" Accent="success" />
         <Metric Id="fuel-energy-entries" Label="Fuel and charging entries" Value="dashboard.FuelEnergyEntries" Accent="warning" />
@@ -51,7 +51,7 @@ else
                     <ul class="list-group list-group-flush">
                         @foreach (var reminder in dashboard.Attention)
                         {
-                            <AttentionRow Reminder="reminder" />
+                            <ReminderDueRow Reminder="reminder" ShowVehicle="true" />
                         }
                     </ul>
                 }

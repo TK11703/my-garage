@@ -37,7 +37,7 @@ Open the Web URL shown by Aspire (https://localhost:7080 locally) and sign in. A
 
 ## 3. Walk the scenarios
 
-1. **Set up (Story 1).** Open a vehicle with a known mileage (say 40,000), open **Reminders**, choose **Add reminder** with the Oil change preset: every 5,000 miles, last done at 40,000. Expect next due 45,000 miles and Upcoming. Add Inspection every 1 year, last done 2026-03-15: next due 2027-03-15. Add a reminder for Equipment "Trailer hitch" and one for Location "Home garage permit": the names show on the rows.
+1. **Set up (Story 1).** Open a vehicle with a known mileage (say 40,000), choose **Add** at the top and then **Add reminder**, with the Oil change preset: every 5,000 miles, last done at 40,000. Expect next due 45,000 miles and Upcoming. Add Inspection every 1 year, last done 2026-03-15: next due 2027-03-15. Add a reminder for Equipment "Trailer hitch" and one for Location "Home garage permit": the names show on the rows.
 2. **Combined interval.** Add "every 5,000 miles or 6 months": both due points show; the status follows the nearer.
 3. **Validation.** Submit with no name, no interval, a future last-done date, and a negative mileage: each problem is named and the typed values stay.
 4. **Status (Story 2).** Edit the vehicle's mileage to 44,700: Oil change becomes Due soon with "300 miles left". Set it to 45,200: Overdue, "200 miles overdue". Open **Reminders** in the sidebar: the garage list shows overdue first with the vehicle name.

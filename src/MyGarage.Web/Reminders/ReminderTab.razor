@@ -6,37 +6,37 @@
         <div class="alert alert-success mb-0" role="status" data-testid="reminder-saved">@SavedNotice</div>
     }
 
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-        <p class="text-body-secondary mb-0">Recurring items for this vehicle, by miles, by time, or both.</p>
-        <a class="btn btn-primary d-inline-flex align-items-center gap-2" href="@ReminderLinks.New(VehicleId)" data-testid="add-reminder">
-            <Icon Name="IconName.Plus" /> Add reminder
-        </a>
-    </div>
+    <section class="card border-0 shadow-sm" aria-labelledby="vehicle-reminders-heading">
+        <div class="card-body">
+            <h2 id="vehicle-reminders-heading" class="h5 card-title mb-1">Reminders</h2>
+            <p class="text-body-secondary">Recurring items for this vehicle, by miles, by time, or both</p>
 
-    @if (failure is not null)
-    {
-        <ApiFailureAlert Failure="failure.Value" ReturnUrl="@($"/vehicles/{VehicleId}?tab=reminders")"
-                         NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
-    }
-    else if (reminders is null)
-    {
-        <p class="text-body-secondary mb-0">Loading reminders...</p>
-    }
-    else if (reminders.Count == 0)
-    {
-        <EmptyState Variant="EmptyStateVariant.Empty"
-                    Message="No reminders yet. Add one for things like oil changes, inspections, and registrations."
-                    ActionText="Add reminder" ActionHref="@ReminderLinks.New(VehicleId)" />
-    }
-    else
-    {
-        <ul class="list-group" data-testid="reminder-list">
-            @foreach (var reminder in reminders)
+            @if (failure is not null)
             {
-                <ReminderRow Reminder="reminder" />
+                <ApiFailureAlert Failure="failure.Value" ReturnUrl="@($"/vehicles/{VehicleId}?tab=reminders")"
+                                 NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
             }
-        </ul>
-    }
+            else if (reminders is null)
+            {
+                <p class="text-body-secondary mb-0">Loading reminders...</p>
+            }
+            else if (reminders.Count == 0)
+            {
+                <EmptyState Variant="EmptyStateVariant.Empty"
+                            Message="No reminders yet. Add one for things like oil changes, inspections, and registrations."
+                            ActionText="Add reminder" ActionHref="@ReminderLinks.New(VehicleId)" />
+            }
+            else
+            {
+                <ul class="list-group list-group-flush" data-testid="reminder-list">
+                    @foreach (var reminder in reminders)
+                    {
+                        <ReminderDueRow Reminder="reminder" />
+                    }
+                </ul>
+            }
+        </div>
+    </section>
 </div>
 
 @code {

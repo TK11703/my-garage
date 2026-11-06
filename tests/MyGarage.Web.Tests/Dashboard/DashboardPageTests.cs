@@ -73,7 +73,7 @@ public class DashboardPageTests : VehicleTestContext
                 Assert.Equal(value, cut.Find($"[data-testid='metric-{id}'] [data-testid='metric-value']").TextContent.Trim());
             }
 
-            Assert.Contains("row-cols-xl-4", cut.Find("[aria-label='Garage figures']").ClassName);
+            Assert.Contains("row-cols-lg-4", cut.Find("[aria-label='Garage figures']").ClassName);
         });
     }
 

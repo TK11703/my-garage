@@ -60,12 +60,81 @@ public class ReminderTabTests : VehicleTestContext
     }
 
     [Fact]
-    public void OffersAnAddReminderLink()
+    public void AddReminderLivesInTheTopAddMenu_NotOnTheTab()
     {
+        reminders = [Reminder(vehicleId)];
         var cut = RenderTab();
 
         cut.WaitForAssertion(() =>
-            Assert.Equal($"/vehicles/{vehicleId}/reminders/new", cut.Find("a[data-testid='add-reminder']").GetAttribute("href")));
+        {
+            Assert.Equal($"/vehicles/{vehicleId}/reminders/new", cut.Find(".mg-pagebar [data-testid='add-maintenance-menu'] a[data-testid='add-reminder']").GetAttribute("href"));
+            Assert.Empty(cut.FindAll("#tab-reminders a[data-testid='add-reminder']"));
+            Assert.Empty(cut.FindAll("#tab-reminders a.btn"));
+        });
+    }
+
+    [Fact]
+    public void TheListIsInACardWithATitleAndASubtitle()
+    {
+        reminders = [Reminder(vehicleId)];
+        var cut = RenderTab();
+
+        cut.WaitForAssertion(() =>
+        {
+            var card = cut.Find("#tab-reminders section.card");
+            Assert.Equal("Reminders", card.QuerySelector("h2")!.TextContent);
+            Assert.Contains("by miles, by time, or both", card.QuerySelector(".card-body > p")!.TextContent);
+            Assert.Contains("list-group-flush", card.QuerySelector("[data-testid='reminder-list']")!.ClassName);
+        });
+    }
+
+    [Theory]
+    [InlineData(ReminderStatus.Overdue, "bg-danger-subtle")]
+    [InlineData(ReminderStatus.DueSoon, "bg-warning-subtle")]
+    [InlineData(ReminderStatus.Upcoming, "bg-success-subtle")]
+    [InlineData(ReminderStatus.MileageNeeded, "bg-info-subtle")]
+    [InlineData(ReminderStatus.Paused, "bg-secondary-subtle")]
+    public void EachRowLeadsWithADateTileColoredByStatus(ReminderStatus status, string tileClass)
+    {
+        reminders = [Reminder(vehicleId, status: status, nextDueDate: new DateOnly(2026, 11, 9), isPaused: status == ReminderStatus.Paused)];
+        var cut = RenderTab();
+
+        cut.WaitForAssertion(() =>
+        {
+            var tile = cut.Find("#tab-reminders [data-testid='due-tile']");
+            Assert.Contains(tileClass, tile.ClassName);
+            Assert.Contains("Nov", tile.TextContent);
+            Assert.Contains("09", tile.TextContent);
+            Assert.Contains("Next due Nov 9, 2026", tile.TextContent);
+        });
+    }
+
+    [Fact]
+    public void ARowDueByMileageOnly_ShowsAMileageIconInTheTile()
+    {
+        reminders = [Reminder(vehicleId, nextDueDate: null)];
+        var cut = RenderTab();
+
+        cut.WaitForAssertion(() =>
+        {
+            var tile = cut.Find("#tab-reminders [data-testid='due-tile']");
+            Assert.NotNull(tile.QuerySelector("svg"));
+            Assert.Contains("Due by mileage", tile.TextContent);
+        });
+    }
+
+    [Fact]
+    public void ARowShowsWhatItAppliesToAndItsIntervalUnderTheName_NotTheVehicleName()
+    {
+        reminders = [Reminder(vehicleId, name: "Hitch check", appliesTo: ReminderAppliesTo.Equipment, subject: "Trailer hitch", vehicleName: "2020 Ford F-150")];
+        var cut = RenderTab();
+
+        cut.WaitForAssertion(() =>
+        {
+            var row = cut.Find("#tab-reminders [data-testid='reminder']");
+            Assert.Contains("Equipment: Trailer hitch", row.TextContent);
+            Assert.Empty(row.QuerySelectorAll("[data-testid='reminder-vehicle']"));
+        });
     }
 
     [Fact]
@@ -104,7 +173,7 @@ public class ReminderTabTests : VehicleTestContext
 
         var cut = Render<VehicleDetail>(parameters => parameters.Add(page => page.VehicleId, vehicleId));
 
-        cut.WaitForAssertion(() => Assert.NotNull(cut.Find("[data-testid='add-reminder']")));
+        cut.WaitForAssertion(() => Assert.NotNull(cut.Find("#tab-reminders [data-testid='reminders-view']")));
         Assert.Equal(notice, cut.FindAll("[data-testid='reminder-saved']").FirstOrDefault()?.TextContent.Trim());
     }
 
