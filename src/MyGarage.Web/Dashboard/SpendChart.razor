@@ -1,0 +1,130 @@
+@using System.Globalization
+
+<figure class="mb-0" data-testid="spend-chart">
+    <ul class="list-inline small mb-2" aria-label="Legend">
+        <li class="list-inline-item text-primary" data-testid="legend-fuel">
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill="currentColor" /></svg>
+            <span class="text-body">Fuel @DisplayFormat.Money(FuelTotal)</span>
+        </li>
+        <li class="list-inline-item text-success" data-testid="legend-charging">
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill="currentColor" /></svg>
+            <span class="text-body">Charging @DisplayFormat.Money(ChargingTotal)</span>
+        </li>
+    </ul>
+
+    <svg class="w-100 h-auto" viewBox="0 0 @F(Width) @F(Height)" role="img" aria-labelledby="spend-chart-title" focusable="false">
+        <title id="spend-chart-title">Fuel and charging cost per month over the last 12 months</title>
+        @foreach (var tick in Ticks)
+        {
+            var y = Top + PlotHeight - tick / YMax * PlotHeight;
+            <line class="text-body-tertiary" x1="@F(Left)" x2="@F(Width - Right)" y1="@F(y)" y2="@F(y)" stroke="currentColor" stroke-width="1" />
+            <SvgLabel Class="text-body-secondary" X="@F(Left - 6)" Y="@F(y + 4)" Anchor="end">@TickLabel(tick)</SvgLabel>
+        }
+
+        @for (var i = 0; i < Months.Count; i++)
+        {
+            var month = Months[i];
+            var groupX = Left + i * GroupWidth + (GroupWidth - 2 * BarWidth - BarGap) / 2;
+            var fuelHeight = (double)month.Fuel / YMax * PlotHeight;
+            var chargingHeight = (double)month.Charging / YMax * PlotHeight;
+            var label = month.Month.ToString("MMM yyyy", CultureInfo.InvariantCulture);
+            <g data-testid="month">
+                <rect class="text-primary" data-series="fuel" x="@F(groupX)" y="@F(Top + PlotHeight - fuelHeight)" width="@F(BarWidth)" height="@F(fuelHeight)" rx="2" fill="currentColor">
+                    <title>@label fuel: @DisplayFormat.Money(month.Fuel)</title>
+                </rect>
+                <rect class="text-success" data-series="charging" x="@F(groupX + BarWidth + BarGap)" y="@F(Top + PlotHeight - chargingHeight)" width="@F(BarWidth)" height="@F(chargingHeight)" rx="2" fill="currentColor">
+                    <title>@label charging: @DisplayFormat.Money(month.Charging)</title>
+                </rect>
+                <SvgLabel Class="text-body-secondary" X="@F(Left + i * GroupWidth + GroupWidth / 2)" Y="@F(Top + PlotHeight + 16)" Anchor="middle">@month.Month.ToString("MMM", CultureInfo.InvariantCulture)</SvgLabel>
+                @if (month.Month.Month == 1 || i == 0)
+                {
+                    <SvgLabel Class="text-body-secondary" X="@F(Left + i * GroupWidth + GroupWidth / 2)" Y="@F(Top + PlotHeight + 30)" Anchor="middle" FontSize="10">@month.Month.Year</SvgLabel>
+                }
+            </g>
+        }
+    </svg>
+
+    <details class="small mt-2">
+        <summary>Show the figures</summary>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0" data-testid="spend-table">
+                <caption class="visually-hidden">Fuel and charging cost per month</caption>
+                <thead>
+                    <tr><th scope="col">Month</th><th scope="col" class="text-end">Fuel</th><th scope="col" class="text-end">Charging</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var month in Months)
+                    {
+                        <tr>
+                            <th scope="row" class="fw-normal">@month.Month.ToString("MMM yyyy", CultureInfo.InvariantCulture)</th>
+                            <td class="text-end">@DisplayFormat.Money(month.Fuel)</td>
+                            <td class="text-end">@DisplayFormat.Money(month.Charging)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </details>
+</figure>
+
+@code {
+    private const double Width = 720;
+    private const double Height = 250;
+    private const double Left = 56;
+    private const double Right = 12;
+    private const double Top = 12;
+    private const double Bottom = 40;
+    private const double BarWidth = 18;
+    private const double BarGap = 3;
+    private const int Intervals = 4;
+
+    private static readonly double PlotHeight = Height - Top - Bottom;
+
+    private double GroupWidth => (Width - Left - Right) / Math.Max(Months.Count, 1);
+
+    private double YMax { get; set; } = Intervals;
+
+    private double Step { get; set; } = 1;
+
+    private double[] Ticks { get; set; } = [];
+
+    // Oldest month first; the chart draws whatever it is given.
+    [Parameter, EditorRequired]
+    public IReadOnlyList<FuelEnergySpendMonthDto> Months { get; set; } = [];
+
+    private decimal FuelTotal => Months.Sum(month => month.Fuel);
+
+    private decimal ChargingTotal => Months.Sum(month => month.Charging);
+
+    protected override void OnParametersSet()
+    {
+        Step = NiceStep((double)Months.Select(month => Math.Max(month.Fuel, month.Charging)).DefaultIfEmpty(0).Max() / Intervals);
+        YMax = Step * Intervals;
+        Ticks = [.. Enumerable.Range(0, Intervals + 1).Select(index => index * Step)];
+    }
+
+    // The smallest 1, 2, 2.5, 5, or 10 times a power of ten that covers the raw step, so the axis labels stay round.
+    private static double NiceStep(double raw)
+    {
+        if (raw <= 0)
+        {
+            return 1;
+        }
+
+        var magnitude = Math.Pow(10, Math.Floor(Math.Log10(raw)));
+        foreach (var factor in new[] { 1d, 2d, 2.5, 5d, 10d })
+        {
+            if (factor * magnitude >= raw)
+            {
+                return factor * magnitude;
+            }
+        }
+
+        return 10 * magnitude;
+    }
+
+    private string TickLabel(double value) =>
+        "$" + value.ToString(value % 1 == 0 ? "N0" : "N2", CultureInfo.InvariantCulture);
+
+    private static string F(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+}

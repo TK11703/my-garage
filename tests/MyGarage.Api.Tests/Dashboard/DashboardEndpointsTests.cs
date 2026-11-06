@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using MyGarage.Api.Tests.Common;
+using MyGarage.Api.Tests.FuelEnergyEntries;
 using MyGarage.Shared.Dashboard;
+using MyGarage.Shared.FuelEnergyEntries;
 using MyGarage.Shared.Reminders;
 using static MyGarage.Api.Tests.Reminders.ReminderApiTestData;
 using static MyGarage.Api.Tests.ServiceRecords.ServiceRecordTestData;
@@ -119,6 +121,42 @@ public class DashboardEndpointsTests(ApiFactory factory) : IClassFixture<ApiFact
 
         Assert.Empty(dashboard.Attention);
         Assert.Equal(0, dashboard.RemindersOverdue);
+    }
+
+    [Fact]
+    public async Task FuelEnergySpend_IsTheLast12MonthsOldestFirst_SplitByKind_AndScopedToTheCaller()
+    {
+        var alice = factory.CreateClientForUser(Alice);
+        var bob = factory.CreateClientForUser(Bob);
+        var one = await CreateVehicleAsync(alice);
+        var two = await CreateVehicleAsync(alice);
+        var bobs = await CreateVehicleAsync(bob);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var thisMonth = new DateOnly(today.Year, today.Month, 1);
+        await FuelEnergyEntryTestData.CreateAsync(alice, one.Id, FuelEnergyEntryTestData.Request(FuelEnergyKind.Fuel, thisMonth, totalCost: 40m));
+        await FuelEnergyEntryTestData.CreateAsync(alice, two.Id, FuelEnergyEntryTestData.Request(FuelEnergyKind.Fuel, thisMonth, totalCost: 10.25m));
+        await FuelEnergyEntryTestData.CreateAsync(alice, one.Id, FuelEnergyEntryTestData.Request(FuelEnergyKind.Energy, thisMonth, totalCost: 7m));
+        await FuelEnergyEntryTestData.CreateAsync(alice, one.Id, FuelEnergyEntryTestData.Request(FuelEnergyKind.Fuel, thisMonth.AddMonths(-11), totalCost: 30m));
+        await FuelEnergyEntryTestData.CreateAsync(alice, one.Id, FuelEnergyEntryTestData.Request(FuelEnergyKind.Fuel, thisMonth.AddMonths(-12), totalCost: 99m));
+        await FuelEnergyEntryTestData.CreateAsync(bob, bobs.Id, FuelEnergyEntryTestData.Request(FuelEnergyKind.Fuel, thisMonth, totalCost: 500m));
+
+        var spend = (await GetAsync(alice)).FuelEnergySpend;
+
+        Assert.Equal(12, spend.Count);
+        Assert.Equal(thisMonth.AddMonths(-11), spend[0].Month);
+        Assert.Equal(thisMonth, spend[^1].Month);
+        Assert.Equal((30m, 0m), (spend[0].Fuel, spend[0].Charging));
+        Assert.Equal((50.25m, 7m), (spend[^1].Fuel, spend[^1].Charging));
+        Assert.All(spend.Skip(1).SkipLast(1), month => Assert.Equal((0m, 0m), (month.Fuel, month.Charging)));
+    }
+
+    [Fact]
+    public async Task FuelEnergySpend_ForAnEmptyGarage_IsTwelveMonthsOfZeros()
+    {
+        var spend = (await GetAsync(factory.CreateClientForUser(Alice))).FuelEnergySpend;
+
+        Assert.Equal(12, spend.Count);
+        Assert.All(spend, month => Assert.Equal((0m, 0m), (month.Fuel, month.Charging)));
     }
 
     [Fact]

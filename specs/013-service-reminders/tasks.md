@@ -192,6 +192,9 @@ description: "Task list for Service Reminders"
 - [X] T063 [P] Add a log-privacy test in `tests/MyGarage.Api.Tests/Reminders/ReminderLoggingTests.cs` (`[Collection("Logging")]`, pattern of the existing logging tests): creating, completing, evaluating, sweeping, and failing to evaluate reminders write no reminder name, subject, vehicle name, or mileage to the log output (FR-021)
 - [X] T064 Run the whole suite and gates: `dotnet build MyGarage.slnx` with zero warnings, `dotnet test MyGarage.slnx` (all pass, including `UiStandardConformanceTests` and every unchanged notification, draft, vehicle, and service-record test), and confirm migrations `0001` to `0016` apply cleanly to an empty database (the Database migration tests do this)
 - [X] T065 Run the quickstart manual scenarios 1-9 and section 4 against `aspire run`: ask the user to sign in, then drive the integrated browser through each scenario; record anything that differs from `quickstart.md` and fix it or the document
+- [X] T066 [US6] Fuel and charging spend data: `DashboardRepository.GetFuelEnergySpendAsync` with `Scripts/Dashboard/FuelEnergySpend.sql` (owner-scoped, per month and kind, inclusive date range), `FuelEnergySpendMonthDto` and `DashboardDto.FuelEnergySpend` (12 months, oldest first, zeros filled by `DashboardService`), with Database and Api tests
+- [X] T067 [US6] Spend chart on the dashboard: `SpendChart.razor` (inline SVG, fuel and charging as separate bars, legend totals, tooltips, figures table) and `SvgLabel.razor`, a "Fuel and charging spend" section on `DashboardPage.razor`, with bUnit tests
+- [X] T068 [US6] Document the chart in the contracts, the FAQ, and `docs/README.md`
 
 ---
 

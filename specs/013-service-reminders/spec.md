@@ -10,6 +10,8 @@
 
 **Refinement (2026-11-06, planning input)**: Reminders always belong to a vehicle, because what triggers a reminder may be the vehicle itself, equipment on the vehicle, or the location where the vehicle resides, so each reminder says which of the three it applies to. Reminders live in a new Reminders tab on the vehicle details page. A garage dashboard is added as well; it shows the metrics My Garage already holds (vehicles, service records, reminders due, and so on) and more metrics, such as fuel usage graphs, will be added in later iterations.
 
+**Refinement (2026-11-06, after the first build)**: The dashboard also shows a graph of the money spent on fuel and on charging over the last 12 months, with fuel and charging kept separate.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Set up a recurring reminder for a vehicle (Priority: P1)

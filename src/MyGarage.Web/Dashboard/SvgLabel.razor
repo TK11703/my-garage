@@ -1,0 +1,22 @@
+<text class="@Class" x="@X" y="@Y" text-anchor="@Anchor" font-size="@FontSize" fill="currentColor">@ChildContent</text>
+
+@code {
+    // A component because Razor reads a text tag inside a code block as its own delimiter, not as an SVG element.
+    [Parameter, EditorRequired]
+    public string X { get; set; } = "0";
+
+    [Parameter, EditorRequired]
+    public string Y { get; set; } = "0";
+
+    [Parameter]
+    public string Anchor { get; set; } = "start";
+
+    [Parameter]
+    public int FontSize { get; set; } = 11;
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

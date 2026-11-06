@@ -60,6 +60,36 @@ public class DashboardRepositoryTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task FuelEnergySpend_SumsPerMonthAndKind_ForTheOwnerAcrossVehicles_WithinTheRange()
+    {
+        var (dataSource, dashboard) = await CreateAsync();
+        var one = await ReminderTestData.InsertVehicleAsync(dataSource, "owner-1");
+        var two = await ReminderTestData.InsertVehicleAsync(dataSource, "owner-1");
+        var theirs = await ReminderTestData.InsertVehicleAsync(dataSource, "owner-2");
+        await MaintenanceTestData.InsertFuelEnergyEntryAsync(dataSource, one, "fuel", new DateOnly(2026, 3, 1), totalCost: 40m);
+        await MaintenanceTestData.InsertFuelEnergyEntryAsync(dataSource, two, "fuel", new DateOnly(2026, 3, 31), totalCost: 25.50m);
+        await MaintenanceTestData.InsertFuelEnergyEntryAsync(dataSource, one, "energy", new DateOnly(2026, 3, 15), totalCost: 12m);
+        await MaintenanceTestData.InsertFuelEnergyEntryAsync(dataSource, one, "fuel", new DateOnly(2026, 4, 2), totalCost: 30m);
+        await MaintenanceTestData.InsertFuelEnergyEntryAsync(dataSource, one, "fuel", new DateOnly(2026, 2, 28), totalCost: 99m);
+        await MaintenanceTestData.InsertFuelEnergyEntryAsync(dataSource, one, "fuel", new DateOnly(2026, 5, 1), totalCost: 99m);
+        await MaintenanceTestData.InsertFuelEnergyEntryAsync(dataSource, theirs, "fuel", new DateOnly(2026, 3, 10), totalCost: 500m);
+
+        var spend = await dashboard.GetFuelEnergySpendAsync("owner-1", new DateOnly(2026, 3, 1), new DateOnly(2026, 4, 30), CancellationToken.None);
+
+        Assert.Equal(
+            [(new DateOnly(2026, 3, 1), "energy", 12m), (new DateOnly(2026, 3, 1), "fuel", 65.50m), (new DateOnly(2026, 4, 1), "fuel", 30m)],
+            spend.Select(row => (row.Month, row.Kind, row.Total)));
+    }
+
+    [Fact]
+    public async Task FuelEnergySpend_ForAnOwnerWithNothing_IsEmpty()
+    {
+        var (_, dashboard) = await CreateAsync();
+
+        Assert.Empty(await dashboard.GetFuelEnergySpendAsync("nobody", new DateOnly(2026, 1, 1), new DateOnly(2026, 12, 31), CancellationToken.None));
+    }
+
+    [Fact]
     public async Task TheDraftCount_MatchesTheNotificationsDraftsAwaitingReviewRule()
     {
         var (dataSource, dashboard) = await CreateAsync();

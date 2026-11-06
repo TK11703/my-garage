@@ -51,6 +51,19 @@ else
                 </ul>
             }
         </section>
+
+        <section class="mt-4" aria-labelledby="spend-heading" data-testid="spend">
+            <h2 id="spend-heading" class="h5">Fuel and charging spend</h2>
+            @if (dashboard.FuelEnergySpend.All(month => month.Fuel == 0 && month.Charging == 0))
+            {
+                <p class="text-body-secondary">No fuel or charging costs in the last 12 months. Add fuel or charging entries to a vehicle to see them here.</p>
+            }
+            else
+            {
+                <p class="small text-body-secondary">Cost per month across all your vehicles, over the last 12 months.</p>
+                <SpendChart Months="dashboard.FuelEnergySpend" />
+            }
+        </section>
     }
 }
 

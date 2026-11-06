@@ -10,6 +10,7 @@ namespace MyGarage.Api.Dashboard;
 public sealed class DashboardService(DashboardRepository dashboard, ReminderRepository reminders, TimeProvider timeProvider)
 {
     private const int AttentionLimit = 5;
+    private const int SpendMonths = 12;
 
     public async Task<DashboardDto> GetAsync(string ownerId, CancellationToken cancellationToken)
     {
@@ -27,6 +28,25 @@ public sealed class DashboardService(DashboardRepository dashboard, ReminderRepo
             RemindersOverdue = all.Count(item => item.Status == ReminderStatus.Overdue),
             RemindersDueSoon = all.Count(item => item.Status == ReminderStatus.DueSoon),
             Attention = [.. attention.Take(AttentionLimit)],
+            FuelEnergySpend = await GetFuelEnergySpendAsync(ownerId, today, cancellationToken),
         };
+    }
+
+    private async Task<IReadOnlyList<FuelEnergySpendMonthDto>> GetFuelEnergySpendAsync(string ownerId, DateOnly today, CancellationToken cancellationToken)
+    {
+        var thisMonth = new DateOnly(today.Year, today.Month, 1);
+        var first = thisMonth.AddMonths(1 - SpendMonths);
+        var rows = await dashboard.GetFuelEnergySpendAsync(ownerId, first, thisMonth.AddMonths(1).AddDays(-1), cancellationToken);
+
+        return [.. Enumerable.Range(0, SpendMonths).Select(offset =>
+        {
+            var month = first.AddMonths(offset);
+            return new FuelEnergySpendMonthDto
+            {
+                Month = month,
+                Fuel = rows.Where(row => row.Month == month && row.Kind == "fuel").Sum(row => row.Total),
+                Charging = rows.Where(row => row.Month == month && row.Kind == "energy").Sum(row => row.Total),
+            };
+        })];
     }
 }

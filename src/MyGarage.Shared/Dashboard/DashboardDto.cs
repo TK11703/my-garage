@@ -19,4 +19,7 @@ public sealed class DashboardDto
 
     // Up to five reminders needing attention: overdue first, then due soon.
     public required IReadOnlyList<ReminderDto> Attention { get; init; }
+
+    // Fuel and charging cost for each of the last 12 calendar months, oldest first, including months with nothing spent.
+    public IReadOnlyList<FuelEnergySpendMonthDto> FuelEnergySpend { get; init; } = [];
 }

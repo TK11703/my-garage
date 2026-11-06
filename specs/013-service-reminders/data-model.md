@@ -111,4 +111,4 @@ Marking done sets `last_done_*`, inserts a completion, and sets `notified_state`
 
 ## Dashboard read model
 
-`DashboardDto` has no table. `Dashboard/Counts.sql` returns one row of owner-scoped counts: vehicles, service records (through the owner's vehicles), fuel and charging entries (through the owner's vehicles), and drafts awaiting review (the same rule as `Notifications/CountDraftsAwaitingReview.sql`). Reminder counts and the attention list come from `ReminderRepository.ListForOwnerAsync` plus the calculator.
+`DashboardDto` has no table. `Dashboard/Counts.sql` returns one row of owner-scoped counts: vehicles, service records (through the owner's vehicles), fuel and charging entries (through the owner's vehicles), and drafts awaiting review (the same rule as `Notifications/CountDraftsAwaitingReview.sql`). Reminder counts and the attention list come from `ReminderRepository.ListForOwnerAsync` plus the calculator. `Dashboard/FuelEnergySpend.sql` returns the owner's fuel and charging cost per calendar month and kind (through the owner's vehicles); `DashboardService` turns it into the last 12 months, oldest first, with zeros for empty months.

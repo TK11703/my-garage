@@ -19,6 +19,7 @@ public class DashboardPageTests : VehicleTestContext
         int drafts = 2,
         int overdue = 1,
         int dueSoon = 2,
+        FuelEnergySpendMonthDto[]? spend = null,
         params ReminderDto[] attention) =>
         new()
         {
@@ -29,7 +30,11 @@ public class DashboardPageTests : VehicleTestContext
             RemindersOverdue = overdue,
             RemindersDueSoon = dueSoon,
             Attention = attention,
+            FuelEnergySpend = spend ?? [],
         };
+
+    private static FuelEnergySpendMonthDto Month(int year, int month, decimal fuel, decimal charging) =>
+        new() { Month = new DateOnly(year, month, 1), Fuel = fuel, Charging = charging };
 
     private IRenderedComponent<DashboardPage> RenderPage(Func<HttpRequestMessage, HttpResponseMessage>? respond = null)
     {
@@ -101,6 +106,42 @@ public class DashboardPageTests : VehicleTestContext
             Assert.DoesNotContain("border-warning", cut.Find("[data-testid='metric-due-soon'] .card").ClassName);
         });
     }
+    [Fact]
+    public void WithNoFuelOrChargingCosts_TheSpendSectionSaysSoInsteadOfDrawingAnEmptyChart()
+    {
+        var cut = RenderPage();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("No fuel or charging costs", cut.Find("[data-testid='spend']").TextContent);
+            Assert.Empty(cut.FindAll("[data-testid='spend-chart']"));
+        });
+    }
+
+    [Fact]
+    public void WithFuelAndChargingCosts_TheSpendSectionDrawsTheChart()
+    {
+        dashboard = Dashboard(spend: [Month(2026, 9, 40m, 0m), Month(2026, 10, 25m, 12m)]);
+
+        var cut = RenderPage();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("Fuel and charging spend", cut.Find("[data-testid='spend'] h2").TextContent);
+            Assert.NotNull(cut.Find("[data-testid='spend-chart'] svg[role='img']"));
+        });
+    }
+
+    [Fact]
+    public void AnEmptyGarage_HasNoSpendSection()
+    {
+        dashboard = Dashboard(0, 0, 0, 0, 0, 0);
+
+        var cut = RenderPage();
+
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll("[data-testid='spend']")));
+    }
+
     [Fact]
     public void NeedsAttention_ListsEachReminderWithItsVehicleStatusRemainingAndALink()
     {

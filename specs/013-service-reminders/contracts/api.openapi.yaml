@@ -353,6 +353,18 @@ components:
           maxItems: 5
           description: Overdue first, then Due soon; same order as the garage list.
           items: { $ref: '#/components/schemas/Reminder' }
+        fuelEnergySpend:
+          type: array
+          minItems: 12
+          maxItems: 12
+          description: Fuel and charging cost per calendar month for the last 12 months, oldest first, zero for months with no entries. Summed across the caller's vehicles.
+          items:
+            type: object
+            required: [month, fuel, charging]
+            properties:
+              month: { type: string, format: date, description: First day of the month. }
+              fuel: { type: number, minimum: 0, description: Total cost of fuel entries. }
+              charging: { type: number, minimum: 0, description: Total cost of charging (energy) entries. }
     Notification:
       description: Changed schema of an existing notification item; only the additions are shown.
       type: object
