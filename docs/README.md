@@ -36,3 +36,10 @@ Each feature is specified under [`specs/`](../specs) (spec, plan, research, data
 
 - **Upload**: **Add Maintenance** on the main screen, or **Import Record** in a vehicle's Maintenance tab (which proposes that vehicle), opens `/drafts/upload`. Up to 5 PDF or image files (10 MB each, 15 MB in total) are posted to `POST /api/drafts/uploads` as the signed-in user.
 - **Same pipeline**: each upload is queued as a submission of origin `upload` and read by the same background service as email attachments, so the drafts, review, keep-original option, expiry, and history are shared. Records created this way carry the same from-email mark. `DraftUploads:RequestsPerMinute` limits uploads per user.
+
+### Service reminders and the dashboard (feature 013)
+
+- **Reminders**: each vehicle has a **Reminders** tab. A reminder repeats by miles, by months or years, or both (an oil change every 5,000 miles or 6 months, an inspection or registration every year), applies to the vehicle, to equipment on it, or to the place it is kept, and is due at whichever limit comes first. **Mark done** starts the next cycle from the date and mileage you enter and keeps a history; a reminder can also be edited, paused, resumed, or deleted. **Reminders** in the left menu lists every reminder across the garage, most urgent first.
+- **Status**: derived on every read, never stored. Due soon is within 500 miles or 30 days of a due point; Overdue is reached or passed; a distance-only reminder on a vehicle with no mileage shows Mileage needed. The vehicle's mileage is the same one the garage cards show.
+- **Notifications**: the bell raises one notification when a reminder becomes due soon and one when it becomes overdue. The checks run when a reminder, the vehicle's mileage, or a service record is saved, and hourly in the background (`Reminders:Sweep:Enabled`, `Reminders:Sweep:IntervalMinutes`).
+- **Dashboard**: **Dashboard** in the left menu shows counts of vehicles, service records, fuel and charging entries, drafts awaiting review, and overdue and due-soon reminders, plus the reminders that need attention. More metrics are added to it as they become available.
