@@ -9,6 +9,44 @@
 <ReminderPage Title="@(reminder?.Name ?? "Reminder")" VehicleId="VehicleId" VehicleName="@reminder?.VehicleName" Failure="failure"
               ReturnUrl="@ReminderLinks.Detail(VehicleId, ReminderId)" NotFound="notFound"
               NotFoundTitle="Reminder not found" NotFoundMessage="This reminder could not be found. It may have been deleted.">
+    <Actions>
+        @if (reminder is not null)
+        {
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <a class="btn btn-outline-primary d-inline-flex align-items-center gap-2" href="@ReminderLinks.Edit(VehicleId, ReminderId)" data-testid="edit-reminder" title="Edit this reminder">
+                    <Icon Name="IconName.Pencil" /> Edit
+                </a>
+                @if (reminder.IsPaused)
+                {
+                    <form method="post" @formname="resume-reminder" @onsubmit="ResumeAsync" data-testid="resume-reminder">
+                        <AntiforgeryToken />
+                        <button type="submit" class="btn btn-outline-secondary" title="Resume this reminder">Resume</button>
+                    </form>
+                }
+                else
+                {
+                    <form method="post" @formname="pause-reminder" @onsubmit="PauseAsync" data-testid="pause-reminder">
+                        <AntiforgeryToken />
+                        <button type="submit" class="btn btn-outline-secondary" title="Pause this reminder">Pause</button>
+                    </form>
+                }
+                <details class="position-relative" data-testid="delete-reminder">
+                    <summary class="btn btn-outline-danger d-inline-flex align-items-center gap-2" title="Delete this reminder">
+                        <Icon Name="IconName.Trash" /> Delete
+                    </summary>
+                    <div class="alert alert-danger mg-confirm-panel shadow" role="alert">
+                        <p>Delete @reminder.Name? This also removes its history and notifications and cannot be undone.</p>
+                        <form method="post" @formname="delete-reminder" @onsubmit="DeleteAsync" class="d-flex flex-wrap gap-2">
+                            <AntiforgeryToken />
+                            <button type="submit" class="btn btn-danger">Yes, delete this reminder</button>
+                            <a class="btn btn-outline-secondary" href="@ReminderLinks.Detail(VehicleId, ReminderId)">Keep reminder</a>
+                        </form>
+                    </div>
+                </details>
+            </div>
+        }
+    </Actions>
+    <ChildContent>
     @if (reminder is not null)
     {
         @if (SavedNotice is { } notice)
@@ -23,6 +61,10 @@
                     <ReminderStatusBadge Status="reminder.Status" />
                     <span class="small ms-2" data-testid="reminder-remaining">@ReminderFormat.Remaining(reminder)</span>
                 </p>
+                @if (reminder.IsPaused)
+                {
+                    <p class="small text-body-secondary" data-testid="paused-note">This reminder is paused: it shows no status and sends no notifications until you resume it.</p>
+                }
                 <dl class="row g-3 mb-0">
                     <ViewField Label="Applies to" Value="@ReminderFormat.AppliesTo(reminder)" />
                     <ViewField Label="Repeats" Value="@ReminderFormat.Interval(reminder)" />
@@ -58,6 +100,7 @@
             </div>
         </section>
     }
+    </ChildContent>
 </ReminderPage>
 
 @code {
@@ -142,6 +185,33 @@
             }
 
             errors = result.Errors;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private Task PauseAsync() => ActAsync(() => Api.PauseAsync(VehicleId, ReminderId), ReminderLinks.Detail(VehicleId, ReminderId, "paused"));
+
+    private Task ResumeAsync() => ActAsync(() => Api.ResumeAsync(VehicleId, ReminderId), ReminderLinks.Detail(VehicleId, ReminderId, "resumed"));
+
+    private Task DeleteAsync() => ActAsync(() => Api.DeleteAsync(VehicleId, ReminderId), ReminderLinks.Tab(VehicleId, "deleted"));
+
+    // Runs a post action and goes to the page it names; a missing reminder shows the not-found state.
+    private async Task ActAsync<T>(Func<Task<ApiResult<T>>> action, string successUrl)
+    {
+        failure = null;
+        try
+        {
+            var result = await action();
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo(successUrl);
+                return;
+            }
+
+            notFound = result.IsNotFound;
         }
         catch (GarageApiException ex)
         {

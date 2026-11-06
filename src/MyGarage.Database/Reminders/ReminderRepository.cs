@@ -50,6 +50,56 @@ public sealed class ReminderRepository(NpgsqlDataSource dataSource, SqlScriptSto
         return await GetAsync(connection, ownerId, vehicleId, reminderId, cancellationToken);
     }
 
+    // Replaces the editable values and keeps the paused state and the notified state; null when the reminder is not the owner's.
+    public async Task<ReminderRecord?> UpdateAsync(
+        string ownerId,
+        Guid vehicleId,
+        Guid reminderId,
+        ReminderValues values,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var updated = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
+            scripts.Get("Reminders/Update"),
+            new
+            {
+                ReminderId = reminderId, VehicleId = vehicleId, OwnerId = ownerId, values.Name, values.AppliesTo, values.Subject,
+                values.IntervalMiles, values.IntervalMonths, values.LastDoneOn, values.LastDoneMileage, Now = now,
+            },
+            cancellationToken: cancellationToken));
+
+        return updated is null ? null : await GetAsync(connection, ownerId, vehicleId, reminderId, cancellationToken);
+    }
+
+    // Pausing or resuming twice is harmless; null when the reminder is not the owner's.
+    public async Task<ReminderRecord?> SetPausedAsync(
+        string ownerId,
+        Guid vehicleId,
+        Guid reminderId,
+        bool paused,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var updated = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
+            scripts.Get("Reminders/SetPaused"),
+            new { ReminderId = reminderId, VehicleId = vehicleId, OwnerId = ownerId, Paused = paused, Now = now },
+            cancellationToken: cancellationToken));
+
+        return updated is null ? null : await GetAsync(connection, ownerId, vehicleId, reminderId, cancellationToken);
+    }
+
+    // False when the reminder is not the owner's.
+    public async Task<bool> DeleteAsync(string ownerId, Guid vehicleId, Guid reminderId, CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        return await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
+            scripts.Get("Reminders/Delete"),
+            new { ReminderId = reminderId, VehicleId = vehicleId, OwnerId = ownerId },
+            cancellationToken: cancellationToken)) is not null;
+    }
+
     // Adds a completion and rolls the last-done values forward in one transaction; null when the reminder is not the owner's.
     // With raiseVehicleOdometer the vehicle's latest odometer reading is raised to the mileage, never lowered.
     public async Task<ReminderRecord?> CompleteAsync(

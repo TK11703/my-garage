@@ -20,4 +20,16 @@ public sealed class RemindersApiClient(HttpClient http)
 
     public Task<ApiResult<ReminderDetailDto>> CompleteAsync(Guid vehicleId, Guid reminderId, CompleteReminderRequest request, CancellationToken cancellationToken = default) =>
         ApiCalls.SendAsync<ReminderDetailDto>(http, HttpMethod.Post, $"api/vehicles/{vehicleId}/reminders/{reminderId}/complete", request, cancellationToken);
+
+    public Task<ApiResult<ReminderDto>> UpdateAsync(Guid vehicleId, Guid reminderId, ReminderRequest request, CancellationToken cancellationToken = default) =>
+        ApiCalls.SendAsync<ReminderDto>(http, HttpMethod.Put, $"api/vehicles/{vehicleId}/reminders/{reminderId}", request, cancellationToken);
+
+    public Task<ApiResult<ReminderDto>> PauseAsync(Guid vehicleId, Guid reminderId, CancellationToken cancellationToken = default) =>
+        ApiCalls.SendAsync<ReminderDto>(http, HttpMethod.Post, $"api/vehicles/{vehicleId}/reminders/{reminderId}/pause", null, cancellationToken);
+
+    public Task<ApiResult<ReminderDto>> ResumeAsync(Guid vehicleId, Guid reminderId, CancellationToken cancellationToken = default) =>
+        ApiCalls.SendAsync<ReminderDto>(http, HttpMethod.Post, $"api/vehicles/{vehicleId}/reminders/{reminderId}/resume", null, cancellationToken);
+
+    public Task<ApiResult<bool>> DeleteAsync(Guid vehicleId, Guid reminderId, CancellationToken cancellationToken = default) =>
+        ApiCalls.SendAsync<bool>(http, HttpMethod.Delete, $"api/vehicles/{vehicleId}/reminders/{reminderId}", null, cancellationToken);
 }

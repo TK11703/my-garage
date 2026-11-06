@@ -1,0 +1,78 @@
+@page "/vehicles/{VehicleId:guid}/reminders/{ReminderId:guid}/edit"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject RemindersApiClient Api
+@inject NavigationManager Navigation
+
+<ReminderPage Title="Edit reminder" VehicleId="VehicleId" VehicleName="@reminder?.VehicleName" Failure="failure"
+              Between="@(reminder is null ? null : new[] { new Crumb(reminder.Name, ReminderLinks.Detail(VehicleId, ReminderId)) })"
+              ReturnUrl="@ReminderLinks.Edit(VehicleId, ReminderId)" NotFound="notFound"
+              NotFoundTitle="Reminder not found" NotFoundMessage="This reminder could not be found. It may have been deleted.">
+    @if (Model is not null)
+    {
+        <ReminderForm Model="Model" FormName="edit-reminder" SubmitText="Save" SubmitTitle="Save your changes to this reminder"
+                      CancelHref="@ReminderLinks.Detail(VehicleId, ReminderId)" Errors="errors" OnSubmit="SubmitAsync" />
+    }
+</ReminderPage>
+
+@code {
+    private ReminderDto? reminder;
+    private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
+    private GarageApiFailure? failure;
+    private bool notFound;
+
+    [Parameter]
+    public Guid VehicleId { get; set; }
+
+    [Parameter]
+    public Guid ReminderId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "edit-reminder")]
+    private ReminderFormModel? Model { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await Api.GetAsync(VehicleId, ReminderId);
+            if (result.IsNotFound)
+            {
+                notFound = true;
+                return;
+            }
+
+            reminder = result.Value;
+            Model ??= ReminderFormModel.From(reminder!);
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        failure = null;
+        try
+        {
+            var result = await Api.UpdateAsync(VehicleId, ReminderId, Model!.ToRequest());
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo(ReminderLinks.Detail(VehicleId, ReminderId, "updated"));
+                return;
+            }
+
+            if (result.IsNotFound)
+            {
+                notFound = true;
+                return;
+            }
+
+            errors = result.Errors;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+}

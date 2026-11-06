@@ -172,6 +172,129 @@ public static class RemindersEndpoints
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        group.MapPut("/{reminderId:guid}", async (
+                Guid vehicleId,
+                Guid reminderId,
+                ReminderRequest request,
+                ClaimsPrincipal user,
+                ReminderRepository reminders,
+                NotificationRepository notifications,
+                ReminderEvaluator reminderEvaluator,
+                TimeProvider timeProvider,
+                CancellationToken cancellationToken) =>
+            {
+                if (CurrentOwner.Get(user) is not { } ownerId)
+                {
+                    return VehiclesEndpoints.NoOwner();
+                }
+
+                var updated = await reminders.UpdateAsync(
+                    ownerId, vehicleId, reminderId, ReminderMapper.ToValues(request), timeProvider.GetUtcNow(), cancellationToken);
+                if (updated is null)
+                {
+                    return VehiclesEndpoints.NotFound();
+                }
+
+                var dto = ReminderMapper.ToDto(updated, ReminderRules.Today(timeProvider));
+                if (dto.Status is ReminderStatus.Upcoming or ReminderStatus.MileageNeeded or ReminderStatus.Paused)
+                {
+                    await notifications.MarkReadForReminderAsync(ownerId, reminderId, timeProvider.GetUtcNow(), cancellationToken);
+                }
+
+                await reminderEvaluator.TryEvaluateVehicleAsync(ownerId, vehicleId, cancellationToken);
+                return Results.Ok(dto);
+            })
+            .AddEndpointFilter<ValidationFilter<ReminderRequest>>()
+            .WithName("UpdateReminder")
+            .WithSummary("Change a reminder's name, applies-to, intervals, or last-done values.")
+            .Produces<ReminderDto>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapDelete("/{reminderId:guid}", async (
+                Guid vehicleId,
+                Guid reminderId,
+                ClaimsPrincipal user,
+                ReminderRepository reminders,
+                CancellationToken cancellationToken) =>
+            {
+                if (CurrentOwner.Get(user) is not { } ownerId)
+                {
+                    return VehiclesEndpoints.NoOwner();
+                }
+
+                return await reminders.DeleteAsync(ownerId, vehicleId, reminderId, cancellationToken)
+                    ? Results.NoContent()
+                    : VehiclesEndpoints.NotFound();
+            })
+            .WithName("DeleteReminder")
+            .WithSummary("Delete the reminder, its history, and its notifications.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPost("/{reminderId:guid}/pause", async (
+                Guid vehicleId,
+                Guid reminderId,
+                ClaimsPrincipal user,
+                ReminderRepository reminders,
+                NotificationRepository notifications,
+                TimeProvider timeProvider,
+                CancellationToken cancellationToken) =>
+            {
+                if (CurrentOwner.Get(user) is not { } ownerId)
+                {
+                    return VehiclesEndpoints.NoOwner();
+                }
+
+                var paused = await reminders.SetPausedAsync(ownerId, vehicleId, reminderId, true, timeProvider.GetUtcNow(), cancellationToken);
+                if (paused is null)
+                {
+                    return VehiclesEndpoints.NotFound();
+                }
+
+                await notifications.MarkReadForReminderAsync(ownerId, reminderId, timeProvider.GetUtcNow(), cancellationToken);
+                return Results.Ok(ReminderMapper.ToDto(paused, ReminderRules.Today(timeProvider)));
+            })
+            .WithName("PauseReminder")
+            .WithSummary("Pause the reminder; it shows Paused, sends nothing, and keeps its settings and history.")
+            .Produces<ReminderDto>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPost("/{reminderId:guid}/resume", async (
+                Guid vehicleId,
+                Guid reminderId,
+                ClaimsPrincipal user,
+                ReminderRepository reminders,
+                ReminderEvaluator reminderEvaluator,
+                TimeProvider timeProvider,
+                CancellationToken cancellationToken) =>
+            {
+                if (CurrentOwner.Get(user) is not { } ownerId)
+                {
+                    return VehiclesEndpoints.NoOwner();
+                }
+
+                var resumed = await reminders.SetPausedAsync(ownerId, vehicleId, reminderId, false, timeProvider.GetUtcNow(), cancellationToken);
+                if (resumed is null)
+                {
+                    return VehiclesEndpoints.NotFound();
+                }
+
+                await reminderEvaluator.TryEvaluateVehicleAsync(ownerId, vehicleId, cancellationToken);
+                return Results.Ok(ReminderMapper.ToDto(resumed, ReminderRules.Today(timeProvider)));
+            })
+            .WithName("ResumeReminder")
+            .WithSummary("Resume the reminder; its status is recomputed and a newly due state is notified.")
+            .Produces<ReminderDto>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         return endpoints;
     }
 
