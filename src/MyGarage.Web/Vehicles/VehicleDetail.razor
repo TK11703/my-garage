@@ -115,10 +115,7 @@ else if (vehicle is not null)
                                      TaxesPage="MaintenanceLinks.ParsePage(TaxesPage)" DocumentsPage="MaintenanceLinks.ParsePage(DocumentsPage)" />
                 </div>
                 <div id="tab-reminders" class="tab-pane @PaneState("reminders", current)" role="tabpanel" aria-labelledby="tab-reminders-tab" tabindex="0">
-                    @if (current == VehicleTabs.Reminders)
-                    {
-                        <ReminderTab VehicleId="VehicleId" Saved="@Saved" />
-                    }
+                    <ReminderTab VehicleId="VehicleId" Saved="@Saved" />
                 </div>
     </div>
 

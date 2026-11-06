@@ -12,7 +12,7 @@
             <div class="col-md-6">
                 <fieldset>
                     <legend class="form-label small mb-1">Applies to<span class="text-danger" aria-hidden="true"> *</span></legend>
-                    <InputRadioGroup Name="applies-to" TValue="ReminderAppliesTo" @bind-Value="Model.AppliesTo">
+                    <InputRadioGroup Name="Model.AppliesTo" TValue="ReminderAppliesTo" @bind-Value="Model.AppliesTo">
                         <div class="d-flex flex-wrap gap-3">
                             <div class="form-check">
                                 <InputRadio id="applies-to-vehicle" class="form-check-input" Value="ReminderAppliesTo.Vehicle" />

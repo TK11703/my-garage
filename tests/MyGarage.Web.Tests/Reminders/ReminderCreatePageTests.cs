@@ -94,7 +94,7 @@ public class ReminderCreatePageTests : VehicleTestContext
             Assert.Equal("9999999", cut.Find("#last-done-mileage").GetAttribute("max"));
             Assert.Equal("date", cut.Find("#last-done-on").GetAttribute("type"));
             Assert.Equal(["months", "years"], cut.FindAll("#interval-time-unit option").Select(option => option.GetAttribute("value")));
-            Assert.Equal(["vehicle", "equipment", "location"], cut.FindAll("input[type='radio'][name='applies-to']").Select(radio => radio.GetAttribute("value")!.ToLowerInvariant()));
+            Assert.Equal(["vehicle", "equipment", "location"], cut.FindAll("input[type='radio'][name='Model.AppliesTo']").Select(radio => radio.GetAttribute("value")!.ToLowerInvariant()));
         });
     }
 

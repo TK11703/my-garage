@@ -119,7 +119,7 @@
     [Parameter, SupplyParameterFromQuery(Name = "saved")]
     public string? Saved { get; set; }
 
-    [SupplyParameterFromForm(FormName = "complete-reminder")]
+    [SupplyParameterFromForm(Name = "Model", FormName = "complete-reminder")]
     private ReminderCompleteFormModel? CompleteModel { get; set; }
 
     private string? SavedNotice => Saved == "done" && reminder is not null

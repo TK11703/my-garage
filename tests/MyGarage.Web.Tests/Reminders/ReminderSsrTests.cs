@@ -17,7 +17,7 @@ namespace MyGarage.Web.Tests.Reminders;
 public class ReminderSsrTests(WebAppFactory factory) : IClassFixture<WebAppFactory>
 {
     private static readonly Guid VehicleId = Guid.NewGuid();
-
+    private static readonly Guid ReminderId = Guid.NewGuid();
     private sealed class StubHandler : HttpMessageHandler
     {
         public List<(HttpMethod Method, string Path, string Body)> Calls { get; } = [];
@@ -40,6 +40,16 @@ public class ReminderSsrTests(WebAppFactory factory) : IClassFixture<WebAppFacto
             if (path == $"/api/vehicles/{VehicleId}/reminders")
             {
                 return request.Method == HttpMethod.Get ? Json(new List<ReminderDto>()) : Json(Reminder(VehicleId), HttpStatusCode.Created);
+            }
+
+            if (path == $"/api/vehicles/{VehicleId}/reminders/{ReminderId}" && request.Method == HttpMethod.Get)
+            {
+                return Json(DetailOf(Reminder(VehicleId, ReminderId)));
+            }
+
+            if (path == $"/api/vehicles/{VehicleId}/reminders/{ReminderId}/complete")
+            {
+                return Json(DetailOf(Reminder(VehicleId, ReminderId)));
             }
 
             return new HttpResponseMessage(HttpStatusCode.NotFound);
@@ -134,5 +144,37 @@ public class ReminderSsrTests(WebAppFactory factory) : IClassFixture<WebAppFacto
 
         Assert.NotEqual(HttpStatusCode.Redirect, response.StatusCode);
         Assert.DoesNotContain(handler.Calls, call => call.Method == HttpMethod.Post);
+    }
+
+    // Posts the radio exactly as the page names it, so a name the binder does not recognize shows up here.
+    [Fact]
+    public async Task TheAppliesToRadios_PostUnderTheNameTheFormBinds()
+    {
+        var (client, handler) = CreateClient();
+        var page = await ParseAsync(await client.GetAsync($"/vehicles/{VehicleId}/reminders/new"));
+        var radio = (IHtmlInputElement)page.QuerySelector("#applies-to-equipment")!;
+
+        var values = OilChange().Where(pair => pair.Item1 is not ("Model.AppliesTo")).Append((radio.Name!, radio.Value)).Append(("Model.Subject", "Trailer hitch")).ToArray();
+        await client.PostAsync($"/vehicles/{VehicleId}/reminders/new", PostedForm(page, "create-reminder", withToken: true, values));
+
+        var call = Assert.Single(handler.Calls, call => call.Method == HttpMethod.Post);
+        Assert.Contains("\"appliesTo\":\"equipment\"", call.Body);
+        Assert.Contains("\"subject\":\"Trailer hitch\"", call.Body);
+    }
+
+    [Fact]
+    public async Task MarkDone_SendsTheMileageTheUserTyped()
+    {
+        var (client, handler) = CreateClient();
+        var page = await ParseAsync(await client.GetAsync($"/vehicles/{VehicleId}/reminders/{ReminderId}"));
+        var mileage = (IHtmlInputElement)page.QuerySelector("#done-mileage")!;
+
+        await client.PostAsync(
+            $"/vehicles/{VehicleId}/reminders/{ReminderId}",
+            PostedForm(page, "complete-reminder", withToken: true, ("Model.DoneOn", "2026-11-01"), (mileage.Name!, "41234")));
+
+        var call = Assert.Single(handler.Calls, call => call.Method == HttpMethod.Post);
+        Assert.Contains("\"mileage\":41234", call.Body);
+        Assert.Contains("2026-11-01", call.Body);
     }
 }
