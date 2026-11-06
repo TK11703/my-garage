@@ -61,6 +61,7 @@ public class VehiclePrivacyTests : VehicleTestContext
 
     [Theory]
     [InlineData(typeof(VehicleList))]
+    [InlineData(typeof(VehicleSearchPage))]
     [InlineData(typeof(VehicleCreate))]
     [InlineData(typeof(VehicleEdit))]
     [InlineData(typeof(VehicleDetail))]

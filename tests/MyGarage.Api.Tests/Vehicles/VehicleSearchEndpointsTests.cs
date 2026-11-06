@@ -94,6 +94,32 @@ public class VehicleSearchEndpointsTests(ApiFactory factory) : IClassFixture<Api
     }
 
     [Fact]
+    public async Task Search_ReportsWhichOtherFieldsMatched()
+    {
+        var client = await SeedAsync();
+
+        var tow = await ListAsync(client, "?q=tow");
+        var silver = await ListAsync(client, "?q=silv");
+
+        var outback = Assert.Single(tow.Items, item => item.Name == Outback);
+        var feature = Assert.Single(outback.Matches);
+        Assert.Equal("Feature", feature.Field);
+        Assert.Equal("Tow package", feature.Text);
+        var porsche = Assert.Single(silver.Items);
+        Assert.Equal([("Color", "Silver")], porsche.Matches.Select(match => (match.Field, match.Text)));
+    }
+
+    [Fact]
+    public async Task WithoutSearchText_NoMatchesAreReported()
+    {
+        var client = await SeedAsync();
+
+        var page = await ListAsync(client, "?color=red");
+
+        Assert.All(page.Items, item => Assert.Empty(item.Matches));
+    }
+
+    [Fact]
     public async Task Search_YearMakeModelTextDoesNotMatchAnotherUsersVehicle()
     {
         await CreateAsync(factory.CreateClientForUser(Alice), "Jeep", "Wrangler", year: 2012);

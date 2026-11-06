@@ -103,6 +103,7 @@ public static class VehicleMapper
             Transmission = vehicle.TransmissionName,
             Ownership = ToOwnership(vehicle.Ownership),
             PurchasedYear = vehicle.PurchasedOn?.Year,
+            Matches = [.. vehicle.Matches.Select(match => new VehicleMatchDto { Field = match.Field, Text = match.Text })],
         };
 
     public static PagedResultDto<VehicleSummaryDto> ToPageDto(PagedResult<VehicleSummaryRecord> page) =>

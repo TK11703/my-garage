@@ -1,5 +1,7 @@
 using System.Net;
 using Bunit;
+using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.DependencyInjection;
 using MyGarage.Web.Common;
 using MyGarage.Web.Vehicles;
 
@@ -19,9 +21,8 @@ public class VehicleListTests : VehicleTestContext
             Assert.Single(cut.FindAll("h1"));
             Assert.Equal("My Vehicles", cut.Find("h1").TextContent);
             var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-            Assert.Equal(["Home", "Vehicles"], items.Select(item => item.TextContent.Trim()));
-            Assert.Equal("page", items[1].GetAttribute("aria-current"));
-            var add = cut.Find("h1").ParentElement!.QuerySelector("a[data-testid='add-vehicle']")!;
+            Assert.Equal(["Home", "Garage"], items.Select(item => item.TextContent.Trim()));
+            var add = cut.Find(".mg-pagebar").QuerySelector("a[data-testid='add-vehicle']")!;
             Assert.Equal("Add vehicle", add.TextContent.Trim());
             Assert.Equal("/vehicles/new", add.GetAttribute("href"));
         });
@@ -159,18 +160,28 @@ public class VehicleListTests : VehicleTestContext
     }
 
     [Fact]
-    public void NoMatches_UsesTheStandardNoMatchState()
+    public void LinksCarryingSearchCriteria_AreSentToTheSearchPage()
     {
         RegisterApi(_ => Json(Page([])));
-        NavigateTo("/vehicles?q=zzz");
+        NavigateTo("/vehicles?q=zzz&minYear=2000&page=2");
+
+        Render<VehicleList>();
+
+        Assert.EndsWith("/search?q=zzz&minYear=2000&page=2", Services.GetRequiredService<NavigationManager>().Uri);
+    }
+
+    [Fact]
+    public void ShowsNoSearchOrFilterControls_ButLinksToTheSearchPage()
+    {
+        RegisterApi(_ => Json(Page([Summary("Alpha")])));
 
         var cut = Render<VehicleList>();
 
         cut.WaitForAssertion(() =>
         {
-            var action = cut.Find("a[data-testid='no-match-clear']");
-            Assert.Contains("btn-outline-primary", action.ClassName);
-            Assert.Equal("Clear search", action.TextContent);
+            Assert.Empty(cut.FindAll(".mg-filter-card"));
+            Assert.Empty(cut.FindAll("#vehicle-search"));
+            Assert.Equal("/search", cut.Find("a[data-testid='search-vehicles']").GetAttribute("href"));
         });
     }
 

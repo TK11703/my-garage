@@ -1,14 +1,15 @@
 using Bunit;
+using MyGarage.Shared.Vehicles;
 using MyGarage.Web.Vehicles;
 
 namespace MyGarage.Web.Tests.Vehicles;
 
 public class VehicleSearchTests : VehicleTestContext
 {
-    private IRenderedComponent<VehicleList> RenderList(string uri = "/vehicles")
+    private IRenderedComponent<VehicleSearchPage> RenderSearch(string uri = "/search")
     {
         NavigateTo(uri);
-        return Render<VehicleList>();
+        return Render<VehicleSearchPage>();
     }
 
     [Fact]
@@ -16,7 +17,7 @@ public class VehicleSearchTests : VehicleTestContext
     {
         RegisterApi(_ => Json(Page([Summary("Alpha")])));
 
-        var cut = RenderList("/vehicles?q=truck");
+        var cut = RenderSearch("/search?q=truck");
 
         cut.WaitForAssertion(() =>
         {
@@ -31,7 +32,7 @@ public class VehicleSearchTests : VehicleTestContext
     {
         RegisterApi(_ => Json(Page([Summary("Alpha")])));
 
-        var cut = RenderList();
+        var cut = RenderSearch();
 
         cut.WaitForAssertion(() =>
         {
@@ -47,7 +48,7 @@ public class VehicleSearchTests : VehicleTestContext
     {
         RegisterApi(_ => Json(Page([Summary("Alpha")])));
 
-        var cut = RenderList();
+        var cut = RenderSearch();
 
         cut.WaitForAssertion(() => Assert.Contains("Alpha", cut.Markup));
         Assert.Contains("/api/vehicles/filter-options", Requests.Select(request => request.RequestUri!.AbsolutePath));
@@ -58,39 +59,121 @@ public class VehicleSearchTests : VehicleTestContext
     }
 
     [Fact]
-    public void Footer_ShowsTheRangeOnThisPage()
+    public void ResultTitle_ShowsTheRangeThenTheActiveCriteriaAsInfoBadges()
     {
         RegisterApi(_ => Json(Page([Summary("Alpha")], page: 2, totalCount: 30)));
 
-        var cut = RenderList("/vehicles?page=2");
-
-        cut.WaitForAssertion(() =>
-            Assert.Equal("Showing 13 to 24 of 30 entries", cut.Find("[data-testid='showing-range']").TextContent.Trim()));
-    }
-
-    [Fact]
-    public void Footer_ShowsTheShortLastPage()
-    {
-        RegisterApi(_ => Json(Page([Summary("Alpha"), Summary("Bravo")], page: 3, totalCount: 26)));
-
-        var cut = RenderList("/vehicles?page=3");
-
-        cut.WaitForAssertion(() =>
-            Assert.Equal("Showing 25 to 26 of 26 entries", cut.Find("[data-testid='showing-range']").TextContent.Trim()));
-    }
-
-    [Fact]
-    public void Vehicles_AreShownInUpToFourColumns()
-    {
-        RegisterApi(_ => Json(Page([Summary("Alpha")])));
-
-        var cut = RenderList();
+        var cut = RenderSearch("/search?q=Roof&make=Jeep&page=2");
 
         cut.WaitForAssertion(() =>
         {
-            var grid = cut.Find(".mg-results .row.row-cols-1");
-            Assert.Contains("row-cols-xl-4", grid.ClassList);
-            Assert.Contains("row-cols-lg-3", grid.ClassList);
+            var summary = cut.Find(".mg-results [data-testid='result-summary']");
+            Assert.Equal("Showing 13 to 24 of 30 results for", summary.QuerySelector("[data-testid='result-count']")!.TextContent.Trim());
+            var badges = summary.QuerySelectorAll("[data-testid='active-criterion']");
+            Assert.Equal(["Search: Roof", "Make: Jeep"], badges.Select(badge => badge.TextContent.Replace("\u00D7", string.Empty).Trim()));
+            Assert.All(badges, badge => Assert.Contains("bg-info-subtle", badge.ClassList));
+            Assert.Empty(cut.FindAll(".mg-filter-card [data-testid='active-criterion']"));
+        });
+        Assert.Empty(cut.FindAll("[data-testid='showing-range']"));
+    }
+
+    [Fact]
+    public void ResultTitle_ShowsTheShortLastPage()
+    {
+        RegisterApi(_ => Json(Page([Summary("Alpha"), Summary("Bravo")], page: 3, totalCount: 26)));
+
+        var cut = RenderSearch("/search?page=3");
+
+        cut.WaitForAssertion(() =>
+            Assert.Equal("Showing 25 to 26 of 26 vehicles", cut.Find("[data-testid='result-count']").TextContent.Trim()));
+    }
+
+    [Fact]
+    public void SinglePage_HasNoFooter()
+    {
+        RegisterApi(_ => Json(Page([Summary("Alpha")])));
+
+        var cut = RenderSearch("/search?q=alpha");
+
+        cut.WaitForAssertion(() => Assert.Single(cut.FindAll("[data-testid='search-hit']")));
+        Assert.Empty(cut.FindAll(".mg-results .card-footer"));
+    }
+
+    [Fact]
+    public void Hits_AreADividedListWithTheSearchTextHighlighted()
+    {
+        RegisterApi(_ => Json(Page([Summary("Toyota", "Tacoma", mileage: 1200, fuelType: "Gasoline", transmission: "Automatic")])));
+
+        var cut = RenderSearch("/search?q=taco");
+
+        cut.WaitForAssertion(() =>
+        {
+            var hit = Assert.Single(cut.FindAll("[data-testid='search-hit']"));
+            Assert.Equal("Taco", hit.QuerySelector(".mg-hit-title mark")!.TextContent);
+            Assert.Equal("2020 Toyota Tacoma", hit.QuerySelector(".mg-hit-title")!.TextContent.Trim());
+            Assert.Contains("Gasoline \u00B7 Automatic", hit.QuerySelector(".mg-hit-meta")!.TextContent);
+            Assert.Empty(cut.FindAll(".mg-vehicle-card"));
+        });
+    }
+
+    [Fact]
+    public void Hits_ShowWhichFieldMatchedWithContextAroundIt()
+    {
+        var matches = new[] { new VehicleMatchDto { Field = "Feature", Text = "Heated seats and a very long description about the tow package" } };
+        RegisterApi(_ => Json(Page([Summary(matches: matches)])));
+
+        var cut = RenderSearch("/search?q=tow");
+
+        cut.WaitForAssertion(() =>
+        {
+            var context = cut.Find(".mg-hit-context li");
+            Assert.Equal("Feature", context.QuerySelector(".mg-hit-field")!.TextContent);
+            Assert.Equal("tow", context.QuerySelector("mark")!.TextContent);
+            Assert.Contains("tow package", context.TextContent);
+        });
+    }
+
+    [Fact]
+    public void Hits_SummarizeMatchesBeyondTheFirstThree()
+    {
+        var matches = Enumerable.Range(1, 5).Select(i => new VehicleMatchDto { Field = "Feature", Text = $"Power item {i}" }).ToList();
+        RegisterApi(_ => Json(Page([Summary(matches: matches)])));
+
+        var cut = RenderSearch("/search?q=power");
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal(3, cut.FindAll(".mg-hit-context li:not([data-testid='more-matches'])").Count);
+            Assert.Equal("+ 2 more", cut.Find("[data-testid='more-matches']").TextContent.Trim());
+        });
+    }
+
+    [Fact]
+    public void Breadcrumb_IsJustHome()
+    {
+        RegisterApi(_ => Json(Page([Summary("Alpha")])));
+
+        var cut = RenderSearch("/search?q=alpha");
+
+        cut.WaitForAssertion(() =>
+            Assert.Equal(["Home"], cut.FindAll("nav[aria-label='Breadcrumb'] li").Select(item => item.TextContent.Trim())));
+    }
+
+    [Fact]
+    public void FilterToggle_IsInThePageBar_NotInTheResultsCard()
+    {
+        RegisterApi(_ => Json(Page([Summary("Alpha")])));
+
+        var cut = RenderSearch("/search?q=alpha");
+
+        cut.WaitForAssertion(() =>
+        {
+            var toggle = cut.Find(".mg-pagebar [data-testid='toggle-filters']");
+            Assert.Equal("#filter-panel", toggle.GetAttribute("data-bs-target"));
+            Assert.Equal("Filter", toggle.TextContent.Trim());
+            Assert.Empty(cut.FindAll(".mg-results [data-testid='toggle-filters']"));
+            Assert.Empty(cut.FindAll("[data-testid='refine-search']"));
+            Assert.Empty(cut.FindAll("[data-testid='back-to-garage']"));
         });
     }
 
@@ -99,7 +182,7 @@ public class VehicleSearchTests : VehicleTestContext
     {
         RegisterApi(_ => Json(Page([Summary("Alpha")], page: 2, totalCount: 30)));
 
-        var cut = RenderList("/vehicles?q=tow%20truck&page=2");
+        var cut = RenderSearch("/search?q=tow%20truck&page=2");
 
         var query = ListRequests.Single().RequestUri!.Query;
         Assert.Contains("q=tow%20truck", query);
@@ -107,8 +190,8 @@ public class VehicleSearchTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             var links = cut.FindAll("nav[aria-label='Pagination'] a").Select(a => a.GetAttribute("href")).ToList();
-            Assert.Contains("/vehicles?q=tow%20truck&page=1", links);
-            Assert.Contains("/vehicles?q=tow%20truck&page=3", links);
+            Assert.Contains("/search?q=tow%20truck&page=1", links);
+            Assert.Contains("/search?q=tow%20truck&page=3", links);
         });
     }
 
@@ -117,14 +200,14 @@ public class VehicleSearchTests : VehicleTestContext
     {
         RegisterApi(_ => Json(Page([])));
 
-        var cut = RenderList("/vehicles?q=zzz");
+        var cut = RenderSearch("/search?q=zzz");
 
         cut.WaitForAssertion(() =>
         {
             Assert.Contains("No vehicles match your search.", cut.Markup);
             Assert.DoesNotContain("You have no vehicles yet", cut.Markup);
             var clear = cut.Find("a[data-testid='no-match-clear']");
-            Assert.Equal("/vehicles", clear.GetAttribute("href"));
+            Assert.Equal("/search", clear.GetAttribute("href"));
             Assert.Equal("Clear search", clear.TextContent.Trim());
             Assert.Equal("zzz", cut.Find("input#q").GetAttribute("value"));
         });
@@ -135,7 +218,7 @@ public class VehicleSearchTests : VehicleTestContext
     {
         RegisterApi(_ => Json(Page([])));
 
-        var cut = RenderList();
+        var cut = RenderSearch();
 
         cut.WaitForAssertion(() => Assert.Contains("You have no vehicles yet", cut.Markup));
         Assert.DoesNotContain("No vehicles match", cut.Markup);
@@ -147,13 +230,13 @@ public class VehicleSearchTests : VehicleTestContext
     {
         RegisterApi(_ => Json(Page([Summary("Alpha"), Summary("Bravo")], totalCount: 7)));
 
-        var cut = RenderList("/vehicles?q=a");
+        var cut = RenderSearch("/search?q=a");
 
         cut.WaitForAssertion(() =>
         {
             var summary = cut.Find("[data-testid='result-summary']");
             Assert.Equal("polite", summary.GetAttribute("aria-live"));
-            Assert.Contains("7 vehicles found", summary.TextContent);
+            Assert.Contains("Showing 1 to 7 of 7 results for", summary.TextContent);
         });
     }
 
@@ -164,7 +247,7 @@ public class VehicleSearchTests : VehicleTestContext
             ? ValidationProblem(("Q", "Search text is too long."))
             : Json(Page([Summary("Alpha")])));
 
-        var cut = RenderList("/vehicles?q=toolong");
+        var cut = RenderSearch("/search?q=toolong");
 
         cut.WaitForAssertion(() =>
         {

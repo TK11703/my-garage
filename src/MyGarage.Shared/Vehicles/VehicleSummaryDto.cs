@@ -30,4 +30,15 @@ public sealed class VehicleSummaryDto
 
     // Year of the purchase or lease date, for the garage card.
     public int? PurchasedYear { get; init; }
+
+    // Where else the search text was found (trim, color, VIN, engine, features); empty without a search.
+    public IReadOnlyList<VehicleMatchDto> Matches { get; init; } = [];
+}
+
+// One field of a vehicle that contains the search text.
+public sealed class VehicleMatchDto
+{
+    public required string Field { get; init; }
+
+    public required string Text { get; init; }
 }
