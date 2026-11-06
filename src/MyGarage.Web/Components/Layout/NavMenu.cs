@@ -18,6 +18,7 @@ internal static class NavMenu
         [
             new NavItem("My Vehicles", "/vehicles", IconName.CarFront, false, "/vehicles/new"),
             new NavItem("Add Vehicle", "/vehicles/new", IconName.PlusCircle, Exact: true),
+            new NavItem("Reminders", "/reminders", IconName.Bell, Exact: true),
         ]),
         new("maintenance", "Maintenance",
         [
@@ -35,6 +36,7 @@ internal static class NavMenu
     private static readonly Dictionary<string, string> GroupByFirstCrumb = new(StringComparer.Ordinal)
     {
         ["Vehicles"] = "Garage",
+        ["Reminders"] = "Garage",
         ["Maintenance Drafts"] = "Maintenance",
         ["FAQ"] = "Help",
         ["About"] = "Help",

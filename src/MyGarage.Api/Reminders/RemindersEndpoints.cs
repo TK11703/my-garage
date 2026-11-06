@@ -14,6 +14,7 @@ public static class RemindersEndpoints
     {
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<IValidator<ReminderRequest>>(sp => new ReminderRequestValidator(sp.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<IValidator<GarageReminderListQuery>, GarageReminderListQueryValidator>();
         return services;
     }
 
@@ -40,7 +41,7 @@ public static class RemindersEndpoints
                 }
 
                 var today = ReminderRules.Today(timeProvider);
-                return Results.Ok(items.Select(item => ReminderMapper.ToDto(item, today)).ToList());
+                return Results.Ok(ReminderOrdering.MostUrgentFirst(items.Select(item => ReminderMapper.ToDto(item, today))));
             })
             .WithName("ListReminders")
             .WithSummary("The vehicle's reminders.")

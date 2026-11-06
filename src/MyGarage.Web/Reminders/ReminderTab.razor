@@ -33,18 +33,7 @@
         <ul class="list-group" data-testid="reminder-list">
             @foreach (var reminder in reminders)
             {
-                <li class="list-group-item" data-testid="reminder">
-                    <div class="d-flex flex-wrap justify-content-between gap-2">
-                        <div>
-                            <a class="fw-semibold" href="@ReminderLinks.Detail(VehicleId, reminder.Id)" data-testid="reminder-link">@reminder.Name</a>
-                            <div class="small text-body-secondary">@ReminderFormat.AppliesTo(reminder) &middot; @ReminderFormat.Interval(reminder)</div>
-                        </div>
-                        <div class="small text-md-end">
-                            <div>Last done: @ReminderFormat.LastDone(reminder)</div>
-                            <div>Next due: @ReminderFormat.NextDue(reminder)</div>
-                        </div>
-                    </div>
-                </li>
+                <ReminderRow Reminder="reminder" />
             }
         </ul>
     }

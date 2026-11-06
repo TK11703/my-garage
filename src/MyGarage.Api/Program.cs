@@ -82,6 +82,7 @@ app.MapFuelEnergyEntriesEndpoints();
 app.MapInspectionsEndpoints();
 app.MapRegistrationsEndpoints();
 app.MapRemindersEndpoints();
+app.MapGarageRemindersEndpoints();
 app.MapInsuranceEndpoints();
 app.MapTaxesEndpoints();
 app.MapEmailIntakeEndpoints();

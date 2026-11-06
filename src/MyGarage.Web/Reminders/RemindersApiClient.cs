@@ -8,6 +8,10 @@ public sealed class RemindersApiClient(HttpClient http)
     public Task<ApiResult<List<ReminderDto>>> ListAsync(Guid vehicleId, CancellationToken cancellationToken = default) =>
         ApiCalls.SendAsync<List<ReminderDto>>(http, HttpMethod.Get, $"api/vehicles/{vehicleId}/reminders", null, cancellationToken);
 
+    // Every reminder across the caller's vehicles, most urgent first; status filters on the server (snake_case text of the status).
+    public Task<ApiResult<List<ReminderDto>>> ListAllAsync(CancellationToken cancellationToken = default) =>
+        ApiCalls.SendAsync<List<ReminderDto>>(http, HttpMethod.Get, "api/reminders", null, cancellationToken);
+
     public Task<ApiResult<ReminderDetailDto>> GetAsync(Guid vehicleId, Guid reminderId, CancellationToken cancellationToken = default) =>
         ApiCalls.SendAsync<ReminderDetailDto>(http, HttpMethod.Get, $"api/vehicles/{vehicleId}/reminders/{reminderId}", null, cancellationToken);
 

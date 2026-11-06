@@ -50,6 +50,14 @@ public sealed class ReminderRepository(NpgsqlDataSource dataSource, SqlScriptSto
         return await GetAsync(connection, ownerId, vehicleId, reminderId, cancellationToken);
     }
 
+    // Every reminder of every vehicle the owner has, oldest first.
+    public async Task<IReadOnlyList<ReminderRecord>> ListForOwnerAsync(string ownerId, CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        return (await connection.QueryAsync<ReminderRecord>(new CommandDefinition(
+            scripts.Get("Reminders/ListForOwner"), new { OwnerId = ownerId }, cancellationToken: cancellationToken))).ToList();
+    }
+
     // Most recent first; empty for a reminder that is not the owner's.
     public async Task<IReadOnlyList<ReminderCompletionRecord>> ListCompletionsAsync(
         string ownerId,

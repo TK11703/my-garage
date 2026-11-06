@@ -4,8 +4,45 @@ using MyGarage.Web.Common;
 
 namespace MyGarage.Web.Reminders;
 
+public sealed record RemainingPart(string Text, bool Urgent);
+
 public static class ReminderFormat
 {
+    // "1,200 miles left", "due in 18 days", "400 miles overdue", joined for a reminder with both parts.
+    public static string Remaining(ReminderDto reminder) => string.Join(" · ", RemainingParts(reminder).Select(part => part.Text));
+
+    // Urgent marks the part at or past its Due soon limit, but only when the reminder has both a distance and a time interval.
+    public static IReadOnlyList<RemainingPart> RemainingParts(ReminderDto reminder)
+    {
+        var both = reminder.IntervalMiles is not null && reminder.IntervalTime is not null;
+        var parts = new List<RemainingPart>();
+        if (reminder.MilesRemaining is { } miles)
+        {
+            parts.Add(new RemainingPart(MilesRemaining(miles), both && miles <= ReminderThresholds.DueSoonMiles));
+        }
+
+        if (reminder.DaysRemaining is { } days)
+        {
+            parts.Add(new RemainingPart(DaysRemaining(days), both && days <= ReminderThresholds.DueSoonDays));
+        }
+
+        return parts;
+    }
+
+    private static string MilesRemaining(int remaining) => remaining switch
+    {
+        0 => "due now",
+        > 0 => $"{Miles(remaining)} left",
+        _ => $"{Miles(-remaining)} overdue",
+    };
+
+    private static string DaysRemaining(int remaining) => remaining switch
+    {
+        0 => "due today",
+        > 0 => $"due in {remaining.ToString(CultureInfo.InvariantCulture)} day{(remaining == 1 ? string.Empty : "s")}",
+        _ => $"{(-remaining).ToString(CultureInfo.InvariantCulture)} day{(remaining == -1 ? string.Empty : "s")} overdue",
+    };
+
     // "Vehicle", "Equipment: Trailer hitch", or "Location: Home garage".
     public static string AppliesTo(ReminderDto reminder) => reminder.AppliesTo switch
     {

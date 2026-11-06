@@ -1,0 +1,25 @@
+<span class="badge @CssClass" data-testid="reminder-status">@Text</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public ReminderStatus Status { get; set; }
+
+    // The text is always shown, so the status never depends on color alone.
+    private string Text => Status switch
+    {
+        ReminderStatus.Overdue => "Overdue",
+        ReminderStatus.DueSoon => "Due soon",
+        ReminderStatus.MileageNeeded => "Mileage needed",
+        ReminderStatus.Paused => "Paused",
+        _ => "Upcoming",
+    };
+
+    private string CssClass => Status switch
+    {
+        ReminderStatus.Overdue => "text-bg-danger",
+        ReminderStatus.DueSoon => "text-bg-warning",
+        ReminderStatus.MileageNeeded => "text-bg-info",
+        ReminderStatus.Paused => "text-bg-light border",
+        _ => "text-bg-secondary",
+    };
+}

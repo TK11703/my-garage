@@ -16,6 +16,10 @@
         <section class="card border-0 shadow-sm mb-4" aria-labelledby="reminder-details-heading" data-testid="reminder-details">
             <div class="card-body">
                 <h2 id="reminder-details-heading" class="h5">Details</h2>
+                <p class="mb-3">
+                    <ReminderStatusBadge Status="reminder.Status" />
+                    <span class="small ms-2" data-testid="reminder-remaining">@ReminderFormat.Remaining(reminder)</span>
+                </p>
                 <dl class="row g-3 mb-0">
                     <ViewField Label="Applies to" Value="@ReminderFormat.AppliesTo(reminder)" />
                     <ViewField Label="Repeats" Value="@ReminderFormat.Interval(reminder)" />

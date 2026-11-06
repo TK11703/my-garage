@@ -167,6 +167,37 @@ public class ReminderRepositoryTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task ListForOwner_ReturnsEveryRemindersOfEveryVehicleTheOwnerHas_WithTheVehicleParts_AndNoOthers()
+    {
+        var (dataSource, reminders) = await CreateAsync();
+        var first = await ReminderTestData.InsertVehicleAsync(dataSource, "owner-1", mileage: 10_000, make: "Ford", model: "F-150");
+        var second = await ReminderTestData.InsertVehicleAsync(dataSource, "owner-1", year: null, make: "Honda", model: "Civic");
+        var foreign = await ReminderTestData.InsertVehicleAsync(dataSource, "owner-2");
+        var a = await ReminderTestData.InsertReminderAsync(dataSource, first, "A");
+        var b = await ReminderTestData.InsertReminderAsync(dataSource, second, "B");
+        await ReminderTestData.InsertReminderAsync(dataSource, foreign, "Theirs");
+
+        var list = await reminders.ListForOwnerAsync("owner-1", CancellationToken.None);
+
+        Assert.Equal([a, b], list.Select(item => item.Id).Order());
+        var forFirst = list.Single(item => item.Id == a);
+        Assert.Equal(first, forFirst.VehicleId);
+        Assert.Equal("F-150", forFirst.VehicleModel);
+        Assert.Equal(10_000, forFirst.CurrentMileage);
+        Assert.Null(list.Single(item => item.Id == b).VehicleYear);
+    }
+
+    [Fact]
+    public async Task ListForOwner_AnOwnerWithoutVehiclesOrReminders_ReturnsAnEmptyList()
+    {
+        var (dataSource, reminders) = await CreateAsync();
+        await ReminderTestData.InsertVehicleAsync(dataSource, "owner-1");
+
+        Assert.Empty(await reminders.ListForOwnerAsync("owner-1", CancellationToken.None));
+        Assert.Empty(await reminders.ListForOwnerAsync("nobody", CancellationToken.None));
+    }
+
+    [Fact]
     public async Task ListCompletions_ReturnsMostRecentFirst_AndNothingForAnotherOwner()
     {
         var (dataSource, reminders) = await CreateAsync();

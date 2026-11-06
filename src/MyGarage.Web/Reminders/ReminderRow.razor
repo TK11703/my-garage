@@ -1,0 +1,51 @@
+<li class="list-group-item" data-testid="reminder">
+    <div class="d-flex flex-wrap justify-content-between gap-2">
+        <div>
+            <a class="fw-semibold me-2" href="@ReminderLinks.Detail(Reminder.VehicleId, Reminder.Id)" data-testid="reminder-link">@Reminder.Name</a>
+            <ReminderStatusBadge Status="Reminder.Status" />
+            <div class="small text-body-secondary">@ReminderFormat.AppliesTo(Reminder) &middot; @ReminderFormat.Interval(Reminder)</div>
+            @if (ShowVehicle)
+            {
+                <div class="small"><a href="@ReminderLinks.Tab(Reminder.VehicleId)" data-testid="reminder-vehicle">@Reminder.VehicleName</a></div>
+            }
+        </div>
+        <div class="small text-md-end">
+            <div>Last done: @ReminderFormat.LastDone(Reminder)</div>
+            <div>Next due: @ReminderFormat.NextDue(Reminder)</div>
+            @if (Reminder.Status == ReminderStatus.MileageNeeded)
+            {
+                <div class="text-body-secondary">Record the vehicle's mileage to see how far away this is.</div>
+            }
+            else if (Reminder.Status != ReminderStatus.Paused && ReminderFormat.RemainingParts(Reminder) is { Count: > 0 } parts)
+            {
+                <div data-testid="reminder-remaining">
+                    @for (var i = 0; i < parts.Count; i++)
+                    {
+                        if (i > 0)
+                        {
+                            <span aria-hidden="true"> &middot; </span>
+                        }
+
+                        if (parts[i].Urgent)
+                        {
+                            <span class="fw-semibold">@parts[i].Text<span class="visually-hidden"> (most urgent)</span></span>
+                        }
+                        else
+                        {
+                            <span>@parts[i].Text</span>
+                        }
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</li>
+
+@code {
+    [Parameter, EditorRequired]
+    public ReminderDto Reminder { get; set; } = default!;
+
+    // The garage-wide list names the vehicle each reminder belongs to.
+    [Parameter]
+    public bool ShowVehicle { get; set; }
+}
