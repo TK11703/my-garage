@@ -50,6 +50,52 @@ public sealed class ReminderRepository(NpgsqlDataSource dataSource, SqlScriptSto
         return await GetAsync(connection, ownerId, vehicleId, reminderId, cancellationToken);
     }
 
+    // Adds a completion and rolls the last-done values forward in one transaction; null when the reminder is not the owner's.
+    // With raiseVehicleOdometer the vehicle's latest odometer reading is raised to the mileage, never lowered.
+    public async Task<ReminderRecord?> CompleteAsync(
+        string ownerId,
+        Guid vehicleId,
+        Guid reminderId,
+        Guid completionId,
+        DateOnly doneOn,
+        int? mileage,
+        bool raiseVehicleOdometer,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+
+        var rolled = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
+            scripts.Get("Reminders/UpdateLastDone"),
+            new { ReminderId = reminderId, VehicleId = vehicleId, OwnerId = ownerId, DoneOn = doneOn, Mileage = mileage, Now = now },
+            transaction,
+            cancellationToken: cancellationToken));
+        if (rolled is null)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return null;
+        }
+
+        await connection.ExecuteAsync(new CommandDefinition(
+            scripts.Get("Reminders/InsertCompletion"),
+            new { CompletionId = completionId, ReminderId = reminderId, OwnerId = ownerId, DoneOn = doneOn, Mileage = mileage, Now = now },
+            transaction,
+            cancellationToken: cancellationToken));
+
+        if (raiseVehicleOdometer && mileage is not null)
+        {
+            await connection.ExecuteAsync(new CommandDefinition(
+                scripts.Get("Reminders/RaiseVehicleOdometer"),
+                new { VehicleId = vehicleId, OwnerId = ownerId, Mileage = mileage, Now = now },
+                transaction,
+                cancellationToken: cancellationToken));
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+        return await GetAsync(connection, ownerId, vehicleId, reminderId, cancellationToken);
+    }
+
     // Every reminder of every vehicle the owner has, oldest first.
     public async Task<IReadOnlyList<ReminderRecord>> ListForOwnerAsync(string ownerId, CancellationToken cancellationToken)
     {

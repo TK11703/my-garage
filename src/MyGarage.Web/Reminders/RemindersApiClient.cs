@@ -17,4 +17,7 @@ public sealed class RemindersApiClient(HttpClient http)
 
     public Task<ApiResult<ReminderDto>> CreateAsync(Guid vehicleId, ReminderRequest request, CancellationToken cancellationToken = default) =>
         ApiCalls.SendAsync<ReminderDto>(http, HttpMethod.Post, $"api/vehicles/{vehicleId}/reminders", request, cancellationToken);
+
+    public Task<ApiResult<ReminderDetailDto>> CompleteAsync(Guid vehicleId, Guid reminderId, CompleteReminderRequest request, CancellationToken cancellationToken = default) =>
+        ApiCalls.SendAsync<ReminderDetailDto>(http, HttpMethod.Post, $"api/vehicles/{vehicleId}/reminders/{reminderId}/complete", request, cancellationToken);
 }

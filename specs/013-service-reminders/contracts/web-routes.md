@@ -29,7 +29,7 @@ The reminder detail page: header with the name and status badge; Details card (a
 
 ### Mark done (form `complete-reminder`)
 
-Fields: Done on (default today), Mileage (default the vehicle's current mileage; required when the reminder has a distance interval), and a checkbox "Also update the vehicle's mileage" shown only when the vehicle has a recorded mileage and the page can tell the entered value would be above it (the server decides; the checkbox is simply ignored otherwise). Success redirects to the detail page with `saved=done` and a status notice "Marked done. Next due ...".
+Fields: Done on (default today), Mileage (default the vehicle's current mileage; required when the reminder has a distance interval), and a checkbox "Also update the vehicle's mileage" that is always shown; the server raises the vehicle's latest odometer reading only when the mileage is above the vehicle's current mileage and never lowers it. Success redirects to the detail page with `saved=done` and a status notice "Marked done. Next due ...".
 
 ### Pause, Resume, Delete
 

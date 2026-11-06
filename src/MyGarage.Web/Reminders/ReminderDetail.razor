@@ -2,13 +2,16 @@
 @attribute [Authorize]
 @attribute [ExcludeFromInteractiveRouting]
 @inject RemindersApiClient Api
+@inject VehiclesApiClient VehiclesApi
+@inject NavigationManager Navigation
+@inject TimeProvider Time
 
 <ReminderPage Title="@(reminder?.Name ?? "Reminder")" VehicleId="VehicleId" VehicleName="@reminder?.VehicleName" Failure="failure"
               ReturnUrl="@ReminderLinks.Detail(VehicleId, ReminderId)" NotFound="notFound"
               NotFoundTitle="Reminder not found" NotFoundMessage="This reminder could not be found. It may have been deleted.">
     @if (reminder is not null)
     {
-        @if (ReminderMessages.Saved(Saved) is { } notice)
+        @if (SavedNotice is { } notice)
         {
             <div class="alert alert-success" role="status" data-testid="reminder-saved">@notice</div>
         }
@@ -28,6 +31,32 @@
                 </dl>
             </div>
         </section>
+
+        <ReminderCompleteForm Model="CompleteModel!" MileageRequired="@(reminder.IntervalMiles is not null)" Errors="errors" OnSubmit="CompleteAsync" />
+
+        <section class="card border-0 shadow-sm mb-4" aria-labelledby="history-heading" data-testid="history">
+            <div class="card-body">
+                <h2 id="history-heading" class="h5">History</h2>
+                @if (reminder.Completions.Count == 0)
+                {
+                    <p class="text-body-secondary mb-0">Nothing has been marked done yet. Mark it done to start the history.</p>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var completion in reminder.Completions)
+                        {
+                            <li class="list-group-item px-0" data-testid="completion">
+                                @DisplayFormat.Date(completion.DoneOn)@if (completion.Mileage is { } mileage)
+                                {
+                                    <span> at @ReminderFormat.Miles(mileage)</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </section>
     }
 </ReminderPage>
 
@@ -35,6 +64,7 @@
     private ReminderDetailDto? reminder;
     private GarageApiFailure? failure;
     private bool notFound;
+    private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
 
     [Parameter]
     public Guid VehicleId { get; set; }
@@ -46,6 +76,13 @@
     [Parameter, SupplyParameterFromQuery(Name = "saved")]
     public string? Saved { get; set; }
 
+    [SupplyParameterFromForm(FormName = "complete-reminder")]
+    private ReminderCompleteFormModel? CompleteModel { get; set; }
+
+    private string? SavedNotice => Saved == "done" && reminder is not null
+        ? $"Marked done. Next due {ReminderFormat.NextDue(reminder)}."
+        : ReminderMessages.Saved(Saved);
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -53,6 +90,58 @@
             var result = await Api.GetAsync(VehicleId, ReminderId);
             reminder = result.Value;
             notFound = result.IsNotFound;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+            return;
+        }
+
+        if (reminder is not null && CompleteModel is null)
+        {
+            CompleteModel = new ReminderCompleteFormModel
+            {
+                DoneOn = DateOnly.FromDateTime(Time.GetUtcNow().UtcDateTime),
+                Mileage = await CurrentMileageAsync(),
+            };
+        }
+    }
+
+    // The default is a courtesy; the form works without it.
+    private async Task<int?> CurrentMileageAsync()
+    {
+        try
+        {
+            var vehicle = (await VehiclesApi.GetAsync(VehicleId)).Value;
+            return vehicle is null || (vehicle.Mileage is null && vehicle.LatestOdometerReading is null)
+                ? null
+                : Math.Max(vehicle.Mileage ?? 0, vehicle.LatestOdometerReading ?? 0);
+        }
+        catch (GarageApiException)
+        {
+            return null;
+        }
+    }
+
+    private async Task CompleteAsync()
+    {
+        failure = null;
+        try
+        {
+            var result = await Api.CompleteAsync(VehicleId, ReminderId, CompleteModel!.ToRequest());
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo(ReminderLinks.Detail(VehicleId, ReminderId, "done"));
+                return;
+            }
+
+            if (result.IsNotFound)
+            {
+                notFound = true;
+                return;
+            }
+
+            errors = result.Errors;
         }
         catch (GarageApiException ex)
         {
