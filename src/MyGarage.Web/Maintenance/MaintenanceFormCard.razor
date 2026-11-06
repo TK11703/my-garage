@@ -1,20 +1,33 @@
-@* The card around a Maintenance entry form: the form in the body, Save, Cancel, and an optional Delete in the footer. *@
+@* The card around a Maintenance entry form: the form in the body, Save, Cancel, and an optional Delete in the footer (or, with ActionsOutside, in a row below the card like the vehicle forms). *@
 <div class="card border-0 shadow-sm">
     <div class="card-body vstack gap-3">
         <p class="form-text mb-0">* Required</p>
         @ChildContent
     </div>
-    <div class="card-footer d-flex flex-wrap gap-2">
-        @* The footer sits outside the form so Delete can have a form of its own; "form" ties Save to the entry form. *@
+    @if (!ActionsOutside)
+    {
+        <div class="card-footer d-flex flex-wrap gap-2">
+            @Actions
+        </div>
+    }
+</div>
+@if (ActionsOutside)
+{
+    <div class="d-flex flex-wrap gap-2 mt-3" data-testid="form-actions">
+        @Actions
+    </div>
+}
+
+@code {
+    // The actions sit outside the form so Delete can have a form of its own; "form" ties Save to the entry form.
+    private RenderFragment Actions => @<text>
         <button type="submit" form="@FormId" class="btn btn-primary d-inline-flex align-items-center gap-2" data-busy-text="Saving..." title="@SubmitTitle">
             <Icon Name="IconName.Save" /> @SubmitText
         </button>
         <a class="btn btn-outline-secondary" href="@CancelHref" title="Cancel and return without saving">Cancel</a>
         @Delete
-    </div>
-</div>
+    </text>;
 
-@code {
     // The id of the EditForm in ChildContent.
     [Parameter, EditorRequired]
     public string FormId { get; set; } = string.Empty;
@@ -34,4 +47,8 @@
     // Shown after Cancel; only the edit pages pass it.
     [Parameter]
     public RenderFragment? Delete { get; set; }
+
+    // Put Save and Cancel in a row below the card instead of in its footer.
+    [Parameter]
+    public bool ActionsOutside { get; set; }
 }

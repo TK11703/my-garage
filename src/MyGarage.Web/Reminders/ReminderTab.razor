@@ -22,9 +22,10 @@
             }
             else if (reminders.Count == 0)
             {
-                <EmptyState Variant="EmptyStateVariant.Empty"
-                            Message="No reminders yet. Add one for things like oil changes, inspections, and registrations."
-                            ActionText="Add reminder" ActionHref="@ReminderLinks.New(VehicleId)" />
+                <div class="alert alert-info d-flex align-items-center gap-2 mb-0" role="status" data-testid="no-reminders">
+                    <Icon Name="IconName.InfoCircle" Size="20" />
+                    <span>No reminders yet. Add one for things like oil changes, inspections, and registrations.</span>
+                </div>
             }
             else
             {

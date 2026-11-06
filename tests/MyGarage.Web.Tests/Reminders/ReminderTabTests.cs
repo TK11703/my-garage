@@ -138,15 +138,19 @@ public class ReminderTabTests : VehicleTestContext
     }
 
     [Fact]
-    public void AVehicleWithoutReminders_ShowsTheEmptyStateWithTheSameAction()
+    public void AVehicleWithoutReminders_ShowsAnInformationalAlertWithAnIcon()
     {
         var cut = RenderTab();
 
         cut.WaitForAssertion(() =>
         {
             Assert.Empty(cut.FindAll("[data-testid='reminder']"));
-            Assert.Contains("No reminders yet", cut.Find("#tab-reminders").TextContent);
-            Assert.NotNull(cut.Find("#tab-reminders a[href$='/reminders/new']"));
+            var alert = cut.Find("#tab-reminders [data-testid='no-reminders']");
+            Assert.Contains("alert-info", alert.ClassName);
+            Assert.Equal("status", alert.GetAttribute("role"));
+            Assert.NotNull(alert.QuerySelector("svg"));
+            Assert.Contains("No reminders yet. Add one for things like oil changes, inspections, and registrations.", alert.TextContent);
+            Assert.Empty(cut.FindAll("#tab-reminders a[href$='/reminders/new']"));
         });
     }
 
