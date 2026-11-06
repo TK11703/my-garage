@@ -10,9 +10,9 @@ public sealed class DraftsApiClient(HttpClient http)
     public Task<ApiResult<PagedResultDto<MaintenanceDraftSummaryDto>>> ListAsync(int page, CancellationToken cancellationToken = default) =>
         SendAsync<PagedResultDto<MaintenanceDraftSummaryDto>>(HttpMethod.Get, $"api/drafts?page={page}", null, cancellationToken);
 
-    // What happened to the caller's emails (history), newest first.
-    public Task<ApiResult<PagedResultDto<EmailHistoryItemDto>>> ListEmailHistoryAsync(int page, CancellationToken cancellationToken = default) =>
-        SendAsync<PagedResultDto<EmailHistoryItemDto>>(HttpMethod.Get, $"api/emails?page={page}", null, cancellationToken);
+    // What happened to the caller's emails (history), newest first; outcome (such as "included") keeps only that outcome.
+    public Task<ApiResult<PagedResultDto<EmailHistoryItemDto>>> ListEmailHistoryAsync(int page, string? outcome = null, CancellationToken cancellationToken = default) =>
+        SendAsync<PagedResultDto<EmailHistoryItemDto>>(HttpMethod.Get, outcome is null ? $"api/emails?page={page}" : $"api/emails?page={page}&outcome={Uri.EscapeDataString(outcome)}", null, cancellationToken);
 
     public Task<ApiResult<MaintenanceDraftDto>> GetAsync(Guid draftId, CancellationToken cancellationToken = default) =>
         SendAsync<MaintenanceDraftDto>(HttpMethod.Get, $"api/drafts/{draftId}", null, cancellationToken);

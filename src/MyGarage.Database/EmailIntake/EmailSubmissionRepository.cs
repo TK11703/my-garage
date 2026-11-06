@@ -103,15 +103,16 @@ public sealed class EmailSubmissionRepository(NpgsqlDataSource dataSource, SqlSc
     }
 
     // The owner's emails newest first (never not_accepted ones, which have no owner); a page past the last is empty.
-    public async Task<PagedResult<EmailHistoryRecord>> ListHistoryPageAsync(string ownerId, int page, int pageSize, CancellationToken cancellationToken)
+    // outcome (awaiting_review, included, discarded, expired, not_applicable, failed) keeps only that outcome.
+    public async Task<PagedResult<EmailHistoryRecord>> ListHistoryPageAsync(string ownerId, int page, int pageSize, CancellationToken cancellationToken, string? outcome = null)
     {
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<HistoryRow>(new CommandDefinition(
             scripts.Get("EmailIntake/ListHistoryPage"),
-            new { OwnerId = ownerId, PageSize = pageSize, Offset = (page - 1) * pageSize },
+            new { OwnerId = ownerId, PageSize = pageSize, Offset = (page - 1) * pageSize, Outcome = outcome },
             cancellationToken: cancellationToken));
         var total = await connection.ExecuteScalarAsync<int>(new CommandDefinition(
-            scripts.Get("EmailIntake/CountHistory"), new { OwnerId = ownerId }, cancellationToken: cancellationToken));
+            scripts.Get("EmailIntake/CountHistory"), new { OwnerId = ownerId, Outcome = outcome }, cancellationToken: cancellationToken));
 
         var items = rows
             .Select(row => new EmailHistoryRecord(
