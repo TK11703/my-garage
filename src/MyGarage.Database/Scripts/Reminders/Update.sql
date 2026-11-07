@@ -1,7 +1,5 @@
 UPDATE reminders r
 SET name = @Name,
-    applies_to = @AppliesTo,
-    subject = @Subject,
     interval_miles = @IntervalMiles,
     interval_months = @IntervalMonths,
     last_done_on = @LastDoneOn,

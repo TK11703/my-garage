@@ -18,7 +18,7 @@ public class ReminderManageTests(PostgresFixture postgres)
     }
 
     private static ReminderValues Changed() =>
-        new("Hitch check", "equipment", "Trailer hitch", null, 24, new DateOnly(2026, 9, 1), null);
+        new("Hitch check", null, 24, new DateOnly(2026, 9, 1), null);
 
     [Fact]
     public async Task Update_ReplacesTheValues_KeepsCreationAndPausedState_AndStampsTheUpdate()
@@ -31,8 +31,6 @@ public class ReminderManageTests(PostgresFixture postgres)
 
         Assert.NotNull(updated);
         Assert.Equal("Hitch check", updated.Name);
-        Assert.Equal("equipment", updated.AppliesTo);
-        Assert.Equal("Trailer hitch", updated.Subject);
         Assert.Null(updated.IntervalMiles);
         Assert.Equal(24, updated.IntervalMonths);
         Assert.Equal(new DateOnly(2026, 9, 1), updated.LastDoneOn);

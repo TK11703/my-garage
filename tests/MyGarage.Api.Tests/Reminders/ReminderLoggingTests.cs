@@ -12,7 +12,7 @@ using static MyGarage.Api.Tests.Reminders.ReminderApiTestData;
 
 namespace MyGarage.Api.Tests.Reminders;
 
-// FR-021: logs never carry reminder names, equipment or location names, vehicle names, or mileages.
+// FR-021: logs never carry reminder names, vehicle names, or mileages.
 // Shares a collection with the other logging tests because hosts replace the static Serilog logger and must not overlap.
 [Collection("Logging")]
 public class ReminderLoggingTests(ApiFactory factory) : IClassFixture<ApiFactory>, IAsyncLifetime
@@ -20,7 +20,7 @@ public class ReminderLoggingTests(ApiFactory factory) : IClassFixture<ApiFactory
     private const string Owner = "log-reminder-user";
 
     // Distinctive values that cannot appear in a log by accident.
-    private static readonly string[] Markers = ["Zebra Oil Marker", "Quokka Hitch Marker", "Narwhal Garage Marker", "Pangolin", "7654321", "6543219"];
+    private static readonly string[] Markers = ["Zebra Oil Marker", "Quokka Hitch Marker", "Pangolin", "7654321", "6543219"];
 
     public Task InitializeAsync() => factory.ResetDataAsync();
 
@@ -68,12 +68,12 @@ public class ReminderLoggingTests(ApiFactory factory) : IClassFixture<ApiFactory
         // Create (already overdue, so the notifier raises), update, complete, pause, resume, an invalid create, and delete.
         var created = (await (await client.PostAsJsonAsync(Url(vehicle.Id), Request("Zebra Oil Marker", miles: 5_000, lastDoneMileage: 1_000)))
             .Content.ReadFromJsonAsync<ReminderDto>())!;
-        await client.PostAsJsonAsync(Url(vehicle.Id), Request("Quokka Hitch Marker", ReminderAppliesTo.Equipment, "Narwhal Garage Marker", miles: 3_000, lastDoneMileage: 6_543_219));
+        await client.PostAsJsonAsync(Url(vehicle.Id), Request("Quokka Hitch Marker", miles: 3_000, lastDoneMileage: 6_543_219));
         await client.PutAsJsonAsync(Url(vehicle.Id, created.Id), Request("Zebra Oil Marker", miles: 5_000, lastDoneMileage: 6_543_219));
         await client.PostAsJsonAsync(Url(vehicle.Id, created.Id, "complete"), new CompleteReminderRequest { DoneOn = Today, Mileage = 7_654_321, UpdateVehicleMileage = true });
         await client.PostAsync(Url(vehicle.Id, created.Id, "pause"), null);
         await client.PostAsync(Url(vehicle.Id, created.Id, "resume"), null);
-        await client.PostAsJsonAsync(Url(vehicle.Id), new ReminderRequest { Name = "Zebra Oil Marker", AppliesTo = ReminderAppliesTo.Location, IntervalMiles = 0 });
+        await client.PostAsJsonAsync(Url(vehicle.Id), new ReminderRequest { Name = "Zebra Oil Marker", IntervalMiles = 0 });
         await client.GetAsync(Url(vehicle.Id));
         await client.GetAsync("/api/reminders");
         await client.GetAsync("/api/dashboard");

@@ -15,11 +15,6 @@ public record ReminderRecord
 
     public string Name { get; init; } = string.Empty;
 
-    // vehicle, equipment, or location.
-    public string AppliesTo { get; init; } = string.Empty;
-
-    public string? Subject { get; init; }
-
     public int? IntervalMiles { get; init; }
 
     public int? IntervalMonths { get; init; }

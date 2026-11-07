@@ -28,8 +28,6 @@ public static class ReminderTestData
         NpgsqlDataSource dataSource,
         Guid vehicleId,
         string name = "Oil change",
-        string appliesTo = "vehicle",
-        string? subject = null,
         int? intervalMiles = 5000,
         int? intervalMonths = null,
         DateOnly? lastDoneOn = null,
@@ -41,12 +39,12 @@ public static class ReminderTestData
         var id = Guid.CreateVersion7();
         await using var connection = await dataSource.OpenConnectionAsync();
         await connection.ExecuteAsync(
-            "INSERT INTO reminders (id, vehicle_id, name, applies_to, subject, interval_miles, interval_months, last_done_on, last_done_mileage, is_paused, notified_state, " +
+            "INSERT INTO reminders (id, vehicle_id, name, interval_miles, interval_months, last_done_on, last_done_mileage, is_paused, notified_state, " +
             "created_at, updated_at, created_by, updated_by) " +
-            "VALUES (@id, @vehicleId, @name, @appliesTo, @subject, @intervalMiles, @intervalMonths, @lastDoneOn, @lastDoneMileage, @isPaused, @notifiedState, @at, @at, 'seed', 'seed')",
+            "VALUES (@id, @vehicleId, @name, @intervalMiles, @intervalMonths, @lastDoneOn, @lastDoneMileage, @isPaused, @notifiedState, @at, @at, 'seed', 'seed')",
             new
             {
-                id, vehicleId, name, appliesTo, subject, intervalMiles, intervalMonths,
+                id, vehicleId, name, intervalMiles, intervalMonths,
                 lastDoneOn = lastDoneOn ?? new DateOnly(2026, 5, 1), lastDoneMileage, isPaused, notifiedState,
                 at = createdAt ?? new DateTimeOffset(2026, 11, 1, 12, 0, 0, TimeSpan.Zero),
             });

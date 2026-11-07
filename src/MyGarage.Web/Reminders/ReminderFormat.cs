@@ -43,14 +43,6 @@ public static class ReminderFormat
         _ => $"{(-remaining).ToString(CultureInfo.InvariantCulture)} day{(remaining == -1 ? string.Empty : "s")} overdue",
     };
 
-    // "Vehicle", "Equipment: Trailer hitch", or "Location: Home garage".
-    public static string AppliesTo(ReminderDto reminder) => reminder.AppliesTo switch
-    {
-        ReminderAppliesTo.Equipment => $"Equipment: {reminder.Subject}",
-        ReminderAppliesTo.Location => $"Location: {reminder.Subject}",
-        _ => "Vehicle",
-    };
-
     // "Every 5,000 miles or 6 months".
     public static string Interval(ReminderDto reminder)
     {

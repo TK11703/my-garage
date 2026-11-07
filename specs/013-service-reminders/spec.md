@@ -130,7 +130,7 @@ The user opens a garage dashboard from the main navigation. It summarizes the wh
 
 ### Edge Cases
 
-- A reminder that applies to equipment or a location rather than the vehicle itself: the name of that equipment or location is shown with the reminder and in notifications so the user can tell which one is due.
+- A reminder about equipment or a location rather than the vehicle itself: the user puts that in the reminder's name (for example "Trailer hitch check"), which is shown with the reminder and in notifications.
 - A vehicle with no recorded mileage and only distance-based reminders: reminders show "Mileage needed" instead of a status until a mileage is recorded; time-based parts work normally.
 - A vehicle's mileage decreases because of a correction: statuses are recomputed from the new value; no new notifications are sent for states that move to a less urgent one.
 - A reminder is marked done early, before it is due: the next due point is still computed from the actual date and mileage entered.
@@ -146,8 +146,8 @@ The user opens a garage dashboard from the main navigation. It summarizes the wh
 ### Functional Requirements
 
 - **FR-001**: Users MUST be able to create, view, edit, pause, resume, and delete reminders on vehicles they own, and only their own; a reminder belongs to exactly one vehicle.
-- **FR-002**: A reminder MUST have a name (required, up to 100 characters), an applies-to value, a recurrence interval, and last-done values. The form MUST offer suggested reminder types (Oil change, Tire rotation, Inspection, Registration) that fill in the name and a typical interval the user can change, and MUST allow any custom name.
-- **FR-002a**: A reminder MUST say whether it applies to the vehicle itself, to equipment on the vehicle, or to the location where the vehicle resides. For equipment and location the user MUST name which one (up to 100 characters, for example "Trailer hitch" or "Home garage permit"); that name MUST be shown with the reminder and in its notifications. Suggested types apply to the vehicle.
+- **FR-002**: A reminder MUST have a name (required, up to 100 characters), a recurrence interval, and last-done values. The form MUST offer suggested reminder types (Oil change, Tire rotation, Inspection, Registration) that fill in the name and a typical interval the user can change, and MUST allow any custom name.
+- **FR-002a**: A reminder does not say what it applies to (the vehicle, equipment, or a location); the name says it, for example "Trailer hitch check". (Removed on 2026-11-06 at the product owner's request; it had added a field without changing any behavior.)
 - **FR-003**: A reminder's recurrence MUST be by distance (whole miles, 1 to 999,999), by time (whole months or whole years, with years allowed from 1 to 50 and months from 1 to 600), or both. At least one MUST be provided.
 - **FR-004**: A reminder MUST record when it was last done: a date (not in the future) and, for distance-based reminders, a mileage (whole number 0 to 9,999,999). The form MUST default these to today and the vehicle's current mileage.
 - **FR-005**: The system MUST calculate the next due mileage as the last-done mileage plus the distance interval and the next due date as the last-done date plus the time interval, and MUST treat a reminder with both as due when either is reached first.
@@ -172,7 +172,7 @@ The user opens a garage dashboard from the main navigation. It summarizes the wh
 
 ### Key Entities
 
-- **Reminder**: A recurring maintenance or compliance item on one vehicle. Has a name, what it applies to (the vehicle, equipment on it, or its location, with the equipment or location name), a distance interval and/or a time interval, last-done date and mileage, an active or paused state, and a derived next due mileage, next due date, and status.
+- **Reminder**: A recurring maintenance or compliance item on one vehicle. Has a name, a distance interval and/or a time interval, last-done date and mileage, an active or paused state, and a derived next due mileage, next due date, and status.
 - **Reminder completion**: One entry in a reminder's history, recording the date and mileage at which the item was done.
 - **Reminder status**: A derived label (Upcoming, Due soon, Overdue, Paused, or Mileage needed) computed from the reminder, the vehicle's current mileage, and today's date; it is not set by the user.
 - **Vehicle**: An existing entity owned by one user; supplies the current mileage and owns its reminders.

@@ -10,37 +10,6 @@
                 </div>
                 <ValidationMessage For="@(() => Model.Name)" id="name-error" class="invalid-feedback d-block" />
             </div>
-            <div class="col-md-6">
-                <fieldset>
-                    <legend class="form-label small mb-1">Applies to<span class="text-danger" aria-hidden="true"> *</span></legend>
-                    <InputRadioGroup Name="Model.AppliesTo" TValue="ReminderAppliesTo" @bind-Value="Model.AppliesTo">
-                        <div class="d-flex flex-wrap gap-3">
-                            <div class="form-check">
-                                <InputRadio id="applies-to-vehicle" class="form-check-input" Value="ReminderAppliesTo.Vehicle" />
-                                <label class="form-check-label" for="applies-to-vehicle">Vehicle</label>
-                            </div>
-                            <div class="form-check">
-                                <InputRadio id="applies-to-equipment" class="form-check-input" Value="ReminderAppliesTo.Equipment" />
-                                <label class="form-check-label" for="applies-to-equipment">Equipment</label>
-                            </div>
-                            <div class="form-check">
-                                <InputRadio id="applies-to-location" class="form-check-input" Value="ReminderAppliesTo.Location" />
-                                <label class="form-check-label" for="applies-to-location">Location</label>
-                            </div>
-                        </div>
-                    </InputRadioGroup>
-                </fieldset>
-                <ValidationMessage For="@(() => Model.AppliesTo)" id="appliesto-error" class="invalid-feedback d-block" />
-            </div>
-            <div class="col-md-6">
-                <div class="form-floating">
-                    <InputText id="subject" class="form-control" @bind-Value="Model.Subject" maxlength="100" placeholder=" "
-                               aria-describedby="@Described("Subject", "subject-help")" />
-                    <label for="subject">Equipment or location name</label>
-                </div>
-                <div id="subject-help" class="form-text">Needed for equipment and location reminders, for example "Trailer hitch" or "Home garage permit".</div>
-                <ValidationMessage For="@(() => Model.Subject)" id="subject-error" class="invalid-feedback d-block" />
-            </div>
         </div>
 
         <fieldset>
@@ -100,7 +69,7 @@
 </MaintenanceFormCard>
 
 @code {
-    private static readonly string[] Fields = ["Name", "AppliesTo", "Subject", "IntervalMiles", "TimeValue", "LastDoneOn", "LastDoneMileage"];
+    private static readonly string[] Fields = ["Name", "IntervalMiles", "TimeValue", "LastDoneOn", "LastDoneMileage"];
 
     private EditContext editContext = default!;
     private ValidationMessageStore messages = default!;

@@ -48,19 +48,17 @@ public class ManageReminderEndpointTests(ApiFactory factory) : IClassFixture<Api
     }
 
     [Fact]
-    public async Task Put_ChangesNameAppliesToAndTheTimeInterval()
+    public async Task Put_ChangesTheNameAndTheTimeInterval()
     {
         var client = factory.CreateClientForUser(Alice);
         var vehicle = await CreateVehicleAsync(client);
         var created = await CreateAsync(client, vehicle.Id);
 
         var updated = (await (await PutAsync(client, vehicle.Id, created.Id, Request(
-            "Hitch check", ReminderAppliesTo.Equipment, "Trailer hitch", miles: null, time: Time(2, ReminderTimeUnit.Years),
+            "Hitch check", miles: null, time: Time(2, ReminderTimeUnit.Years),
             lastDoneOn: new DateOnly(2026, 9, 1), lastDoneMileage: null))).Content.ReadFromJsonAsync<ReminderDto>())!;
 
         Assert.Equal("Hitch check", updated.Name);
-        Assert.Equal(ReminderAppliesTo.Equipment, updated.AppliesTo);
-        Assert.Equal("Trailer hitch", updated.Subject);
         Assert.Null(updated.IntervalMiles);
         Assert.Equal(new DateOnly(2028, 9, 1), updated.NextDueDate);
     }
@@ -72,7 +70,7 @@ public class ManageReminderEndpointTests(ApiFactory factory) : IClassFixture<Api
         var vehicle = await CreateVehicleAsync(client);
         var created = await CreateAsync(client, vehicle.Id);
 
-        var response = await PutAsync(client, vehicle.Id, created.Id, new ReminderRequest { Name = "", AppliesTo = ReminderAppliesTo.Vehicle });
+        var response = await PutAsync(client, vehicle.Id, created.Id, new ReminderRequest { Name = "" });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();

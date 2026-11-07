@@ -31,8 +31,6 @@ public class RemindersEndpointsTests(ApiFactory factory) : IClassFixture<ApiFact
         Assert.Equal(vehicle.Id, reminder.VehicleId);
         Assert.Equal("2020 Ford F-150", reminder.VehicleName);
         Assert.Equal("Oil change", reminder.Name);
-        Assert.Equal(ReminderAppliesTo.Vehicle, reminder.AppliesTo);
-        Assert.Null(reminder.Subject);
         Assert.Equal(5_000, reminder.IntervalMiles);
         Assert.Equal(45_000, reminder.NextDueMileage);
         Assert.Null(reminder.NextDueDate);
@@ -67,20 +65,6 @@ public class RemindersEndpointsTests(ApiFactory factory) : IClassFixture<ApiFact
         Assert.Equal(Today.AddDays(-10).AddMonths(6), reminder.NextDueDate);
     }
 
-    [Theory]
-    [InlineData(ReminderAppliesTo.Equipment, "Trailer hitch")]
-    [InlineData(ReminderAppliesTo.Location, "Home garage permit")]
-    public async Task Post_EquipmentAndLocationReminders_KeepTheirSubject(ReminderAppliesTo appliesTo, string subject)
-    {
-        var client = factory.CreateClientForUser(Alice);
-        var vehicle = await CreateVehicleAsync(client);
-
-        var reminder = await CreateAsync(client, vehicle.Id, Request("Check", appliesTo, subject));
-
-        Assert.Equal(appliesTo, reminder.AppliesTo);
-        Assert.Equal(subject, reminder.Subject);
-    }
-
     [Fact]
     public async Task Post_InvalidValues_Return400KeyedByField_AndStoreNothing()
     {
@@ -90,7 +74,6 @@ public class RemindersEndpointsTests(ApiFactory factory) : IClassFixture<ApiFact
         var response = await PostAsync(client, vehicle.Id, new ReminderRequest
         {
             Name = " ",
-            AppliesTo = ReminderAppliesTo.Equipment,
             IntervalMiles = 0,
             LastDoneOn = Today.AddDays(1),
             LastDoneMileage = -1,
@@ -99,7 +82,7 @@ public class RemindersEndpointsTests(ApiFactory factory) : IClassFixture<ApiFact
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
         var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
-        foreach (var field in new[] { "name", "subject", "intervalMiles", "lastDoneOn", "lastDoneMileage" })
+        foreach (var field in new[] { "name", "intervalMiles", "lastDoneOn", "lastDoneMileage" })
         {
             Assert.Contains(problem!.Errors.Keys, key => string.Equals(key, field, StringComparison.OrdinalIgnoreCase));
         }
@@ -143,7 +126,6 @@ public class RemindersEndpointsTests(ApiFactory factory) : IClassFixture<ApiFact
         var response = await bob.PostAsJsonAsync(Url(vehicle.Id), new
         {
             name = "Oil change",
-            appliesTo = "vehicle",
             intervalMiles = 5000,
             lastDoneOn = Today.AddDays(-1).ToString("yyyy-MM-dd"),
             lastDoneMileage = 1,

@@ -21,7 +21,7 @@ public sealed class ReminderRepository(NpgsqlDataSource dataSource, SqlScriptSto
             scripts.Get("Reminders/Insert"),
             new
             {
-                Id = id, VehicleId = vehicleId, OwnerId = ownerId, values.Name, values.AppliesTo, values.Subject,
+                Id = id, VehicleId = vehicleId, OwnerId = ownerId, values.Name,
                 values.IntervalMiles, values.IntervalMonths, values.LastDoneOn, values.LastDoneMileage, Now = now,
             },
             cancellationToken: cancellationToken));
@@ -64,7 +64,7 @@ public sealed class ReminderRepository(NpgsqlDataSource dataSource, SqlScriptSto
             scripts.Get("Reminders/Update"),
             new
             {
-                ReminderId = reminderId, VehicleId = vehicleId, OwnerId = ownerId, values.Name, values.AppliesTo, values.Subject,
+                ReminderId = reminderId, VehicleId = vehicleId, OwnerId = ownerId, values.Name,
                 values.IntervalMiles, values.IntervalMonths, values.LastDoneOn, values.LastDoneMileage, Now = now,
             },
             cancellationToken: cancellationToken));

@@ -36,7 +36,7 @@ public class ReminderTabTests : VehicleTestContext
     {
         var oil = Reminder(vehicleId, name: "Oil change", intervalMiles: 5_000, intervalTime: new() { Value = 6, Unit = ReminderTimeUnit.Months },
             lastDoneOn: new DateOnly(2026, 5, 1), lastDoneMileage: 40_000, nextDueMileage: 45_000, nextDueDate: new DateOnly(2026, 11, 1));
-        var hitch = Reminder(vehicleId, name: "Hitch check", appliesTo: ReminderAppliesTo.Equipment, subject: "Trailer hitch",
+        var hitch = Reminder(vehicleId, name: "Hitch check",
             intervalMiles: null, intervalTime: new() { Value = 2, Unit = ReminderTimeUnit.Years }, lastDoneMileage: null,
             nextDueMileage: null, nextDueDate: new DateOnly(2028, 5, 1), milesRemaining: null);
         reminders = [oil, hitch];
@@ -52,7 +52,7 @@ public class ReminderTabTests : VehicleTestContext
             Assert.Contains("May 1, 2026 at 40,000 miles", rows[0].TextContent);
             Assert.Contains("45,000 miles", rows[0].TextContent);
             Assert.Contains("Nov 1, 2026", rows[0].TextContent);
-            Assert.Contains("Equipment: Trailer hitch", rows[1].TextContent);
+            Assert.Contains("Hitch check", rows[1].TextContent);
             Assert.Contains("Every 2 years", rows[1].TextContent);
             Assert.Contains("May 1, 2028", rows[1].TextContent);
             Assert.Equal($"/vehicles/{vehicleId}/reminders/{oil.Id}", rows[0].QuerySelector("a[data-testid='reminder-link']")!.GetAttribute("href"));
@@ -124,15 +124,15 @@ public class ReminderTabTests : VehicleTestContext
     }
 
     [Fact]
-    public void ARowShowsWhatItAppliesToAndItsIntervalUnderTheName_NotTheVehicleName()
+    public void ARowShowsItsIntervalUnderTheName_NotTheVehicleName()
     {
-        reminders = [Reminder(vehicleId, name: "Hitch check", appliesTo: ReminderAppliesTo.Equipment, subject: "Trailer hitch", vehicleName: "2020 Ford F-150")];
+        reminders = [Reminder(vehicleId, name: "Hitch check", vehicleName: "2020 Ford F-150")];
         var cut = RenderTab();
 
         cut.WaitForAssertion(() =>
         {
             var row = cut.Find("#tab-reminders [data-testid='reminder']");
-            Assert.Contains("Equipment: Trailer hitch", row.TextContent);
+            Assert.Contains("Every 5,000 miles", row.TextContent);
             Assert.Empty(row.QuerySelectorAll("[data-testid='reminder-vehicle']"));
         });
     }
@@ -218,7 +218,7 @@ public class ReminderDetailPageTests : VehicleTestContext
     [Fact]
     public void ShowsTheDetailsCard()
     {
-        var reminder = Reminder(vehicleId, reminderId, "Hitch check", ReminderAppliesTo.Location, "Home garage", intervalMiles: 5_000,
+        var reminder = Reminder(vehicleId, reminderId, "Hitch check", intervalMiles: 5_000,
             intervalTime: new() { Value = 1, Unit = ReminderTimeUnit.Years }, lastDoneOn: new DateOnly(2026, 5, 1), lastDoneMileage: 40_000,
             nextDueMileage: 45_000, nextDueDate: new DateOnly(2027, 5, 1));
 
@@ -228,7 +228,7 @@ public class ReminderDetailPageTests : VehicleTestContext
         {
             Assert.Equal("Hitch check", cut.Find("h1").TextContent);
             var details = cut.Find("[data-testid='reminder-details']").TextContent;
-            Assert.Contains("Location: Home garage", details);
+            Assert.DoesNotContain("Applies to", details);
             Assert.Contains("Every 5,000 miles or 1 year", details);
             Assert.Contains("May 1, 2026 at 40,000 miles", details);
             Assert.Contains("45,000 miles", details);

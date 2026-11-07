@@ -14,8 +14,6 @@ public static class ReminderApiTestData
     // Oil change every 5,000 miles, last done at 40,000.
     public static ReminderRequest Request(
         string name = "Oil change",
-        ReminderAppliesTo appliesTo = ReminderAppliesTo.Vehicle,
-        string? subject = null,
         int? miles = 5_000,
         ReminderTimeIntervalDto? time = null,
         DateOnly? lastDoneOn = null,
@@ -23,8 +21,6 @@ public static class ReminderApiTestData
         new()
         {
             Name = name,
-            AppliesTo = appliesTo,
-            Subject = subject,
             IntervalMiles = miles,
             IntervalTime = time,
             LastDoneOn = lastDoneOn ?? Today.AddDays(-30),

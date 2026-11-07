@@ -96,7 +96,6 @@ public class ReminderSsrTests(WebAppFactory factory) : IClassFixture<WebAppFacto
     private static (string, string)[] OilChange() =>
     [
         ("Model.Name", "Oil change"),
-        ("Model.AppliesTo", "Vehicle"),
         ("Model.IntervalMiles", "5000"),
         ("Model.TimeValue", "6"),
         ("Model.TimeUnitText", "months"),
@@ -146,20 +145,20 @@ public class ReminderSsrTests(WebAppFactory factory) : IClassFixture<WebAppFacto
         Assert.DoesNotContain(handler.Calls, call => call.Method == HttpMethod.Post);
     }
 
-    // Posts the radio exactly as the page names it, so a name the binder does not recognize shows up here.
     [Fact]
-    public async Task TheAppliesToRadios_PostUnderTheNameTheFormBinds()
+    public async Task TheForm_HasNoAppliesToOrSubjectFields_AndTheRequestCarriesNone()
     {
         var (client, handler) = CreateClient();
         var page = await ParseAsync(await client.GetAsync($"/vehicles/{VehicleId}/reminders/new"));
-        var radio = (IHtmlInputElement)page.QuerySelector("#applies-to-equipment")!;
 
-        var values = OilChange().Where(pair => pair.Item1 is not ("Model.AppliesTo")).Append((radio.Name!, radio.Value)).Append(("Model.Subject", "Trailer hitch")).ToArray();
-        await client.PostAsync($"/vehicles/{VehicleId}/reminders/new", PostedForm(page, "create-reminder", withToken: true, values));
+        Assert.Empty(page.QuerySelectorAll("input[type='radio']"));
+        Assert.Null(page.QuerySelector("[name='Model.AppliesTo']"));
+        Assert.Null(page.QuerySelector("[name='Model.Subject']"));
+        await client.PostAsync($"/vehicles/{VehicleId}/reminders/new", PostedForm(page, "create-reminder", withToken: true, OilChange()));
 
         var call = Assert.Single(handler.Calls, call => call.Method == HttpMethod.Post);
-        Assert.Contains("\"appliesTo\":\"equipment\"", call.Body);
-        Assert.Contains("\"subject\":\"Trailer hitch\"", call.Body);
+        Assert.DoesNotContain("appliesTo", call.Body);
+        Assert.DoesNotContain("subject", call.Body);
     }
 
     [Fact]

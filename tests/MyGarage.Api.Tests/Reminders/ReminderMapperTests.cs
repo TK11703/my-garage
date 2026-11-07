@@ -9,8 +9,6 @@ public class ReminderMapperTests
     private static readonly DateOnly Today = new(2026, 11, 6);
 
     private static ReminderRecord Record(
-        string appliesTo = "vehicle",
-        string? subject = null,
         int? miles = 5_000,
         int? months = null,
         int? lastMileage = 40_000,
@@ -25,8 +23,6 @@ public class ReminderMapperTests
             VehicleMake = "Ford",
             VehicleModel = "F-150",
             Name = "Oil change",
-            AppliesTo = appliesTo,
-            Subject = subject,
             IntervalMiles = miles,
             IntervalMonths = months,
             LastDoneOn = new DateOnly(2026, 5, 1),
@@ -38,7 +34,7 @@ public class ReminderMapperTests
     [Fact]
     public void ToDto_CopiesTheFieldsAndAddsTheCalculatedValues()
     {
-        var record = Record("equipment", "Trailer hitch", months: 6);
+        var record = Record(months: 6);
 
         var dto = ReminderMapper.ToDto(record, Today);
 
@@ -46,8 +42,6 @@ public class ReminderMapperTests
         Assert.Equal(record.VehicleId, dto.VehicleId);
         Assert.Equal("2020 Ford F-150", dto.VehicleName);
         Assert.Equal("Oil change", dto.Name);
-        Assert.Equal(ReminderAppliesTo.Equipment, dto.AppliesTo);
-        Assert.Equal("Trailer hitch", dto.Subject);
         Assert.Equal(5_000, dto.IntervalMiles);
         Assert.Equal(new ReminderTimeIntervalDto { Value = 6, Unit = ReminderTimeUnit.Months }, dto.IntervalTime, new IntervalComparer());
         Assert.Equal(new DateOnly(2026, 5, 1), dto.LastDoneOn);
@@ -92,7 +86,6 @@ public class ReminderMapperTests
         var values = ReminderMapper.ToValues(new ReminderRequest
         {
             Name = "Registration",
-            AppliesTo = ReminderAppliesTo.Vehicle,
             IntervalTime = new ReminderTimeIntervalDto { Value = value, Unit = unit },
             LastDoneOn = new DateOnly(2026, 1, 1),
         });
@@ -103,42 +96,17 @@ public class ReminderMapperTests
     }
 
     [Fact]
-    public void ToValues_TrimsTextAndDropsTheSubjectForTheVehicle()
+    public void ToValues_TrimsTheName()
     {
-        var vehicle = ReminderMapper.ToValues(new ReminderRequest
+        var values = ReminderMapper.ToValues(new ReminderRequest
         {
             Name = "  Oil change ",
-            AppliesTo = ReminderAppliesTo.Vehicle,
-            Subject = "  ",
-            IntervalMiles = 5_000,
-            LastDoneOn = new DateOnly(2026, 1, 1),
-            LastDoneMileage = 100,
-        });
-        var equipment = ReminderMapper.ToValues(new ReminderRequest
-        {
-            Name = "Check",
-            AppliesTo = ReminderAppliesTo.Equipment,
-            Subject = "  Trailer hitch ",
             IntervalMiles = 5_000,
             LastDoneOn = new DateOnly(2026, 1, 1),
             LastDoneMileage = 100,
         });
 
-        Assert.Equal("Oil change", vehicle.Name);
-        Assert.Null(vehicle.Subject);
-        Assert.Equal("vehicle", vehicle.AppliesTo);
-        Assert.Equal("Trailer hitch", equipment.Subject);
-        Assert.Equal("equipment", equipment.AppliesTo);
-    }
-
-    [Theory]
-    [InlineData("vehicle", ReminderAppliesTo.Vehicle)]
-    [InlineData("equipment", ReminderAppliesTo.Equipment)]
-    [InlineData("location", ReminderAppliesTo.Location)]
-    public void AppliesTo_RoundTripsThroughItsText(string text, ReminderAppliesTo appliesTo)
-    {
-        Assert.Equal(appliesTo, ReminderMapper.ParseAppliesTo(text));
-        Assert.Equal(text, ReminderMapper.AppliesToText(appliesTo));
+        Assert.Equal("Oil change", values.Name);
     }
 
     [Fact]

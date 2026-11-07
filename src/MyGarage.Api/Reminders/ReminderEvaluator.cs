@@ -82,12 +82,11 @@ public class ReminderEvaluator(ReminderRepository reminders, TimeProvider timePr
         _ => 0,
     };
 
-    // "Hitch check (Trailer hitch) on 2020 Ford F-150 is overdue", cut to the column limit.
+    // "Hitch check on 2020 Ford F-150 is overdue", cut to the column limit.
     private static string Title(ReminderForEvaluationRecord item, string state)
     {
-        var what = item.Subject is { Length: > 0 } subject ? $"{item.Name} ({subject})" : item.Name;
         var vehicle = VehicleName.Compose(item.VehicleYear, item.VehicleMake, item.VehicleModel);
-        var title = $"{what} on {vehicle} is {(state == Overdue ? "overdue" : "due soon")}";
+        var title = $"{item.Name} on {vehicle} is {(state == Overdue ? "overdue" : "due soon")}";
         return title.Length > MaxTitleLength ? title[..MaxTitleLength] : title;
     }
 }

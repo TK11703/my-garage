@@ -7,10 +7,6 @@ public sealed class ReminderFormModel
 {
     public string? Name { get; set; }
 
-    public ReminderAppliesTo AppliesTo { get; set; } = ReminderAppliesTo.Vehicle;
-
-    public string? Subject { get; set; }
-
     public int? IntervalMiles { get; set; }
 
     public int? TimeValue { get; set; }
@@ -31,8 +27,6 @@ public sealed class ReminderFormModel
         new()
         {
             Name = Name,
-            AppliesTo = AppliesTo,
-            Subject = AppliesTo == ReminderAppliesTo.Vehicle ? null : Subject,
             IntervalMiles = IntervalMiles,
             IntervalTime = TimeValue is { } value ? new ReminderTimeIntervalDto { Value = value, Unit = TimeUnit } : null,
             LastDoneOn = LastDoneOn,
@@ -55,8 +49,6 @@ public sealed class ReminderFormModel
         new()
         {
             Name = reminder.Name,
-            AppliesTo = reminder.AppliesTo,
-            Subject = reminder.Subject,
             IntervalMiles = reminder.IntervalMiles,
             TimeValue = reminder.IntervalTime?.Value,
             TimeUnit = reminder.IntervalTime?.Unit ?? ReminderTimeUnit.Months,

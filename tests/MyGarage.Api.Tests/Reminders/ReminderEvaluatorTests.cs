@@ -26,8 +26,6 @@ public static class ReminderSeed
         this ApiFactory factory,
         Guid vehicleId,
         string name = "Oil change",
-        string appliesTo = "vehicle",
-        string? subject = null,
         int? intervalMiles = 5_000,
         int? intervalMonths = null,
         DateOnly? lastDoneOn = null,
@@ -37,10 +35,10 @@ public static class ReminderSeed
     {
         var id = Guid.CreateVersion7();
         await factory.ExecuteScalarAsync(
-            "INSERT INTO reminders (id, vehicle_id, name, applies_to, subject, interval_miles, interval_months, last_done_on, last_done_mileage, is_paused, notified_state, " +
+            "INSERT INTO reminders (id, vehicle_id, name, interval_miles, interval_months, last_done_on, last_done_mileage, is_paused, notified_state, " +
             "created_at, updated_at, created_by, updated_by) " +
-            "VALUES (@id, @vehicleId, @name, @appliesTo, @subject, @miles, @months, @lastOn, @lastMileage, @paused, @notified, now(), now(), 'seed', 'seed')",
-            ("id", id), ("vehicleId", vehicleId), ("name", name), ("appliesTo", appliesTo), ("subject", subject), ("miles", intervalMiles),
+            "VALUES (@id, @vehicleId, @name, @miles, @months, @lastOn, @lastMileage, @paused, @notified, now(), now(), 'seed', 'seed')",
+            ("id", id), ("vehicleId", vehicleId), ("name", name), ("miles", intervalMiles),
             ("months", intervalMonths), ("lastOn", lastDoneOn ?? new DateOnly(2026, 5, 1)), ("lastMileage", lastDoneMileage), ("paused", paused), ("notified", notifiedState));
         return id;
     }
@@ -183,16 +181,14 @@ public class ReminderEvaluatorTests(ApiFactory factory) : IClassFixture<ApiFacto
     }
 
     [Fact]
-    public async Task TheTitle_NamesTheReminderTheEquipmentOrLocationAndTheVehicle()
+    public async Task TheTitle_NamesTheReminderAndTheVehicle()
     {
         var vehicle = await factory.InsertVehicleAsync(Alice, latestOdometer: 50_000);
-        var plain = await factory.InsertReminderAsync(vehicle, "Oil change");
-        var equipment = await factory.InsertReminderAsync(vehicle, "Hitch check", "equipment", "Trailer hitch");
+        var reminder = await factory.InsertReminderAsync(vehicle, "Oil change");
 
         await NewEvaluator().EvaluateVehicleAsync(Alice, vehicle, CancellationToken.None);
 
-        Assert.Equal("Oil change on 2020 Ford F-150 is overdue", await factory.NotificationTitleAsync(plain));
-        Assert.Equal("Hitch check (Trailer hitch) on 2020 Ford F-150 is overdue", await factory.NotificationTitleAsync(equipment));
+        Assert.Equal("Oil change on 2020 Ford F-150 is overdue", await factory.NotificationTitleAsync(reminder));
     }
 
     [Fact]
@@ -209,7 +205,7 @@ public class ReminderEvaluatorTests(ApiFactory factory) : IClassFixture<ApiFacto
     public async Task ALongTitle_IsTruncatedTo120Characters()
     {
         var vehicle = await factory.InsertVehicleAsync(Alice, latestOdometer: 50_000);
-        var reminder = await factory.InsertReminderAsync(vehicle, new string('n', 100), "location", new string('l', 100));
+        var reminder = await factory.InsertReminderAsync(vehicle, new string('n', 100));
 
         await NewEvaluator().EvaluateVehicleAsync(Alice, vehicle, CancellationToken.None);
 

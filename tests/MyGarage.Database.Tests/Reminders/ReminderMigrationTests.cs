@@ -16,15 +16,13 @@ public class ReminderMigrationTests(PostgresFixture postgres)
     private static Task InsertAsync(
         NpgsqlDataSource dataSource,
         Guid vehicleId,
-        string appliesTo = "vehicle",
-        string? subject = null,
         int? miles = 5000,
         int? months = null,
         int? lastMileage = 40_000,
         DateOnly? lastDoneOn = null,
         string? notified = null) =>
         ReminderTestData.InsertReminderAsync(
-            dataSource, vehicleId, appliesTo: appliesTo, subject: subject, intervalMiles: miles, intervalMonths: months,
+            dataSource, vehicleId, intervalMiles: miles, intervalMonths: months,
             lastDoneMileage: lastMileage, lastDoneOn: lastDoneOn, notifiedState: notified);
 
     [Fact]
@@ -37,34 +35,18 @@ public class ReminderMigrationTests(PostgresFixture postgres)
         Assert.False(await connection.ExecuteScalarAsync<bool>("SELECT is_paused FROM reminders"));
     }
 
-    [Theory]
-    [InlineData("vehicle", true)]
-    [InlineData("equipment", true)]
-    [InlineData("location", true)]
-    [InlineData("garage", false)]
-    public async Task AppliesTo_AcceptsOnlyTheKnownValues(string appliesTo, bool accepted)
+    [Fact]
+    public async Task Reminders_NoLongerHaveAnAppliesToOrASubject()
     {
-        var (dataSource, vehicleId) = await CreateWithVehicleAsync();
-        var subject = appliesTo == "vehicle" ? null : "Trailer hitch";
+        var (dataSource, _) = await CreateWithVehicleAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
 
-        var insert = InsertAsync(dataSource, vehicleId, appliesTo, subject);
+        var columns = (await connection.QueryAsync<string>(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'reminders'")).ToList();
 
-        if (accepted) { await insert; } else { await Assert.ThrowsAsync<PostgresException>(() => insert); }
-    }
-
-    [Theory]
-    [InlineData("vehicle", "Hitch", false)]
-    [InlineData("vehicle", null, true)]
-    [InlineData("equipment", null, false)]
-    [InlineData("equipment", " ", false)]
-    [InlineData("location", "Home garage", true)]
-    public async Task Subject_IsNullForVehicleAndNotBlankOtherwise(string appliesTo, string? subject, bool accepted)
-    {
-        var (dataSource, vehicleId) = await CreateWithVehicleAsync();
-
-        var insert = InsertAsync(dataSource, vehicleId, appliesTo, subject);
-
-        if (accepted) { await insert; } else { await Assert.ThrowsAsync<PostgresException>(() => insert); }
+        Assert.DoesNotContain("applies_to", columns);
+        Assert.DoesNotContain("subject", columns);
+        Assert.Contains("name", columns);
     }
 
     [Theory]

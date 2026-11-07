@@ -7,8 +7,6 @@ public static class ReminderRules
 {
     public const int MaxNameLength = 100;
 
-    public const int MaxSubjectLength = 100;
-
     public const int MaxIntervalMiles = 999_999;
 
     public const int MaxIntervalMonths = 600;

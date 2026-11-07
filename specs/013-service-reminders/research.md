@@ -32,7 +32,9 @@ Phase 0 decisions for [plan.md](plan.md). The spec had no open clarifications; t
 - **Rationale**: One numeric column keeps the calculation trivial and avoids a unit column that could disagree with the value. "Every 2 years" and "every 24 months" are the same reminder.
 - **Alternatives considered**: Storing value and unit (two columns that must stay consistent); storing days (wrong for calendar months and years).
 
-### D4. What a reminder applies to
+### D4. What a reminder applies to (superseded)
+
+- **Superseded (2026-11-06)**: the product owner asked to drop the applies-to field. Migration `0017_drop_reminder_applies_to` removes `applies_to` and `subject` and folds any subject into the reminder's name. The original decision follows for the record.
 
 - **Decision**: `applies_to` is `vehicle`, `equipment`, or `location`, plus a `subject` text (up to 100 characters) that is required for equipment and location and null for vehicle. The name of the reminder stays free text ("Annual inspection"); the subject says what it is about ("Trailer hitch", "Home garage permit").
 - **Rationale**: Directly answers the planning input that a reminder may be controlled by the vehicle, its equipment, or where it resides, while still belonging to exactly one vehicle. A fixed three-value list is enough; subjects are not a separate entity because nothing else references them.

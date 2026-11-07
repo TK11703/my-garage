@@ -17,7 +17,6 @@ public class ReminderOrderingTests
             VehicleId = Guid.NewGuid(),
             VehicleName = "2020 Ford F-150",
             Name = name,
-            AppliesTo = ReminderAppliesTo.Vehicle,
             LastDoneOn = new DateOnly(2026, 1, 1),
             IsPaused = status == ReminderStatus.Paused,
             Status = status,

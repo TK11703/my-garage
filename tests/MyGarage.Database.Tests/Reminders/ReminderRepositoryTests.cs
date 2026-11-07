@@ -19,13 +19,11 @@ public class ReminderRepositoryTests(PostgresFixture postgres)
 
     private static ReminderValues Values(
         string name = "Oil change",
-        string appliesTo = "vehicle",
-        string? subject = null,
         int? miles = 5_000,
         int? months = null,
         DateOnly? lastDoneOn = null,
         int? lastDoneMileage = 40_000) =>
-        new(name, appliesTo, subject, miles, months, lastDoneOn ?? new DateOnly(2026, 5, 1), lastDoneMileage);
+        new(name, miles, months, lastDoneOn ?? new DateOnly(2026, 5, 1), lastDoneMileage);
 
     private static Task<ReminderRecord?> AddAsync(ReminderRepository reminders, string ownerId, Guid vehicleId, ReminderValues? values = null, DateTimeOffset? at = null) =>
         reminders.AddAsync(ownerId, vehicleId, Guid.CreateVersion7(), values ?? Values(), at ?? T0, CancellationToken.None);
@@ -36,7 +34,7 @@ public class ReminderRepositoryTests(PostgresFixture postgres)
         var (dataSource, reminders) = await CreateAsync();
         var vehicleId = await ReminderTestData.InsertVehicleAsync(dataSource, "owner-1", year: 2022, make: "Ford", model: "F-150");
 
-        var reminder = await AddAsync(reminders, "owner-1", vehicleId, Values("Hitch check", "equipment", "Trailer hitch", 3_000, 12));
+        var reminder = await AddAsync(reminders, "owner-1", vehicleId, Values("Hitch check", 3_000, 12));
 
         Assert.NotNull(reminder);
         Assert.Equal(vehicleId, reminder.VehicleId);
@@ -44,8 +42,6 @@ public class ReminderRepositoryTests(PostgresFixture postgres)
         Assert.Equal("Ford", reminder.VehicleMake);
         Assert.Equal("F-150", reminder.VehicleModel);
         Assert.Equal("Hitch check", reminder.Name);
-        Assert.Equal("equipment", reminder.AppliesTo);
-        Assert.Equal("Trailer hitch", reminder.Subject);
         Assert.Equal(3_000, reminder.IntervalMiles);
         Assert.Equal(12, reminder.IntervalMonths);
         Assert.Equal(new DateOnly(2026, 5, 1), reminder.LastDoneOn);

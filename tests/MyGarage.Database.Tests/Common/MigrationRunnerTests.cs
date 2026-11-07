@@ -27,7 +27,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
 
         var ledger = (await connection.QueryAsync<(string ScriptId, string Checksum, DateTime AppliedAt)>(
             "SELECT script_id AS ScriptId, checksum AS Checksum, applied_at AS AppliedAt FROM schema_migrations ORDER BY script_id")).ToList();
-        Assert.Equal(16, ledger.Count);
+        Assert.Equal(17, ledger.Count);
         Assert.Equal("0009_create_service_records", ledger[8].ScriptId);
         Assert.Equal("0010_add_vehicle_latest_odometer", ledger[9].ScriptId);
         Assert.Equal("0011_create_maintenance_records", ledger[10].ScriptId);
@@ -36,6 +36,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
         Assert.Equal("0014_add_feature_category", ledger[13].ScriptId);
         Assert.Equal("0015_add_upload_origin", ledger[14].ScriptId);
         Assert.Equal("0016_create_reminders", ledger[15].ScriptId);
+        Assert.Equal("0017_drop_reminder_applies_to", ledger[16].ScriptId);
         Assert.Equal("0001_create_vehicles", ledger[0].ScriptId);
         Assert.Equal("0005_create_lookup_items", ledger[4].ScriptId);
         Assert.Equal("0006_add_vehicle_details", ledger[5].ScriptId);
@@ -54,7 +55,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
         await runner.RunAsync();
 
         await using var connection = await dataSource.OpenConnectionAsync();
-        Assert.Equal(16, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
+        Assert.Equal(17, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
     }
 
     [Fact]
@@ -84,7 +85,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
             CreateRunner(dataSource).RunAsync());
 
         await using var connection = await dataSource.OpenConnectionAsync();
-        Assert.Equal(16, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
+        Assert.Equal(17, await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM schema_migrations"));
     }
 
     [Theory]
@@ -457,6 +458,33 @@ public class MigrationRunnerTests(PostgresFixture postgres)
 
         await Assert.ThrowsAsync<PostgresException>(() => connection.ExecuteAsync(
             $"UPDATE service_line_items SET {assignments} WHERE id = @lineItemId", new { lineItemId }));
+    }
+
+    [Fact]
+    public async Task Migration0017_FoldsAnEquipmentOrLocationNameIntoTheReminderName_AndDropsTheColumns()
+    {
+        await using var dataSource = await postgres.CreateDatabaseAsync();
+        await using var connection = await dataSource.OpenConnectionAsync();
+        var scripts = new SqlScriptStore();
+        await ApplyAsync(connection, scripts, AllMigrations[..16]);
+        var vehicleId = await InsertVehicleAsync(connection);
+        const string insert = "INSERT INTO reminders (id, vehicle_id, name, applies_to, subject, interval_miles, last_done_on, last_done_mileage, created_at, updated_at, created_by, updated_by) " +
+                              "VALUES (gen_random_uuid(), @vehicleId, @name, @appliesTo, @subject, 5000, DATE '2026-05-01', 40000, now(), now(), 'o', 'o')";
+        await connection.ExecuteAsync(insert, new { vehicleId, name = "Oil change", appliesTo = "vehicle", subject = (string?)null });
+        await connection.ExecuteAsync(insert, new { vehicleId, name = "Hitch check", appliesTo = "equipment", subject = "Trailer hitch" });
+        await connection.ExecuteAsync(insert, new { vehicleId, name = new string('n', 100), appliesTo = "location", subject = "Home garage" });
+
+        await ApplyAsync(connection, scripts, AllMigrations[16]);
+
+        var names = (await connection.QueryAsync<string>("SELECT name FROM reminders ORDER BY name")).ToList();
+        Assert.Contains("Oil change", names);
+        Assert.Contains("Hitch check (Trailer hitch)", names);
+        Assert.Contains(new string('n', 100), names);
+        Assert.All(names, name => Assert.True(name.Length <= 100));
+        var columns = await ColumnsAsync(connection, "reminders");
+        Assert.DoesNotContain("applies_to", columns);
+        Assert.DoesNotContain("subject", columns);
+        Assert.Contains("name", columns);
     }
 
     [Fact]
@@ -947,7 +975,7 @@ public class MigrationRunnerTests(PostgresFixture postgres)
         "0001_create_vehicles", "0002_create_vehicle_tags", "0003_create_journal_notes", "0004_create_vehicle_images",
         "0005_create_lookup_items", "0006_add_vehicle_details", "0007_drop_vehicle_nickname", "0008_create_features",
         "0009_create_service_records", "0010_add_vehicle_latest_odometer", "0011_create_maintenance_records", "0012_create_email_intake",
-        "0013_pricing_discounts_labor_tax", "0014_add_feature_category", "0015_add_upload_origin", "0016_create_reminders",
+        "0013_pricing_discounts_labor_tax", "0014_add_feature_category", "0015_add_upload_origin", "0016_create_reminders", "0017_drop_reminder_applies_to",
     ];
 
     private static async Task ApplyAsync(NpgsqlConnection connection, SqlScriptStore scripts, params string[] migrations)

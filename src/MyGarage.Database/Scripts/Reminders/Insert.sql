@@ -1,6 +1,6 @@
-INSERT INTO reminders (id, vehicle_id, name, applies_to, subject, interval_miles, interval_months, last_done_on, last_done_mileage,
+INSERT INTO reminders (id, vehicle_id, name, interval_miles, interval_months, last_done_on, last_done_mileage,
                        is_paused, notified_state, created_at, updated_at, created_by, updated_by)
-SELECT @Id, v.id, @Name, @AppliesTo, @Subject, @IntervalMiles, @IntervalMonths, @LastDoneOn, @LastDoneMileage,
+SELECT @Id, v.id, @Name, @IntervalMiles, @IntervalMonths, @LastDoneOn, @LastDoneMileage,
        false, NULL, @Now, @Now, @OwnerId, @OwnerId
 FROM vehicles v
 WHERE v.id = @VehicleId

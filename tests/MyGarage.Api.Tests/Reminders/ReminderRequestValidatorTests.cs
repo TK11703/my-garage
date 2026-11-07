@@ -12,8 +12,6 @@ public class ReminderRequestValidatorTests
 
     private static ReminderRequest Valid(
         string? name = "Oil change",
-        ReminderAppliesTo? appliesTo = ReminderAppliesTo.Vehicle,
-        string? subject = null,
         int? miles = 5_000,
         ReminderTimeIntervalDto? time = null,
         DateOnly? lastDoneOn = null,
@@ -21,8 +19,6 @@ public class ReminderRequestValidatorTests
         new()
         {
             Name = name,
-            AppliesTo = appliesTo,
-            Subject = subject,
             IntervalMiles = miles,
             IntervalTime = time,
             LastDoneOn = lastDoneOn ?? new DateOnly(2026, 5, 1),
@@ -54,32 +50,6 @@ public class ReminderRequestValidatorTests
     {
         Assert.True(IsValid(Valid(new string('a', 100))));
         Assert.Equal(["Name"], ErrorFields(Valid(new string('a', 101))));
-    }
-
-    [Fact]
-    public void AppliesTo_IsRequired() => Assert.Equal(["AppliesTo"], ErrorFields(Valid(appliesTo: null)));
-
-    [Theory]
-    [InlineData(ReminderAppliesTo.Equipment, "equipment")]
-    [InlineData(ReminderAppliesTo.Location, "location")]
-    public void Subject_IsRequiredForEquipmentAndLocation(ReminderAppliesTo appliesTo, string word)
-    {
-        var missing = validator.Validate(Valid(appliesTo: appliesTo, subject: null));
-        var blank = validator.Validate(Valid(appliesTo: appliesTo, subject: "  "));
-
-        Assert.Equal(["Subject"], missing.Errors.Select(error => error.PropertyName).Distinct());
-        Assert.Contains(word, missing.Errors[0].ErrorMessage, StringComparison.OrdinalIgnoreCase);
-        Assert.False(blank.IsValid);
-        Assert.True(IsValid(Valid(appliesTo: appliesTo, subject: "Trailer hitch")));
-    }
-
-    [Fact]
-    public void Subject_IsLimitedTo100_AndMustBeEmptyForTheVehicle()
-    {
-        Assert.True(IsValid(Valid(appliesTo: ReminderAppliesTo.Equipment, subject: new string('a', 100))));
-        Assert.Equal(["Subject"], ErrorFields(Valid(appliesTo: ReminderAppliesTo.Equipment, subject: new string('a', 101))));
-        Assert.Equal(["Subject"], ErrorFields(Valid(appliesTo: ReminderAppliesTo.Vehicle, subject: "Hitch")));
-        Assert.True(IsValid(Valid(appliesTo: ReminderAppliesTo.Vehicle, subject: "  ")));
     }
 
     [Fact]
@@ -121,7 +91,7 @@ public class ReminderRequestValidatorTests
     [Fact]
     public void LastDoneOn_MustBePresentNotInTheFutureAndNotBefore1900()
     {
-        Assert.Equal(["LastDoneOn"], ErrorFields(new ReminderRequest { Name = "x", AppliesTo = ReminderAppliesTo.Vehicle, IntervalMiles = 1, LastDoneMileage = 0 }));
+        Assert.Equal(["LastDoneOn"], ErrorFields(new ReminderRequest { Name = "x", IntervalMiles = 1, LastDoneMileage = 0 }));
         Assert.Equal(["LastDoneOn"], ErrorFields(Valid(lastDoneOn: new DateOnly(2026, 11, 7))));
         Assert.Equal(["LastDoneOn"], ErrorFields(Valid(lastDoneOn: new DateOnly(1899, 12, 31))));
         Assert.True(IsValid(Valid(lastDoneOn: new DateOnly(2026, 11, 6))));

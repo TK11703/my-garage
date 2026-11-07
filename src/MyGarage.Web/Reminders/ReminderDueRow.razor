@@ -24,7 +24,7 @@
         }
         else
         {
-            <div class="small text-body-secondary">@ReminderFormat.AppliesTo(Reminder) &middot; @ReminderFormat.Interval(Reminder)</div>
+            <div class="small text-body-secondary">@ReminderFormat.Interval(Reminder)</div>
             <div class="small text-body-secondary">Last done: @ReminderFormat.LastDone(Reminder) &middot; Next due: @ReminderFormat.NextDue(Reminder)</div>
         }
         @if (Reminder.Status == ReminderStatus.MileageNeeded)

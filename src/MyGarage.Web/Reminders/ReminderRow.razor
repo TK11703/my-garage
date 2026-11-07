@@ -3,7 +3,7 @@
         <div>
             <a class="fw-semibold me-2" href="@ReminderLinks.Detail(Reminder.VehicleId, Reminder.Id)" data-testid="reminder-link">@Reminder.Name</a>
             <ReminderStatusBadge Status="Reminder.Status" />
-            <div class="small text-body-secondary">@ReminderFormat.AppliesTo(Reminder) &middot; @ReminderFormat.Interval(Reminder)</div>
+            <div class="small text-body-secondary">@ReminderFormat.Interval(Reminder)</div>
             @if (ShowVehicle)
             {
                 <div class="small"><a href="@ReminderLinks.Tab(Reminder.VehicleId)" data-testid="reminder-vehicle">@Reminder.VehicleName</a></div>

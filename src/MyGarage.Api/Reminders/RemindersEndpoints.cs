@@ -206,7 +206,7 @@ public static class RemindersEndpoints
             })
             .AddEndpointFilter<ValidationFilter<ReminderRequest>>()
             .WithName("UpdateReminder")
-            .WithSummary("Change a reminder's name, applies-to, intervals, or last-done values.")
+            .WithSummary("Change a reminder's name, intervals, or last-done values.")
             .Produces<ReminderDto>()
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized)

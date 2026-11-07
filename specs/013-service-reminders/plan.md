@@ -6,7 +6,7 @@
 
 ## Summary
 
-A signed-in user sets up recurring **reminders** on a vehicle: an oil change every 5,000 miles, an inspection every year, a registration every two years, or anything else by distance, time, or both. Each reminder belongs to one vehicle and says whether it applies to the vehicle itself, to equipment on it, or to the location where it is kept. Reminders live in a new **Reminders** tab on the vehicle details page, with add, edit, pause, resume, delete, and mark-done pages in the same static-SSR style as registrations. A new **Reminders** page lists every reminder across the garage, most urgent first, and a new **Dashboard** page shows the metrics My Garage already holds (vehicles, service records, fuel and charging entries, drafts awaiting review, reminders overdue and due soon) plus the reminders needing attention, ready for more metrics later.
+A signed-in user sets up recurring **reminders** on a vehicle: an oil change every 5,000 miles, an inspection every year, a registration every two years, or anything else by distance, time, or both. Each reminder belongs to one vehicle. Reminders live in a new **Reminders** tab on the vehicle details page, with add, edit, pause, resume, delete, and mark-done pages in the same static-SSR style as registrations. A new **Reminders** page lists every reminder across the garage, most urgent first, and a new **Dashboard** page shows the metrics My Garage already holds (vehicles, service records, fuel and charging entries, drafts awaiting review, reminders overdue and due soon) plus the reminders needing attention, ready for more metrics later.
 
 Status (Upcoming, Due soon, Overdue, Paused, Mileage needed) is never stored. One pure calculator in `MyGarage.Api` derives it from the reminder, the vehicle's current mileage (the same greatest-of rule the vehicle list uses), and today's date, so the vehicle tab, the garage list, the dashboard, and the notifier all agree. Notifications reuse the existing `notifications` table and navigation bell: a migration adds two kinds (`reminder_due_soon`, `reminder_overdue`) and a `reminder_id` link. A `ReminderEvaluator` compares each reminder's computed state with the state it last notified (`notified_state` column) and inserts at most one notification per state change. It runs right after the writes that can change a status (reminder create, edit, complete, resume; vehicle update; service record create, update, delete; draft acceptance) and hourly from a `ReminderSweepService` for date-based changes, built like the existing `DraftExpiryService`.
 
@@ -28,7 +28,7 @@ No new package, project, container, or infrastructure. One migration (`0016_crea
 
 **Performance Goals**: Reminder list, garage list, and dashboard answer in under 1 s for 95% of calls at the expected size (tens of reminders per user). Hourly sweep finishes in seconds. Spec SC-001 (set up a reminder in under a minute) and SC-002 (mark done in under 30 s) are form-flow targets, not server limits.
 
-**Constraints**: Owner derived only from validated claims; every statement scoped to the owner through the parent vehicle in SQL (`vehicles.owner_id`); another user's reminder answers 404. Parameterized SQL in `.sql` files only; async with `CancellationToken`. No reminder name, equipment or location name, or mileage in logs. Today's date is the server's UTC calendar date from `TimeProvider`. Due-soon thresholds are fixed constants (500 miles, 30 days).
+**Constraints**: Owner derived only from validated claims; every statement scoped to the owner through the parent vehicle in SQL (`vehicles.owner_id`); another user's reminder answers 404. Parameterized SQL in `.sql` files only; async with `CancellationToken`. No reminder name or mileage in logs. Today's date is the server's UTC calendar date from `TimeProvider`. Due-soon thresholds are fixed constants (500 miles, 30 days).
 
 **Scale/Scope**: Tens of users, a handful of reminders per vehicle. Roughly 12 endpoints in two feature groups, two repositories, one evaluator, one hosted sweep, one migration, 16 SQL scripts, six Web pages or components for reminders, one dashboard page, one nav entry, one vehicle tab.
 
@@ -77,7 +77,7 @@ specs/013-service-reminders/
 src/
 ├── MyGarage.Shared/
 │   ├── Reminders/        # ReminderDto, ReminderDetailDto, ReminderCompletionDto, ReminderRequest, CompleteReminderRequest,
-│   │                     # ReminderStatus, ReminderAppliesTo, ReminderTimeUnit, ReminderPresets
+│   │                     # ReminderStatus, ReminderTimeUnit, ReminderPresets
 │   ├── Dashboard/        # DashboardDto, DashboardReminderDto
 │   └── Notifications/    # NotificationDto + ReminderId, VehicleId; kind values documented
 ├── MyGarage.Database/

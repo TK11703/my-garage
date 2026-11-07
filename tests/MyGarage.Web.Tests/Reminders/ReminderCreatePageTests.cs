@@ -80,7 +80,7 @@ public class ReminderCreatePageTests : VehicleTestContext
             Assert.Equal("create-reminder", cut.Find("form").GetAttribute("id"));
             foreach (var (id, label) in new[]
             {
-                ("name", "Name"), ("subject", "Equipment or location name"), ("interval-miles", "Repeat every (miles)"),
+                ("name", "Name"), ("interval-miles", "Repeat every (miles)"),
                 ("interval-time-value", "Repeat every (months or years)"), ("last-done-on", "Last done on"), ("last-done-mileage", "Last done mileage"),
             })
             {
@@ -94,7 +94,10 @@ public class ReminderCreatePageTests : VehicleTestContext
             Assert.Equal("9999999", cut.Find("#last-done-mileage").GetAttribute("max"));
             Assert.Equal("date", cut.Find("#last-done-on").GetAttribute("type"));
             Assert.Equal(["months", "years"], cut.FindAll("#interval-time-unit option").Select(option => option.GetAttribute("value")));
-            Assert.Equal(["vehicle", "equipment", "location"], cut.FindAll("input[type='radio'][name='Model.AppliesTo']").Select(radio => radio.GetAttribute("value")!.ToLowerInvariant()));
+            Assert.Empty(cut.FindAll("input[type='radio']"));
+            Assert.Empty(cut.FindAll("#subject"));
+            Assert.DoesNotContain("Applies to", cut.Markup);
+            Assert.DoesNotContain("Equipment or location name", cut.Markup);
         });
     }
 
@@ -144,7 +147,6 @@ public class ReminderCreatePageTests : VehicleTestContext
         {
             Assert.Equal("2026-11-06", cut.Find("#last-done-on").GetAttribute("value"));
             Assert.Equal("42000", cut.Find("#last-done-mileage").GetAttribute("value"));
-            Assert.True(cut.Find("#applies-to-vehicle").HasAttribute("checked"));
         });
     }
 
@@ -284,7 +286,8 @@ public class ReminderCreatePageTests : VehicleTestContext
         var post = Requests.Single(request => request.Method == HttpMethod.Post);
         Assert.Equal($"/api/vehicles/{vehicleId}/reminders", post.RequestUri!.AbsolutePath);
         Assert.Contains("\"name\":\"Oil change\"", postedBody);
-        Assert.Contains("\"appliesTo\":\"vehicle\"", postedBody);
+        Assert.DoesNotContain("appliesTo", postedBody);
+        Assert.DoesNotContain("subject", postedBody);
         Assert.Contains("\"intervalMiles\":5000", postedBody);
         Assert.Contains("\"unit\":\"months\"", postedBody);
         Assert.Contains("2026-10-01", postedBody);

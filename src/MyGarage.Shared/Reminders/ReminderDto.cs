@@ -10,10 +10,6 @@ public class ReminderDto
 
     public required string Name { get; init; }
 
-    public required ReminderAppliesTo AppliesTo { get; init; }
-
-    public string? Subject { get; init; }
-
     public int? IntervalMiles { get; init; }
 
     public ReminderTimeIntervalDto? IntervalTime { get; init; }

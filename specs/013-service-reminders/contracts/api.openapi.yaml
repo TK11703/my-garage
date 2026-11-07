@@ -76,7 +76,7 @@ paths:
     put:
       tags: [Reminders]
       operationId: UpdateReminder
-      summary: Change a reminder's name, applies-to, intervals, or last-done values.
+      summary: Change a reminder's name, intervals, or last-done values.
       description: Recalculates the next due point, resets the notified state to match, and evaluates the reminder.
       requestBody:
         required: true
@@ -250,9 +250,6 @@ components:
     ReminderStatus:
       type: string
       enum: [upcoming, due_soon, overdue, paused, mileage_needed]
-    ReminderAppliesTo:
-      type: string
-      enum: [vehicle, equipment, location]
     TimeInterval:
       type: object
       required: [value, unit]
@@ -261,16 +258,10 @@ components:
         unit: { type: string, enum: [months, years] }
     ReminderRequest:
       type: object
-      required: [name, appliesTo, lastDoneOn]
+      required: [name, lastDoneOn]
       description: At least one of intervalMiles and intervalTime is required.
       properties:
         name: { type: string, minLength: 1, maxLength: 100 }
-        appliesTo: { $ref: '#/components/schemas/ReminderAppliesTo' }
-        subject:
-          type: string
-          nullable: true
-          maxLength: 100
-          description: Required for equipment and location; must be empty for vehicle.
         intervalMiles: { type: integer, nullable: true, minimum: 1, maximum: 999999 }
         intervalTime:
           nullable: true
@@ -300,14 +291,12 @@ components:
           description: Honored only when mileage is above the vehicle's current mileage.
     Reminder:
       type: object
-      required: [id, vehicleId, vehicleName, name, appliesTo, lastDoneOn, isPaused, status]
+      required: [id, vehicleId, vehicleName, name, lastDoneOn, isPaused, status]
       properties:
         id: { type: string, format: uuid }
         vehicleId: { type: string, format: uuid }
         vehicleName: { type: string }
         name: { type: string }
-        appliesTo: { $ref: '#/components/schemas/ReminderAppliesTo' }
-        subject: { type: string, nullable: true }
         intervalMiles: { type: integer, nullable: true }
         intervalTime:
           nullable: true

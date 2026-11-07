@@ -19,7 +19,7 @@ Expected: zero warnings, all tests pass. The new tests cover:
 
 | Area | Project | What it proves |
 |---|---|---|
-| Migration 0016 applies to an empty database; migration-count tests bumped | Database.Tests | Schema, checks, cascade from vehicle and reminder to completions and notifications. |
+| Migrations 0016 and 0017 apply to an empty database; migration-count tests bumped | Database.Tests | Schema, checks, cascade from vehicle and reminder to completions and notifications; 0017 folds an old equipment or location name into the reminder name and drops the columns. |
 | `ReminderRepository`, `DashboardRepository` | Database.Tests | Owner scoping in SQL, another owner's vehicle and reminder behave as absent, completion transaction, odometer raise never lowers. |
 | `ReminderStatusCalculator` | Api.Tests | Table of distance-only, time-only, and combined reminders, thresholds at 500 miles and 30 days, month-end clamp, paused, no mileage. |
 | Validators and endpoints | Api.Tests | Success, validation failure, not found, and other-owner paths for every operation; app-only tokens refused. |
@@ -37,7 +37,7 @@ Open the Web URL shown by Aspire (https://localhost:7080 locally) and sign in. A
 
 ## 3. Walk the scenarios
 
-1. **Set up (Story 1).** Open a vehicle with a known mileage (say 40,000), choose **Add** at the top and then **Add reminder**, with the Oil change preset: every 5,000 miles, last done at 40,000. Expect next due 45,000 miles and Upcoming. Add Inspection every 1 year, last done 2026-03-15: next due 2027-03-15. Add a reminder for Equipment "Trailer hitch" and one for Location "Home garage permit": the names show on the rows.
+1. **Set up (Story 1).** Open a vehicle with a known mileage (say 40,000), choose **Add** at the top and then **Add reminder**, with the Oil change preset: every 5,000 miles, last done at 40,000. Expect next due 45,000 miles and Upcoming. Add Inspection every 1 year, last done 2026-03-15: next due 2027-03-15. Add a reminder named "Trailer hitch check" every 1 year and one named "Home garage permit" every 2 years: the names show on the rows.
 2. **Combined interval.** Add "every 5,000 miles or 6 months": both due points show; the status follows the nearer.
 3. **Validation.** Submit with no name, no interval, a future last-done date, and a negative mileage: each problem is named and the typed values stay.
 4. **Status (Story 2).** Edit the vehicle's mileage to 44,700: Oil change becomes Due soon with "300 miles left". Set it to 45,200: Overdue, "200 miles overdue". Open **Reminders** in the sidebar: the garage list shows overdue first with the vehicle name.
@@ -56,4 +56,4 @@ In tests, set the clock past a reminder's due-soon date and call `ReminderSweepS
 - Solution builds with zero warnings.
 - All tests pass, including `UiStandardConformanceTests`.
 - Migrations `0001` to `0016` apply to an empty database.
-- No reminder name, subject, or mileage appears in logs (check the log tests).
+- No reminder name or mileage appears in logs (check the log tests).

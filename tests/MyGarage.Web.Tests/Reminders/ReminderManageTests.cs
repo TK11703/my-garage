@@ -73,16 +73,18 @@ public class ReminderEditPageTests : VehicleTestContext
     }
 
     [Fact]
-    public void AnEquipmentReminder_PrefillsTheAppliesToAndTheSubject()
+    public void TheFormNoLongerAsksWhatTheReminderAppliesTo()
     {
-        reminder = Reminder(vehicleId, reminderId, "Hitch check", ReminderAppliesTo.Equipment, "Trailer hitch");
+        reminder = Reminder(vehicleId, reminderId, "Hitch check");
 
         var cut = RenderPage();
 
         cut.WaitForAssertion(() =>
         {
-            Assert.True(cut.Find("#applies-to-equipment").HasAttribute("checked"));
-            Assert.Equal("Trailer hitch", cut.Find("#subject").GetAttribute("value"));
+            Assert.Equal("Hitch check", cut.Find("#name").GetAttribute("value"));
+            Assert.Empty(cut.FindAll("input[type='radio']"));
+            Assert.Empty(cut.FindAll("#subject"));
+            Assert.DoesNotContain("Applies to", cut.Markup);
         });
     }
 

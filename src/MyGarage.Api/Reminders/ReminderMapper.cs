@@ -16,8 +16,6 @@ public static class ReminderMapper
             VehicleId = record.VehicleId,
             VehicleName = VehicleName.Compose(record.VehicleYear, record.VehicleMake, record.VehicleModel),
             Name = record.Name,
-            AppliesTo = ParseAppliesTo(record.AppliesTo),
-            Subject = record.Subject,
             IntervalMiles = record.IntervalMiles,
             IntervalTime = ToIntervalTime(record.IntervalMonths),
             LastDoneOn = record.LastDoneOn,
@@ -40,8 +38,6 @@ public static class ReminderMapper
             VehicleId = dto.VehicleId,
             VehicleName = dto.VehicleName,
             Name = dto.Name,
-            AppliesTo = dto.AppliesTo,
-            Subject = dto.Subject,
             IntervalMiles = dto.IntervalMiles,
             IntervalTime = dto.IntervalTime,
             LastDoneOn = dto.LastDoneOn,
@@ -62,18 +58,13 @@ public static class ReminderMapper
     }
 
     // The request is validated before this is called, so required values are present.
-    public static ReminderValues ToValues(ReminderRequest request)
-    {
-        var appliesTo = request.AppliesTo!.Value;
-        return new ReminderValues(
+    public static ReminderValues ToValues(ReminderRequest request) =>
+        new(
             request.Name!.Trim(),
-            AppliesToText(appliesTo),
-            appliesTo == ReminderAppliesTo.Vehicle ? null : request.Subject!.Trim(),
             request.IntervalMiles,
             request.IntervalTime is { } interval ? ToMonths(interval) : null,
             request.LastDoneOn!.Value,
             request.LastDoneMileage);
-    }
 
     // Shown in years when the months divide by 12.
     public static ReminderTimeIntervalDto? ToIntervalTime(int? months) => months switch
@@ -84,22 +75,6 @@ public static class ReminderMapper
     };
 
     public static int ToMonths(ReminderTimeIntervalDto interval) => interval.Unit == ReminderTimeUnit.Years ? interval.Value * 12 : interval.Value;
-
-    public static string AppliesToText(ReminderAppliesTo appliesTo) => appliesTo switch
-    {
-        ReminderAppliesTo.Vehicle => "vehicle",
-        ReminderAppliesTo.Equipment => "equipment",
-        ReminderAppliesTo.Location => "location",
-        _ => throw new ArgumentOutOfRangeException(nameof(appliesTo)),
-    };
-
-    public static ReminderAppliesTo ParseAppliesTo(string text) => text switch
-    {
-        "vehicle" => ReminderAppliesTo.Vehicle,
-        "equipment" => ReminderAppliesTo.Equipment,
-        "location" => ReminderAppliesTo.Location,
-        _ => throw new ArgumentOutOfRangeException(nameof(text)),
-    };
 
     internal static ReminderCalculation Calculate(ReminderRecord record, DateOnly today) =>
         ReminderStatusCalculator.Calculate(
