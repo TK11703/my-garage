@@ -115,7 +115,7 @@ public class ServiceLineItemFormTests : VehicleTestContext
             Assert.NotNull(hidden.QuerySelector("input#labor-hours"));
 
             Assert.Empty(card.QuerySelectorAll(".card-header"));
-            Assert.Single(cut.FindAll(".card-footer"));
+            Assert.Empty(cut.FindAll(".card-footer"));
             Assert.Equal(["Flat Cost", "Labor and Parts"], cut.FindAll("fieldset .form-check-label").Select(label => label.TextContent.Trim()));
         });
     }
@@ -129,7 +129,21 @@ public class ServiceLineItemFormTests : VehicleTestContext
         {
             var body = cut.Find("section.card > .card-body");
             Assert.Equal("* Required", body.FirstElementChild!.TextContent.Trim());
-            Assert.DoesNotContain("Required", cut.Find("section.card > .card-footer").TextContent);
+            Assert.DoesNotContain("Required", cut.Find("[data-testid='form-actions']").TextContent);
+        });
+    }
+
+    [Fact]
+    public void Add_LaborHoursRateAndTotalShareOneRow()
+    {
+        var cut = RenderCreate();
+
+        cut.WaitForAssertion(() =>
+        {
+            var row = cut.Find("input#labor-hours").Closest(".row")!;
+            Assert.Same(row, cut.Find("input#labor-rate").Closest(".row"));
+            Assert.Same(row, cut.Find("input#labor-cost").Closest(".row"));
+            Assert.All(row.Children, column => Assert.Contains("col-sm-4", column.ClassList));
         });
     }
 
@@ -149,15 +163,18 @@ public class ServiceLineItemFormTests : VehicleTestContext
     }
 
     [Fact]
-    public void Add_FooterHoldsSaveLineItemWithAnIconAndCancelEachWithATitle()
+    public void Add_ActionsSitBelowTheCard_SaveWithAnIconAndCancelEachWithATitle()
     {
         var cut = RenderCreate();
 
         cut.WaitForAssertion(() =>
         {
-            var footer = cut.Find("section.card > .card-footer");
+            var card = cut.Find("section.card");
+            Assert.Empty(card.QuerySelectorAll("button[type='submit'][title], a.btn:not([data-pricing-choice])"));
+            var footer = cut.Find("[data-testid='form-actions']");
+            Assert.Same(card.ParentElement, footer.ParentElement);
             var save = footer.QuerySelector("button[type='submit']")!;
-            Assert.Equal("Save Line Item", save.TextContent.Trim());
+            Assert.Equal("Save", save.TextContent.Trim());
             Assert.Equal("Save this line item", save.GetAttribute("title"));
             Assert.NotNull(save.QuerySelector("svg.bi[aria-hidden='true']"));
 

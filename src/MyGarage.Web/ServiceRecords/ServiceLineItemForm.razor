@@ -63,7 +63,7 @@
                 <h3 id="breakdown-heading" class="h6">Labor and Parts</h3>
                 <div class="vstack gap-3">
                     <div class="row g-3">
-                        <div class="col-sm-6 col-lg-4">
+                        <div class="col-sm-4">
                             <div class="form-floating">
                                 <InputNumber id="labor-hours" TValue="decimal?" class="form-control" @bind-Value="Model.LaborHours" min="0.01" max="999.99" step="0.01" inputmode="decimal" placeholder=" " data-labor-hours
                                              aria-describedby="@Described("LaborHours", "laborhours-error")" />
@@ -74,7 +74,7 @@
                                 <div id="laborhours-error" class="invalid-feedback d-block">@hoursError</div>
                             }
                         </div>
-                        <div class="col-sm-6 col-lg-4">
+                        <div class="col-sm-4">
                             <div class="form-floating">
                                 <InputNumber id="labor-rate" TValue="decimal?" class="form-control" @bind-Value="Model.LaborRate" min="0" max="99999.99" step="0.01" inputmode="decimal" placeholder=" " data-labor-rate
                                              aria-describedby="@Described("LaborRate", "laborrate-error")" />
@@ -85,7 +85,7 @@
                                 <div id="laborrate-error" class="invalid-feedback d-block">@rateError</div>
                             }
                         </div>
-                        <div class="col-sm-6 col-lg-4">
+                        <div class="col-sm-4">
                             <div class="form-floating">
                                 <InputNumber id="labor-cost" TValue="decimal?" class="form-control" @bind-Value="Model.LaborCost" min="0" max="9999999.99" step="0.01" inputmode="decimal" placeholder=" "
                                              readonly="@Model.LaborIsCalculated" data-labor-total
@@ -148,13 +148,14 @@
             </div>
         </div>
 
-        <div class="card-footer d-flex gap-2">
-            <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2" data-busy-text="Saving..." title="Save this line item">
-                <Icon Name="IconName.Save" /> @SubmitText
-            </button>
-            <a class="btn btn-outline-secondary" href="@CancelHref" title="Cancel and return to the service record">Cancel</a>
-        </div>
     </section>
+
+    <div class="d-flex flex-wrap gap-2" data-testid="form-actions">
+        <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2" data-busy-text="Saving..." title="Save this line item">
+            <Icon Name="IconName.Save" /> @SubmitText
+        </button>
+        <a class="btn btn-outline-secondary" href="@CancelHref" title="Cancel and return to the service record">Cancel</a>
+    </div>
 </EditForm>
 
 @code {
