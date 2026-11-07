@@ -53,6 +53,23 @@ public class ServiceRecordCreatePageTests : VehicleTestContext
     }
 
     [Fact]
+    public void SaveAndCancelSitBelowTheCard_NotInItsFooter()
+    {
+        var cut = RenderPage(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
+
+        cut.WaitForAssertion(() =>
+        {
+            var card = cut.Find("div.card");
+            Assert.Empty(card.QuerySelectorAll(".card-footer"));
+            Assert.Empty(card.QuerySelectorAll("button[type='submit']"));
+            var actions = cut.Find("[data-testid='form-actions']");
+            Assert.Same(card.ParentElement, actions.ParentElement);
+            Assert.Contains("Save", actions.QuerySelector("button[type='submit']")!.TextContent);
+            Assert.Equal("Cancel", actions.QuerySelector("a.btn")!.TextContent.Trim());
+        });
+    }
+
+    [Fact]
     public void Form_HasLabeledInputsWithRequiredMarkers()
     {
         var cut = RenderPage(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
