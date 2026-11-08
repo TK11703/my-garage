@@ -88,7 +88,7 @@ public class VehiclesEndpointsTests(ApiFactory factory) : IClassFixture<ApiFacto
         };
 
     [Fact]
-    public async Task List_OrdersByMakeThenModelThenYear_WithUnknownYearLastAmongTheSameModel()
+    public async Task List_OrdersByYearNewestFirstThenMakeThenModel_WithUnknownYearLast()
     {
         var client = factory.CreateClientForUser(Alice);
         await CreateAsync(client, Request("Toyota", "Tacoma", 2018));
@@ -97,11 +97,12 @@ public class VehiclesEndpointsTests(ApiFactory factory) : IClassFixture<ApiFacto
         await CreateAsync(client, Request("Ford", "F-150", 2015));
         await factory.InsertVehicleWithoutYearAsync(Alice, "Ford", "F-150");
         await CreateAsync(client, Request("ford", "Bronco", 2022));
+        await CreateAsync(client, Request("Audi", "A4", 2019));
 
         var page = await client.GetFromJsonAsync<PagedResultDto<VehicleSummaryDto>>("/api/vehicles");
 
         Assert.Equal(
-            ["2022 ford Bronco", "2015 Ford F-150", "2021 Ford F-150", "Ford F-150", "2019 Ford Ranger", "2018 Toyota Tacoma"],
+            ["2022 ford Bronco", "2021 Ford F-150", "2019 Audi A4", "2019 Ford Ranger", "2018 Toyota Tacoma", "2015 Ford F-150", "Ford F-150"],
             page!.Items.Select(item => item.Name));
     }
 

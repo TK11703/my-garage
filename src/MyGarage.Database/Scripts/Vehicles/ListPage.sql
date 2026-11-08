@@ -49,5 +49,5 @@ WHERE v.owner_id = @OwnerId
   AND (@FuelTypeId::uuid IS NULL OR v.fuel_type_id = @FuelTypeId)
   AND (@TransmissionId::uuid IS NULL OR v.transmission_id = @TransmissionId)
   AND (@DrivetrainId::uuid IS NULL OR v.drivetrain_id = @DrivetrainId)
-ORDER BY lower(v.make), lower(v.model), v.year, v.id
+ORDER BY v.year DESC NULLS LAST, lower(v.make), lower(v.model), v.id
 LIMIT @PageSize OFFSET @Offset;

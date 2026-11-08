@@ -204,7 +204,7 @@ public class VehicleSearchTests(PostgresFixture postgres)
 
         Assert.Equal(["Grand Cherokee"], await ModelsAsync(garage, new VehicleSearchCriteria { Query = "2012 jeep" }));
         Assert.Equal(["Grand Cherokee"], await ModelsAsync(garage, new VehicleSearchCriteria { Query = "2012 Jeep Grand" }));
-        Assert.Equal(["Grand Cherokee", "Wrangler"], await ModelsAsync(garage, new VehicleSearchCriteria { Query = "jeep" }));
+        Assert.Equal(["Wrangler", "Grand Cherokee"], await ModelsAsync(garage, new VehicleSearchCriteria { Query = "jeep" }));
         Assert.Empty(await ModelsAsync(garage, new VehicleSearchCriteria { Query = "2015 ford" }));
     }
 
@@ -224,7 +224,7 @@ public class VehicleSearchTests(PostgresFixture postgres)
     }
 
     [Fact]
-    public async Task ListOrder_IsMakeThenModelThenYearWithMissingYearsLast()
+    public async Task ListOrder_IsYearNewestFirstThenMakeThenModelWithMissingYearsLast()
     {
         var repository = new VehicleRepository(await postgres.CreateMigratedDatabaseAsync(), new SqlScriptStore());
         var vehicles = new[]
@@ -234,6 +234,7 @@ public class VehicleSearchTests(PostgresFixture postgres)
             TestData.Vehicle(Owner, "Bronco", "ford") with { Year = 2020 },
             TestData.Vehicle(Owner, "f-150", "FORD") with { Year = 2010 },
             TestData.Vehicle(Owner, "A4", "Audi") with { Year = 2018 },
+            TestData.Vehicle(Owner, "Mustang", "ford") with { Year = 2018 },
         };
         foreach (var vehicle in vehicles)
         {
@@ -243,7 +244,7 @@ public class VehicleSearchTests(PostgresFixture postgres)
         var page = await repository.ListPageAsync(Owner, VehicleSearchCriteria.None, 1, 50, CancellationToken.None);
 
         Assert.Equal(
-            [("A4", (int?)2018), ("Bronco", 2020), ("f-150", 2010), ("F-150", 2015), ("F-150", null)],
+            [("Bronco", (int?)2020), ("A4", 2018), ("Mustang", 2018), ("F-150", 2015), ("f-150", 2010), ("F-150", null)],
             page.Items.Select(item => (item.Model, item.Year)));
     }
 

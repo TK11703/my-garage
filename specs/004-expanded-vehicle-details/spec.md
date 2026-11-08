@@ -221,7 +221,7 @@ A user's VIN, vehicle details, and lookup customizations are visible and changea
 
 ### Requirements
 
-- **FR-025**: The system MUST NOT store or ask for a vehicle name. Every place that shows a vehicle MUST show "[Year] [Make] [Model]" (without the year when it is unknown). The garage text search MUST also match that combined text (for example "2012 jeep"). The garage list MUST be ordered by make, then model, then year, then a stable tiebreaker.
+- **FR-025**: The system MUST NOT store or ask for a vehicle name. Every place that shows a vehicle MUST show "[Year] [Make] [Model]" (without the year when it is unknown). The garage text search MUST also match that combined text (for example "2012 jeep"). The garage list MUST be ordered by year (newest first, vehicles with no year last), then make, then model, then a stable tiebreaker.
 - **FR-026**: Existing vehicles MUST keep every other stored value when the stored name is retired; no vehicle is hidden or blocked because it once had a name.
 - **FR-027**: The Basic Info and Specifications fields MUST appear in the orders and groupings in changes 2 and 3 on the add, edit, and detail views. "Date Purchased" is labeled "Date purchased or leased" and applies to both ownership types.
 - **FR-028**: Date Lease Ends MUST be visible only while Purchased or Leased is "Leased"; the add and edit pages MUST also render the correct state without a script (after a reload or a rejected save). Hiding it MUST NOT lose the rest of the form.
