@@ -3,7 +3,9 @@ using FluentValidation;
 using MyGarage.Api.Common;
 using MyGarage.Api.Reminders;
 using MyGarage.Database.Tags;
+using MyGarage.Database.Vehicles;
 using MyGarage.Shared.Vehicles;
+using OpenTelemetry.Metrics;
 
 namespace MyGarage.Api.Vehicles;
 
@@ -18,6 +20,7 @@ public static class VehiclesEndpoints
         services.AddSingleton<IValidator<VehicleListQuery>, VehicleListQueryValidator>();
         services.AddSingleton<VehicleLookupChecker>();
         services.AddSingleton<VehicleService>();
+        services.AddOpenTelemetry().WithMetrics(metrics => metrics.AddMeter(VehicleMetrics.MeterName));
         return services;
     }
 
@@ -38,13 +41,16 @@ public static class VehiclesEndpoints
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
 
-        group.MapGet("/filter-options", async (ClaimsPrincipal user, VehicleService service, CancellationToken cancellationToken) =>
-                CurrentOwner.Get(user) is { } ownerId
-                    ? Results.Ok(await service.GetFilterOptionsAsync(ownerId, cancellationToken))
-                    : NoOwner())
+        group.MapGet("/filter-options", async (string? status, ClaimsPrincipal user, VehicleService service, CancellationToken cancellationToken) =>
+                CurrentOwner.Get(user) is not { } ownerId
+                    ? NoOwner()
+                    : VehicleStatusFilter.IsValid(status)
+                        ? Results.Ok(await service.GetFilterOptionsAsync(ownerId, status, cancellationToken))
+                        : Results.ValidationProblem(new Dictionary<string, string[]> { ["status"] = [VehicleListQueryValidator.StatusMessage] }))
             .WithName("GetVehicleFilterOptions")
-            .WithSummary("Distinct makes, colors, and tags in the caller's garage, for the filter choices.")
+            .WithSummary("Distinct makes, colors, and tags in the caller's garage for the chosen status (active by default), for the filter choices.")
             .Produces<VehicleFilterOptionsDto>()
+            .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
 
@@ -122,6 +128,7 @@ public static class VehiclesEndpoints
                     _ => NotFound(),
                 };
             })
+            .RequireActiveVehicleForWrites()
             .AddEndpointFilter<ValidationFilter<VehicleRequest>>()
             .WithName("UpdateVehicle")
             .WithSummary("Replace the editable details of a vehicle.")
@@ -130,6 +137,63 @@ public static class VehiclesEndpoints
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPost("/{vehicleId:guid}/archive", async (Guid vehicleId, ClaimsPrincipal user, VehicleService service, ILogger<VehicleService> logger, CancellationToken cancellationToken) =>
+            {
+                if (CurrentOwner.Get(user) is not { } ownerId)
+                {
+                    return NoOwner();
+                }
+
+                var result = await service.ArchiveAsync(ownerId, vehicleId, cancellationToken);
+                if (result.Change == VehicleStateChange.Changed)
+                {
+                    logger.LogInformation("Vehicle {VehicleId} was archived", vehicleId);
+                }
+
+                return result switch
+                {
+                    { Vehicle: { } vehicle } => Results.Ok(vehicle),
+                    { Change: VehicleStateChange.AlreadyInState } => Results.Problem(statusCode: StatusCodes.Status409Conflict, title: "This vehicle is already archived."),
+                    _ => NotFound(),
+                };
+            })
+            .WithName("ArchiveVehicle")
+            .WithSummary("Archive a vehicle: keep everything attached to it, disable its reminders, and make it read-only until restored.")
+            .Produces<VehicleDetailDto>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        group.MapPost("/{vehicleId:guid}/restore", async (Guid vehicleId, ClaimsPrincipal user, VehicleService service, ReminderEvaluator reminderEvaluator, ILogger<VehicleService> logger, CancellationToken cancellationToken) =>
+            {
+                if (CurrentOwner.Get(user) is not { } ownerId)
+                {
+                    return NoOwner();
+                }
+
+                var result = await service.RestoreAsync(ownerId, vehicleId, cancellationToken);
+                if (result.Change == VehicleStateChange.Changed)
+                {
+                    logger.LogInformation("Vehicle {VehicleId} was restored", vehicleId);
+                    await reminderEvaluator.TryEvaluateVehicleAsync(ownerId, vehicleId, cancellationToken);
+                }
+
+                return result switch
+                {
+                    { Vehicle: { } vehicle } => Results.Ok(vehicle),
+                    { Change: VehicleStateChange.AlreadyInState } => Results.Problem(statusCode: StatusCodes.Status409Conflict, title: "This vehicle is not archived."),
+                    _ => NotFound(),
+                };
+            })
+            .WithName("RestoreVehicle")
+            .WithSummary("Restore an archived vehicle: it counts again and its reminders are enabled again.")
+            .Produces<VehicleDetailDto>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
 
         group.MapDelete("/{vehicleId:guid}", async (Guid vehicleId, ClaimsPrincipal user, VehicleService service, CancellationToken cancellationToken) =>
             {

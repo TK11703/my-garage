@@ -92,8 +92,8 @@ public class VehicleDetailFilterEndpointsTests(ApiFactory factory) : IClassFixtu
 
         var page = await ListAsync(client);
 
-        Assert.Equal([1999, 2022, 2018], page.Items.Select(item => item.Year));
-        Assert.Equal([Miata, R1T, Tacoma], page.Items.Select(item => item.Name));
+        Assert.Equal([2022, 2018, 1999], page.Items.Select(item => item.Year));
+        Assert.Equal([R1T, Tacoma, Miata], page.Items.Select(item => item.Name));
     }
 
     [Theory]
@@ -125,7 +125,7 @@ public class VehicleDetailFilterEndpointsTests(ApiFactory factory) : IClassFixtu
         var awd = IdOf(lookups.Drivetrains, "AWD");
 
         Assert.Equal([R1T, Tacoma], (await ListAsync(client, $"?vehicleTypeId={truck}")).Items.Select(item => item.Name));
-        Assert.Equal([Miata, Tacoma], (await ListAsync(client, $"?fuelTypeId={gasoline}")).Items.Select(item => item.Name));
+        Assert.Equal([Tacoma, Miata], (await ListAsync(client, $"?fuelTypeId={gasoline}")).Items.Select(item => item.Name));
         Assert.Equal([Miata], (await ListAsync(client, $"?transmissionId={manual}")).Items.Select(item => item.Name));
         Assert.Equal([R1T], (await ListAsync(client, $"?drivetrainId={awd}")).Items.Select(item => item.Name));
         Assert.Equal([Tacoma], (await ListAsync(client, $"?vehicleTypeId={truck}&fuelTypeId={gasoline}&minYear=2010&make=toyota")).Items.Select(item => item.Name));

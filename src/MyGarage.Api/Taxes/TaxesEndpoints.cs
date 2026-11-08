@@ -22,7 +22,7 @@ public static class TaxesEndpoints
 
     public static IEndpointRouteBuilder MapTaxesEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/taxes").WithTags("Taxes");
+        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/taxes").WithTags("Taxes").RequireActiveVehicleForWrites();
 
         group.MapGet("", async (
                 Guid vehicleId,

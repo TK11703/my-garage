@@ -129,8 +129,8 @@ public sealed class DraftService(
         var vehicleId = request.VehicleId!.Value;
         var values = DraftProposalMapper.ToValues(proposal);
 
-        // Ownership of the vehicle is proved before any file is written under its id.
-        if (await vehicles.GetByIdAsync(ownerId, vehicleId, cancellationToken) is null)
+        // Ownership of the vehicle is proved before any file is written under its id; an archived vehicle is read-only, so it counts as not found here.
+        if (await vehicles.GetByIdAsync(ownerId, vehicleId, cancellationToken) is not { ArchivedAt: null })
         {
             return new DraftResult<AcceptedDraftDto>(DraftOutcome.NotFound);
         }

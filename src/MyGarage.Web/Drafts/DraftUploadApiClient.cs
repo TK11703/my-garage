@@ -59,6 +59,8 @@ public sealed class DraftUploadApiClient(HttpClient http)
                     return new DraftUploadResponse(null, DraftUploadFailure.TooLarge, NoErrors);
                 case HttpStatusCode.NotFound:
                     return new DraftUploadResponse(null, DraftUploadFailure.NotFound, NoErrors);
+                case HttpStatusCode.Conflict:
+                    throw new GarageApiException(GarageApiFailure.VehicleArchived);
                 case HttpStatusCode.TooManyRequests:
                     return new DraftUploadResponse(null, DraftUploadFailure.RateLimited, NoErrors);
                 case HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden:

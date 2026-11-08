@@ -65,4 +65,7 @@ public sealed record VehicleRecord
     public string CreatedBy { get; init; } = string.Empty;
 
     public string UpdatedBy { get; init; } = string.Empty;
+
+    // Read-only: set by archive and restore; NULL for an active vehicle.
+    public DateTimeOffset? ArchivedAt { get; init; }
 }

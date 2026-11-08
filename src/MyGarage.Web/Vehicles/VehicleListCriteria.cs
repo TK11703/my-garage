@@ -35,12 +35,17 @@ public sealed record VehicleListCriteria
 
     public Guid? DrivetrainId { get; init; }
 
+    // active (the default), archived, or all; anything else in a link means active.
+    public string Status { get; init; } = VehicleStatusFilter.Active;
+
+    public bool HasStatus => Status != VehicleStatusFilter.Active;
+
     public bool HasFilters =>
         Make is not null || Color is not null || Doors is not null || Tag is not null || MinMileage is not null || MaxMileage is not null
         || MinYear is not null || MaxYear is not null || VehicleTypeId is not null || FuelTypeId is not null
         || TransmissionId is not null || DrivetrainId is not null;
 
-    public bool HasAny => Query is not null || HasFilters;
+    public bool HasAny => Query is not null || HasFilters || HasStatus;
 
     // Text values are trimmed and blank means absent; numbers and ids that do not parse are ignored.
     public static VehicleListCriteria FromQuery(
@@ -56,7 +61,8 @@ public sealed record VehicleListCriteria
         string? vehicleTypeId = null,
         string? fuelTypeId = null,
         string? transmissionId = null,
-        string? drivetrainId = null) =>
+        string? drivetrainId = null,
+        string? status = null) =>
         new()
         {
             Query = Clean(q),
@@ -72,6 +78,7 @@ public sealed record VehicleListCriteria
             FuelTypeId = ParseGuid(fuelTypeId),
             TransmissionId = ParseGuid(transmissionId),
             DrivetrainId = ParseGuid(drivetrainId),
+            Status = status is VehicleStatusFilter.Archived or VehicleStatusFilter.All ? status : VehicleStatusFilter.Active,
         };
 
     public string ToQueryString(int? page = null)
@@ -90,6 +97,7 @@ public sealed record VehicleListCriteria
         Add(parts, "fuelTypeId", FuelTypeId?.ToString());
         Add(parts, "transmissionId", TransmissionId?.ToString());
         Add(parts, "drivetrainId", DrivetrainId?.ToString());
+        Add(parts, "status", HasStatus ? Status : null);
         if (page is not null)
         {
             parts.Add($"page={page.Value.ToString(CultureInfo.InvariantCulture)}");
@@ -169,6 +177,11 @@ public sealed record VehicleListCriteria
         {
             yield return ("drivetrainId", $"Drivetrain: {NameOf(options?.Drivetrains, drivetrain)}");
         }
+
+        if (HasStatus)
+        {
+            yield return ("status", Status == VehicleStatusFilter.Archived ? "Status: Archived" : "Status: All");
+        }
     }
 
     public VehicleListCriteria Without(string key) =>
@@ -187,11 +200,12 @@ public sealed record VehicleListCriteria
             "fuelTypeId" => this with { FuelTypeId = null },
             "transmissionId" => this with { TransmissionId = null },
             "drivetrainId" => this with { DrivetrainId = null },
+            "status" => this with { Status = VehicleStatusFilter.Active },
             _ => this,
         };
 
-    // Only the search text survives; every filter is cleared.
-    public VehicleListCriteria WithoutFilters() => None with { Query = Query };
+    // Only the search text and the status survive; every filter is cleared.
+    public VehicleListCriteria WithoutFilters() => None with { Query = Query, Status = Status };
 
     private static string NameOf(IReadOnlyList<LookupValueDto>? choices, Guid id) =>
         choices?.FirstOrDefault(choice => choice.Id == id)?.Name ?? "selected";

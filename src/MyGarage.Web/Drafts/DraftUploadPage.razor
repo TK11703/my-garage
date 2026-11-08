@@ -13,6 +13,10 @@
     <ApiFailureAlert Failure="failure.Value" ReturnUrl="@ReturnUrl"
                      NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
 }
+else if (vehicleArchived)
+{
+    <ArchivedVehicleNotice VehicleId="vehicleId" />
+}
 else if (vehicleNotFound)
 {
     <EmptyState Variant="EmptyStateVariant.NoMatch" Message="@DraftUploadMessages.NotFound"
@@ -95,6 +99,7 @@ else
     private DraftUploadAttempt? attempt;
     private GarageApiFailure? failure;
     private bool vehicleNotFound;
+    private bool vehicleArchived;
     private Guid? vehicleId;
     private string? vehicleName;
 
@@ -124,7 +129,11 @@ else
         try
         {
             var result = await VehiclesApi.GetAsync(id);
-            if (result.Value is { } vehicle)
+            if (result.Value is { ArchivedAt: not null })
+            {
+                vehicleArchived = true;
+            }
+            else if (result.Value is { } vehicle)
             {
                 vehicleName = vehicle.Name;
             }

@@ -119,6 +119,7 @@
                 VehicleImageEndpoints.Status.NotFound => ("warning", VehicleMessages.NotFound),
                 VehicleImageEndpoints.Status.Unavailable => ("warning", "Picture storage is unavailable right now. Nothing was saved. Please try again shortly."),
                 VehicleImageEndpoints.Status.SignIn => ("warning", VehicleMessages.NotAccepted),
+                VehicleImageEndpoints.Status.Archived => ("warning", VehicleMessages.ArchivedCannotChange),
                 _ => null,
             };
 
@@ -137,7 +138,7 @@
         }
         catch (GarageApiException ex)
         {
-            failureText = ex.Failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable;
+            failureText = VehicleMessages.For(ex.Failure);
         }
     }
 }

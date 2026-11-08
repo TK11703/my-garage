@@ -19,7 +19,7 @@ public static class JournalNotesEndpoints
 
     public static IEndpointRouteBuilder MapJournalNotesEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/notes").WithTags("JournalNotes");
+        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/notes").WithTags("JournalNotes").RequireActiveVehicleForWrites();
 
         group.MapGet("", async (
                 Guid vehicleId,

@@ -129,7 +129,7 @@
     }
 
     private static string Describe(GarageApiException ex) =>
-        ex.Failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable;
+        VehicleMessages.For(ex.Failure);
 
     public sealed class AddTagModel
     {

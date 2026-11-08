@@ -15,6 +15,10 @@
         <h2 class="card-title h6 fw-semibold mb-2">
             <a class="stretched-link text-decoration-none text-body text-break" href="/vehicles/@Vehicle.Id">@Vehicle.Name</a>
         </h2>
+        @if (Vehicle.ArchivedAt is { } archivedAt)
+        {
+            <p class="mb-2"><span class="badge text-bg-light border fw-normal" data-testid="vehicle-archived">Archived @VehicleMessages.ArchivedOn(archivedAt)</span></p>
+        }
         @if (Vehicle.FuelType is not null || Vehicle.Transmission is not null)
         {
             <p class="d-flex flex-wrap gap-2 mb-2" data-testid="vehicle-badges">

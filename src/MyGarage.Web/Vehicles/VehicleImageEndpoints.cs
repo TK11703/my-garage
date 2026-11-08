@@ -20,6 +20,7 @@ public static class VehicleImageEndpoints
         public const string NotFound = "notfound";
         public const string Unavailable = "unavailable";
         public const string SignIn = "signin";
+        public const string Archived = "archived";
     }
 
     public static IEndpointRouteBuilder MapVehicleImageEndpoints(this IEndpointRouteBuilder endpoints)
@@ -98,7 +99,12 @@ public static class VehicleImageEndpoints
         }
         catch (GarageApiException ex)
         {
-            return Redirect(vehicleId, ex.Failure == GarageApiFailure.NotAccepted ? Status.SignIn : Status.Unavailable, returnTo);
+            return Redirect(vehicleId, ex.Failure switch
+            {
+                GarageApiFailure.NotAccepted => Status.SignIn,
+                GarageApiFailure.VehicleArchived => Status.Archived,
+                _ => Status.Unavailable,
+            }, returnTo);
         }
     }
 

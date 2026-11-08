@@ -22,7 +22,7 @@ public static class FuelEnergyEntriesEndpoints
 
     public static IEndpointRouteBuilder MapFuelEnergyEntriesEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/fuel-energy-entries").WithTags("FuelEnergyEntries");
+        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/fuel-energy-entries").WithTags("FuelEnergyEntries").RequireActiveVehicleForWrites();
 
         group.MapGet("", async (
                 Guid vehicleId,

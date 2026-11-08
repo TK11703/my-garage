@@ -10,7 +10,7 @@
               ReturnUrl="@ReminderLinks.Detail(VehicleId, ReminderId)" NotFound="notFound"
               NotFoundTitle="Reminder not found" NotFoundMessage="This reminder could not be found. It may have been deleted.">
     <Actions>
-        @if (reminder is not null)
+        @if (reminder is not null && !reminder.VehicleArchived)
         {
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <a class="btn btn-outline-primary d-inline-flex align-items-center gap-2" href="@ReminderLinks.Edit(VehicleId, ReminderId)" data-testid="edit-reminder" title="Edit this reminder">
@@ -59,9 +59,16 @@
                 <h2 id="reminder-details-heading" class="h5">Details</h2>
                 <p class="mb-3">
                     <ReminderStatusBadge Status="reminder.Status" />
-                    <span class="small ms-2" data-testid="reminder-remaining">@ReminderFormat.Remaining(reminder)</span>
+                    @if (reminder.Status != ReminderStatus.Archived)
+                    {
+                        <span class="small ms-2" data-testid="reminder-remaining">@ReminderFormat.Remaining(reminder)</span>
+                    }
                 </p>
-                @if (reminder.IsPaused)
+                @if (reminder.VehicleArchived)
+                {
+                    <p class="small text-body-secondary" data-testid="archived-note">Disabled, vehicle archived: this reminder is kept but shows no status and sends no notifications until you restore the vehicle.</p>
+                }
+                else if (reminder.IsPaused)
                 {
                     <p class="small text-body-secondary" data-testid="paused-note">This reminder is paused: it shows no status and sends no notifications until you resume it.</p>
                 }
@@ -73,7 +80,10 @@
             </div>
         </section>
 
-        <ReminderCompleteForm Model="CompleteModel!" MileageRequired="@(reminder.IntervalMiles is not null)" Errors="errors" OnSubmit="CompleteAsync" />
+        @if (!reminder.VehicleArchived)
+        {
+            <ReminderCompleteForm Model="CompleteModel!" MileageRequired="@(reminder.IntervalMiles is not null)" Errors="errors" OnSubmit="CompleteAsync" />
+        }
 
         <section class="card border-0 shadow-sm mb-4" aria-labelledby="history-heading" data-testid="history">
             <div class="card-body">

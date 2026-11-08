@@ -10,6 +10,7 @@ public enum DraftUploadOutcome
     Accepted,
     Refused,
     VehicleNotFound,
+    VehicleArchived,
 }
 
 // Errors are keyed files[i]; their text never contains a file name or any file content.
@@ -27,9 +28,18 @@ public sealed class DraftUploadService(
     public async Task<DraftUploadResult> UploadAsync(string ownerId, IFormFileCollection files, Guid? vehicleId, CancellationToken cancellationToken)
     {
         // The vehicle must be the caller's before anything is read or stored; another user's vehicle is indistinguishable from an unknown one.
-        if (vehicleId is { } chosen && await vehicles.GetByIdAsync(ownerId, chosen, cancellationToken) is null)
+        if (vehicleId is { } chosen)
         {
-            return new DraftUploadResult(DraftUploadOutcome.VehicleNotFound);
+            var vehicle = await vehicles.GetByIdAsync(ownerId, chosen, cancellationToken);
+            if (vehicle is null)
+            {
+                return new DraftUploadResult(DraftUploadOutcome.VehicleNotFound);
+            }
+
+            if (vehicle.ArchivedAt is not null)
+            {
+                return new DraftUploadResult(DraftUploadOutcome.VehicleArchived);
+            }
         }
 
         var now = timeProvider.GetUtcNow();

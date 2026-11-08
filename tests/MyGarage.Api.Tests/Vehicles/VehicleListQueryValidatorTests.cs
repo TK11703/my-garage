@@ -68,4 +68,23 @@ public class VehicleListQueryValidatorTests
     [InlineData(1, 51)]
     public void Paging_RulesApply(int page, int? pageSize) =>
         Assert.False(IsValid(new VehicleListQuery(Page: page, PageSize: pageSize)));
+
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData("active", true)]
+    [InlineData("archived", true)]
+    [InlineData("all", true)]
+    [InlineData("Archived", false)]
+    [InlineData("closed", false)]
+    [InlineData("", false)]
+    public void Status_MustBeActiveArchivedOrAll(string? status, bool valid)
+    {
+        var result = validator.Validate(new VehicleListQuery(Status: status));
+
+        Assert.Equal(valid, result.IsValid);
+        if (!valid)
+        {
+            Assert.Contains(result.Errors, error => error.PropertyName == nameof(VehicleListQuery.Status) && error.ErrorMessage.Contains("Status"));
+        }
+    }
 }

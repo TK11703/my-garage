@@ -21,6 +21,7 @@ public static class ReminderMapper
             LastDoneOn = record.LastDoneOn,
             LastDoneMileage = record.LastDoneMileage,
             IsPaused = record.IsPaused,
+            VehicleArchived = record.VehicleArchived,
             Status = calculation.Status,
             NextDueMileage = calculation.NextDueMileage,
             NextDueDate = calculation.NextDueDate,
@@ -43,6 +44,7 @@ public static class ReminderMapper
             LastDoneOn = dto.LastDoneOn,
             LastDoneMileage = dto.LastDoneMileage,
             IsPaused = dto.IsPaused,
+            VehicleArchived = dto.VehicleArchived,
             Status = dto.Status,
             NextDueMileage = dto.NextDueMileage,
             NextDueDate = dto.NextDueDate,
@@ -79,6 +81,6 @@ public static class ReminderMapper
     internal static ReminderCalculation Calculate(ReminderRecord record, DateOnly today) =>
         ReminderStatusCalculator.Calculate(
             new ReminderCalculationInput(
-                record.IntervalMiles, record.IntervalMonths, record.LastDoneOn, record.LastDoneMileage, record.IsPaused, record.CurrentMileage),
+                record.IntervalMiles, record.IntervalMonths, record.LastDoneOn, record.LastDoneMileage, record.IsPaused, record.CurrentMileage, record.VehicleArchived),
             today);
 }

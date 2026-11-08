@@ -24,7 +24,8 @@ public static class VehicleDocumentsEndpoints
     {
         var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/documents")
             .WithTags("VehicleDocuments")
-            .AddEndpointFilter<DocumentStorageFilter>();
+            .AddEndpointFilter<DocumentStorageFilter>()
+            .RequireActiveVehicleForWrites();
 
         group.MapGet("", async (
                 Guid vehicleId,

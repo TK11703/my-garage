@@ -1,7 +1,7 @@
 SELECT v.id, v.year, v.make, v.model,
        GREATEST(lr.odometer_reading, v.latest_odometer_reading, v.mileage) AS mileage,
        mi.id AS main_image_id,
-       ft.name AS fuel_type_name, tr.name AS transmission_name, v.ownership, v.purchased_on,
+       ft.name AS fuel_type_name, tr.name AS transmission_name, v.ownership, v.purchased_on, v.archived_at,
        -- The other fields the search text was found in (name parts are already shown), for the search results page.
        CASE WHEN @Pattern::text IS NULL THEN '[]' ELSE (
            SELECT COALESCE(jsonb_agg(jsonb_build_object('field', m.field, 'text', m.text) ORDER BY m.ord), '[]'::jsonb)::text
@@ -26,6 +26,7 @@ LEFT JOIN LATERAL (
     ORDER BY sr.date_serviced DESC, sr.created_at DESC, sr.id DESC
     LIMIT 1) lr ON true
 WHERE v.owner_id = @OwnerId
+  AND (@Status = 'all' OR (@Status = 'active' AND v.archived_at IS NULL) OR (@Status = 'archived' AND v.archived_at IS NOT NULL))
   AND (@Pattern::text IS NULL
        OR concat_ws(' ', v.year::text, v.make, v.model) ILIKE @Pattern ESCAPE '\'
        OR v.make ILIKE @Pattern ESCAPE '\'
@@ -48,5 +49,5 @@ WHERE v.owner_id = @OwnerId
   AND (@FuelTypeId::uuid IS NULL OR v.fuel_type_id = @FuelTypeId)
   AND (@TransmissionId::uuid IS NULL OR v.transmission_id = @TransmissionId)
   AND (@DrivetrainId::uuid IS NULL OR v.drivetrain_id = @DrivetrainId)
-ORDER BY lower(v.make), lower(v.model), v.year, v.id
+ORDER BY v.year DESC NULLS LAST, lower(v.make), lower(v.model), v.id
 LIMIT @PageSize OFFSET @Offset;

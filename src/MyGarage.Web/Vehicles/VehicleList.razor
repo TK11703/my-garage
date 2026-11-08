@@ -22,33 +22,50 @@
 }
 else if (vehicles is not null)
 {
-    @if (vehicles.TotalCount == 0)
+    @if (vehicles.TotalCount == 0 && criteria.Status == VehicleStatusFilter.Active && !hasArchived)
     {
         <EmptyState Message="You have no vehicles yet." ActionText="Add your first vehicle" ActionHref="/vehicles/new" />
     }
     else
     {
         <section class="card border-0 shadow-sm mg-results" aria-label="Vehicles">
-            <div class="card-header bg-transparent py-3">
+            <div class="card-header bg-transparent d-flex flex-wrap align-items-center gap-2 py-3">
                 <p class="mb-0 text-body-secondary" aria-live="polite" data-testid="result-summary">@Summary</p>
+                <VehicleStatusLinks Criteria="criteria" />
             </div>
 
-            <div class="card-body">
-                <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-3">
-                    @foreach (var vehicle in vehicles.Items)
+            @if (vehicles.TotalCount == 0)
+            {
+                <div class="card-body">
+                    @if (criteria.Status == VehicleStatusFilter.Archived)
                     {
-                        <div class="col" @key="vehicle.Id">
-                            <VehicleCard Vehicle="vehicle" />
-                        </div>
+                        <div data-testid="no-archived"><EmptyState Message="@VehicleMessages.NoArchivedVehicles" /></div>
+                    }
+                    else
+                    {
+                        <div data-testid="no-active"><EmptyState Message="@VehicleMessages.NoActiveVehicles" ActionText="Show archived vehicles" ActionHref="/vehicles?status=archived" /></div>
                     }
                 </div>
-            </div>
+            }
+            else
+            {
+                <div class="card-body">
+                    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-3">
+                        @foreach (var vehicle in vehicles.Items)
+                        {
+                            <div class="col" @key="vehicle.Id">
+                                <VehicleCard Vehicle="vehicle" />
+                            </div>
+                        }
+                    </div>
+                </div>
 
-            <div class="card-footer bg-transparent d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
-                <p class="mb-0 text-body-secondary small" data-testid="showing-range">@ShowingRange</p>
-                <Pager Page="vehicles.Page" TotalPages="vehicles.TotalPages" JustifyEnd="true"
-                       HrefFor="@(p => $"/vehicles?page={p}")" />
-            </div>
+                <div class="card-footer bg-transparent d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
+                    <p class="mb-0 text-body-secondary small" data-testid="showing-range">@ShowingRange</p>
+                    <Pager Page="vehicles.Page" TotalPages="vehicles.TotalPages" JustifyEnd="true"
+                           HrefFor="@(p => $"/vehicles?{criteria.ToQueryString(p)}")" />
+                </div>
+            }
         </section>
     }
 }
@@ -60,10 +77,16 @@ else if (vehicles is not null)
 
     private PagedResultDto<VehicleSummaryDto>? vehicles;
     private GarageApiFailure? failure;
+    private VehicleListCriteria criteria = VehicleListCriteria.None;
+    private bool hasArchived;
 
     // Query-string values are read as text: a bad value must be ignored, not throw a binding error.
     [Parameter, SupplyParameterFromQuery(Name = "page")]
     public string? Page { get; set; }
+
+    // active (default), archived, or all; anything else means active.
+    [Parameter, SupplyParameterFromQuery(Name = "status")]
+    public string? Status { get; set; }
 
     private string Summary => vehicles!.TotalCount == 1 ? "1 vehicle" : $"{vehicles.TotalCount} vehicles";
 
@@ -90,10 +113,17 @@ else if (vehicles is not null)
         }
 
         var requestedPage = int.TryParse(Page, out var parsed) ? Math.Max(1, parsed) : 1;
+        criteria = VehicleListCriteria.FromQuery(null, null, null, null, null, null, null, status: Status);
 
         try
         {
-            vehicles = (await Api.ListAsync(VehicleListCriteria.None, requestedPage)).Value;
+            vehicles = (await Api.ListAsync(criteria, requestedPage)).Value;
+
+            // With no active vehicles the page says whether archived ones exist instead of inviting a first vehicle.
+            if (vehicles is { TotalCount: 0 } && criteria.Status == VehicleStatusFilter.Active)
+            {
+                hasArchived = (await Api.ListAsync(criteria with { Status = VehicleStatusFilter.Archived }, 1)).Value?.TotalCount > 0;
+            }
         }
         catch (GarageApiException ex)
         {

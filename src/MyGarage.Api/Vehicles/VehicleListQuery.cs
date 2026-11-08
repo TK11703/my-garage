@@ -1,5 +1,6 @@
 using FluentValidation;
 using MyGarage.Api.Common;
+using MyGarage.Shared.Vehicles;
 
 namespace MyGarage.Api.Vehicles;
 
@@ -19,7 +20,8 @@ public sealed record VehicleListQuery(
     Guid? VehicleTypeId = null,
     Guid? FuelTypeId = null,
     Guid? TransmissionId = null,
-    Guid? DrivetrainId = null);
+    Guid? DrivetrainId = null,
+    string? Status = null);
 
 public sealed class VehicleListQueryValidator : AbstractValidator<VehicleListQuery>
 {
@@ -41,5 +43,10 @@ public sealed class VehicleListQueryValidator : AbstractValidator<VehicleListQue
             .Must((query, min) => min is null || query.MaxYear is null || min <= query.MaxYear)
             .WithMessage("Minimum year must not exceed maximum year.");
         this.AddPagingRules(query => query.Page, query => query.PageSize);
+        RuleFor(query => query.Status)
+            .Must(VehicleStatusFilter.IsValid)
+            .WithMessage(StatusMessage);
     }
+
+    internal const string StatusMessage = "Status must be active, archived, or all.";
 }

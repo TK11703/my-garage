@@ -75,6 +75,7 @@ public sealed partial class DashboardService(DashboardRepository dashboard, Remi
                 {
                     VehicleId = group.Key,
                     VehicleName = VehicleName.Compose(group.First().VehicleYear, group.First().VehicleMake, group.First().VehicleModel),
+                    VehicleArchived = group.First().VehicleArchived,
                     Fuel = group.Where(row => row.Kind == "fuel").Sum(row => row.Total),
                     Charging = group.Where(row => row.Kind == "energy").Sum(row => row.Total),
                 })

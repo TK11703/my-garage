@@ -13,16 +13,23 @@
             <div class="d-flex align-items-center gap-3">
                 <span class="fw-semibold" data-testid="entry-amount">@DisplayFormat.Money(entry.Amount)</span>
                 <span data-testid="entry-recurrence">@TaxFormat.RecurrenceLabel(entry.Recurrence)</span>
-                <a class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" href="/vehicles/@VehicleId/taxes/@entry.Id/edit"
-                   data-testid="edit-entry" aria-label="@TaxFormat.EditName(entry)" title="@TaxFormat.EditName(entry)">
-                    <Icon Name="IconName.Pencil" /> Edit
-                </a>
+                @if (ArchivedState?.IsArchived != true)
+                {
+                    <a class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" href="/vehicles/@VehicleId/taxes/@entry.Id/edit"
+                       data-testid="edit-entry" aria-label="@TaxFormat.EditName(entry)" title="@TaxFormat.EditName(entry)">
+                        <Icon Name="IconName.Pencil" /> Edit
+                    </a>
+                }
             </div>
         </div>
     </RowTemplate>
 </EntryListBlock>
 
 @code {
+    // Set by the vehicle page; an archived vehicle's entries cannot be edited.
+    [CascadingParameter]
+    private VehicleArchivedState? ArchivedState { get; set; }
+
     [Parameter, EditorRequired]
     public Guid VehicleId { get; set; }
 

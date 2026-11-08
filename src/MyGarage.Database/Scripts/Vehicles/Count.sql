@@ -8,6 +8,7 @@ LEFT JOIN LATERAL (
     ORDER BY sr.date_serviced DESC, sr.created_at DESC, sr.id DESC
     LIMIT 1) lr ON true
 WHERE v.owner_id = @OwnerId
+  AND (@Status = 'all' OR (@Status = 'active' AND v.archived_at IS NULL) OR (@Status = 'archived' AND v.archived_at IS NOT NULL))
   AND (@Pattern::text IS NULL
        OR concat_ws(' ', v.year::text, v.make, v.model) ILIKE @Pattern ESCAPE '\'
        OR v.make ILIKE @Pattern ESCAPE '\'

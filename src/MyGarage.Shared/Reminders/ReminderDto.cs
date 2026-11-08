@@ -20,6 +20,9 @@ public class ReminderDto
 
     public required bool IsPaused { get; init; }
 
+    // True when the reminder is disabled because its vehicle is archived.
+    public bool VehicleArchived { get; init; }
+
     public required ReminderStatus Status { get; init; }
 
     public int? NextDueMileage { get; init; }

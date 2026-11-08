@@ -24,7 +24,7 @@ public static class ServiceRecordsEndpoints
 
     public static IEndpointRouteBuilder MapServiceRecordsEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/service-records").WithTags("ServiceRecords");
+        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/service-records").WithTags("ServiceRecords").RequireActiveVehicleForWrites();
 
         group.MapGet("", async (
                 Guid vehicleId,

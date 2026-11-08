@@ -120,6 +120,31 @@ public sealed class VehicleService(
         return VehicleMapper.ToPageDto(result);
     }
 
-    public async Task<VehicleFilterOptionsDto> GetFilterOptionsAsync(string ownerId, CancellationToken cancellationToken) =>
-        VehicleMapper.ToFilterOptionsDto(await vehicles.GetFilterOptionsAsync(ownerId, cancellationToken));
+    public async Task<VehicleFilterOptionsDto> GetFilterOptionsAsync(string ownerId, string? status, CancellationToken cancellationToken) =>
+        VehicleMapper.ToFilterOptionsDto(await vehicles.GetFilterOptionsAsync(ownerId, status ?? VehicleStatusFilter.Active, cancellationToken));
+
+    public async Task<VehicleStateResult> ArchiveAsync(string ownerId, Guid vehicleId, CancellationToken cancellationToken)
+    {
+        var change = await vehicles.ArchiveAsync(ownerId, vehicleId, Now(), cancellationToken);
+        if (change == VehicleStateChange.Changed)
+        {
+            VehicleMetrics.Archived.Add(1);
+        }
+
+        return new VehicleStateResult(change, change == VehicleStateChange.Changed ? await GetAsync(ownerId, vehicleId, cancellationToken) : null);
+    }
+
+    public async Task<VehicleStateResult> RestoreAsync(string ownerId, Guid vehicleId, CancellationToken cancellationToken)
+    {
+        var change = await vehicles.RestoreAsync(ownerId, vehicleId, Now(), cancellationToken);
+        if (change == VehicleStateChange.Changed)
+        {
+            VehicleMetrics.Restored.Add(1);
+        }
+
+        return new VehicleStateResult(change, change == VehicleStateChange.Changed ? await GetAsync(ownerId, vehicleId, cancellationToken) : null);
+    }
 }
+
+// Vehicle is set only when the change was made.
+public sealed record VehicleStateResult(VehicleStateChange Change, VehicleDetailDto? Vehicle);

@@ -121,7 +121,7 @@
         }
         catch (GarageApiException ex)
         {
-            message = ex.Failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable;
+            message = VehicleMessages.For(ex.Failure);
         }
     }
 
@@ -135,7 +135,7 @@
         }
         catch (GarageApiException ex)
         {
-            message = ex.Failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable;
+            message = VehicleMessages.For(ex.Failure);
         }
     }
 }

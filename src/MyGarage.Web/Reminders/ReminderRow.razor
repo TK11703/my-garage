@@ -16,7 +16,7 @@
             {
                 <div class="text-body-secondary">Record the vehicle's mileage to see how far away this is.</div>
             }
-            else if (Reminder.Status != ReminderStatus.Paused && ReminderFormat.RemainingParts(Reminder) is { Count: > 0 } parts)
+            else if (Reminder.Status is not (ReminderStatus.Paused or ReminderStatus.Archived) && ReminderFormat.RemainingParts(Reminder) is { Count: > 0 } parts)
             {
                 <div data-testid="reminder-remaining">
                     @for (var i = 0; i < parts.Count; i++)

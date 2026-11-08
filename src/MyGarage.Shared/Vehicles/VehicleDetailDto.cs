@@ -62,4 +62,7 @@ public sealed class VehicleDetailDto
     public required DateTimeOffset CreatedAt { get; init; }
 
     public required DateTimeOffset UpdatedAt { get; init; }
+
+    // When the owner archived the vehicle; null for an active vehicle.
+    public DateTimeOffset? ArchivedAt { get; init; }
 }

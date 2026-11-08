@@ -10,4 +10,6 @@ public sealed class FuelEnergySpendVehicleDto
     public required decimal Fuel { get; init; }
 
     public required decimal Charging { get; init; }
+
+    public bool VehicleArchived { get; init; }
 }

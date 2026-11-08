@@ -463,7 +463,7 @@ public class VehicleDetailPageTests : VehicleTestContext
     }
 
     [Fact]
-    public void TheViewPageOffersNoEditingControlsExceptDelete()
+    public void TheViewPageOffersNoEditingControlsExceptArchiveAndDelete()
     {
         Notes = NotesPage([Note("A note")]);
         RegisterApi(_ => Json(DetailWith(vehicleId, [new VehicleTagDto { Id = Guid.NewGuid(), Name = "sunroof" }], [])));
@@ -472,8 +472,9 @@ public class VehicleDetailPageTests : VehicleTestContext
 
         cut.WaitForAssertion(() => Assert.Contains("A note", cut.Markup));
         var forms = cut.FindAll("form:not([role='search'])");
-        Assert.Single(forms);
+        Assert.Equal(2, forms.Count);
         Assert.Equal("get", cut.Find("form[role='search']").GetAttribute("method"));
+        Assert.NotNull(cut.Find("details[data-testid='archive-vehicle'] form"));
         Assert.NotNull(cut.Find("details[data-testid='delete-vehicle'] form"));
         Assert.Empty(cut.FindAll("input:not([type='hidden']):not([type='search']), textarea, select, input[type='file']"));
     }

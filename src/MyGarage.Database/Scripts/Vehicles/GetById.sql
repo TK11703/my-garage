@@ -6,7 +6,7 @@ SELECT v.id, v.owner_id, v.vin, v.make, v.model, v.trim, v.year,
        v.mileage, v.latest_odometer_reading, v.color, v.seats, v.doors,
        v.drivetrain_id, dt.name AS drivetrain_name,
        v.wheel_size, v.tire_size,
-       v.created_at, v.updated_at, v.created_by, v.updated_by
+       v.created_at, v.updated_at, v.created_by, v.updated_by, v.archived_at
 FROM vehicles v
 LEFT JOIN lookup_items vt ON vt.id = v.vehicle_type_id
 LEFT JOIN lookup_items ft ON ft.id = v.fuel_type_id

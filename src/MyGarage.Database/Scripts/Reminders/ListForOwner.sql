@@ -13,4 +13,6 @@ LEFT JOIN LATERAL (
     ORDER BY sr.date_serviced DESC, sr.created_at DESC, sr.id DESC
     LIMIT 1) lr ON true
 WHERE v.owner_id = @OwnerId
+  -- Reminders of archived vehicles are disabled and never counted or listed garage-wide.
+  AND v.archived_at IS NULL
 ORDER BY r.created_at, r.id;

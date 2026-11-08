@@ -24,7 +24,8 @@ public static class VehicleImagesEndpoints
     {
         var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/images")
             .WithTags("VehicleImages")
-            .AddEndpointFilter<StorageUnavailableFilter>();
+            .AddEndpointFilter<StorageUnavailableFilter>()
+            .RequireActiveVehicleForWrites();
 
         group.MapPost("", async (
                 Guid vehicleId,

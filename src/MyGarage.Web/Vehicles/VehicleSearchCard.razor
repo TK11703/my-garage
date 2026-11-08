@@ -8,6 +8,10 @@
                        placeholder="Search name, make, model, year, VIN, engine, trim, color, or tag" />
             </div>
             <button type="submit" class="visually-hidden">Search</button>
+            @if (Criteria.HasStatus)
+            {
+                <input type="hidden" name="status" value="@Criteria.Status" />
+            }
         </form>
     </div>
 </div>

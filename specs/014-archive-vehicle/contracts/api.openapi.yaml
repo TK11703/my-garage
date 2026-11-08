@@ -1,0 +1,258 @@
+openapi: 3.0.3
+info:
+  title: My Garage - archive vehicle (feature 014)
+  version: 1.0.0
+  description: >
+    New archive and restore operations, a status filter on the vehicle list, the archived refusal of writes,
+    and the schema changes that carry the archived state. Every other operation is unchanged. All operations are
+    user endpoints: they require a signed-in user token, refuse app-only tokens, take the owner only from the token,
+    and answer 404 for a vehicle that is not the caller's. Errors are RFC 9457 problem details.
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+paths:
+  /api/vehicles:
+    get:
+      tags: [Vehicles]
+      operationId: ListVehicles
+      summary: Page of the caller's vehicles matching the optional search, filters, and status.
+      description: >
+        Unchanged except for the new `status` query value. Active vehicles only by default. The filter-options
+        operation takes the same `status` so its choices match the list.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Which vehicles to list. Absent means `active`.
+          schema:
+            type: string
+            enum: [active, archived, all]
+            default: active
+      responses:
+        '200':
+          description: The page; each item carries `archivedAt` (null for an active vehicle).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VehicleSummaryPage' }
+        '400': { $ref: '#/components/responses/ValidationProblem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/vehicles/filter-options:
+    get:
+      tags: [Vehicles]
+      operationId: GetVehicleFilterOptions
+      summary: Distinct makes, colors, tags, and lookup choices for the vehicles in the chosen status.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [active, archived, all]
+            default: active
+      responses:
+        '200':
+          description: The choices.
+        '400': { $ref: '#/components/responses/ValidationProblem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/vehicles/{vehicleId}/archive:
+    parameters:
+      - $ref: '#/components/parameters/VehicleId'
+    post:
+      tags: [Vehicles]
+      operationId: ArchiveVehicle
+      summary: Archive the vehicle.
+      description: >
+        Records the archive time, keeps every attached item, disables the vehicle's reminders (nothing on them
+        changes), and marks the vehicle's unread reminder notifications read, all in one transaction. The vehicle
+        becomes read-only until restored. No request body.
+      responses:
+        '200':
+          description: The archived vehicle (`archivedAt` set).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VehicleDetail' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409':
+          description: The vehicle is already archived (a stale page).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+  /api/vehicles/{vehicleId}/restore:
+    parameters:
+      - $ref: '#/components/parameters/VehicleId'
+    post:
+      tags: [Vehicles]
+      operationId: RestoreVehicle
+      summary: Restore an archived vehicle.
+      description: >
+        Clears the archive time. Reminders are enabled again with their due points, history, and any individual
+        pause unchanged, and the vehicle's reminders are evaluated once. No request body.
+      responses:
+        '200':
+          description: The restored vehicle (`archivedAt` null).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VehicleDetail' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409':
+          description: The vehicle is not archived (a stale page).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+  /api/vehicles/{vehicleId}:
+    parameters:
+      - $ref: '#/components/parameters/VehicleId'
+    get:
+      tags: [Vehicles]
+      operationId: GetVehicle
+      summary: Vehicle details; works for an archived vehicle, which carries `archivedAt`.
+      responses:
+        '200':
+          description: The vehicle.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VehicleDetail' }
+        '404': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [Vehicles]
+      operationId: UpdateVehicle
+      summary: Update the vehicle (unchanged), refused with 409 while the vehicle is archived.
+      responses:
+        '409': { $ref: '#/components/responses/VehicleArchived' }
+    delete:
+      tags: [Vehicles]
+      operationId: DeleteVehicle
+      summary: Delete the vehicle and everything attached (unchanged); allowed whether the vehicle is active or archived.
+      responses:
+        '204':
+          description: Deleted.
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/vehicles/{vehicleId}/{anyWritableRoute}:
+    parameters:
+      - $ref: '#/components/parameters/VehicleId'
+      - name: anyWritableRoute
+        in: path
+        required: true
+        description: >
+          Stands for every vehicle-scoped route group: fuel-energy-entries, inspections, insurance, registrations,
+          taxes, service-records, reminders (including complete, pause, and resume), documents, images, notes, and tags.
+        schema: { type: string }
+    post:
+      summary: Any POST, PUT, PATCH, or DELETE below an archived vehicle is refused.
+      description: >
+        GET, HEAD, and OPTIONS are unaffected, so all history stays readable. The refusal is made before the
+        operation's own validation. A vehicle that is absent or not the caller's is not revealed: the operation's
+        normal 404 applies.
+      responses:
+        '409': { $ref: '#/components/responses/VehicleArchived' }
+  /api/reminders:
+    get:
+      tags: [Reminders]
+      operationId: ListGarageReminders
+      summary: Reminders across the caller's active vehicles (changed).
+      description: >
+        Reminders of archived vehicles are not listed, so they are in no count and no status filter. Their
+        status `archived` appears only on the vehicle's own reminder list and reminder detail.
+      responses:
+        '200':
+          description: The reminders, most urgent first.
+  /api/dashboard:
+    get:
+      tags: [Dashboard]
+      operationId: GetDashboard
+      summary: The garage dashboard (changed figures).
+      description: >
+        `vehicles`, `serviceRecords`, `remindersOverdue`, `remindersDueSoon`, `attention`, and `recentActivity`
+        leave out archived vehicles. `fuelEnergyEntries` and `fuelEnergySpend` include them; each spend vehicle
+        carries `vehicleArchived`. `draftsAwaitingReview` is unchanged.
+      responses:
+        '200':
+          description: The dashboard.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    VehicleId:
+      name: vehicleId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    Problem:
+      description: Problem details.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    ValidationProblem:
+      description: Validation problem details.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    VehicleArchived:
+      description: >
+        The vehicle is archived and read-only. Problem type `urn:mygarage:problem:vehicle-archived`; the title says
+        the vehicle is archived and can be restored first.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+  schemas:
+    ProblemDetails:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+    VehicleSummary:
+      type: object
+      description: Existing fields unchanged; one added.
+      properties:
+        id: { type: string, format: uuid }
+        archivedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the vehicle was archived; null for an active vehicle.
+    VehicleDetail:
+      type: object
+      description: Existing fields unchanged; one added.
+      properties:
+        id: { type: string, format: uuid }
+        archivedAt:
+          type: string
+          format: date-time
+          nullable: true
+    VehicleSummaryPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/VehicleSummary' }
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalCount: { type: integer }
+    Reminder:
+      type: object
+      description: Existing fields unchanged; the status gains a value and one field is added.
+      properties:
+        status:
+          type: string
+          enum: [upcoming, due_soon, overdue, paused, mileage_needed, archived]
+          description: '`archived` means the reminder is disabled because its vehicle is archived; it overrides `paused`.'
+        vehicleArchived: { type: boolean }
+    FuelEnergySpendVehicle:
+      type: object
+      description: Existing fields unchanged; one added.
+      properties:
+        vehicleId: { type: string, format: uuid }
+        vehicleArchived: { type: boolean }

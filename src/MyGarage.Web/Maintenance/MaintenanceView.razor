@@ -1,10 +1,13 @@
 @* No data-bs-parent on the items, so each one opens and closes on its own. *@
-<div class="d-flex justify-content-end mb-3">
-    <a class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2" href="/drafts/upload?vehicleId=@VehicleId"
-       data-testid="import-record" aria-label="Import a record for this vehicle">
-        <Icon Name="IconName.CloudUpload" Size="16" /> Import Record
-    </a>
-</div>
+@if (ArchivedState?.IsArchived != true)
+{
+    <div class="d-flex justify-content-end mb-3">
+        <a class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2" href="/drafts/upload?vehicleId=@VehicleId"
+           data-testid="import-record" aria-label="Import a record for this vehicle">
+            <Icon Name="IconName.CloudUpload" Size="16" /> Import Record
+        </a>
+    </div>
+}
 
 <div class="accordion vstack gap-3" id="maintenance-accordion" data-testid="maintenance-accordion">
     <ServiceRecordsSection VehicleId="VehicleId" Page="RecordsPage" Expanded="@(Section == MaintenanceSection.Records)" />
@@ -18,6 +21,10 @@
 </div>
 
 @code {
+    // Set by the vehicle page; an archived vehicle cannot take new records.
+    [CascadingParameter]
+    private VehicleArchivedState? ArchivedState { get; set; }
+
     [Parameter, EditorRequired]
     public Guid VehicleId { get; set; }
 

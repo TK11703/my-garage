@@ -31,4 +31,7 @@ public sealed record VehicleSearchCriteria
     public Guid? TransmissionId { get; init; }
 
     public Guid? DrivetrainId { get; init; }
+
+    // active (the default), archived, or all.
+    public string Status { get; init; } = "active";
 }
