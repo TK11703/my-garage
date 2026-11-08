@@ -52,7 +52,7 @@ public class InspectionCreatePageTests : VehicleTestContext
     }
 
     [Fact]
-    public void TheFormIsInACardBody_WithTheRequiredNoteFirst_AndSaveAndCancelInTheFooter()
+    public void TheFormIsInACardBody_WithATitleAndTheRequiredNoteFirst_AndSaveAndCancelBelowTheCard()
     {
         var cut = RenderPage(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
 
@@ -60,10 +60,13 @@ public class InspectionCreatePageTests : VehicleTestContext
         {
             var card = cut.Find("div.card");
             var body = card.QuerySelector(":scope > .card-body")!;
-            Assert.Equal("* Required", body.FirstElementChild!.TextContent.Trim());
+            Assert.Equal("Inspection", body.FirstElementChild!.TextContent.Trim());
+            Assert.Equal("* Required", body.FirstElementChild.NextElementSibling!.TextContent.Trim());
             Assert.NotNull(body.QuerySelector("form #inspection-type"));
 
-            var footer = card.QuerySelector(":scope > .card-footer")!;
+            Assert.Empty(card.QuerySelectorAll(".card-footer"));
+            var footer = cut.Find("[data-testid='form-actions']");
+            Assert.Same(card.ParentElement, footer.ParentElement);
             Assert.DoesNotContain("Required", footer.TextContent);
             Assert.Equal(["Save", "Cancel"], footer.QuerySelectorAll("button, a.btn").Select(control => control.TextContent.Trim()));
             var save = footer.QuerySelector("button[type='submit']")!;
@@ -228,13 +231,13 @@ public class InspectionEditPageTests : VehicleTestContext
     }
 
     [Fact]
-    public void Delete_SitsInTheCardFooterAfterSaveAndCancel()
+    public void Delete_SitsBelowTheCardAfterSaveAndCancel()
     {
         var cut = RenderPage(Stored);
 
         cut.WaitForAssertion(() =>
         {
-            var footer = cut.Find("div.card > .card-footer");
+            var footer = cut.Find("[data-testid='form-actions']");
             Assert.Equal(["Save changes", "Cancel", "Delete"],
                 footer.QuerySelectorAll(":scope > button, :scope > a.btn, :scope > details > summary").Select(control => control.TextContent.Trim()));
             Assert.NotNull(footer.QuerySelector("details[data-testid='delete-inspection']"));

@@ -1,4 +1,5 @@
 using MyGarage.Api.EmailIntake;
+using MyGarage.Api.Reminders;
 using MyGarage.Database.Common;
 using MyGarage.Database.Drafts;
 using MyGarage.Database.EmailIntake;
@@ -39,6 +40,7 @@ public sealed class DraftService(
     CompatibilityChecker checker,
     IIntakeBlobStore intake,
     IVehicleDocumentBlobStore documents,
+    ReminderEvaluator reminderEvaluator,
     TimeProvider timeProvider,
     ILogger<DraftService> logger)
 {
@@ -167,6 +169,11 @@ public sealed class DraftService(
 
         EmailIntakeMetrics.DraftsDecided.Add(1, new KeyValuePair<string, object?>("decision", "included"));
         logger.LogInformation("Draft {DraftId} accepted as {Kind}", draftId, DraftKinds.ToText(kind));
+        if (kind == DraftKind.ServiceRecord)
+        {
+            await reminderEvaluator.TryEvaluateVehicleAsync(ownerId, vehicleId, cancellationToken);
+        }
+
         return new DraftResult<AcceptedDraftDto>(
             DraftOutcome.Ok,
             new AcceptedDraftDto { Kind = kind, VehicleId = vehicleId, RecordId = result.RecordId!.Value, DocumentId = result.DocumentId });

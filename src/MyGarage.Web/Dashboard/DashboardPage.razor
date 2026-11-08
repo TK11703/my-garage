@@ -1,0 +1,119 @@
+@page "/dashboard"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject DashboardApiClient Api
+
+<PageHeader Title="Dashboard" />
+
+@if (failure is not null)
+{
+    <ApiFailureAlert Failure="failure.Value" ReturnUrl="/dashboard"
+                     NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+}
+else if (dashboard is null)
+{
+    <p class="text-body-secondary">Loading your garage...</p>
+}
+else
+{
+    @if (dashboard.Vehicles == 0)
+    {
+        <div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2" role="status" data-testid="first-vehicle">
+            <span>Your garage is empty. Add a vehicle to start keeping its records, reminders, and costs.</span>
+            <a class="btn btn-primary d-inline-flex align-items-center gap-2" href="/vehicles/new"><Icon Name="IconName.Plus" /> Add your first vehicle</a>
+        </div>
+    }
+
+    <ul class="list-unstyled row row-cols-2 row-cols-lg-4 g-3 mb-4" aria-label="Garage figures">
+        <Metric Id="vehicles" Label="Vehicles" Value="dashboard.Vehicles" Href="/vehicles" Accent="primary" />
+        <Metric Id="service-records" Label="Service records" Value="dashboard.ServiceRecords" Accent="success" />
+        <Metric Id="fuel-energy-entries" Label="Fuel and charging entries" Value="dashboard.FuelEnergyEntries" Accent="warning" />
+        <Metric Id="drafts" Label="Drafts awaiting review" Value="dashboard.DraftsAwaitingReview" Href="/drafts" Accent="danger" AccentWhenPositive="true" />
+    </ul>
+
+    @if (dashboard.Vehicles > 0)
+    {
+        <section class="card border-0 shadow-sm mb-4" aria-labelledby="attention-heading" data-testid="attention">
+            <div class="card-body">
+                <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+                    <div>
+                        <h2 id="attention-heading" class="h5 card-title mb-1">Needs attention</h2>
+                        <p class="text-body-secondary">Reminders that are overdue or due soon</p>
+                    </div>
+                    <a class="small" href="/reminders" data-testid="all-reminders">View all reminders</a>
+                </div>
+                @if (dashboard.Attention.Count == 0)
+                {
+                    <p class="text-body-secondary mb-0">Nothing needs attention right now.</p>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var reminder in dashboard.Attention)
+                        {
+                            <ReminderDueRow Reminder="reminder" ShowVehicle="true" />
+                        }
+                    </ul>
+                }
+            </div>
+        </section>
+
+        <div class="row g-4">
+            <div class="col-12 col-lg-6">
+                <section class="card border-0 shadow-sm h-100" aria-labelledby="spend-heading" data-testid="spend">
+                    <div class="card-body">
+                        <h2 id="spend-heading" class="h5 card-title mb-1">Fuel and charging spend</h2>
+                        @if (dashboard.FuelEnergySpend.All(month => month.Fuel == 0 && month.Charging == 0))
+                        {
+                            <p class="text-body-secondary mb-0">No fuel or charging costs in the last 12 months. Add fuel or charging entries to a vehicle to see them here.</p>
+                        }
+                        else
+                        {
+                            <p class="text-body-secondary">Cost per month over the last 12 months, stacked by vehicle</p>
+                            <SpendChart Months="dashboard.FuelEnergySpend" />
+                        }
+                    </div>
+                </section>
+            </div>
+            <div class="col-12 col-lg-6">
+                <section class="card border-0 shadow-sm h-100" aria-labelledby="updates-heading" data-testid="recent-updates">
+                    <div class="card-body">
+                        <h2 id="updates-heading" class="h5 card-title mb-3">Recent updates</h2>
+                        <h3 class="h6 mb-1">Recent activity</h3>
+                        <p class="text-body-secondary mb-2">Latest journal entries across your vehicles</p>
+                        @if (dashboard.RecentActivity.Count == 0)
+                        {
+                            <p class="text-body-secondary mb-0" data-testid="no-activity">No journal entries yet. Add a note on a vehicle's Description tab to see it here.</p>
+                        }
+                        else
+                        {
+                            <ul class="list-group list-group-flush" data-testid="activity-list">
+                                @foreach (var entry in dashboard.RecentActivity)
+                                {
+                                    <RecentActivityItem Entry="entry" />
+                                }
+                            </ul>
+                        }
+                    </div>
+                </section>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private DashboardDto? dashboard;
+    private GarageApiFailure? failure;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            dashboard = (await Api.GetAsync()).Value;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+}

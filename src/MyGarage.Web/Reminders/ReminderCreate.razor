@@ -1,0 +1,129 @@
+@page "/vehicles/{VehicleId:guid}/reminders/new"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject VehiclesApiClient VehiclesApi
+@inject RemindersApiClient Api
+@inject NavigationManager Navigation
+@inject TimeProvider Time
+
+<ReminderPage Title="Add reminder" VehicleId="VehicleId" VehicleName="@vehicleName" Failure="failure"
+              ReturnUrl="@($"/vehicles/{VehicleId}/reminders/new")" NotFound="notFound"
+              NotFoundTitle="Vehicle not found" NotFoundMessage="@VehicleMessages.NotFound">
+    @if (Model is not null)
+    {
+        @if (IsDuplicate)
+        {
+            <div class="alert alert-warning" role="status" data-testid="duplicate-name">
+                This vehicle already has a reminder named "@Model.Name". You can still save another one.
+            </div>
+        }
+
+        @if (currentMileage is null)
+        {
+            <div class="alert alert-info" role="status" data-testid="no-mileage-note">
+                This vehicle has no mileage recorded yet. A reminder that repeats by miles cannot show a status until it has one.
+            </div>
+        }
+
+        <ReminderForm Model="Model" FormName="create-reminder" SubmitText="Save" SubmitTitle="Save this reminder"
+                      CancelHref="@ReminderLinks.Tab(VehicleId)" Errors="errors" OnSubmit="SubmitAsync">
+            <Header>
+                <nav aria-label="Reminder types">
+                    <p class="form-text mb-1">Start from a type, then change anything you like:</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var preset in ReminderPresets.All)
+                        {
+                            <a class="btn btn-sm btn-outline-primary" href="@ReminderLinks.New(VehicleId, preset.Id)" data-preset="@preset.Id">@preset.Name</a>
+                        }
+                        <a class="btn btn-sm btn-outline-secondary" href="@ReminderLinks.New(VehicleId, "custom")" data-preset="custom">Custom</a>
+                    </div>
+                </nav>
+            </Header>
+        </ReminderForm>
+    }
+</ReminderPage>
+
+@code {
+    private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
+    private GarageApiFailure? failure;
+    private string? vehicleName;
+    private bool notFound;
+    private int? currentMileage;
+    private HashSet<string> existingNames = new(StringComparer.OrdinalIgnoreCase);
+
+    [Parameter]
+    public Guid VehicleId { get; set; }
+
+    // oil-change, tire-rotation, inspection, registration, or custom; anything else means custom.
+    [Parameter, SupplyParameterFromQuery(Name = "preset")]
+    public string? Preset { get; set; }
+
+    [SupplyParameterFromForm(FormName = "create-reminder")]
+    private ReminderFormModel? Model { get; set; }
+
+    private bool IsDuplicate => !string.IsNullOrWhiteSpace(Model?.Name) && existingNames.Contains(Model.Name.Trim());
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await VehiclesApi.GetAsync(VehicleId);
+            if (result.IsNotFound)
+            {
+                notFound = true;
+                return;
+            }
+
+            var vehicle = result.Value!;
+            vehicleName = vehicle.Name;
+            currentMileage = vehicle.Mileage is null && vehicle.LatestOdometerReading is null
+                ? null
+                : Math.Max(vehicle.Mileage ?? 0, vehicle.LatestOdometerReading ?? 0);
+
+            Model ??= ReminderFormModel.ForNew(ReminderPresets.Find(Preset), DateOnly.FromDateTime(Time.GetUtcNow().UtcDateTime), currentMileage);
+
+            // The warning is a courtesy; the form works without it.
+            try
+            {
+                var existing = await Api.ListAsync(VehicleId);
+                if (existing.IsSuccess)
+                {
+                    existingNames = new HashSet<string>(existing.Value!.Select(reminder => reminder.Name.Trim()), StringComparer.OrdinalIgnoreCase);
+                }
+            }
+            catch (GarageApiException)
+            {
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        failure = null;
+        try
+        {
+            var result = await Api.CreateAsync(VehicleId, Model!.ToRequest());
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo(ReminderLinks.Tab(VehicleId, "created"));
+                return;
+            }
+
+            if (result.IsNotFound)
+            {
+                notFound = true;
+                return;
+            }
+
+            errors = result.Errors;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+}

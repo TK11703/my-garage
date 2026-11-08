@@ -1,0 +1,76 @@
+@using System.Globalization
+
+<li class="list-group-item d-flex align-items-center gap-3 px-0 py-3" data-testid="reminder">
+    <div class="@TileClass" data-testid="due-tile">
+        @if (Reminder.NextDueDate is { } due)
+        {
+            <span class="small lh-1" aria-hidden="true">@due.ToString("MMM", CultureInfo.InvariantCulture)</span>
+            <span class="fw-semibold lh-1" aria-hidden="true">@due.ToString("dd", CultureInfo.InvariantCulture)</span>
+            <span class="visually-hidden">Next due @DisplayFormat.Date(due)</span>
+        }
+        else
+        {
+            <Icon Name="IconName.Speedometer" />
+            <span class="visually-hidden">Due by mileage</span>
+        }
+    </div>
+    <div class="flex-grow-1 overflow-hidden">
+        <a class="fw-semibold text-body text-decoration-none" href="@ReminderLinks.Detail(Reminder.VehicleId, Reminder.Id)" data-testid="reminder-link">@Reminder.Name</a>
+        @if (ShowVehicle)
+        {
+            <div class="small text-body-secondary text-truncate">
+                <a class="text-body-secondary" href="@ReminderLinks.Tab(Reminder.VehicleId)" data-testid="reminder-vehicle">@Reminder.VehicleName</a>
+            </div>
+        }
+        else
+        {
+            <div class="small text-body-secondary">@ReminderFormat.Interval(Reminder)</div>
+            <div class="small text-body-secondary">Last done: @ReminderFormat.LastDone(Reminder) &middot; Next due: @ReminderFormat.NextDue(Reminder)</div>
+        }
+        @if (Reminder.Status == ReminderStatus.MileageNeeded)
+        {
+            <div class="small text-body-secondary">Record the vehicle's mileage to see how far away this is.</div>
+        }
+        else if (Reminder.Status != ReminderStatus.Paused && ReminderFormat.RemainingParts(Reminder) is { Count: > 0 } parts)
+        {
+            <div class="small" data-testid="reminder-remaining">
+                @for (var i = 0; i < parts.Count; i++)
+                {
+                    if (i > 0)
+                    {
+                        <span aria-hidden="true"> &middot; </span>
+                    }
+
+                    if (parts[i].Urgent)
+                    {
+                        <span class="fw-semibold">@parts[i].Text<span class="visually-hidden"> (most urgent)</span></span>
+                    }
+                    else
+                    {
+                        <span>@parts[i].Text</span>
+                    }
+                }
+            </div>
+        }
+    </div>
+    <ReminderStatusBadge Status="Reminder.Status" />
+</li>
+
+@code {
+    [Parameter, EditorRequired]
+    public ReminderDto Reminder { get; set; } = default!;
+
+    // The dashboard names the vehicle each reminder belongs to; a vehicle's own list shows what the reminder applies to and its intervals instead.
+    [Parameter]
+    public bool ShowVehicle { get; set; }
+
+    // The tile color follows the status; the badge and the remaining text say the same in words.
+    private string TileClass => "mg-date-tile rounded d-flex flex-column align-items-center justify-content-center flex-shrink-0 " + Reminder.Status switch
+    {
+        ReminderStatus.Overdue => "bg-danger-subtle text-danger-emphasis",
+        ReminderStatus.DueSoon => "bg-warning-subtle text-warning-emphasis",
+        ReminderStatus.MileageNeeded => "bg-info-subtle text-info-emphasis",
+        ReminderStatus.Paused => "bg-secondary-subtle text-secondary-emphasis",
+        _ => "bg-success-subtle text-success-emphasis",
+    };
+}

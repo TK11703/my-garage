@@ -1,0 +1,220 @@
+@page "/vehicles/{VehicleId:guid}/reminders/{ReminderId:guid}"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject RemindersApiClient Api
+@inject VehiclesApiClient VehiclesApi
+@inject NavigationManager Navigation
+@inject TimeProvider Time
+
+<ReminderPage Title="@(reminder?.Name ?? "Reminder")" VehicleId="VehicleId" VehicleName="@reminder?.VehicleName" Failure="failure"
+              ReturnUrl="@ReminderLinks.Detail(VehicleId, ReminderId)" NotFound="notFound"
+              NotFoundTitle="Reminder not found" NotFoundMessage="This reminder could not be found. It may have been deleted.">
+    <Actions>
+        @if (reminder is not null)
+        {
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <a class="btn btn-outline-primary d-inline-flex align-items-center gap-2" href="@ReminderLinks.Edit(VehicleId, ReminderId)" data-testid="edit-reminder" title="Edit this reminder">
+                    <Icon Name="IconName.Pencil" /> Edit
+                </a>
+                @if (reminder.IsPaused)
+                {
+                    <form method="post" @formname="resume-reminder" @onsubmit="ResumeAsync" data-testid="resume-reminder">
+                        <AntiforgeryToken />
+                        <button type="submit" class="btn btn-outline-secondary" title="Resume this reminder">Resume</button>
+                    </form>
+                }
+                else
+                {
+                    <form method="post" @formname="pause-reminder" @onsubmit="PauseAsync" data-testid="pause-reminder">
+                        <AntiforgeryToken />
+                        <button type="submit" class="btn btn-outline-secondary" title="Pause this reminder">Pause</button>
+                    </form>
+                }
+                <details class="position-relative" data-testid="delete-reminder">
+                    <summary class="btn btn-outline-danger d-inline-flex align-items-center gap-2" title="Delete this reminder">
+                        <Icon Name="IconName.Trash" /> Delete
+                    </summary>
+                    <div class="alert alert-danger mg-confirm-panel shadow" role="alert">
+                        <p>Delete @reminder.Name? This also removes its history and notifications and cannot be undone.</p>
+                        <form method="post" @formname="delete-reminder" @onsubmit="DeleteAsync" class="d-flex flex-wrap gap-2">
+                            <AntiforgeryToken />
+                            <button type="submit" class="btn btn-danger">Yes, delete this reminder</button>
+                            <a class="btn btn-outline-secondary" href="@ReminderLinks.Detail(VehicleId, ReminderId)">Keep reminder</a>
+                        </form>
+                    </div>
+                </details>
+            </div>
+        }
+    </Actions>
+    <ChildContent>
+    @if (reminder is not null)
+    {
+        @if (SavedNotice is { } notice)
+        {
+            <div class="alert alert-success" role="status" data-testid="reminder-saved">@notice</div>
+        }
+
+        <section class="card border-0 shadow-sm mb-4" aria-labelledby="reminder-details-heading" data-testid="reminder-details">
+            <div class="card-body">
+                <h2 id="reminder-details-heading" class="h5">Details</h2>
+                <p class="mb-3">
+                    <ReminderStatusBadge Status="reminder.Status" />
+                    <span class="small ms-2" data-testid="reminder-remaining">@ReminderFormat.Remaining(reminder)</span>
+                </p>
+                @if (reminder.IsPaused)
+                {
+                    <p class="small text-body-secondary" data-testid="paused-note">This reminder is paused: it shows no status and sends no notifications until you resume it.</p>
+                }
+                <dl class="row g-3 mb-0">
+                    <ViewField Label="Repeats" Value="@ReminderFormat.Interval(reminder)" />
+                    <ViewField Label="Last done" Value="@ReminderFormat.LastDone(reminder)" />
+                    <ViewField Label="Next due" Value="@ReminderFormat.NextDue(reminder)" />
+                </dl>
+            </div>
+        </section>
+
+        <ReminderCompleteForm Model="CompleteModel!" MileageRequired="@(reminder.IntervalMiles is not null)" Errors="errors" OnSubmit="CompleteAsync" />
+
+        <section class="card border-0 shadow-sm mb-4" aria-labelledby="history-heading" data-testid="history">
+            <div class="card-body">
+                <h2 id="history-heading" class="h5">History</h2>
+                @if (reminder.Completions.Count == 0)
+                {
+                    <p class="text-body-secondary mb-0">Nothing has been marked done yet. Mark it done to start the history.</p>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var completion in reminder.Completions)
+                        {
+                            <li class="list-group-item px-0" data-testid="completion">
+                                @DisplayFormat.Date(completion.DoneOn)@if (completion.Mileage is { } mileage)
+                                {
+                                    <span> at @ReminderFormat.Miles(mileage)</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </section>
+    }
+    </ChildContent>
+</ReminderPage>
+
+@code {
+    private ReminderDetailDto? reminder;
+    private GarageApiFailure? failure;
+    private bool notFound;
+    private IReadOnlyDictionary<string, string[]> errors = new Dictionary<string, string[]>();
+
+    [Parameter]
+    public Guid VehicleId { get; set; }
+
+    [Parameter]
+    public Guid ReminderId { get; set; }
+
+    // Set after a save, for the notice at the top.
+    [Parameter, SupplyParameterFromQuery(Name = "saved")]
+    public string? Saved { get; set; }
+
+    [SupplyParameterFromForm(Name = "Model", FormName = "complete-reminder")]
+    private ReminderCompleteFormModel? CompleteModel { get; set; }
+
+    private string? SavedNotice => Saved == "done" && reminder is not null
+        ? $"Marked done. Next due {ReminderFormat.NextDue(reminder)}."
+        : ReminderMessages.Saved(Saved);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await Api.GetAsync(VehicleId, ReminderId);
+            reminder = result.Value;
+            notFound = result.IsNotFound;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+            return;
+        }
+
+        if (reminder is not null && CompleteModel is null)
+        {
+            CompleteModel = new ReminderCompleteFormModel
+            {
+                DoneOn = DateOnly.FromDateTime(Time.GetUtcNow().UtcDateTime),
+                Mileage = await CurrentMileageAsync(),
+            };
+        }
+    }
+
+    // The default is a courtesy; the form works without it.
+    private async Task<int?> CurrentMileageAsync()
+    {
+        try
+        {
+            var vehicle = (await VehiclesApi.GetAsync(VehicleId)).Value;
+            return vehicle is null || (vehicle.Mileage is null && vehicle.LatestOdometerReading is null)
+                ? null
+                : Math.Max(vehicle.Mileage ?? 0, vehicle.LatestOdometerReading ?? 0);
+        }
+        catch (GarageApiException)
+        {
+            return null;
+        }
+    }
+
+    private async Task CompleteAsync()
+    {
+        failure = null;
+        try
+        {
+            var result = await Api.CompleteAsync(VehicleId, ReminderId, CompleteModel!.ToRequest());
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo(ReminderLinks.Detail(VehicleId, ReminderId, "done"));
+                return;
+            }
+
+            if (result.IsNotFound)
+            {
+                notFound = true;
+                return;
+            }
+
+            errors = result.Errors;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private Task PauseAsync() => ActAsync(() => Api.PauseAsync(VehicleId, ReminderId), ReminderLinks.Detail(VehicleId, ReminderId, "paused"));
+
+    private Task ResumeAsync() => ActAsync(() => Api.ResumeAsync(VehicleId, ReminderId), ReminderLinks.Detail(VehicleId, ReminderId, "resumed"));
+
+    private Task DeleteAsync() => ActAsync(() => Api.DeleteAsync(VehicleId, ReminderId), ReminderLinks.Tab(VehicleId, "deleted"));
+
+    // Runs a post action and goes to the page it names; a missing reminder shows the not-found state.
+    private async Task ActAsync<T>(Func<Task<ApiResult<T>>> action, string successUrl)
+    {
+        failure = null;
+        try
+        {
+            var result = await action();
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo(successUrl);
+                return;
+            }
+
+            notFound = result.IsNotFound;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+}

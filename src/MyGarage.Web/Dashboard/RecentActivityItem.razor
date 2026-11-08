@@ -1,0 +1,28 @@
+@using MyGarage.Web.Notifications
+@inject TimeProvider Time
+
+<li class="list-group-item d-flex gap-3 px-0 py-3" data-testid="activity">
+    @if (Entry.VehicleMainImageId is { } imageId)
+    {
+        <img class="mg-avatar rounded-circle object-fit-cover flex-shrink-0" src="/vehicles/@(Entry.VehicleId)/images/@(imageId)" alt="" width="40" height="40" loading="lazy" />
+    }
+    else
+    {
+        <span class="mg-avatar rounded-circle bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center justify-content-center flex-shrink-0" aria-hidden="true">
+            <Icon Name="IconName.CarFront" />
+        </span>
+    }
+    <div class="flex-grow-1 overflow-hidden">
+        <div>
+            <a class="fw-semibold text-body text-decoration-none" href="/vehicles/@(Entry.VehicleId)?tab=description" data-testid="activity-vehicle">@Entry.VehicleName</a>
+            <span class="text-body-secondary" data-testid="activity-kind">added a @(Entry.Category is { Length: > 0 } category ? $"{category} note" : "note")</span>
+        </div>
+        <div class="text-truncate" data-testid="activity-excerpt">@Entry.Excerpt</div>
+        <div class="small text-body-secondary" data-testid="activity-time">@NotificationFormat.Relative(Entry.CreatedAt, Time.GetUtcNow())</div>
+    </div>
+</li>
+
+@code {
+    [Parameter, EditorRequired]
+    public RecentActivityDto Entry { get; set; } = default!;
+}

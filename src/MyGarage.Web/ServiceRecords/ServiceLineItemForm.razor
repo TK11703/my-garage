@@ -1,8 +1,11 @@
 @using System.Globalization
 
 <EditForm Model="Model" FormName="@FormName" OnValidSubmit="OnSubmit" class="vstack gap-3" data-testid="line-item-form">
+    @* Enter in a field uses the first submit button, so this must be Save and not a row button. *@
+    <button type="submit" class="visually-hidden" tabindex="-1" aria-hidden="true" data-testid="default-submit">@SubmitText</button>
     <section class="card border-0 shadow-sm">
         <div class="card-body vstack gap-3">
+            <h2 class="h5 card-title mb-0">Service Record Line Item</h2>
             <p class="form-text mb-0">* Required</p>
 
             @if (Message is not null)
@@ -59,11 +62,14 @@
                 </div>
             </div>
 
-            <div role="group" aria-labelledby="breakdown-heading" data-pricing-section="@nameof(PricingMode.Breakdown)" hidden="@(Model.Pricing != PricingMode.Breakdown)">
-                <h3 id="breakdown-heading" class="h6">Labor and Parts</h3>
+            <div role="group" aria-label="Labor and parts" data-pricing-section="@nameof(PricingMode.Breakdown)" hidden="@(Model.Pricing != PricingMode.Breakdown)">
                 <div class="vstack gap-3">
+                    <div>
+                        <h3 id="labor-heading" class="h6 mb-1">Labor</h3>
+                        <p class="text-body-secondary mb-0">Calculated from hours and rate. Leave both empty to enter the total yourself.</p>
+                    </div>
                     <div class="row g-3">
-                        <div class="col-sm-6 col-lg-4">
+                        <div class="col-sm-4">
                             <div class="form-floating">
                                 <InputNumber id="labor-hours" TValue="decimal?" class="form-control" @bind-Value="Model.LaborHours" min="0.01" max="999.99" step="0.01" inputmode="decimal" placeholder=" " data-labor-hours
                                              aria-describedby="@Described("LaborHours", "laborhours-error")" />
@@ -74,7 +80,7 @@
                                 <div id="laborhours-error" class="invalid-feedback d-block">@hoursError</div>
                             }
                         </div>
-                        <div class="col-sm-6 col-lg-4">
+                        <div class="col-sm-4">
                             <div class="form-floating">
                                 <InputNumber id="labor-rate" TValue="decimal?" class="form-control" @bind-Value="Model.LaborRate" min="0" max="99999.99" step="0.01" inputmode="decimal" placeholder=" " data-labor-rate
                                              aria-describedby="@Described("LaborRate", "laborrate-error")" />
@@ -85,29 +91,31 @@
                                 <div id="laborrate-error" class="invalid-feedback d-block">@rateError</div>
                             }
                         </div>
-                        <div class="col-sm-6 col-lg-4">
+                        <div class="col-sm-4">
                             <div class="form-floating">
                                 <InputNumber id="labor-cost" TValue="decimal?" class="form-control" @bind-Value="Model.LaborCost" min="0" max="9999999.99" step="0.01" inputmode="decimal" placeholder=" "
                                              readonly="@Model.LaborIsCalculated" data-labor-total
                                              aria-describedby="@Described("LaborCost", "laborcost-error")" />
                                 <label for="labor-cost">Total labor ($)</label>
                             </div>
-                            <div class="form-text">Calculated from hours and rate. Leave both empty to enter the total yourself.</div>
                             @if (FieldError("LaborCost") is { } laborCostError)
                             {
                                 <div id="laborcost-error" class="invalid-feedback d-block">@laborCostError</div>
                             }
                         </div>
-                </div>
+                    </div>
 
-                <h4 class="h6 mb-0">Parts</h4>
+                    <div>
+                        <h4 class="h6 mb-1">Parts</h4>
+                        <p class="text-body-secondary mb-0">Enter the information for each individual part. Add additional parts as necessary.</p>
+                    </div>
                 @for (var row = 0; row < Model.Parts.Count; row++)
                 {
                     var index = row;
                     var part = Model.Parts[index];
                     var partErrors = PartErrors(index);
                     <div class="row g-2 align-items-start" data-testid="part-row">
-                        <div class="col-12 col-md-6">
+                        <div class="col-12 col-md-5">
                             <div class="form-floating">
                                 <input id="part-@index-name" class="form-control" type="text" maxlength="100" placeholder=" "
                                        name="Model.Parts[@index].Name" @bind="part.Name" aria-label="@($"Part {index + 1} name")"
@@ -115,7 +123,7 @@
                                 <label for="part-@index-name">Part name</label>
                             </div>
                         </div>
-                        <div class="col-6 col-md-3">
+                        <div class="col-5 col-md-3">
                             <div class="form-floating">
                                 <input id="part-@index-quantity" class="form-control" type="number" min="0.01" max="9999.99" step="0.01" inputmode="decimal" placeholder=" "
                                        name="Model.Parts[@index].Quantity" @bind="part.Quantity" @bind:culture="CultureInfo.InvariantCulture" aria-label="@($"Part {index + 1} quantity")"
@@ -123,13 +131,20 @@
                                 <label for="part-@index-quantity">Quantity</label>
                             </div>
                         </div>
-                        <div class="col-6 col-md-3">
+                        <div class="col-5 col-md-3">
                             <div class="form-floating">
                                 <input id="part-@index-unit-price" class="form-control" type="number" min="0" max="9999999.99" step="0.01" inputmode="decimal" placeholder=" "
                                        name="Model.Parts[@index].UnitPrice" @bind="part.UnitPrice" @bind:culture="CultureInfo.InvariantCulture" aria-label="@($"Part {index + 1} price per part")"
                                        aria-describedby="@(partErrors.Count > 0 ? $"part-{index}-error" : null)" />
                                 <label for="part-@index-unit-price">Price per part</label>
                             </div>
+                        </div>
+                        <div class="col-2 col-md-1 align-self-stretch d-flex align-items-center justify-content-center">
+                            @if (Model.Parts.Count > 1 || !part.IsBlank)
+                            {
+                                <button type="submit" class="btn-close" name="@ServiceLineItemFormModel.RemovePartRowField" value="@index" formnovalidate
+                                        aria-label="@($"Remove part {index + 1}")" title="@($"Remove part {index + 1}")"></button>
+                            }
                         </div>
                         @if (partErrors.Count > 0)
                         {
@@ -141,20 +156,21 @@
                 @if (Model.Parts.Count < ServiceLineItemFormModel.MaxPartRows)
                 {
                     <div>
-                        <button type="submit" class="btn btn-outline-secondary btn-sm" name="@ServiceLineItemFormModel.AddPartRowsField" value="true" formnovalidate>Add more part rows</button>
+                        <button type="submit" class="btn btn-outline-secondary btn-sm" name="@ServiceLineItemFormModel.AddPartRowsField" value="true" formnovalidate>+ Add another part row</button>
                     </div>
                 }
                 </div>
             </div>
         </div>
 
-        <div class="card-footer d-flex gap-2">
-            <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2" data-busy-text="Saving..." title="Save this line item">
-                <Icon Name="IconName.Save" /> @SubmitText
-            </button>
-            <a class="btn btn-outline-secondary" href="@CancelHref" title="Cancel and return to the service record">Cancel</a>
-        </div>
     </section>
+
+    <div class="d-flex flex-wrap gap-2" data-testid="form-actions">
+        <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2" data-busy-text="Saving..." title="Save this line item">
+            <Icon Name="IconName.Save" /> @SubmitText
+        </button>
+        <a class="btn btn-outline-secondary" href="@CancelHref" title="Cancel and return to the service record">Cancel</a>
+    </div>
 </EditForm>
 
 @code {
@@ -181,7 +197,11 @@
     [Parameter, EditorRequired]
     public EventCallback OnSubmit { get; set; }
 
-    protected override void OnParametersSet() => Model.ShowCalculatedLabor();
+    protected override void OnParametersSet()
+    {
+        Model.EnsurePartRow();
+        Model.ShowCalculatedLabor();
+    }
 
     private string? FieldError(string field) =>
         Errors.FirstOrDefault(pair => string.Equals(pair.Key, field, StringComparison.OrdinalIgnoreCase)).Value?.FirstOrDefault();

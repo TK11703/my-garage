@@ -1,0 +1,42 @@
+<li class="col" data-testid="@("metric-" + Id)">
+    <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body position-relative py-3 px-3">
+            <div class="fs-4 fw-semibold lh-1 mb-1 @ValueClass" data-testid="metric-value">@Value</div>
+            @if (Href is not null)
+            {
+                <a class="stretched-link small text-body text-decoration-none" href="@Href">@Label</a>
+            }
+            else
+            {
+                <div class="small">@Label</div>
+            }
+        </div>
+    </div>
+</li>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public int Value { get; set; }
+
+    // The page that lists these items, when there is one; the label is the link.
+    [Parameter]
+    public string? Href { get; set; }
+
+    // primary, success, warning, or danger: the number's color. The label always says what it counts.
+    [Parameter]
+    public string? Accent { get; set; }
+
+    // Color the number only when there is something to see (a zero stays plain).
+    [Parameter]
+    public bool AccentWhenPositive { get; set; }
+
+    private string? ValueClass => Accent is null || (AccentWhenPositive && Value <= 0)
+        ? null
+        : Accent == "warning" ? "text-warning-emphasis" : $"text-{Accent}";
+}

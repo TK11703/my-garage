@@ -31,6 +31,22 @@ public class InsurancePolicyCreatePageTests : VehicleTestContext
     }
 
     [Fact]
+    public void TheCardHasATitle_AndSaveAndCancelSitBelowIt()
+    {
+        var cut = RenderPage(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
+
+        cut.WaitForAssertion(() =>
+        {
+            var card = cut.Find("div.card");
+            Assert.Equal("Insurance Policy", card.QuerySelector(":scope > .card-body")!.FirstElementChild!.TextContent.Trim());
+            Assert.Empty(card.QuerySelectorAll(".card-footer"));
+            var actions = cut.Find("[data-testid='form-actions']");
+            Assert.Same(card.ParentElement, actions.ParentElement);
+            Assert.Equal(["Save", "Cancel"], actions.QuerySelectorAll("button, a.btn").Select(control => control.TextContent.Trim()));
+        });
+    }
+
+    [Fact]
     public void ShowsTheLabelsTheDurationOptionsTheHelperTextAndTheInputLimits()
     {
         var cut = RenderPage(_ => new HttpResponseMessage(HttpStatusCode.NotFound));

@@ -63,6 +63,10 @@
                         {
                             <a class="mg-notif-link text-decoration-none text-reset" href="/drafts/@draftId">@row</a>
                         }
+                        else if (item.VehicleId is { } vehicleId && item.ReminderId is { } reminderId)
+                        {
+                            <a class="mg-notif-link text-decoration-none text-reset" href="@ReminderLinks.Detail(vehicleId, reminderId)">@row</a>
+                        }
                         else
                         {
                             <div class="mg-notif-link">@row</div>

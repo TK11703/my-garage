@@ -34,7 +34,7 @@ else if (vehicle is not null)
                         <Icon Name="IconName.Trash" /> Delete
                     </summary>
                     <div class="alert alert-danger mg-confirm-panel shadow" role="alert">
-                        <p>Delete @vehicle.Name? This also removes its tags, journal notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, pictures, and kept documents and cannot be undone.</p>
+                        <p>Delete @vehicle.Name? This also removes its tags, journal notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, reminders, pictures, and kept documents and cannot be undone.</p>
                         <form method="post" @formname="delete-vehicle" @onsubmit="DeleteAsync" class="d-flex flex-wrap gap-2">
                             <AntiforgeryToken />
                             <button type="submit" class="btn btn-danger">Yes, delete this vehicle</button>
@@ -114,6 +114,9 @@ else if (vehicle is not null)
                                      RegistrationsPage="MaintenanceLinks.ParsePage(RegistrationsPage)" InsurancePage="MaintenanceLinks.ParsePage(InsurancePage)"
                                      TaxesPage="MaintenanceLinks.ParsePage(TaxesPage)" DocumentsPage="MaintenanceLinks.ParsePage(DocumentsPage)" />
                 </div>
+                <div id="tab-reminders" class="tab-pane @PaneState("reminders", current)" role="tabpanel" aria-labelledby="tab-reminders-tab" tabindex="0">
+                    <ReminderTab VehicleId="VehicleId" Saved="@Saved" />
+                </div>
     </div>
 
 }
@@ -130,7 +133,7 @@ else if (vehicle is not null)
     [Parameter]
     public Guid VehicleId { get; set; }
 
-    // Which tab to open: details, media, description, or service-records (shown as Maintenance).
+    // Which tab to open: details, media, description, service-records (shown as Maintenance), or reminders.
     [Parameter, SupplyParameterFromQuery(Name = "tab")]
     public string? Tab { get; set; }
 

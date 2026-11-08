@@ -53,12 +53,16 @@ public class ServiceLineItemFormTests : VehicleTestContext
             .Add(page => page.LineItemId, line.Id));
     }
 
-    private static HttpContext AddRowsPost()
+    private static HttpContext AddRowsPost() => RowPost("add-part-rows", "");
+
+    private static HttpContext RemoveRowPost(int index) => RowPost("remove-part-row", index.ToString());
+
+    private static HttpContext RowPost(string field, string value)
     {
         var context = new DefaultHttpContext();
         context.Request.Method = "POST";
         context.Request.ContentType = "application/x-www-form-urlencoded";
-        context.Request.Form = new FormCollection(new Dictionary<string, Microsoft.Extensions.Primitives.StringValues> { ["add-part-rows"] = "" });
+        context.Request.Form = new FormCollection(new Dictionary<string, Microsoft.Extensions.Primitives.StringValues> { [field] = value });
         return context;
     }
 
@@ -111,25 +115,42 @@ public class ServiceLineItemFormTests : VehicleTestContext
             Assert.Contains("did not get a breakdown", shown.TextContent);
 
             var hidden = Assert.Single(card.QuerySelectorAll("[data-pricing-section][hidden]"));
-            Assert.Equal("Labor and Parts", hidden.QuerySelector("h3")!.TextContent.Trim());
+            Assert.Equal("Labor", hidden.QuerySelector("h3")!.TextContent.Trim());
             Assert.NotNull(hidden.QuerySelector("input#labor-hours"));
 
             Assert.Empty(card.QuerySelectorAll(".card-header"));
-            Assert.Single(cut.FindAll(".card-footer"));
+            Assert.Empty(cut.FindAll(".card-footer"));
             Assert.Equal(["Flat Cost", "Labor and Parts"], cut.FindAll("fieldset .form-check-label").Select(label => label.TextContent.Trim()));
         });
     }
 
     [Fact]
-    public void Add_RequiredNoteIsTheFirstThingInTheCardBody_NotInTheFooter()
+    public void Add_TheCardHasATitle_ThenTheRequiredNoteAtTheTopOfItsBody_NotInTheFooter()
     {
         var cut = RenderCreate();
 
         cut.WaitForAssertion(() =>
         {
             var body = cut.Find("section.card > .card-body");
-            Assert.Equal("* Required", body.FirstElementChild!.TextContent.Trim());
-            Assert.DoesNotContain("Required", cut.Find("section.card > .card-footer").TextContent);
+            var title = body.FirstElementChild!;
+            Assert.Equal("H2", title.TagName);
+            Assert.Equal("Service Record Line Item", title.TextContent.Trim());
+            Assert.Equal("* Required", title.NextElementSibling!.TextContent.Trim());
+            Assert.DoesNotContain("Required", cut.Find("[data-testid='form-actions']").TextContent);
+        });
+    }
+
+    [Fact]
+    public void Add_LaborHoursRateAndTotalShareOneRow()
+    {
+        var cut = RenderCreate();
+
+        cut.WaitForAssertion(() =>
+        {
+            var row = cut.Find("input#labor-hours").Closest(".row")!;
+            Assert.Same(row, cut.Find("input#labor-rate").Closest(".row"));
+            Assert.Same(row, cut.Find("input#labor-cost").Closest(".row"));
+            Assert.All(row.Children, column => Assert.Contains("col-sm-4", column.ClassList));
         });
     }
 
@@ -149,15 +170,18 @@ public class ServiceLineItemFormTests : VehicleTestContext
     }
 
     [Fact]
-    public void Add_FooterHoldsSaveLineItemWithAnIconAndCancelEachWithATitle()
+    public void Add_ActionsSitBelowTheCard_SaveWithAnIconAndCancelEachWithATitle()
     {
         var cut = RenderCreate();
 
         cut.WaitForAssertion(() =>
         {
-            var footer = cut.Find("section.card > .card-footer");
+            var card = cut.Find("section.card");
+            Assert.Empty(card.QuerySelectorAll("button[type='submit'][title], a.btn:not([data-pricing-choice])"));
+            var footer = cut.Find("[data-testid='form-actions']");
+            Assert.Same(card.ParentElement, footer.ParentElement);
             var save = footer.QuerySelector("button[type='submit']")!;
-            Assert.Equal("Save Line Item", save.TextContent.Trim());
+            Assert.Equal("Save", save.TextContent.Trim());
             Assert.Equal("Save this line item", save.GetAttribute("title"));
             Assert.NotNull(save.QuerySelector("svg.bi[aria-hidden='true']"));
 
@@ -176,20 +200,21 @@ public class ServiceLineItemFormTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             var visible = Assert.Single(cut.FindAll("section.card [data-pricing-section]:not([hidden])"));
-            Assert.Equal("Labor and Parts", visible.QuerySelector("h3")!.TextContent.Trim());
+            Assert.Equal("Labor", visible.QuerySelector("h3")!.TextContent.Trim());
             Assert.NotNull(visible.QuerySelector("input#labor-hours"));
+            Assert.DoesNotContain("Labor and Parts", visible.QuerySelector("h3")!.TextContent);
         });
     }
 
     [Fact]
-    public void Add_ShowsThreeBlankPartRowsWithLabels()
+    public void Add_ShowsOneBlankPartRowWithLabelsAndAnAddButton()
     {
         var cut = RenderCreate();
 
         cut.WaitForAssertion(() =>
         {
-            Assert.Equal(3, cut.FindAll("[data-testid='part-row']").Count);
-            for (var row = 0; row < 3; row++)
+            Assert.Single(cut.FindAll("[data-testid='part-row']"));
+            for (var row = 0; row < 1; row++)
             {
                 Assert.Equal("100", cut.Find($"input#part-{row}-name").GetAttribute("maxlength"));
                 Assert.Equal("Part name", cut.Find($"label[for='part-{row}-name']").TextContent.Trim());
@@ -201,7 +226,51 @@ public class ServiceLineItemFormTests : VehicleTestContext
                 Assert.Equal($"Part {row + 1} price per part", cut.Find($"input#part-{row}-unit-price").GetAttribute("aria-label"));
             }
 
-            Assert.Equal("Add more part rows", cut.Find("button[name='add-part-rows']").TextContent.Trim());
+            Assert.Equal("+ Add another part row", cut.Find("button[name='add-part-rows']").TextContent.Trim());
+        });
+    }
+
+    [Fact]
+    public void Add_LaborAndPartsEachHaveAMutedParagraph_AndTheTotalLaborFieldHasNoHelperText()
+    {
+        var cut = RenderCreate();
+
+        cut.WaitForAssertion(() =>
+        {
+            var section = cut.Find("[data-pricing-section='Breakdown']");
+            var labor = section.QuerySelector("h3")!;
+            Assert.Equal("Calculated from hours and rate. Leave both empty to enter the total yourself.", labor.NextElementSibling!.TextContent.Trim());
+            Assert.Contains("text-body-secondary", labor.NextElementSibling.ClassList);
+
+            var parts = section.QuerySelector("h4")!;
+            Assert.Equal("Parts", parts.TextContent.Trim());
+            Assert.Equal("P", parts.NextElementSibling!.TagName);
+            Assert.Contains("text-body-secondary", parts.NextElementSibling.ClassList);
+            Assert.Equal("Enter the information for each individual part. Add additional parts as necessary.", parts.NextElementSibling.TextContent.Trim());
+
+            Assert.Empty(cut.Find("input#labor-cost").ParentElement!.ParentElement!.QuerySelectorAll(".form-text"));
+        });
+    }
+
+    [Fact]
+    public void Add_ASinglePartRowThatIsBlankHasNoRemoveButton_AndAFilledOneDoes()
+    {
+        var cut = RenderCreate();
+
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll("button[name='remove-part-row']")));
+    }
+
+    [Fact]
+    public void Add_EnterInAFieldSubmitsSave_NotARowButton()
+    {
+        var cut = RenderCreate();
+
+        cut.WaitForAssertion(() =>
+        {
+            var first = cut.Find("form[data-testid='line-item-form'] button[type='submit']");
+            Assert.Equal("default-submit", first.GetAttribute("data-testid"));
+            Assert.Null(first.GetAttribute("name"));
+            Assert.Equal("true", first.GetAttribute("aria-hidden"));
         });
     }
 
@@ -248,9 +317,9 @@ public class ServiceLineItemFormTests : VehicleTestContext
         cut.Find("input#flat-cost").Change("99");
         cut.Find("input#labor-hours").Change("1.5");
         cut.Find("input#labor-rate").Change("90");
-        cut.Find("input#part-1-name").Change("Oil filter");
-        cut.Find("input#part-1-quantity").Change("2");
-        cut.Find("input#part-1-unit-price").Change("12.5");
+        cut.Find("input#part-0-name").Change("Oil filter");
+        cut.Find("input#part-0-quantity").Change("2");
+        cut.Find("input#part-0-unit-price").Change("12.5");
 
         cut.Find("form[data-testid='line-item-form']").Submit();
 
@@ -355,11 +424,10 @@ public class ServiceLineItemFormTests : VehicleTestContext
             ("Description", "Description is required."),
             ("Pricing", "Enter a flat cost, or labor hours and a rate, or at least one part."),
             ("LaborRate", "Hourly rate is required with labor hours."),
-            ("Parts[1].Quantity", "Quantity must be between 0.01 and 9,999.99.")));
+            ("Parts[0].Quantity", "Quantity must be between 0.01 and 9,999.99.")));
         cut.WaitForElement("input#pricing-breakdown").Change("Breakdown");
         cut.Find("input#labor-hours").Change("1");
-        cut.Find("input#part-0-name").Change("Oil");
-        cut.Find("input#part-1-name").Change("Filter");
+        cut.Find("input#part-0-name").Change("Filter");
 
         cut.Find("form[data-testid='line-item-form']").Submit();
 
@@ -368,10 +436,10 @@ public class ServiceLineItemFormTests : VehicleTestContext
             Assert.Contains("Description is required.", cut.Find("#description-error").TextContent);
             Assert.Contains("Enter a flat cost", cut.Find("#pricing-error").TextContent);
             Assert.Contains("Hourly rate is required", cut.Find("#laborrate-error").TextContent);
-            Assert.Equal("Part 2: Quantity must be between 0.01 and 9,999.99.", cut.Find("#part-1-error").TextContent.Trim());
+            Assert.Equal("Part 1: Quantity must be between 0.01 and 9,999.99.", cut.Find("#part-0-error").TextContent.Trim());
             Assert.Equal("laborrate-error", cut.Find("input#labor-rate").GetAttribute("aria-describedby"));
             Assert.Equal("1", cut.Find("input#labor-hours").GetAttribute("value"));
-            Assert.Equal("Filter", cut.Find("input#part-1-name").GetAttribute("value"));
+            Assert.Equal("Filter", cut.Find("input#part-0-name").GetAttribute("value"));
             Assert.True(cut.Find("input#pricing-breakdown").HasAttribute("checked"));
         });
     }
@@ -405,7 +473,7 @@ public class ServiceLineItemFormTests : VehicleTestContext
     }
 
     [Fact]
-    public void AddMoreRows_AddsThreeBlankRowsKeepsTheValuesAndSavesNothing()
+    public void AddAnotherRow_AddsOneBlankRowKeepsTheValuesAndSavesNothing()
     {
         var cut = RenderCreate(httpContext: AddRowsPost());
         cut.WaitForElement("input#line-description").Change("Oil change");
@@ -415,7 +483,7 @@ public class ServiceLineItemFormTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            Assert.Equal(6, cut.FindAll("[data-testid='part-row']").Count);
+            Assert.Equal(2, cut.FindAll("[data-testid='part-row']").Count);
             Assert.Equal("Oil change", cut.Find("input#line-description").GetAttribute("value"));
             Assert.Equal("Oil", cut.Find("input#part-0-name").GetAttribute("value"));
         });
@@ -423,9 +491,103 @@ public class ServiceLineItemFormTests : VehicleTestContext
     }
 
     [Fact]
+    public void RemovingARow_DropsThatRowKeepsTheOthersAndSavesNothing()
+    {
+        var line = new ServiceLineItemDto
+        {
+            Id = Guid.NewGuid(),
+            Description = "Oil change",
+            LaborHours = 1m,
+            LaborRate = 1m,
+            Parts =
+            [
+                new ServicePartDto { Name = "Oil filter", Quantity = 1m, UnitPrice = 12.50m, TotalPrice = 12.50m },
+                new ServicePartDto { Name = "Oil", Quantity = 5m, UnitPrice = 8.25m, TotalPrice = 41.25m },
+            ],
+            TotalCost = 54.75m,
+        };
+        var record = RecordDetail(vehicleId, recordId, lineItems: [line]);
+        RegisterApi(request => Respond(request, record, null));
+        var cut = Render<ServiceLineItemEdit>(parameters => parameters
+            .Add(page => page.VehicleId, vehicleId)
+            .Add(page => page.RecordId, recordId)
+            .Add(page => page.LineItemId, line.Id)
+            .AddCascadingValue<HttpContext>(RemoveRowPost(0)));
+        cut.WaitForElement("form[data-testid='line-item-form']");
+
+        cut.Find("form[data-testid='line-item-form']").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Single(cut.FindAll("[data-testid='part-row']"));
+            Assert.Equal("Oil", cut.Find("input#part-0-name").GetAttribute("value"));
+        });
+        Assert.DoesNotContain(Requests, request => request.Method == HttpMethod.Post);
+    }
+
+    [Fact]
+    public void Edit_EveryPartRowOfAMultiPartLineHasARemoveButtonWithAnAccessibleName()
+    {
+        var line = new ServiceLineItemDto
+        {
+            Id = Guid.NewGuid(),
+            Description = "Oil change",
+            LaborHours = 1m,
+            LaborRate = 1m,
+            Parts =
+            [
+                new ServicePartDto { Name = "Oil filter", Quantity = 1m, UnitPrice = 12.50m, TotalPrice = 12.50m },
+                new ServicePartDto { Name = "Oil", Quantity = 5m, UnitPrice = 8.25m, TotalPrice = 41.25m },
+            ],
+            TotalCost = 54.75m,
+        };
+
+        var cut = RenderEdit(line);
+
+        cut.WaitForAssertion(() =>
+        {
+            var buttons = cut.FindAll("[data-testid='part-row'] button[name='remove-part-row']");
+            Assert.Equal(["0", "1"], buttons.Select(button => button.GetAttribute("value")));
+            Assert.Equal(["Remove part 1", "Remove part 2"], buttons.Select(button => button.GetAttribute("aria-label")));
+            Assert.All(buttons, button => Assert.True(button.HasAttribute("formnovalidate")));
+        });
+    }
+
+    [Fact]
+    public void RemovingTheLastRow_LeavesOneBlankRow()
+    {
+        var line = new ServiceLineItemDto
+        {
+            Id = Guid.NewGuid(),
+            Description = "Oil change",
+            LaborHours = 1m,
+            LaborRate = 1m,
+            Parts = [new ServicePartDto { Name = "Oil filter", Quantity = 1m, UnitPrice = 12.50m, TotalPrice = 12.50m }],
+            TotalCost = 13.50m,
+        };
+        var record = RecordDetail(vehicleId, recordId, lineItems: [line]);
+        RegisterApi(request => Respond(request, record, null));
+        var cut = Render<ServiceLineItemEdit>(parameters => parameters
+            .Add(page => page.VehicleId, vehicleId)
+            .Add(page => page.RecordId, recordId)
+            .Add(page => page.LineItemId, line.Id)
+            .AddCascadingValue<HttpContext>(RemoveRowPost(0)));
+        cut.WaitForElement("form[data-testid='line-item-form']");
+
+        cut.Find("form[data-testid='line-item-form']").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Single(cut.FindAll("[data-testid='part-row']"));
+            Assert.Equal(string.Empty, cut.Find("input#part-0-name").GetAttribute("value") ?? string.Empty);
+            Assert.Empty(cut.FindAll("button[name='remove-part-row']"));
+        });
+    }
+
+    [Fact]
     public void ThePartRowsNeverGoBeyond25()
     {
-        var parts = Enumerable.Range(0, 23).Select(i => new ServicePartDto { Name = $"P{i}", Quantity = 1m, UnitPrice = 1m, TotalPrice = 1m }).ToList();
+        var parts = Enumerable.Range(0, 25).Select(i => new ServicePartDto { Name = $"P{i}", Quantity = 1m, UnitPrice = 1m, TotalPrice = 1m }).ToList();
         var line = new ServiceLineItemDto { Id = Guid.NewGuid(), Description = "Many", Parts = parts, LaborHours = 1m, LaborRate = 1m, TotalCost = 24m };
         var record = RecordDetail(vehicleId, recordId, lineItems: [line]);
         RegisterApi(request => Respond(request, record, null));
@@ -454,12 +616,12 @@ public class ServiceLineItemFormTests : VehicleTestContext
             Assert.Equal("Tire rotation", cut.Find("input#line-description").GetAttribute("value"));
             Assert.True(cut.Find("input#pricing-flat").HasAttribute("checked"));
             Assert.Equal("40", cut.Find("input#flat-cost").GetAttribute("value"));
-            Assert.Equal(3, cut.FindAll("[data-testid='part-row']").Count);
+            Assert.Single(cut.FindAll("[data-testid='part-row']"));
         });
     }
 
     [Fact]
-    public void Edit_ABreakdownLine_SelectsLaborAndPartsAndAddsThreeBlankRows()
+    public void Edit_ABreakdownLine_SelectsLaborAndPartsAndShowsOnlyItsPartRows()
     {
         var line = new ServiceLineItemDto
         {
@@ -482,10 +644,10 @@ public class ServiceLineItemFormTests : VehicleTestContext
             Assert.True(cut.Find("input#pricing-breakdown").HasAttribute("checked"));
             Assert.Equal("1.5", cut.Find("input#labor-hours").GetAttribute("value"));
             Assert.Equal("90", cut.Find("input#labor-rate").GetAttribute("value"));
-            Assert.Equal(5, cut.FindAll("[data-testid='part-row']").Count);
+            Assert.Equal(2, cut.FindAll("[data-testid='part-row']").Count);
             Assert.Equal("Oil filter", cut.Find("input#part-0-name").GetAttribute("value"));
             Assert.Equal("8.25", cut.Find("input#part-1-unit-price").GetAttribute("value"));
-            Assert.Equal(string.Empty, cut.Find("input#part-2-name").GetAttribute("value") ?? string.Empty);
+            Assert.Empty(cut.FindAll("input#part-2-name"));
         });
     }
 

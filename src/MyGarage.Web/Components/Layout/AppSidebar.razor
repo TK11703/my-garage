@@ -46,14 +46,17 @@
 
     <nav class="mg-sidebar-nav" aria-label="Primary">
         <ul class="mg-nav-list mg-nav-start" aria-label="Start">
-            <li>
-                @{ var homeActive = IsActive(NavMenu.Home); }
-                <a class="mg-nav-link @(homeActive ? "active" : null)" href="@NavMenu.Home.Href" title="@NavMenu.Home.Label"
-                   aria-current="@(homeActive ? "page" : null)">
-                    <Icon Name="NavMenu.Home.Icon" Size="18" />
-                    <span class="mg-nav-label">@NavMenu.Home.Label</span>
-                </a>
-            </li>
+            @foreach (var start in NavMenu.Start)
+            {
+                var startActive = IsActive(start);
+                <li>
+                    <a class="mg-nav-link @(startActive ? "active" : null)" href="@start.Href" title="@start.Label"
+                       aria-current="@(startActive ? "page" : null)">
+                        <Icon Name="start.Icon" Size="18" />
+                        <span class="mg-nav-label">@start.Label</span>
+                    </a>
+                </li>
+            }
         </ul>
         @foreach (var group in NavMenu.Groups)
         {

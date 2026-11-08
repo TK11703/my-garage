@@ -6,6 +6,8 @@ using MyGarage.Web.FuelEnergyEntries;
 using MyGarage.Web.Inspections;
 using MyGarage.Web.Insurance;
 using MyGarage.Web.Registrations;
+using MyGarage.Web.Reminders;
+using MyGarage.Web.Dashboard;
 using MyGarage.Web.Lookups;
 using MyGarage.Web.Notifications;
 using MyGarage.Web.ServiceRecords;
@@ -58,6 +60,10 @@ builder.Services.AddHttpClient<FuelEnergyEntriesApiClient>(client => client.Base
 builder.Services.AddHttpClient<InspectionsApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
     .AddHttpMessageHandler<ApiAccessTokenHandler>();
 builder.Services.AddHttpClient<RegistrationsApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
+    .AddHttpMessageHandler<ApiAccessTokenHandler>();
+builder.Services.AddHttpClient<RemindersApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
+    .AddHttpMessageHandler<ApiAccessTokenHandler>();
+builder.Services.AddHttpClient<DashboardApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
     .AddHttpMessageHandler<ApiAccessTokenHandler>();
 builder.Services.AddHttpClient<InsuranceApiClient>(client => client.BaseAddress = new Uri("https+http://api"))
     .AddHttpMessageHandler<ApiAccessTokenHandler>();

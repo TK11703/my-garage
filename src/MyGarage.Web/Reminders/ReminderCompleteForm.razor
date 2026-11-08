@@ -1,0 +1,88 @@
+<section class="card border-0 shadow-sm mb-4" aria-labelledby="complete-heading" data-testid="mark-done">
+    <div class="card-body">
+        <h2 id="complete-heading" class="h5">Mark done</h2>
+        <p class="form-text">Record when it was done. The reminder starts over from these values and shows its new next due point.</p>
+        <EditForm EditContext="editContext" id="complete-reminder" FormName="complete-reminder" OnValidSubmit="OnSubmit" class="vstack gap-3">
+            <div class="row g-3">
+                <div class="col-sm-6 col-lg-4">
+                    <div class="form-floating">
+                        <InputDate id="done-on" TValue="DateOnly?" class="form-control" @bind-Value="Model.DoneOn" placeholder=" "
+                                   aria-required="true" aria-describedby="@Described("DoneOn")" />
+                        <label for="done-on">Done on<span class="text-danger" aria-hidden="true"> *</span></label>
+                    </div>
+                    <ValidationMessage For="@(() => Model.DoneOn)" id="doneon-error" class="invalid-feedback d-block" />
+                </div>
+                <div class="col-sm-6 col-lg-4">
+                    <div class="form-floating">
+                        <InputNumber id="done-mileage" TValue="int?" class="form-control" @bind-Value="Model.Mileage" min="0" max="9999999" step="1" inputmode="numeric" placeholder=" "
+                                     aria-required="@(MileageRequired ? "true" : null)" aria-describedby="@Described("Mileage")" />
+                        <label for="done-mileage">
+                            Mileage
+                            @if (MileageRequired)
+                            {
+                                <span class="text-danger" aria-hidden="true"> *</span>
+                            }
+                        </label>
+                    </div>
+                    <ValidationMessage For="@(() => Model.Mileage)" id="mileage-error" class="invalid-feedback d-block" />
+                </div>
+            </div>
+            <div class="form-check">
+                <InputCheckbox id="update-vehicle-mileage" class="form-check-input" @bind-Value="Model.UpdateVehicleMileage" />
+                <label class="form-check-label" for="update-vehicle-mileage">Also update the vehicle's mileage</label>
+                <div class="form-text">Only raises the mileage when this one is higher; it never lowers it.</div>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2" data-busy-text="Saving..." title="Mark this reminder done">
+                    <Icon Name="IconName.Save" /> Mark done
+                </button>
+            </div>
+        </EditForm>
+    </div>
+</section>
+
+@code {
+    private static readonly string[] Fields = ["DoneOn", "Mileage"];
+
+    private EditContext editContext = default!;
+    private ValidationMessageStore messages = default!;
+    private ReminderCompleteFormModel? contextModel;
+
+    [Parameter, EditorRequired]
+    public ReminderCompleteFormModel Model { get; set; } = default!;
+
+    // True when the reminder repeats by miles, so the mileage is needed.
+    [Parameter]
+    public bool MileageRequired { get; set; }
+
+    // Validation errors returned by the API, keyed by property name.
+    [Parameter]
+    public IReadOnlyDictionary<string, string[]> Errors { get; set; } = new Dictionary<string, string[]>();
+
+    [Parameter, EditorRequired]
+    public EventCallback OnSubmit { get; set; }
+
+    private string? Described(string field) => VehicleFormFields.Described(Errors, field);
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(contextModel, Model))
+        {
+            contextModel = Model;
+            editContext = new EditContext(Model);
+            messages = new ValidationMessageStore(editContext);
+            editContext.OnValidationRequested += (_, _) => messages.Clear();
+        }
+
+        messages.Clear();
+        foreach (var field in Fields)
+        {
+            if (Errors.FirstOrDefault(pair => string.Equals(pair.Key, field, StringComparison.OrdinalIgnoreCase)).Value is { Length: > 0 } fieldErrors)
+            {
+                messages.Add(editContext.Field(field), fieldErrors);
+            }
+        }
+
+        editContext.NotifyValidationStateChanged();
+    }
+}

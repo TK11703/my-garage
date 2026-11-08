@@ -70,6 +70,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
                 ["EmailIntake:Processing:Enabled"] = "false",
                 // Tests call DraftExpiryService.RunOnceAsync themselves so a background run never expires their seeded drafts.
                 ["Drafts:Expiry:Enabled"] = "false",
+                // Tests call ReminderSweepService.RunOnceAsync themselves so a background run never raises notifications they did not expect.
+                ["Reminders:Sweep:Enabled"] = "false",
                 // Many tests read stickers as the same user inside one minute; the rate-limit tests set their own limit.
                 ["StickerImport:RequestsPerMinute"] = "1000",
                 ["DraftUploads:RequestsPerMinute"] = "1000",

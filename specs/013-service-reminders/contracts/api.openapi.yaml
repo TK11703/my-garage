@@ -1,0 +1,392 @@
+openapi: 3.0.3
+info:
+  title: My Garage - service reminders and dashboard (feature 013)
+  version: 1.0.0
+  description: >
+    New reminders operations, the garage-wide reminders list, the dashboard, and the notification schema change.
+    Every other operation is unchanged. All operations are user endpoints: they require a signed-in user token,
+    refuse app-only tokens, take the owner only from the token, and answer 404 for a vehicle or reminder that is
+    not the caller's. Errors are RFC 9457 problem details. Status, next due values, and remaining amounts are
+    computed by the server on every read and are never accepted in a request.
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+paths:
+  /api/vehicles/{vehicleId}/reminders:
+    parameters:
+      - $ref: '#/components/parameters/VehicleId'
+    get:
+      tags: [Reminders]
+      operationId: ListReminders
+      summary: The vehicle's reminders, most urgent first.
+      description: >
+        Order: Overdue, Due soon, Mileage needed, Upcoming, Paused; within a group by earliest next due date,
+        then fewest miles remaining, then name. Not paged.
+      responses:
+        '200':
+          description: The reminders (possibly empty).
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Reminder' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [Reminders]
+      operationId: CreateReminder
+      summary: Add a reminder to the vehicle.
+      description: The new reminder is evaluated at once; a reminder that is already Due soon or Overdue raises one notification.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReminderRequest' }
+      responses:
+        '201':
+          description: Created.
+          headers:
+            Location: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Reminder' }
+        '400': { $ref: '#/components/responses/ValidationProblem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/vehicles/{vehicleId}/reminders/{reminderId}:
+    parameters:
+      - $ref: '#/components/parameters/VehicleId'
+      - $ref: '#/components/parameters/ReminderId'
+    get:
+      tags: [Reminders]
+      operationId: GetReminder
+      summary: One reminder with its completion history, most recent first.
+      responses:
+        '200':
+          description: The reminder.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReminderDetail' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [Reminders]
+      operationId: UpdateReminder
+      summary: Change a reminder's name, intervals, or last-done values.
+      description: Recalculates the next due point, resets the notified state to match, and evaluates the reminder.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReminderRequest' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Reminder' }
+        '400': { $ref: '#/components/responses/ValidationProblem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [Reminders]
+      operationId: DeleteReminder
+      summary: Delete the reminder, its history, and its notifications.
+      responses:
+        '204': { description: Deleted. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/vehicles/{vehicleId}/reminders/{reminderId}/complete:
+    parameters:
+      - $ref: '#/components/parameters/VehicleId'
+      - $ref: '#/components/parameters/ReminderId'
+    post:
+      tags: [Reminders]
+      operationId: CompleteReminder
+      summary: Mark the reminder done and roll it forward.
+      description: >
+        In one transaction: adds a completion, sets the last-done date and mileage, clears the notified state, and
+        marks the reminder's notifications read. When updateVehicleMileage is true and mileage is above the
+        vehicle's current mileage, the vehicle's latest odometer reading is raised to mileage; it is never lowered
+        and never changed otherwise.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CompleteReminderRequest' }
+      responses:
+        '200':
+          description: The reminder after rolling forward, with its history.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReminderDetail' }
+        '400': { $ref: '#/components/responses/ValidationProblem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/vehicles/{vehicleId}/reminders/{reminderId}/pause:
+    parameters:
+      - $ref: '#/components/parameters/VehicleId'
+      - $ref: '#/components/parameters/ReminderId'
+    post:
+      tags: [Reminders]
+      operationId: PauseReminder
+      summary: Pause the reminder; it shows Paused, sends nothing, and keeps its settings and history.
+      responses:
+        '200':
+          description: Paused (also when it already was).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Reminder' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/vehicles/{vehicleId}/reminders/{reminderId}/resume:
+    parameters:
+      - $ref: '#/components/parameters/VehicleId'
+      - $ref: '#/components/parameters/ReminderId'
+    post:
+      tags: [Reminders]
+      operationId: ResumeReminder
+      summary: Resume the reminder; its status is recomputed and a newly due state is notified.
+      responses:
+        '200':
+          description: Resumed (also when it already was active).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Reminder' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/reminders:
+    get:
+      tags: [Reminders]
+      operationId: ListGarageReminders
+      summary: Reminders across all of the caller's vehicles, most urgent first, each carrying its vehicle.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Only reminders in this status. Omit for all.
+          schema: { $ref: '#/components/schemas/ReminderStatus' }
+      responses:
+        '200':
+          description: The reminders (possibly empty).
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Reminder' }
+        '400': { $ref: '#/components/responses/ValidationProblem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/dashboard:
+    get:
+      tags: [Dashboard]
+      operationId: GetDashboard
+      summary: The caller's garage at a glance.
+      description: >
+        Only information the system already holds. Fields are added over time; clients ignore fields they do not know.
+      responses:
+        '200':
+          description: The dashboard figures.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Dashboard' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    VehicleId:
+      name: vehicleId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ReminderId:
+      name: reminderId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    Problem:
+      description: RFC 9457 problem details.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    ValidationProblem:
+      description: Validation failed; errors are keyed by field name.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ValidationProblem' }
+  schemas:
+    Problem:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+    ValidationProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items: { type: string }
+    ReminderStatus:
+      type: string
+      enum: [upcoming, due_soon, overdue, paused, mileage_needed]
+    TimeInterval:
+      type: object
+      required: [value, unit]
+      properties:
+        value: { type: integer, minimum: 1, maximum: 600, description: 'Months 1 to 600 or years 1 to 50.' }
+        unit: { type: string, enum: [months, years] }
+    ReminderRequest:
+      type: object
+      required: [name, lastDoneOn]
+      description: At least one of intervalMiles and intervalTime is required.
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        intervalMiles: { type: integer, nullable: true, minimum: 1, maximum: 999999 }
+        intervalTime:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/TimeInterval'
+        lastDoneOn: { type: string, format: date, description: 'Not in the future; not before 1900-01-01.' }
+        lastDoneMileage:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 9999999
+          description: Required when intervalMiles is present.
+    CompleteReminderRequest:
+      type: object
+      required: [doneOn]
+      properties:
+        doneOn: { type: string, format: date, description: 'Not in the future; not before 1900-01-01.' }
+        mileage:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 9999999
+          description: Required when the reminder has a distance interval; not below its current last-done mileage.
+        updateVehicleMileage:
+          type: boolean
+          default: false
+          description: Honored only when mileage is above the vehicle's current mileage.
+    Reminder:
+      type: object
+      required: [id, vehicleId, vehicleName, name, lastDoneOn, isPaused, status]
+      properties:
+        id: { type: string, format: uuid }
+        vehicleId: { type: string, format: uuid }
+        vehicleName: { type: string }
+        name: { type: string }
+        intervalMiles: { type: integer, nullable: true }
+        intervalTime:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/TimeInterval'
+        lastDoneOn: { type: string, format: date }
+        lastDoneMileage: { type: integer, nullable: true }
+        isPaused: { type: boolean }
+        status: { $ref: '#/components/schemas/ReminderStatus' }
+        nextDueMileage: { type: integer, nullable: true, description: 'Null without a distance interval.' }
+        nextDueDate: { type: string, format: date, nullable: true, description: 'Null without a time interval.' }
+        milesRemaining: { type: integer, nullable: true, description: 'Negative when overdue; null without a distance interval or a current mileage.' }
+        daysRemaining: { type: integer, nullable: true, description: 'Negative when overdue; null without a time interval.' }
+    ReminderCompletion:
+      type: object
+      required: [id, doneOn]
+      properties:
+        id: { type: string, format: uuid }
+        doneOn: { type: string, format: date }
+        mileage: { type: integer, nullable: true }
+    ReminderDetail:
+      allOf:
+        - $ref: '#/components/schemas/Reminder'
+        - type: object
+          required: [completions]
+          properties:
+            completions:
+              type: array
+              description: Most recent first.
+              items: { $ref: '#/components/schemas/ReminderCompletion' }
+    Dashboard:
+      type: object
+      required: [vehicles, serviceRecords, fuelEnergyEntries, draftsAwaitingReview, remindersOverdue, remindersDueSoon, attention]
+      properties:
+        vehicles: { type: integer, minimum: 0 }
+        serviceRecords: { type: integer, minimum: 0 }
+        fuelEnergyEntries: { type: integer, minimum: 0 }
+        draftsAwaitingReview: { type: integer, minimum: 0 }
+        remindersOverdue: { type: integer, minimum: 0 }
+        remindersDueSoon: { type: integer, minimum: 0 }
+        attention:
+          type: array
+          maxItems: 5
+          description: Overdue first, then Due soon; same order as the garage list.
+          items: { $ref: '#/components/schemas/Reminder' }
+        fuelEnergySpend:
+          type: array
+          minItems: 12
+          maxItems: 12
+          description: Fuel and charging cost per calendar month for the last 12 months, oldest first, zero for months with no entries. Summed across the caller's vehicles.
+          items:
+            type: object
+            required: [month, fuel, charging]
+            properties:
+              month: { type: string, format: date, description: First day of the month. }
+              fuel: { type: number, minimum: 0, description: Total cost of fuel entries. }
+              charging: { type: number, minimum: 0, description: Total cost of charging (energy) entries. }
+              vehicles:
+                type: array
+                description: Each vehicle with a cost that month, so the clients can stack the bars by vehicle. The month's fuel and charging are the sums of these.
+                items:
+                  type: object
+                  required: [vehicleId, vehicleName, fuel, charging]
+                  properties:
+                    vehicleId: { type: string, format: uuid }
+                    vehicleName: { type: string, description: Year, make, and model. }
+                    fuel: { type: number, minimum: 0 }
+                    charging: { type: number, minimum: 0 }
+        recentActivity:
+          type: array
+          maxItems: 10
+          description: The last 10 journal entries across the caller's vehicles, newest first.
+          items:
+            type: object
+            required: [noteId, vehicleId, vehicleName, excerpt, createdAt]
+            properties:
+              noteId: { type: string, format: uuid }
+              vehicleId: { type: string, format: uuid }
+              vehicleName: { type: string }
+              vehicleMainImageId: { type: string, format: uuid, nullable: true }
+              category: { type: string, nullable: true }
+              excerpt: { type: string, maxLength: 120, description: The note on one line, cut with an ellipsis when long. }
+              createdAt: { type: string, format: date-time }
+    Notification:
+      description: Changed schema of an existing notification item; only the additions are shown.
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [draft_ready, reminder_due_soon, reminder_overdue]
+        draftId: { type: string, format: uuid, nullable: true, description: 'Set for draft_ready only.' }
+        reminderId: { type: string, format: uuid, nullable: true, description: 'Set for reminder kinds only.' }
+        vehicleId: { type: string, format: uuid, nullable: true, description: 'Set for reminder kinds only.' }

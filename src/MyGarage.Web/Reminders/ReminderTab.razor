@@ -1,0 +1,68 @@
+@inject RemindersApiClient Api
+
+<div class="vstack gap-3" data-testid="reminders-view">
+    @if (SavedNotice is not null)
+    {
+        <div class="alert alert-success mb-0" role="status" data-testid="reminder-saved">@SavedNotice</div>
+    }
+
+    <section class="card border-0 shadow-sm" aria-labelledby="vehicle-reminders-heading">
+        <div class="card-body">
+            <h2 id="vehicle-reminders-heading" class="h5 card-title mb-1">Reminders</h2>
+            <p class="text-body-secondary">Recurring items for this vehicle, by miles, by time, or both</p>
+
+            @if (failure is not null)
+            {
+                <ApiFailureAlert Failure="failure.Value" ReturnUrl="@($"/vehicles/{VehicleId}?tab=reminders")"
+                                 NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+            }
+            else if (reminders is null)
+            {
+                <p class="text-body-secondary mb-0">Loading reminders...</p>
+            }
+            else if (reminders.Count == 0)
+            {
+                <div class="alert alert-info d-flex align-items-center gap-2 mb-0" role="status" data-testid="no-reminders">
+                    <Icon Name="IconName.InfoCircle" Size="20" />
+                    <span>No reminders yet. Add one for things like oil changes, inspections, and registrations.</span>
+                </div>
+            }
+            else
+            {
+                <ul class="list-group list-group-flush" data-testid="reminder-list">
+                    @foreach (var reminder in reminders)
+                    {
+                        <ReminderDueRow Reminder="reminder" />
+                    }
+                </ul>
+            }
+        </div>
+    </section>
+</div>
+
+@code {
+    private IReadOnlyList<ReminderDto>? reminders;
+    private GarageApiFailure? failure;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    // The query value set after a save, for the notice at the top.
+    [Parameter]
+    public string? Saved { get; set; }
+
+    private string? SavedNotice => ReminderMessages.Saved(Saved);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await Api.ListAsync(VehicleId);
+            reminders = result.Value ?? [];
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+}

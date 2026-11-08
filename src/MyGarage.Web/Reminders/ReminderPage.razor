@@ -1,0 +1,85 @@
+@* The frame shared by the reminder pages: header, trail, and the failure and not-found states. *@
+@if (Failure is not null)
+{
+    <PageHeader Title="@Title" Trail="@(new[] { new Crumb("Vehicles") })" />
+
+    <ApiFailureAlert Failure="Failure.Value" ReturnUrl="@ReturnUrl"
+                     NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+}
+else if (NotFound)
+{
+    <PageHeader Title="@NotFoundTitle" Trail="@(new[] { new Crumb("Vehicles") })" />
+
+    <EmptyState Variant="EmptyStateVariant.NoMatch" Message="@NotFoundMessage"
+                ActionText="Back to reminders" ActionHref="@ReminderLinks.Tab(VehicleId)" />
+}
+else if (VehicleName is not null)
+{
+    <PageHeader Title="@Title" Trail="@Crumbs()" Actions="Actions" />
+
+    <div class="row">
+        <div class="@ColumnClass">
+            @ChildContent
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    // Null until the vehicle has loaded.
+    [Parameter]
+    public string? VehicleName { get; set; }
+
+    // Crumbs between the vehicle and the page title, for example the reminder an edit page belongs to.
+    [Parameter]
+    public IReadOnlyList<Crumb>? Between { get; set; }
+
+    [Parameter]
+    public GarageApiFailure? Failure { get; set; }
+
+    // App-relative page to come back to after signing in again.
+    [Parameter]
+    public string ReturnUrl { get; set; } = "/";
+
+    [Parameter]
+    public bool NotFound { get; set; }
+
+    [Parameter]
+    public string NotFoundTitle { get; set; } = "Not found";
+
+    [Parameter]
+    public string NotFoundMessage { get; set; } = "This could not be found.";
+
+    [Parameter]
+    public string ColumnClass { get; set; } = "col-lg-10";
+
+    [Parameter]
+    public RenderFragment? Actions { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private Crumb[] Crumbs() =>
+    [
+        new Crumb("Vehicles", "/vehicles"),
+        new Crumb(VehicleName!, ReminderLinks.Tab(VehicleId)),
+        .. Between ?? [],
+        new Crumb(Title),
+    ];
+
+    protected override void OnParametersSet()
+    {
+        if (NotFound && HttpContext is { Response.HasStarted: false })
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+        }
+    }
+}

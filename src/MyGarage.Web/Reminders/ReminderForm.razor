@@ -1,0 +1,149 @@
+<MaintenanceFormCard Title="Reminder" FormId="@FormName" SubmitText="@SubmitText" SubmitTitle="@SubmitTitle" CancelHref="@CancelHref">
+    @Header
+    <EditForm EditContext="editContext" id="@FormName" FormName="@FormName" OnValidSubmit="OnSubmit" class="vstack gap-3">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="form-floating">
+                    <InputText id="name" class="form-control" @bind-Value="Model.Name" maxlength="100" placeholder=" "
+                               aria-required="true" aria-describedby="@Described("Name")" />
+                    <label for="name">Name<span class="text-danger" aria-hidden="true"> *</span></label>
+                </div>
+                <ValidationMessage For="@(() => Model.Name)" id="name-error" class="invalid-feedback d-block" />
+            </div>
+        </div>
+
+        <fieldset>
+            <legend class="h6">How often it repeats</legend>
+            <p class="form-text">Set miles, months or years, or both; it is due when whichever comes first.</p>
+            <div class="row g-3">
+                <div class="col-sm-6 col-lg-4">
+                    <div class="form-floating">
+                        <InputNumber id="interval-miles" TValue="int?" class="form-control" @bind-Value="Model.IntervalMiles" min="1" max="999999" step="1" inputmode="numeric" placeholder=" "
+                                     aria-describedby="@Described("IntervalMiles")" />
+                        <label for="interval-miles">Repeat every (miles)</label>
+                    </div>
+                    <ValidationMessage For="@(() => Model.IntervalMiles)" id="intervalmiles-error" class="invalid-feedback d-block" />
+                </div>
+                <div class="col-sm-6 col-lg-4">
+                    <div class="form-floating">
+                        <InputNumber id="interval-time-value" TValue="int?" class="form-control" @bind-Value="Model.TimeValue" min="1" max="600" step="1" inputmode="numeric" placeholder=" "
+                                     aria-describedby="@Described("TimeValue")" />
+                        <label for="interval-time-value">Repeat every (months or years)</label>
+                    </div>
+                    <ValidationMessage For="@(() => Model.TimeValue)" id="timevalue-error" class="invalid-feedback d-block" />
+                </div>
+                <div class="col-sm-6 col-lg-4">
+                    <div class="form-floating">
+                        <InputSelect id="interval-time-unit" TValue="string" class="form-select" @bind-Value="Model.TimeUnitText">
+                            <option value="months">Months</option>
+                            <option value="years">Years</option>
+                        </InputSelect>
+                        <label for="interval-time-unit">Unit</label>
+                    </div>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend class="h6">When it was last done</legend>
+            <div class="row g-3">
+                <div class="col-sm-6 col-lg-4">
+                    <div class="form-floating">
+                        <InputDate id="last-done-on" TValue="DateOnly?" class="form-control" @bind-Value="Model.LastDoneOn" placeholder=" "
+                                   aria-required="true" aria-describedby="@Described("LastDoneOn")" />
+                        <label for="last-done-on">Last done on<span class="text-danger" aria-hidden="true"> *</span></label>
+                    </div>
+                    <ValidationMessage For="@(() => Model.LastDoneOn)" id="lastdoneon-error" class="invalid-feedback d-block" />
+                </div>
+                <div class="col-sm-6 col-lg-4">
+                    <div class="form-floating">
+                        <InputNumber id="last-done-mileage" TValue="int?" class="form-control" @bind-Value="Model.LastDoneMileage" min="0" max="9999999" step="1" inputmode="numeric" placeholder=" "
+                                     aria-describedby="@Described("LastDoneMileage")" />
+                        <label for="last-done-mileage">Last done mileage</label>
+                    </div>
+                    <ValidationMessage For="@(() => Model.LastDoneMileage)" id="lastdonemileage-error" class="invalid-feedback d-block" />
+                </div>
+            </div>
+        </fieldset>
+    </EditForm>
+</MaintenanceFormCard>
+
+@code {
+    private static readonly string[] Fields = ["Name", "IntervalMiles", "TimeValue", "LastDoneOn", "LastDoneMileage"];
+
+    private EditContext editContext = default!;
+    private ValidationMessageStore messages = default!;
+    private ReminderFormModel? contextModel;
+    private Dictionary<string, string[]> fieldErrors = [];
+
+    [Parameter, EditorRequired]
+    public ReminderFormModel Model { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string FormName { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string SubmitText { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string SubmitTitle { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string CancelHref { get; set; } = default!;
+
+    // Validation errors returned by the API, keyed by property name.
+    [Parameter]
+    public IReadOnlyDictionary<string, string[]> Errors { get; set; } = new Dictionary<string, string[]>();
+
+    [Parameter, EditorRequired]
+    public EventCallback OnSubmit { get; set; }
+
+    // Shown at the top of the card, above the fields (the add page puts the preset chooser here).
+    [Parameter]
+    public RenderFragment? Header { get; set; }
+
+    // The model field an API error key belongs to; the time value is nested in the request.
+    private static string FieldOf(string key) =>
+        string.Equals(key, "IntervalTime.Value", StringComparison.OrdinalIgnoreCase) ? "TimeValue" : key;
+
+    private string? Described(string field, string? extra = null)
+    {
+        var ids = new List<string>();
+        if (extra is not null)
+        {
+            ids.Add(extra);
+        }
+
+        if (fieldErrors.Keys.Any(key => string.Equals(key, field, StringComparison.OrdinalIgnoreCase)))
+        {
+            ids.Add($"{field.ToLowerInvariant()}-error");
+        }
+
+        return ids.Count == 0 ? null : string.Join(' ', ids);
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(contextModel, Model))
+        {
+            contextModel = Model;
+            editContext = new EditContext(Model);
+            messages = new ValidationMessageStore(editContext);
+            editContext.OnValidationRequested += (_, _) => messages.Clear();
+        }
+
+        fieldErrors = Errors.GroupBy(pair => FieldOf(pair.Key), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.SelectMany(pair => pair.Value).ToArray(), StringComparer.OrdinalIgnoreCase);
+
+        messages.Clear();
+        foreach (var field in Fields)
+        {
+            if (fieldErrors.TryGetValue(field, out var errors) && errors.Length > 0)
+            {
+                messages.Add(editContext.Field(field), errors);
+            }
+        }
+
+        editContext.NotifyValidationStateChanged();
+    }
+}

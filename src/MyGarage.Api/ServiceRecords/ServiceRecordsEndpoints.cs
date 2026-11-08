@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MyGarage.Api.Common;
+using MyGarage.Api.Reminders;
 using MyGarage.Api.Vehicles;
 using MyGarage.Database.ServiceRecords;
 using MyGarage.Shared.ServiceRecords;
@@ -68,6 +69,7 @@ public static class ServiceRecordsEndpoints
                 ClaimsPrincipal user,
                 ServiceRecordRepository records,
                 TimeProvider timeProvider,
+                ReminderEvaluator reminderEvaluator,
                 CancellationToken cancellationToken) =>
             {
                 if (CurrentOwner.Get(user) is not { } ownerId)
@@ -85,6 +87,11 @@ public static class ServiceRecordsEndpoints
                     ServiceRecordMapper.CleanTax(request.Tax),
                     timeProvider.GetUtcNow(),
                     cancellationToken);
+
+                if (detail is not null)
+                {
+                    await reminderEvaluator.TryEvaluateVehicleAsync(ownerId, vehicleId, cancellationToken);
+                }
 
                 return detail is null
                     ? VehiclesEndpoints.NotFound()
@@ -128,6 +135,7 @@ public static class ServiceRecordsEndpoints
                 ClaimsPrincipal user,
                 ServiceRecordRepository records,
                 TimeProvider timeProvider,
+                ReminderEvaluator reminderEvaluator,
                 CancellationToken cancellationToken) =>
             {
                 if (CurrentOwner.Get(user) is not { } ownerId)
@@ -146,6 +154,11 @@ public static class ServiceRecordsEndpoints
                     timeProvider.GetUtcNow(),
                     cancellationToken);
 
+                if (detail is not null)
+                {
+                    await reminderEvaluator.TryEvaluateVehicleAsync(ownerId, vehicleId, cancellationToken);
+                }
+
                 return detail is null ? VehiclesEndpoints.NotFound() : Results.Ok(ServiceRecordMapper.ToDto(detail));
             })
             .AddEndpointFilter<ValidationFilter<ServiceRecordRequest>>()
@@ -162,6 +175,7 @@ public static class ServiceRecordsEndpoints
                 Guid recordId,
                 ClaimsPrincipal user,
                 ServiceRecordRepository records,
+                ReminderEvaluator reminderEvaluator,
                 CancellationToken cancellationToken) =>
             {
                 if (CurrentOwner.Get(user) is not { } ownerId)
@@ -169,7 +183,13 @@ public static class ServiceRecordsEndpoints
                     return VehiclesEndpoints.NoOwner();
                 }
 
-                return await records.DeleteAsync(ownerId, vehicleId, recordId, cancellationToken) ? Results.NoContent() : VehiclesEndpoints.NotFound();
+                if (!await records.DeleteAsync(ownerId, vehicleId, recordId, cancellationToken))
+                {
+                    return VehiclesEndpoints.NotFound();
+                }
+
+                await reminderEvaluator.TryEvaluateVehicleAsync(ownerId, vehicleId, cancellationToken);
+                return Results.NoContent();
             })
             .WithName("DeleteServiceRecord")
             .WithSummary("Delete the record and all of its line items and parts.")

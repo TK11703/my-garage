@@ -12,12 +12,17 @@ internal static class NavMenu
     // Shown above the groups, with no heading.
     public static readonly NavItem Home = new("Home", "/", IconName.HouseDoor, Exact: true);
 
+    public static readonly NavItem Dashboard = new("Dashboard", "/dashboard", IconName.Speedometer, Exact: true);
+
+    public static readonly NavItem[] Start = [Home, Dashboard];
+
     public static readonly NavGroup[] Groups =
     [
         new("garage", "Garage",
         [
             new NavItem("My Vehicles", "/vehicles", IconName.CarFront, false, "/vehicles/new"),
             new NavItem("Add Vehicle", "/vehicles/new", IconName.PlusCircle, Exact: true),
+            new NavItem("Reminders", "/reminders", IconName.Bell, Exact: true),
         ]),
         new("maintenance", "Maintenance",
         [
@@ -35,6 +40,7 @@ internal static class NavMenu
     private static readonly Dictionary<string, string> GroupByFirstCrumb = new(StringComparer.Ordinal)
     {
         ["Vehicles"] = "Garage",
+        ["Reminders"] = "Garage",
         ["Maintenance Drafts"] = "Maintenance",
         ["FAQ"] = "Help",
         ["About"] = "Help",

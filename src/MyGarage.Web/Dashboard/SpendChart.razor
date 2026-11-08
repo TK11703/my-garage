@@ -1,0 +1,120 @@
+@using System.Globalization
+
+<div data-testid="spend-chart">
+    <ul class="list-inline small mb-3" aria-label="Vehicles" data-testid="spend-legend">
+        @foreach (var series in Series)
+        {
+            <li class="list-inline-item @series.CssClass" data-series="@series.Key">
+                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill="currentColor" /></svg>
+                <span class="text-body">@series.Name</span>
+            </li>
+        }
+    </ul>
+
+    <div class="row g-4">
+        <div class="col-12" data-testid="fuel-panel">
+            <h3 class="h6 mb-1">Fuel <span class="fw-normal text-body-secondary" data-testid="fuel-total">@DisplayFormat.Money(FuelTotal)</span></h3>
+            <StackedBarChart Kind="Fuel" Months="fuelMonths" />
+        </div>
+        <div class="col-12" data-testid="charging-panel">
+            <h3 class="h6 mb-1">Charging <span class="fw-normal text-body-secondary" data-testid="charging-total">@DisplayFormat.Money(ChargingTotal)</span></h3>
+            <StackedBarChart Kind="Charging" Months="chargingMonths" />
+        </div>
+    </div>
+
+    <details class="small mt-3">
+        <summary>Show the figures</summary>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0" data-testid="spend-table">
+                <caption class="visually-hidden">Fuel and charging cost per month and vehicle</caption>
+                <thead>
+                    <tr><th scope="col">Month</th><th scope="col">Vehicle</th><th scope="col" class="text-end">Fuel</th><th scope="col" class="text-end">Charging</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var month in Months)
+                    {
+                        var label = month.Month.ToString("MMM yyyy", CultureInfo.InvariantCulture);
+                        if (month.Vehicles.Count == 0)
+                        {
+                            <tr data-testid="figures-row">
+                                <th scope="row" class="fw-normal">@label</th>
+                                <td class="text-body-secondary">No entries</td>
+                                <td class="text-end">@DisplayFormat.Money(0)</td>
+                                <td class="text-end">@DisplayFormat.Money(0)</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var vehicle in month.Vehicles.OrderBy(vehicle => vehicle.VehicleName, StringComparer.Ordinal))
+                            {
+                                <tr data-testid="figures-row">
+                                    <th scope="row" class="fw-normal">@label</th>
+                                    <td>@vehicle.VehicleName</td>
+                                    <td class="text-end">@DisplayFormat.Money(vehicle.Fuel)</td>
+                                    <td class="text-end">@DisplayFormat.Money(vehicle.Charging)</td>
+                                </tr>
+                            }
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </details>
+</div>
+
+@code {
+    // Seven vehicles get a color of their own; any more share one gray layer.
+    private const int NamedVehicles = 7;
+
+    private IReadOnlyList<SpendSeries> Series { get; set; } = [];
+
+    private Dictionary<SpendSeries, int> order = [];
+    private IReadOnlyList<StackedMonth> fuelMonths = [];
+    private IReadOnlyList<StackedMonth> chargingMonths = [];
+
+    // Oldest month first.
+    [Parameter, EditorRequired]
+    public IReadOnlyList<FuelEnergySpendMonthDto> Months { get; set; } = [];
+
+    private decimal FuelTotal => Months.Sum(month => month.Fuel);
+
+    private decimal ChargingTotal => Months.Sum(month => month.Charging);
+
+    protected override void OnParametersSet()
+    {
+        // The vehicle that spent the most sits at the bottom of every bar and gets the first color.
+        var ranked = Months.SelectMany(month => month.Vehicles)
+            .GroupBy(vehicle => vehicle.VehicleId)
+            .Select(group => (Id: group.Key, group.First().VehicleName, Total: group.Sum(vehicle => vehicle.Fuel + vehicle.Charging)))
+            .OrderByDescending(vehicle => vehicle.Total)
+            .ThenBy(vehicle => vehicle.VehicleName, StringComparer.Ordinal)
+            .ToList();
+
+        var named = ranked.Take(NamedVehicles)
+            .Select((vehicle, index) => (vehicle.Id, Series: new SpendSeries(vehicle.Id.ToString(), vehicle.VehicleName, $"mg-chart-{index + 1}")))
+            .ToList();
+        var seriesById = named.ToDictionary(pair => pair.Id, pair => pair.Series);
+        var other = ranked.Count > NamedVehicles ? new SpendSeries("other", "Other vehicles", "mg-chart-other") : null;
+
+        var series = named.Select(pair => pair.Series).ToList();
+        if (other is not null)
+        {
+            series.Add(other);
+        }
+
+        Series = series;
+        order = series.Select((item, index) => (item, index)).ToDictionary(pair => pair.item, pair => pair.index);
+        fuelMonths = [.. Months.Select(month => Stack(month, vehicle => vehicle.Fuel, seriesById, other))];
+        chargingMonths = [.. Months.Select(month => Stack(month, vehicle => vehicle.Charging, seriesById, other))];
+    }
+
+    private StackedMonth Stack(FuelEnergySpendMonthDto month, Func<FuelEnergySpendVehicleDto, decimal> amount, Dictionary<Guid, SpendSeries> seriesById, SpendSeries? other)
+    {
+        var segments = month.Vehicles
+            .GroupBy(vehicle => seriesById.GetValueOrDefault(vehicle.VehicleId) ?? other!)
+            .Select(group => new StackedSegment(group.Key, group.Sum(amount)))
+            .OrderBy(segment => order[segment.Series])
+            .ToList();
+        return new StackedMonth(month.Month, segments);
+    }
+}

@@ -1,0 +1,99 @@
+@page "/reminders"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@inject RemindersApiClient Api
+
+<PageHeader Title="Reminders" Trail="@(new[] { new Crumb("Reminders") })" />
+
+@if (failure is not null)
+{
+    <ApiFailureAlert Failure="failure.Value" ReturnUrl="/reminders"
+                     NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+}
+else if (all is null)
+{
+    <p class="text-body-secondary">Loading reminders...</p>
+}
+else if (all.Count == 0)
+{
+    <EmptyState Variant="EmptyStateVariant.Empty"
+                Message="You have no reminders yet. Add one from a vehicle's Reminders tab, for things like oil changes, inspections, and registrations."
+                ActionText="My Vehicles" ActionHref="/vehicles" />
+}
+else
+{
+    <nav aria-label="Filter reminders by status" class="mb-3" data-testid="status-filter">
+        <ul class="nav nav-pills flex-wrap gap-1">
+            <li class="nav-item"><a class="nav-link @(selected is null ? "active" : null)" href="/reminders" aria-current="@(selected is null ? "page" : null)">All (@all.Count)</a></li>
+            @foreach (var filter in Filters)
+            {
+                var count = all.Count(reminder => reminder.Status == filter.Status);
+                <li class="nav-item">
+                    <a class="nav-link @(selected == filter.Status ? "active" : null)" href="/reminders?status=@filter.Query"
+                       aria-current="@(selected == filter.Status ? "page" : null)">@filter.Label (@count)</a>
+                </li>
+            }
+        </ul>
+    </nav>
+
+    @if (shown.Count == 0)
+    {
+        <p class="text-body-secondary" data-testid="no-matches">No reminders are @FilterWords(selected!.Value). <a href="/reminders">Show all reminders</a></p>
+    }
+    else
+    {
+        <ul class="list-group" data-testid="reminder-list">
+            @foreach (var reminder in shown)
+            {
+                <ReminderRow Reminder="reminder" ShowVehicle="true" />
+            }
+        </ul>
+    }
+}
+
+@code {
+    private sealed record Filter(ReminderStatus Status, string Query, string Label);
+
+    private static readonly Filter[] Filters =
+    [
+        new(ReminderStatus.Overdue, "overdue", "Overdue"),
+        new(ReminderStatus.DueSoon, "due-soon", "Due soon"),
+        new(ReminderStatus.Upcoming, "upcoming", "Upcoming"),
+        new(ReminderStatus.MileageNeeded, "mileage-needed", "Mileage needed"),
+        new(ReminderStatus.Paused, "paused", "Paused"),
+    ];
+
+    private IReadOnlyList<ReminderDto>? all;
+    private IReadOnlyList<ReminderDto> shown = [];
+    private ReminderStatus? selected;
+    private GarageApiFailure? failure;
+
+    // overdue, due-soon, upcoming, mileage-needed, or paused; anything else shows everything.
+    [Parameter, SupplyParameterFromQuery(Name = "status")]
+    public string? Status { get; set; }
+
+    private static string FilterWords(ReminderStatus status) => status switch
+    {
+        ReminderStatus.Overdue => "overdue",
+        ReminderStatus.DueSoon => "due soon",
+        ReminderStatus.Upcoming => "upcoming",
+        ReminderStatus.MileageNeeded => "waiting for a mileage",
+        _ => "paused",
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            all = (await Api.ListAllAsync()).Value ?? [];
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+            return;
+        }
+
+        selected = Filters.FirstOrDefault(filter => filter.Query == Status)?.Status;
+        shown = selected is { } status ? [.. all.Where(reminder => reminder.Status == status)] : all;
+    }
+}

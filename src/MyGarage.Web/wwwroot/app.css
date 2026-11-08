@@ -72,6 +72,14 @@ h1:focus {
     --mg-notfound-code: #1976D2;
     --mg-notfound-shadow: #C5DBF4;
     --mg-notfound-label: #C2185B;
+    --mg-chart-1: #1976D2;
+    --mg-chart-2: #E08A00;
+    --mg-chart-3: #2E9E6B;
+    --mg-chart-4: #C2185B;
+    --mg-chart-5: #7E57C2;
+    --mg-chart-6: #26A6C8;
+    --mg-chart-7: #8D6E63;
+    --mg-chart-other: #8A97A6;
 }
 
 [data-bs-theme="dark"] {
@@ -137,6 +145,14 @@ h1:focus {
     --mg-notfound-code: #6CB6FF;
     --mg-notfound-shadow: #1B3A5C;
     --mg-notfound-label: #F48FB1;
+    --mg-chart-1: #42A5F5;
+    --mg-chart-2: #FFB74D;
+    --mg-chart-3: #4DB886;
+    --mg-chart-4: #F06292;
+    --mg-chart-5: #B39DDB;
+    --mg-chart-6: #4DD0E1;
+    --mg-chart-7: #BCAAA4;
+    --mg-chart-other: #90A4AE;
 }
 
 @media (max-width: 1199.98px) {
@@ -1168,6 +1184,32 @@ a.mg-notif-link:focus-visible {
 }
 
 /* ---------- Content area and page bar ---------- */
+
+/* Stacked-bar layers on the dashboard: one color per vehicle, drawn with currentColor; a thin card-colored edge separates layers. */
+.mg-chart-1 { color: var(--mg-chart-1); }
+.mg-chart-2 { color: var(--mg-chart-2); }
+.mg-chart-3 { color: var(--mg-chart-3); }
+.mg-chart-4 { color: var(--mg-chart-4); }
+.mg-chart-5 { color: var(--mg-chart-5); }
+.mg-chart-6 { color: var(--mg-chart-6); }
+.mg-chart-7 { color: var(--mg-chart-7); }
+.mg-chart-other { color: var(--mg-chart-other); }
+
+.mg-chart-segment {
+    stroke: var(--bs-card-bg, var(--bs-body-bg));
+    stroke-width: 1;
+}
+
+/* Dashboard: the due-date tile on a reminder row and the round avatar on a journal entry. */
+.mg-date-tile {
+    width: 2.75rem;
+    height: 3rem;
+}
+
+.mg-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+}
 
 /* The page scrolls under the fixed navbar; the sidebar is fixed on its left. */
 .mg-content {

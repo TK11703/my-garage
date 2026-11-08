@@ -18,10 +18,12 @@ public sealed class ServicePartRow
 public sealed class ServiceLineItemFormModel
 {
     public const int MaxPartRows = 25;
-    public const int BlankRowsToAdd = 3;
 
-    // Submitted by the "Add more part rows" button, which re-renders the form without saving.
+    // Submitted by the "+ Add another part row" button, which re-renders the form without saving.
     public const string AddPartRowsField = "add-part-rows";
+
+    // Submitted by a row's remove button; its value is the row's position.
+    public const string RemovePartRowField = "remove-part-row";
 
     public string? Description { get; set; }
 
@@ -59,18 +61,36 @@ public sealed class ServiceLineItemFormModel
             LaborCost = line.LaborCost,
             Parts = [.. line.Parts.Select(part => new ServicePartRow { Name = part.Name, Quantity = part.Quantity, UnitPrice = part.UnitPrice })],
         };
-        model.AddBlankPartRows();
+        model.EnsurePartRow();
         return model;
     }
 
-    // A posted model can arrive without rows; the form always shows at least the blank ones.
-    public void AddBlankPartRows(int count = BlankRowsToAdd)
+    public void AddBlankPartRows(int count = 1)
     {
         Parts ??= [];
         for (var added = 0; added < count && Parts.Count < MaxPartRows; added++)
         {
             Parts.Add(new ServicePartRow());
         }
+    }
+
+    // A posted model can arrive without rows; the form always shows at least one.
+    public void EnsurePartRow()
+    {
+        if (Parts is null || Parts.Count == 0)
+        {
+            AddBlankPartRows();
+        }
+    }
+
+    public void RemovePartRow(int index)
+    {
+        if (index >= 0 && index < Parts.Count)
+        {
+            Parts.RemoveAt(index);
+        }
+
+        EnsurePartRow();
     }
 
     // The total labor shown when hours and rate are both given is their product; the API ignores an entered total then.
@@ -104,6 +124,27 @@ public sealed class ServiceLineItemFormModel
                 })],
             };
 
-    public static bool IsAddPartRowsRequest(HttpContext? context) =>
-        context is { Request.HasFormContentType: true } && context.Request.Form.ContainsKey(AddPartRowsField);
+    // Applies an add or remove row button press; true means the form was only re-rendered and nothing is saved.
+    public bool ApplyPartRowRequest(HttpContext? context)
+    {
+        if (context is not { Request.HasFormContentType: true })
+        {
+            return false;
+        }
+
+        var form = context.Request.Form;
+        if (form.ContainsKey(AddPartRowsField))
+        {
+            AddBlankPartRows();
+            return true;
+        }
+
+        if (form.TryGetValue(RemovePartRowField, out var value) && int.TryParse(value, out var index))
+        {
+            RemovePartRow(index);
+            return true;
+        }
+
+        return false;
+    }
 }

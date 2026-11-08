@@ -85,7 +85,7 @@ public class FaqPageTests : IClassFixture<WebAppFactory>
         Assert.False(string.IsNullOrWhiteSpace(search.GetAttribute("aria-label")));
 
         var cards = document.QuerySelectorAll("[data-faq-category]");
-        Assert.Equal(6, cards.Length);
+        Assert.Equal(7, cards.Length);
         Assert.All(cards, card =>
         {
             Assert.NotNull(card.QuerySelector("h2"));
@@ -110,6 +110,19 @@ public class FaqPageTests : IClassFixture<WebAppFactory>
         Assert.Contains("Upload a PDF or image", answer);
         Assert.Contains("body of the message or as an attachment", answer);
         Assert.Contains("mygarage_intake@outlook.com", answer);
+    }
+
+    [Fact]
+    public async Task RemindersAndTheDashboardAreExplained()
+    {
+        var (_, html) = await GetAsync();
+        var document = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+
+        var card = document.QuerySelectorAll("[data-faq-category]").Single(c => c.QuerySelector("h2")!.TextContent == "Reminders and the dashboard");
+        var questions = card.QuerySelectorAll("[data-faq-item] details summary").Select(summary => summary.TextContent.Trim()).ToList();
+        Assert.Contains("How do I set up a reminder?", questions);
+        Assert.Contains("What do Due soon and Overdue mean?", questions);
+        Assert.Contains("What is the dashboard?", questions);
     }
 
     [Fact]

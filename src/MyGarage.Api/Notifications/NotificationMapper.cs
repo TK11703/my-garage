@@ -12,6 +12,8 @@ public static class NotificationMapper
             Kind = record.Kind,
             Title = record.Title,
             DraftId = record.DraftId,
+            ReminderId = record.ReminderId,
+            VehicleId = record.VehicleId,
             CreatedAt = record.CreatedAt,
             IsRead = record.ReadAt is not null,
         };

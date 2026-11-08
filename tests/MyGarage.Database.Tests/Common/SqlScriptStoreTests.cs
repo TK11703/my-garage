@@ -47,7 +47,7 @@ public class SqlScriptStoreTests
                 "0001_create_vehicles", "0002_create_vehicle_tags", "0003_create_journal_notes", "0004_create_vehicle_images",
                 "0005_create_lookup_items", "0006_add_vehicle_details", "0007_drop_vehicle_nickname", "0008_create_features",
                 "0009_create_service_records", "0010_add_vehicle_latest_odometer", "0011_create_maintenance_records", "0012_create_email_intake",
-                "0013_pricing_discounts_labor_tax", "0014_add_feature_category", "0015_add_upload_origin",
+                "0013_pricing_discounts_labor_tax", "0014_add_feature_category", "0015_add_upload_origin", "0016_create_reminders", "0017_drop_reminder_applies_to",
             ],
             migrations);
     }
