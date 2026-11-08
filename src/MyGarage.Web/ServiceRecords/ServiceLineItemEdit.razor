@@ -90,9 +90,8 @@ else if (loaded && Model is not null)
     {
         failure = null;
         message = null;
-        if (ServiceLineItemFormModel.IsAddPartRowsRequest(HttpContext))
+        if (Model!.ApplyPartRowRequest(HttpContext))
         {
-            Model!.AddBlankPartRows();
             return;
         }
 

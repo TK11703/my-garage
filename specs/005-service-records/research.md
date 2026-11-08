@@ -46,7 +46,7 @@ All technical context was resolved from the existing code base and the product o
 
 ## R7a. Line item form in static SSR
 
-- **Decision**: The line item form shows the existing parts plus three blank part rows. An "Add more part rows" submit button (named `add-part-rows`, posted with the same form so the page can tell it from Save) re-renders the page with three more blank rows without saving, up to 25. Rows left entirely blank are ignored on save; a partly filled row is a validation error.
+- **Decision**: The line item form shows the existing parts, or one blank part row when there are none. A "+ Add another part row" submit button (named `add-part-rows`, posted with the same form so the page can tell it from Save) re-renders the page with one more blank row without saving, up to 25, and each row has an X submit button (`remove-part-row`, value = row position) that removes it the same way. Rows left entirely blank are ignored on save; a partly filled row is a validation error.
 - **Rationale**: Keeps the page static SSR with post-redirect-get like every other page, with no new JavaScript.
 - **Alternatives**: Interactive Server component for the editor. Rejected: breaks the established page pattern for one form.
 

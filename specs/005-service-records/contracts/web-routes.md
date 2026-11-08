@@ -55,7 +55,7 @@ Form names: `create-service-record`, `update-service-record`. Validation message
 | Pricing | radio pair: "Flat cost" / "Labor and parts" | Defaults to Flat cost on add; edit selects the item's current mode. Both groups are always rendered so the form works without JavaScript; the group that does not apply is ignored on save. |
 | Flat cost | number input, `step="0.01"` | 0-9,999,999.99. |
 | Labor hours / Hourly rate | two number inputs | Required together; hours 0.01-999.99, rate 0-99,999.99. |
-| Parts | rows of Part name / Quantity / Price per part | Existing parts plus three blank rows; "Add more part rows" (a submit button named `add-part-rows` inside the same form; the handler sees it in the posted form and re-renders without saving) adds three more blank rows (up to 25); all-blank rows are ignored. |
+| Parts | rows of Part name / Quantity / Price per part | Existing parts, or one blank row when there are none; "+ Add another part row" (a submit button named `add-part-rows` inside the same form; the handler sees it in the posted form and re-renders without saving) adds one blank row (up to 25); each row's X button (a submit button named `remove-part-row` whose value is the row position) removes that row without saving; all-blank rows are ignored. |
 
 Form names: `create-line-item`, `update-line-item`. The pricing mode that is not selected is discarded on save (a flat cost is cleared when "Labor and parts" is chosen and vice versa). Messages for API errors map as: `400` re-renders beside the fields (part errors name the row, for example "Part 2: Quantity must be between 0.01 and 9,999.99."); `409` shows "A service record can have up to 50 line items."; `404` shows the not-found state.
 
