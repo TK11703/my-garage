@@ -22,7 +22,7 @@ public static class InspectionsEndpoints
 
     public static IEndpointRouteBuilder MapInspectionsEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/inspections").WithTags("Inspections");
+        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/inspections").WithTags("Inspections").RequireActiveVehicleForWrites();
 
         group.MapGet("", async (
                 Guid vehicleId,

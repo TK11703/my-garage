@@ -13,6 +13,7 @@ LEFT JOIN LATERAL (
     ORDER BY sr.date_serviced DESC, sr.created_at DESC, sr.id DESC
     LIMIT 1) lr ON true
 WHERE NOT r.is_paused
+  AND v.archived_at IS NULL
   AND (@OwnerId::text IS NULL OR v.owner_id = @OwnerId)
   AND (@VehicleId::uuid IS NULL OR v.id = @VehicleId)
 ORDER BY r.created_at, r.id;

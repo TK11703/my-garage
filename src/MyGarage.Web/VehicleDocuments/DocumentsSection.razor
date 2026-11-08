@@ -41,6 +41,8 @@
                                         <div class="d-flex flex-wrap align-items-start gap-2">
                                             <a class="btn btn-sm btn-outline-secondary" href="/vehicles/@VehicleId/documents/@document.Id" target="_blank" rel="noopener noreferrer"
                                                data-testid="view-document" aria-label="@($"View {document.FileName}")" title="Open the file in a new tab">View</a>
+                                            @if (ArchivedState?.IsArchived != true)
+                                            {
                                             <details class="position-relative" data-testid="delete-document">
                                                 <summary class="btn btn-sm btn-outline-danger" aria-label="@($"Delete {document.FileName}")" title="Delete this document">Delete</summary>
                                                 <div class="alert alert-danger mg-confirm-panel shadow" role="alert">
@@ -52,6 +54,7 @@
                                                     </form>
                                                 </div>
                                             </details>
+                                            }
                                         </div>
                                     </div>
                                     @if (messageFor == document.Id)
@@ -71,6 +74,10 @@
 </div>
 
 @code {
+    // Set by the vehicle page; an archived vehicle's documents cannot be deleted.
+    [CascadingParameter]
+    private VehicleArchivedState? ArchivedState { get; set; }
+
     private PagedResultDto<VehicleDocumentDto>? documents;
     private GarageApiFailure? failure;
     private Guid? messageFor;
@@ -112,7 +119,7 @@
         catch (GarageApiException ex)
         {
             messageFor = documentId;
-            message = ex.Failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable;
+            message = VehicleMessages.For(ex.Failure);
         }
     }
 

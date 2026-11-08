@@ -12,8 +12,8 @@ public sealed class VehiclesApiClient(HttpClient http)
     public Task<ApiResult<PagedResultDto<VehicleSummaryDto>>> ListAsync(VehicleListCriteria criteria, int page, CancellationToken cancellationToken = default) =>
         SendAsync<PagedResultDto<VehicleSummaryDto>>(HttpMethod.Get, $"api/vehicles?{criteria.ToQueryString(page)}", null, cancellationToken);
 
-    public Task<ApiResult<VehicleFilterOptionsDto>> GetFilterOptionsAsync(CancellationToken cancellationToken = default) =>
-        SendAsync<VehicleFilterOptionsDto>(HttpMethod.Get, "api/vehicles/filter-options", null, cancellationToken);
+    public Task<ApiResult<VehicleFilterOptionsDto>> GetFilterOptionsAsync(string? status = null, CancellationToken cancellationToken = default) =>
+        SendAsync<VehicleFilterOptionsDto>(HttpMethod.Get, status is null or VehicleStatusFilter.Active ? "api/vehicles/filter-options" : $"api/vehicles/filter-options?status={Uri.EscapeDataString(status)}", null, cancellationToken);
 
     public Task<ApiResult<VehicleDetailDto>> CreateAsync(VehicleRequest request, CancellationToken cancellationToken = default) =>
         SendAsync<VehicleDetailDto>(HttpMethod.Post, "api/vehicles", request, cancellationToken);
@@ -26,6 +26,12 @@ public sealed class VehiclesApiClient(HttpClient http)
 
     public Task<ApiResult<bool>> DeleteAsync(Guid vehicleId, CancellationToken cancellationToken = default) =>
         SendAsync<bool>(HttpMethod.Delete, $"api/vehicles/{vehicleId}", null, cancellationToken);
+
+    public Task<ApiResult<VehicleDetailDto>> ArchiveAsync(Guid vehicleId, CancellationToken cancellationToken = default) =>
+        SendAsync<VehicleDetailDto>(HttpMethod.Post, $"api/vehicles/{vehicleId}/archive", null, cancellationToken);
+
+    public Task<ApiResult<VehicleDetailDto>> RestoreAsync(Guid vehicleId, CancellationToken cancellationToken = default) =>
+        SendAsync<VehicleDetailDto>(HttpMethod.Post, $"api/vehicles/{vehicleId}/restore", null, cancellationToken);
 
     public Task<ApiResult<VehicleTagDto>> AddTagAsync(Guid vehicleId, string? name, CancellationToken cancellationToken = default) =>
         SendAsync<VehicleTagDto>(HttpMethod.Post, $"api/vehicles/{vehicleId}/tags", new AddVehicleTagRequest { Name = name }, cancellationToken);
@@ -112,6 +118,11 @@ public sealed class VehiclesApiClient(HttpClient http)
             }
 
             using var response = await http.PostAsync($"api/vehicles/{vehicleId}/images", form, cancellationToken);
+            if (response.StatusCode == HttpStatusCode.Conflict && await ApiCalls.IsArchivedAsync(response, cancellationToken))
+            {
+                throw new GarageApiException(GarageApiFailure.VehicleArchived);
+            }
+
             return response.StatusCode switch
             {
                 HttpStatusCode.Created => ImageUploadOutcome.Uploaded,

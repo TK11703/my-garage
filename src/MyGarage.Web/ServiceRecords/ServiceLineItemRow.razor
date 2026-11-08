@@ -28,6 +28,8 @@
     }
 
     <div class="d-flex flex-wrap gap-2">
+        @if (!ReadOnly)
+        {
         <a class="btn btn-outline-secondary btn-sm" data-testid="edit-line-item" aria-label="@($"Edit {Line.Description}")"
            href="/vehicles/@VehicleId/service-records/@RecordId/line-items/@Line.Id/edit">Edit</a>
         <details data-testid="delete-line-item">
@@ -41,6 +43,7 @@
                 </form>
             </div>
         </details>
+        }
     </div>
 </li>
 
@@ -55,6 +58,10 @@
 
     [Parameter, EditorRequired]
     public ServiceLineItemDto Line { get; set; } = default!;
+
+    // True for an archived vehicle: the line item is shown without its edit and delete controls.
+    [Parameter]
+    public bool ReadOnly { get; set; }
 
     private string RecordHref => $"/vehicles/{VehicleId}/service-records/{RecordId}";
 
@@ -71,7 +78,7 @@
         }
         catch (GarageApiException ex)
         {
-            message = ex.Failure == GarageApiFailure.NotAccepted ? VehicleMessages.NotAccepted : VehicleMessages.Unavailable;
+            message = VehicleMessages.For(ex.Failure);
         }
     }
 }

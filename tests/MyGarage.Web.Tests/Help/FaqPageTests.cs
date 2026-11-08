@@ -126,6 +126,23 @@ public class FaqPageTests : IClassFixture<WebAppFactory>
     }
 
     [Fact]
+    public async Task ArchivingARestoringAndWhatItChangesAreExplained()
+    {
+        var (_, html) = await GetAsync();
+        var document = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+
+        var card = document.QuerySelectorAll("[data-faq-category]").Single(c => c.QuerySelector("h2")!.TextContent == "Vehicles and pictures");
+        var items = card.QuerySelectorAll("[data-faq-item] details").ToDictionary(
+            item => item.QuerySelector("summary")!.TextContent.Trim(), item => item.TextContent);
+        Assert.Contains("What is the difference between archiving and deleting a vehicle?", items.Keys);
+        Assert.Contains("How do I see or restore an archived vehicle?", items.Keys);
+        Assert.Contains("What does archiving change in the dashboard and reminders?", items.Keys);
+        Assert.Contains("fuel and charging", items["What does archiving change in the dashboard and reminders?"]);
+        Assert.Contains("Archived", items["How do I see or restore an archived vehicle?"]);
+        Assert.Contains("choose Archive", items["How do I change or delete a vehicle?"]);
+    }
+
+    [Fact]
     public async Task EveryQuestionHasAnAnswer_AndTheMaintenanceAnswersPointToTheAddMenu()
     {
         var (_, html) = await GetAsync();

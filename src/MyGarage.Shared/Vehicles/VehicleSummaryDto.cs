@@ -31,6 +31,9 @@ public sealed class VehicleSummaryDto
     // Year of the purchase or lease date, for the garage card.
     public int? PurchasedYear { get; init; }
 
+    // When the owner archived the vehicle; null for an active vehicle.
+    public DateTimeOffset? ArchivedAt { get; init; }
+
     // Where else the search text was found (trim, color, VIN, engine, features); empty without a search.
     public IReadOnlyList<VehicleMatchDto> Matches { get; init; } = [];
 }

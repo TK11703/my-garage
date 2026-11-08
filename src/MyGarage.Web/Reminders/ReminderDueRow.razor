@@ -27,11 +27,15 @@
             <div class="small text-body-secondary">@ReminderFormat.Interval(Reminder)</div>
             <div class="small text-body-secondary">Last done: @ReminderFormat.LastDone(Reminder) &middot; Next due: @ReminderFormat.NextDue(Reminder)</div>
         }
-        @if (Reminder.Status == ReminderStatus.MileageNeeded)
+        @if (Reminder.Status == ReminderStatus.Archived)
+        {
+            <div class="small text-body-secondary" data-testid="reminder-archived">Disabled, vehicle archived</div>
+        }
+        else if (Reminder.Status == ReminderStatus.MileageNeeded)
         {
             <div class="small text-body-secondary">Record the vehicle's mileage to see how far away this is.</div>
         }
-        else if (Reminder.Status != ReminderStatus.Paused && ReminderFormat.RemainingParts(Reminder) is { Count: > 0 } parts)
+        else if (Reminder.Status is not (ReminderStatus.Paused or ReminderStatus.Archived) && ReminderFormat.RemainingParts(Reminder) is { Count: > 0 } parts)
         {
             <div class="small" data-testid="reminder-remaining">
                 @for (var i = 0; i < parts.Count; i++)
@@ -71,6 +75,7 @@
         ReminderStatus.DueSoon => "bg-warning-subtle text-warning-emphasis",
         ReminderStatus.MileageNeeded => "bg-info-subtle text-info-emphasis",
         ReminderStatus.Paused => "bg-secondary-subtle text-secondary-emphasis",
+        ReminderStatus.Archived => "bg-secondary-subtle text-secondary-emphasis",
         _ => "bg-success-subtle text-success-emphasis",
     };
 }

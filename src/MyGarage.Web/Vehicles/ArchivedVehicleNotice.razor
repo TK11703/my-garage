@@ -1,0 +1,42 @@
+@using System.Text.RegularExpressions
+
+<div class="alert alert-warning d-flex flex-column gap-2" role="alert" data-testid="archived-notice">
+    <span>@VehicleMessages.ArchivedCannotChange</span>
+    <span class="d-flex flex-wrap gap-2">
+        @if (VehicleHref is { } href)
+        {
+            <a class="btn btn-primary btn-sm" href="@href" data-testid="restore-link">Restore this vehicle</a>
+            <a class="btn btn-outline-secondary btn-sm" href="@href" data-testid="back-link">Back to the vehicle</a>
+        }
+        else
+        {
+            <a class="btn btn-primary btn-sm" href="/vehicles?status=archived" data-testid="archived-link">Go to archived vehicles</a>
+        }
+    </span>
+</div>
+
+@code {
+    // The vehicle the change was for; its page offers Restore.
+    [Parameter]
+    public Guid? VehicleId { get; set; }
+
+    // When no id is given, the vehicle is taken from an app-relative address like /vehicles/{id}/....
+    [Parameter]
+    public string? ReturnUrl { get; set; }
+
+    private string? VehicleHref
+    {
+        get
+        {
+            if (VehicleId is { } id)
+            {
+                return $"/vehicles/{id}";
+            }
+
+            var match = ReturnUrl is null ? null : VehicleAddress.Match(ReturnUrl);
+            return match is { Success: true } ? $"/vehicles/{match.Groups[1].Value}" : null;
+        }
+    }
+
+    private static readonly Regex VehicleAddress = new(@"^/vehicles/([0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12})", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+}

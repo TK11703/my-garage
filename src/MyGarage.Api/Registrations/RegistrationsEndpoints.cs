@@ -22,7 +22,7 @@ public static class RegistrationsEndpoints
 
     public static IEndpointRouteBuilder MapRegistrationsEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/registrations").WithTags("Registrations");
+        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/registrations").WithTags("Registrations").RequireActiveVehicleForWrites();
 
         group.MapGet("", async (
                 Guid vehicleId,

@@ -237,6 +237,7 @@ public static class DraftsEndpoints
                 {
                     DraftUploadOutcome.Accepted => Results.Accepted(value: result.Value),
                     DraftUploadOutcome.VehicleNotFound => VehiclesEndpoints.NotFound(),
+                    DraftUploadOutcome.VehicleArchived => VehicleArchivedProblem.Result(),
                     _ => Results.ValidationProblem(result.Errors!),
                 };
             })
@@ -252,6 +253,7 @@ public static class DraftsEndpoints
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);

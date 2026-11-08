@@ -4,7 +4,7 @@ namespace MyGarage.Api.Reminders;
 
 public static class ReminderOrdering
 {
-    // Overdue, Due soon, Mileage needed, Upcoming, Paused; then earliest due date, fewest miles left, name, id. Missing values sort last.
+    // Overdue, Due soon, Mileage needed, Upcoming, Paused, Archived; then earliest due date, fewest miles left, name, id. Missing values sort last.
     public static IReadOnlyList<ReminderDto> MostUrgentFirst(IEnumerable<ReminderDto> reminders) =>
         [.. reminders
             .OrderBy(reminder => Rank(reminder.Status))
@@ -22,6 +22,7 @@ public static class ReminderOrdering
         ReminderStatus.DueSoon => 1,
         ReminderStatus.MileageNeeded => 2,
         ReminderStatus.Upcoming => 3,
-        _ => 4,
+        ReminderStatus.Paused => 4,
+        _ => 5,
     };
 }

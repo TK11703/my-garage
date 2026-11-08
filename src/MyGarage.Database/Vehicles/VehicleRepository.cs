@@ -134,6 +134,56 @@ public sealed class VehicleRepository(NpgsqlDataSource dataSource, SqlScriptStor
             new CommandDefinition(scripts.Get("Vehicles/GetById"), new { Id = id, OwnerId = ownerId }, cancellationToken: cancellationToken));
     }
 
+    // Null when the vehicle does not exist for that owner; otherwise whether it is archived.
+    public async Task<bool?> GetArchivedStateAsync(string ownerId, Guid vehicleId, CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        return await connection.ExecuteScalarAsync<bool?>(new CommandDefinition(
+            scripts.Get("Vehicles/GetArchivedState"), new { VehicleId = vehicleId, OwnerId = ownerId }, cancellationToken: cancellationToken));
+    }
+
+    // Archives the owner's vehicle and marks its waiting reminder notices read, in one transaction.
+    public async Task<VehicleStateChange> ArchiveAsync(string ownerId, Guid vehicleId, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        var parameters = new { VehicleId = vehicleId, OwnerId = ownerId, Now = now };
+
+        var changed = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
+            scripts.Get("Vehicles/Archive"), parameters, transaction, cancellationToken: cancellationToken));
+        if (changed is null)
+        {
+            return await WhyUnchangedAsync(connection, transaction, ownerId, vehicleId, cancellationToken);
+        }
+
+        await connection.ExecuteAsync(new CommandDefinition(
+            scripts.Get("Notifications/MarkReadForVehicleReminders"), parameters, transaction, cancellationToken: cancellationToken));
+        await transaction.CommitAsync(cancellationToken);
+        return VehicleStateChange.Changed;
+    }
+
+    public async Task<VehicleStateChange> RestoreAsync(string ownerId, Guid vehicleId, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var changed = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
+            scripts.Get("Vehicles/Restore"), new { VehicleId = vehicleId, OwnerId = ownerId, Now = now }, cancellationToken: cancellationToken));
+        return changed is null
+            ? await WhyUnchangedAsync(connection, null, ownerId, vehicleId, cancellationToken)
+            : VehicleStateChange.Changed;
+    }
+
+    private async Task<VehicleStateChange> WhyUnchangedAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction? transaction,
+        string ownerId,
+        Guid vehicleId,
+        CancellationToken cancellationToken)
+    {
+        var archived = await connection.ExecuteScalarAsync<bool?>(new CommandDefinition(
+            scripts.Get("Vehicles/GetArchivedState"), new { VehicleId = vehicleId, OwnerId = ownerId }, transaction, cancellationToken: cancellationToken));
+        return archived is null ? VehicleStateChange.NotFound : VehicleStateChange.AlreadyInState;
+    }
+
     // Replaces the editable fields of the owner's vehicle; false when it does not exist for that owner.
     public async Task<bool> UpdateAsync(VehicleRecord vehicle, CancellationToken cancellationToken)
     {
@@ -177,6 +227,7 @@ public sealed class VehicleRepository(NpgsqlDataSource dataSource, SqlScriptStor
             criteria.FuelTypeId,
             criteria.TransmissionId,
             criteria.DrivetrainId,
+            criteria.Status,
         };
 
         var items = (await connection.QueryAsync<VehicleSummaryRecord>(new CommandDefinition(
@@ -184,7 +235,7 @@ public sealed class VehicleRepository(NpgsqlDataSource dataSource, SqlScriptStor
             new
             {
                 filters.OwnerId, filters.Pattern, filters.Make, filters.Color, filters.Doors, filters.Tag, filters.MinMileage, filters.MaxMileage,
-                filters.MinYear, filters.MaxYear, filters.VehicleTypeId, filters.FuelTypeId, filters.TransmissionId, filters.DrivetrainId,
+                filters.MinYear, filters.MaxYear, filters.VehicleTypeId, filters.FuelTypeId, filters.TransmissionId, filters.DrivetrainId, filters.Status,
                 PageSize = pageSize,
                 Offset = (page - 1) * pageSize,
             },
@@ -195,11 +246,15 @@ public sealed class VehicleRepository(NpgsqlDataSource dataSource, SqlScriptStor
         return new PagedResult<VehicleSummaryRecord>(items, page, pageSize, total);
     }
 
-    public async Task<VehicleFilterOptionsRecord> GetFilterOptionsAsync(string ownerId, CancellationToken cancellationToken)
+    public Task<VehicleFilterOptionsRecord> GetFilterOptionsAsync(string ownerId, CancellationToken cancellationToken) =>
+        GetFilterOptionsAsync(ownerId, "active", cancellationToken);
+
+    // status is active, archived, or all: the choices come only from vehicles in that status.
+    public async Task<VehicleFilterOptionsRecord> GetFilterOptionsAsync(string ownerId, string status, CancellationToken cancellationToken)
     {
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         using var results = await connection.QueryMultipleAsync(
-            new CommandDefinition(scripts.Get("Vehicles/FilterOptions"), new { OwnerId = ownerId }, cancellationToken: cancellationToken));
+            new CommandDefinition(scripts.Get("Vehicles/FilterOptions"), new { OwnerId = ownerId, Status = status }, cancellationToken: cancellationToken));
 
         var makes = (await results.ReadAsync<string>()).ToList();
         var colors = (await results.ReadAsync<string>()).ToList();

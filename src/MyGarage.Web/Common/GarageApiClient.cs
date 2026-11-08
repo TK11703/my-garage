@@ -11,6 +11,9 @@ public enum GarageApiFailure
 {
     Unavailable,
     NotAccepted,
+
+    // The vehicle is archived and read-only (409 with the archived problem type).
+    VehicleArchived,
 }
 
 public sealed class GarageApiException(GarageApiFailure failure) : Exception($"My Garage API call failed: {failure}")

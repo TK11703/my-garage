@@ -23,6 +23,8 @@ public sealed record VehicleSummaryRecord
 
     public DateOnly? PurchasedOn { get; init; }
 
+    public DateTimeOffset? ArchivedAt { get; init; }
+
     // JSON array of the fields the search text matched; "[]" without a search.
     public string MatchesJson { get; init; } = "[]";
 

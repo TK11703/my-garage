@@ -30,22 +30,25 @@ else if (record is not null && vehicleName is not null)
                 <a class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" href="@TabHref" title="Back to the vehicle's Maintenance tab">
                     <Icon Name="IconName.ArrowLeft" /> Back to Maintenance
                 </a>
-                <a class="btn btn-outline-primary d-inline-flex align-items-center gap-2" href="/vehicles/@VehicleId/service-records/@RecordId/edit" data-testid="edit-service-record" title="Edit this service record">
-                    <Icon Name="IconName.Pencil" /> Edit
-                </a>
-                <details class="position-relative" data-testid="delete-service-record">
-                    <summary class="btn btn-outline-danger d-inline-flex align-items-center gap-2" title="Delete this service record">
-                        <Icon Name="IconName.Trash" /> Delete
-                    </summary>
-                    <div class="alert alert-danger mg-confirm-panel shadow" role="alert">
-                        <p>Delete this service record? This also removes its line items and cannot be undone.</p>
-                        <form method="post" @formname="delete-service-record" @onsubmit="DeleteAsync" class="d-flex flex-wrap gap-2">
-                            <AntiforgeryToken />
-                            <button type="submit" class="btn btn-danger">Yes, delete this service record</button>
-                            <a class="btn btn-outline-secondary" href="/vehicles/@VehicleId/service-records/@RecordId">Keep service record</a>
-                        </form>
-                    </div>
-                </details>
+                @if (!vehicleArchived)
+                {
+                    <a class="btn btn-outline-primary d-inline-flex align-items-center gap-2" href="/vehicles/@VehicleId/service-records/@RecordId/edit" data-testid="edit-service-record" title="Edit this service record">
+                        <Icon Name="IconName.Pencil" /> Edit
+                    </a>
+                    <details class="position-relative" data-testid="delete-service-record">
+                        <summary class="btn btn-outline-danger d-inline-flex align-items-center gap-2" title="Delete this service record">
+                            <Icon Name="IconName.Trash" /> Delete
+                        </summary>
+                        <div class="alert alert-danger mg-confirm-panel shadow" role="alert">
+                            <p>Delete this service record? This also removes its line items and cannot be undone.</p>
+                            <form method="post" @formname="delete-service-record" @onsubmit="DeleteAsync" class="d-flex flex-wrap gap-2">
+                                <AntiforgeryToken />
+                                <button type="submit" class="btn btn-danger">Yes, delete this service record</button>
+                                <a class="btn btn-outline-secondary" href="/vehicles/@VehicleId/service-records/@RecordId">Keep service record</a>
+                            </form>
+                        </div>
+                    </details>
+                }
             </div>
         </Actions>
     </PageHeader>
@@ -68,14 +71,17 @@ else if (record is not null && vehicleName is not null)
             <ul class="list-group mb-3" data-testid="line-item-list">
                 @foreach (var line in record.LineItems)
                 {
-                    <ServiceLineItemRow @key="line.Id" VehicleId="VehicleId" RecordId="RecordId" Line="line" />
+                    <ServiceLineItemRow @key="line.Id" VehicleId="VehicleId" RecordId="RecordId" Line="line" ReadOnly="vehicleArchived" />
                 }
             </ul>
         }
 
-        <a class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2" href="/vehicles/@VehicleId/service-records/@RecordId/line-items/new" data-testid="add-line-item">
-            <Icon Name="IconName.Plus" /> Add line item
-        </a>
+        @if (!vehicleArchived)
+        {
+            <a class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2" href="/vehicles/@VehicleId/service-records/@RecordId/line-items/new" data-testid="add-line-item">
+                <Icon Name="IconName.Plus" /> Add line item
+            </a>
+        }
 
         @if (record.Tax is { } tax)
         {
@@ -93,6 +99,7 @@ else if (record is not null && vehicleName is not null)
 @code {
     private ServiceRecordDto? record;
     private string? vehicleName;
+    private bool vehicleArchived;
     private bool notFound;
     private GarageApiFailure? failure;
 
@@ -125,6 +132,7 @@ else if (record is not null && vehicleName is not null)
             }
 
             vehicleName = vehicle.Value!.Name;
+            vehicleArchived = vehicle.Value.ArchivedAt is not null;
             record = result.Value;
         }
         catch (GarageApiException ex)

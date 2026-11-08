@@ -16,4 +16,6 @@ public sealed record FuelEnergySpendRecord
     public string VehicleModel { get; init; } = string.Empty;
 
     public decimal Total { get; init; }
+
+    public bool VehicleArchived { get; init; }
 }

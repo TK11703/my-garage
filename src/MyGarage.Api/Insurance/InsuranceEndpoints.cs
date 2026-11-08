@@ -22,7 +22,7 @@ public static class InsuranceEndpoints
 
     public static IEndpointRouteBuilder MapInsuranceEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/insurance").WithTags("Insurance");
+        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/insurance").WithTags("Insurance").RequireActiveVehicleForWrites();
 
         group.MapGet("", async (
                 Guid vehicleId,

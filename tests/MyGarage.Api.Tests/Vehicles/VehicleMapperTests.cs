@@ -342,4 +342,24 @@ public class VehicleMapperTests
         Assert.DoesNotContain(propertyNames, name => (name.Contains("Owner", StringComparison.OrdinalIgnoreCase) && name != nameof(VehicleRequest.Ownership))
                                                     || name.Contains("UserId", StringComparison.OrdinalIgnoreCase));
     }
+
+    [Fact]
+    public void ArchivedAt_MapsToTheDetailAndSummaryDtos_AndNullStaysNull()
+    {
+        var archivedAt = new DateTimeOffset(2026, 11, 8, 10, 30, 0, TimeSpan.Zero);
+        var archived = new VehicleRecord { Id = Guid.NewGuid(), OwnerId = "o", Make = "m", Model = "x", CreatedAt = Now, UpdatedAt = Now, ArchivedAt = archivedAt };
+        var active = archived with { ArchivedAt = null };
+
+        Assert.Equal(archivedAt, VehicleMapper.ToDetailDto(archived, [], []).ArchivedAt);
+        Assert.Null(VehicleMapper.ToDetailDto(active, [], []).ArchivedAt);
+        Assert.Equal(archivedAt, VehicleMapper.ToSummaryDto(new VehicleSummaryRecord { Id = archived.Id, Make = "m", Model = "x", ArchivedAt = archivedAt }).ArchivedAt);
+        Assert.Null(VehicleMapper.ToSummaryDto(new VehicleSummaryRecord { Id = archived.Id, Make = "m", Model = "x" }).ArchivedAt);
+    }
+
+    [Theory]
+    [InlineData(null, "active")]
+    [InlineData("archived", "archived")]
+    [InlineData("all", "all")]
+    public void ToCriteria_MapsTheStatus_AnAbsentOneMeansActive(string? status, string expected) =>
+        Assert.Equal(expected, VehicleMapper.ToCriteria(new VehicleListQuery(Status: status)).Status);
 }

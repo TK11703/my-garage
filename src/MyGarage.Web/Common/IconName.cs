@@ -35,4 +35,6 @@ public enum IconName
     Envelope,
     ShieldCheck,
     ArrowRight,
+    Archive,
+    ArrowCounterclockwise,
 }

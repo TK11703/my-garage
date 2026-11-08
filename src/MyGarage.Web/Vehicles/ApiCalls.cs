@@ -30,7 +30,13 @@ internal static class ApiCalls
                 case HttpStatusCode.BadRequest:
                     return new ApiResult<T> { Outcome = ApiOutcome.Invalid, Errors = await ReadErrorsAsync(response, cancellationToken) };
                 case HttpStatusCode.Conflict:
-                    return new ApiResult<T> { Outcome = ApiOutcome.Conflict, Title = await ReadTitleAsync(response, cancellationToken) };
+                    var conflict = await ReadProblemAsync(response, cancellationToken);
+                    if (conflict?.Type == ArchivedProblemType)
+                    {
+                        throw new GarageApiException(GarageApiFailure.VehicleArchived);
+                    }
+
+                    return new ApiResult<T> { Outcome = ApiOutcome.Conflict, Title = conflict?.Title };
             }
 
             response.EnsureSuccessStatusCode();
@@ -105,8 +111,29 @@ internal static class ApiCalls
     private static async Task<string?> ReadTitleAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
         (await response.Content.ReadFromJsonAsync<ProblemBody>(cancellationToken))?.Title;
 
+    // The problem type the API answers 409 with when the vehicle is archived.
+    public const string ArchivedProblemType = "urn:mygarage:problem:vehicle-archived";
+
+    private static async Task<ProblemBody?> ReadProblemAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await response.Content.ReadFromJsonAsync<ProblemBody>(cancellationToken);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    // True when a 409 carries the archived problem type.
+    public static async Task<bool> IsArchivedAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
+        (await ReadProblemAsync(response, cancellationToken))?.Type == ArchivedProblemType;
+
     private sealed class ProblemBody
     {
+        public string? Type { get; init; }
+
         public string? Title { get; init; }
 
         public Dictionary<string, string[]>? Errors { get; init; }

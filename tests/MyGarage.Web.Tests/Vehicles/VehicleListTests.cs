@@ -125,7 +125,7 @@ public class VehicleListTests : VehicleTestContext
 
         Render<VehicleList>();
 
-        Assert.Contains("page=1", ListRequests.Single().RequestUri!.Query);
+        Assert.Contains("page=1", ListRequests.Single(request => !request.RequestUri!.Query.Contains("status=archived")).RequestUri!.Query);
     }
 
     [Fact]

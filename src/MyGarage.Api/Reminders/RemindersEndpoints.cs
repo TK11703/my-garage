@@ -28,7 +28,7 @@ public static class RemindersEndpoints
 
     public static IEndpointRouteBuilder MapRemindersEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/reminders").WithTags("Reminders");
+        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/reminders").WithTags("Reminders").RequireActiveVehicleForWrites();
 
         group.MapGet("", async (
                 Guid vehicleId,

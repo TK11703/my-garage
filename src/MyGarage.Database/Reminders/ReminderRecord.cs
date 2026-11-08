@@ -25,6 +25,9 @@ public record ReminderRecord
 
     public bool IsPaused { get; init; }
 
+    // True when the vehicle is archived, which disables the reminder whatever IsPaused says.
+    public bool VehicleArchived { get; init; }
+
     // due_soon or overdue: the last state the owner was told about.
     public string? NotifiedState { get; init; }
 

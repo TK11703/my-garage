@@ -61,7 +61,7 @@ public static class VehicleTagsEndpoints
             .Produces<string[]>()
             .ProducesProblem(StatusCodes.Status401Unauthorized);
 
-        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/tags").WithTags("Tags");
+        var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/tags").WithTags("Tags").RequireActiveVehicleForWrites();
 
         group.MapPost("", async (
                 Guid vehicleId,

@@ -49,7 +49,7 @@
                             {
                                 <tr data-testid="figures-row">
                                     <th scope="row" class="fw-normal">@label</th>
-                                    <td>@vehicle.VehicleName</td>
+                                    <td>@Label(vehicle)</td>
                                     <td class="text-end">@DisplayFormat.Money(vehicle.Fuel)</td>
                                     <td class="text-end">@DisplayFormat.Money(vehicle.Charging)</td>
                                 </tr>
@@ -80,12 +80,15 @@
 
     private decimal ChargingTotal => Months.Sum(month => month.Charging);
 
+    // Archived vehicles stay in the chart because the money was spent; the name says so.
+    private static string Label(FuelEnergySpendVehicleDto vehicle) => vehicle.VehicleArchived ? $"{vehicle.VehicleName} (archived)" : vehicle.VehicleName;
+
     protected override void OnParametersSet()
     {
         // The vehicle that spent the most sits at the bottom of every bar and gets the first color.
         var ranked = Months.SelectMany(month => month.Vehicles)
             .GroupBy(vehicle => vehicle.VehicleId)
-            .Select(group => (Id: group.Key, group.First().VehicleName, Total: group.Sum(vehicle => vehicle.Fuel + vehicle.Charging)))
+            .Select(group => (Id: group.Key, VehicleName: Label(group.First()), Total: group.Sum(vehicle => vehicle.Fuel + vehicle.Charging)))
             .OrderByDescending(vehicle => vehicle.Total)
             .ThenBy(vehicle => vehicle.VehicleName, StringComparer.Ordinal)
             .ToList();

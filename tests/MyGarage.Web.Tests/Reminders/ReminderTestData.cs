@@ -18,7 +18,8 @@ public static class ReminderTestData
         DateOnly? nextDueDate = null,
         int? milesRemaining = 3_000,
         int? daysRemaining = null,
-        string vehicleName = "2020 Ford F-150") =>
+        string vehicleName = "2020 Ford F-150",
+        bool vehicleArchived = false) =>
         new()
         {
             Id = id ?? Guid.NewGuid(),
@@ -30,6 +31,7 @@ public static class ReminderTestData
             LastDoneOn = lastDoneOn ?? new DateOnly(2026, 5, 1),
             LastDoneMileage = lastDoneMileage,
             IsPaused = isPaused,
+            VehicleArchived = vehicleArchived,
             Status = status,
             NextDueMileage = nextDueMileage,
             NextDueDate = nextDueDate,
@@ -49,6 +51,7 @@ public static class ReminderTestData
             LastDoneOn = reminder.LastDoneOn,
             LastDoneMileage = reminder.LastDoneMileage,
             IsPaused = reminder.IsPaused,
+            VehicleArchived = reminder.VehicleArchived,
             Status = reminder.Status,
             NextDueMileage = reminder.NextDueMileage,
             NextDueDate = reminder.NextDueDate,

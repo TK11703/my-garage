@@ -12,4 +12,5 @@ public enum ReminderStatus
     Overdue,
     Paused,
     MileageNeeded,
+    Archived,
 }

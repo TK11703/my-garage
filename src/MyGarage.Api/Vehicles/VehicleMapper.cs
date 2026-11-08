@@ -77,6 +77,7 @@ public static class VehicleMapper
             Images = images,
             CreatedAt = vehicle.CreatedAt,
             UpdatedAt = vehicle.UpdatedAt,
+            ArchivedAt = vehicle.ArchivedAt,
         };
 
     private static OwnershipType? ToOwnership(string? stored) =>
@@ -103,6 +104,7 @@ public static class VehicleMapper
             Transmission = vehicle.TransmissionName,
             Ownership = ToOwnership(vehicle.Ownership),
             PurchasedYear = vehicle.PurchasedOn?.Year,
+            ArchivedAt = vehicle.ArchivedAt,
             Matches = [.. vehicle.Matches.Select(match => new VehicleMatchDto { Field = match.Field, Text = match.Text })],
         };
 
@@ -135,6 +137,7 @@ public static class VehicleMapper
             FuelTypeId = query.FuelTypeId,
             TransmissionId = query.TransmissionId,
             DrivetrainId = query.DrivetrainId,
+            Status = query.Status ?? VehicleStatusFilter.Active,
         };
 
     public static VehicleFilterOptionsDto ToFilterOptionsDto(VehicleFilterOptionsRecord options) =>

@@ -1,6 +1,13 @@
-<div class="alert alert-warning" role="alert">
-    @(Failure == GarageApiFailure.NotAccepted ? NotAcceptedMessage : UnavailableMessage)
-</div>
+@if (Failure == GarageApiFailure.VehicleArchived)
+{
+    <ArchivedVehicleNotice ReturnUrl="@ReturnUrl" />
+}
+else
+{
+    <div class="alert alert-warning" role="alert">
+        @(Failure == GarageApiFailure.NotAccepted ? NotAcceptedMessage : UnavailableMessage)
+    </div>
+}
 
 @if (Failure == GarageApiFailure.NotAccepted)
 {

@@ -25,16 +25,48 @@ else if (vehicle is not null)
     <PageHeader Title="@vehicle.Name" Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(vehicle.Name) })">
         <Actions>
             <div class="d-flex flex-wrap align-items-center gap-2">
-                <AddMaintenanceMenu VehicleId="VehicleId" />
-                <a class="btn btn-outline-primary d-inline-flex align-items-center gap-2" href="@EditHref(current)" data-tab-link data-testid="edit-vehicle" title="Edit this vehicle">
-                    <Icon Name="IconName.Pencil" /> Edit
-                </a>
+                @if (!isArchived)
+                {
+                    <AddMaintenanceMenu VehicleId="VehicleId" />
+                    <a class="btn btn-outline-primary d-inline-flex align-items-center gap-2" href="@EditHref(current)" data-tab-link data-testid="edit-vehicle" title="Edit this vehicle">
+                        <Icon Name="IconName.Pencil" /> Edit
+                    </a>
+                    <details class="position-relative" data-testid="archive-vehicle">
+                        <summary class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" title="Archive this vehicle">
+                            <Icon Name="IconName.Archive" /> Archive
+                        </summary>
+                        <div class="alert alert-secondary mg-confirm-panel shadow" role="alert">
+                            <p>Archive @vehicle.Name? It leaves your garage figures and its reminders are disabled, but all its history is kept and you can restore it any time.</p>
+                            <form method="post" @formname="archive-vehicle" @onsubmit="ArchiveAsync" class="d-flex flex-wrap gap-2">
+                                <AntiforgeryToken />
+                                <button type="submit" class="btn btn-primary">Yes, archive this vehicle</button>
+                                <a class="btn btn-outline-secondary" href="/vehicles/@VehicleId">Keep vehicle active</a>
+                            </form>
+                        </div>
+                    </details>
+                }
+                else
+                {
+                    <details class="position-relative" data-testid="restore-vehicle">
+                        <summary class="btn btn-outline-primary d-inline-flex align-items-center gap-2" title="Restore this vehicle">
+                            <Icon Name="IconName.ArrowCounterclockwise" /> Restore
+                        </summary>
+                        <div class="alert alert-secondary mg-confirm-panel shadow" role="alert">
+                            <p>Restore @vehicle.Name? It returns to your garage and its reminders are enabled again.</p>
+                            <form method="post" @formname="restore-vehicle" @onsubmit="RestoreAsync" class="d-flex flex-wrap gap-2">
+                                <AntiforgeryToken />
+                                <button type="submit" class="btn btn-primary">Yes, restore this vehicle</button>
+                                <a class="btn btn-outline-secondary" href="/vehicles/@VehicleId">Keep archived</a>
+                            </form>
+                        </div>
+                    </details>
+                }
                 <details class="position-relative" data-testid="delete-vehicle">
                     <summary class="btn btn-outline-danger d-inline-flex align-items-center gap-2" title="Delete this vehicle">
                         <Icon Name="IconName.Trash" /> Delete
                     </summary>
                     <div class="alert alert-danger mg-confirm-panel shadow" role="alert">
-                        <p>Delete @vehicle.Name? This also removes its tags, journal notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, reminders, pictures, and kept documents and cannot be undone.</p>
+                        <p>Delete @vehicle.Name? This also removes its tags, journal notes, service records, charging and fueling entries, inspections, registrations, insurance, taxes, reminders, pictures, and kept documents and cannot be undone.@(isArchived ? "" : " To keep the history instead, archive the vehicle.")</p>
                         <form method="post" @formname="delete-vehicle" @onsubmit="DeleteAsync" class="d-flex flex-wrap gap-2">
                             <AntiforgeryToken />
                             <button type="submit" class="btn btn-danger">Yes, delete this vehicle</button>
@@ -51,6 +83,24 @@ else if (vehicle is not null)
         <div class="alert alert-success" role="status" data-testid="draft-saved">The record was saved from your email draft.</div>
     }
 
+    @if (VehicleMessages.SavedNotice(Saved) is { } savedNotice)
+    {
+        <div class="alert alert-success" role="status" data-testid="vehicle-saved">@savedNotice</div>
+    }
+
+    @if (stateMessage is not null)
+    {
+        <div class="alert alert-warning" role="status" data-testid="state-message">@stateMessage</div>
+    }
+
+    @if (vehicle.ArchivedAt is { } archivedAt)
+    {
+        <div class="alert alert-warning" role="status" data-testid="archived-alert">
+            <span class="badge text-bg-secondary me-2" data-testid="archived-badge">Archived</span>
+            This vehicle was archived on @VehicleMessages.ArchivedOn(archivedAt). Its history is kept but it cannot be changed, and it is not counted in your garage figures except fuel and charging.
+        </div>
+    }
+
     @if (vehicle.Year is null)
     {
         <div class="alert alert-warning" role="alert" data-testid="missing-year">
@@ -61,6 +111,7 @@ else if (vehicle is not null)
     <VehicleTabNav Current="@current" />
 
     <div class="tab-content">
+        <CascadingValue Value="archivedState">
                 <div id="tab-details" class="tab-pane @PaneState("details", current)" role="tabpanel" aria-labelledby="tab-details-tab" tabindex="0">
                     <FieldGroup Id="basic" Title="Basic">
                     <dl class="row g-3 mb-0" aria-label="Basic information">
@@ -117,6 +168,7 @@ else if (vehicle is not null)
                 <div id="tab-reminders" class="tab-pane @PaneState("reminders", current)" role="tabpanel" aria-labelledby="tab-reminders-tab" tabindex="0">
                     <ReminderTab VehicleId="VehicleId" Saved="@Saved" />
                 </div>
+        </CascadingValue>
     </div>
 
 }
@@ -125,6 +177,11 @@ else if (vehicle is not null)
     private VehicleDetailDto? vehicle;
     private bool notFound;
     private GarageApiFailure? failure;
+    private string? stateMessage;
+
+    private bool isArchived => vehicle?.ArchivedAt is not null;
+
+    private VehicleArchivedState archivedState => isArchived ? VehicleArchivedState.Archived : VehicleArchivedState.Active;
 
     // The edit form opens on the tab being viewed (it has no Maintenance tab, so that one and Details open on Details).
     private string EditHref(string tab) =>
@@ -196,6 +253,37 @@ else if (vehicle is not null)
             if (notFound && HttpContext is { Response.HasStarted: false })
             {
                 HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private async Task ArchiveAsync() => await ChangeStateAsync(Api.ArchiveAsync, "archived", VehicleMessages.AlreadyArchived);
+
+    private async Task RestoreAsync() => await ChangeStateAsync(Api.RestoreAsync, "restored", VehicleMessages.AlreadyActive);
+
+    // Success goes back to the vehicle page with a notice; a 409 means another tab already made the change, so the page shows the vehicle as it is now.
+    private async Task ChangeStateAsync(Func<Guid, CancellationToken, Task<ApiResult<VehicleDetailDto>>> change, string saved, string alreadyMessage)
+    {
+        try
+        {
+            var result = await change(VehicleId, CancellationToken.None);
+            if (result.IsSuccess)
+            {
+                Navigation.NavigateTo($"/vehicles/{VehicleId}?saved={saved}");
+            }
+            else if (result.IsNotFound)
+            {
+                notFound = true;
+                vehicle = null;
+            }
+            else if (result.Outcome == ApiOutcome.Conflict)
+            {
+                stateMessage = alreadyMessage;
+                vehicle = (await Api.GetAsync(VehicleId)).Value;
             }
         }
         catch (GarageApiException ex)

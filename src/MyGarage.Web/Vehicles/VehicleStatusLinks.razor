@@ -1,0 +1,37 @@
+@using MyGarage.Shared.Vehicles
+
+<nav aria-label="Show vehicles" class="ms-auto" data-testid="status-links">
+    <ul class="mg-segmented list-unstyled mb-0">
+        @foreach (var (status, label) in Choices)
+        {
+            var current = Criteria.Status == status;
+            <li>
+                <a class="mg-segmented-link @(current ? "active" : null)" href="@HrefFor(status)" aria-current="@(current ? "page" : null)" data-status="@status">@label</a>
+            </li>
+        }
+    </ul>
+</nav>
+
+@code {
+    private static readonly (string Status, string Label)[] Choices =
+    [
+        (VehicleStatusFilter.All, "All"),
+        (VehicleStatusFilter.Active, "Active"),
+        (VehicleStatusFilter.Archived, "Archived"),
+    ];
+
+    // The current search text and filters are kept; the page number starts over.
+    [Parameter, EditorRequired]
+    public VehicleListCriteria Criteria { get; set; } = VehicleListCriteria.None;
+
+    // True on the search page, whose links carry the search text and filters; the vehicle list has none.
+    [Parameter]
+    public bool Search { get; set; }
+
+    private string HrefFor(string status)
+    {
+        var query = (Criteria with { Status = status }).ToQueryString();
+        var path = Search ? "/search" : "/vehicles";
+        return query.Length > 0 ? $"{path}?{query}" : path;
+    }
+}

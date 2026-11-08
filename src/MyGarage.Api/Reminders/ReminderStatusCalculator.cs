@@ -8,7 +8,8 @@ public sealed record ReminderCalculationInput(
     DateOnly LastDoneOn,
     int? LastDoneMileage,
     bool IsPaused,
-    int? CurrentMileage);
+    int? CurrentMileage,
+    bool VehicleArchived = false);
 
 public sealed record ReminderCalculation(
     ReminderStatus Status,
@@ -37,6 +38,11 @@ public static class ReminderStatusCalculator
 
     private static ReminderStatus StatusOf(ReminderCalculationInput input, int? nextMileage, int? milesRemaining, int? daysRemaining)
     {
+        if (input.VehicleArchived)
+        {
+            return ReminderStatus.Archived;
+        }
+
         if (input.IsPaused)
         {
             return ReminderStatus.Paused;
