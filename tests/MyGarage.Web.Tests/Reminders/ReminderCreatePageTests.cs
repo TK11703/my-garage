@@ -102,13 +102,14 @@ public class ReminderCreatePageTests : VehicleTestContext
     }
 
     [Fact]
-    public void SaveAndCancelSitBelowTheCard_NotInItsFooter()
+    public void TheCardHasATitle_AndSaveAndCancelSitBelowTheCard_NotInItsFooter()
     {
         var cut = RenderPage();
 
         cut.WaitForAssertion(() =>
         {
             var card = cut.Find("div.card");
+            Assert.Equal("Reminder", card.QuerySelector(":scope > .card-body")!.FirstElementChild!.TextContent.Trim());
             Assert.Empty(card.QuerySelectorAll(".card-footer"));
             Assert.Empty(card.QuerySelectorAll("button[type='submit']"));
             Assert.Empty(card.QuerySelectorAll("a.btn:not([data-preset])"));

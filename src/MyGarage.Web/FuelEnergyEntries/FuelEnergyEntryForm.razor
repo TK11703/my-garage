@@ -1,4 +1,4 @@
-﻿<MaintenanceFormCard FormId="@FormName" SubmitText="@SubmitText" SubmitTitle="@SubmitTitle" CancelHref="@CancelHref" Delete="Delete">
+﻿<MaintenanceFormCard Title="@(Model.Kind == FuelEnergyKind.Energy ? "Charging Session" : "Fuel Entry")" FormId="@FormName" SubmitText="@SubmitText" SubmitTitle="@SubmitTitle" CancelHref="@CancelHref" Delete="Delete">
     <EditForm EditContext="editContext" id="@FormName" FormName="@FormName" OnValidSubmit="OnSubmit" class="vstack gap-3">
         <InputText type="hidden" @bind-Value="Model.KindValue" />
         <div class="row g-3">

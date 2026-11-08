@@ -33,6 +33,24 @@ public class FuelEnergyEntryCreatePageTests : VehicleTestContext
         return Render<FuelEnergyEntryCreate>(parameters => parameters.Add(page => page.VehicleId, vehicleId));
     }
 
+    [Theory]
+    [InlineData("fuel", "Fuel Entry")]
+    [InlineData("energy", "Charging Session")]
+    public void TheCardHasATitleForTheKind_AndSaveAndCancelSitBelowIt(string kind, string title)
+    {
+        var cut = RenderPage(_ => new HttpResponseMessage(HttpStatusCode.NotFound), kind);
+
+        cut.WaitForAssertion(() =>
+        {
+            var card = cut.Find("div.card");
+            Assert.Equal(title, card.QuerySelector(":scope > .card-body")!.FirstElementChild!.TextContent.Trim());
+            Assert.Empty(card.QuerySelectorAll(".card-footer"));
+            var actions = cut.Find("[data-testid='form-actions']");
+            Assert.Same(card.ParentElement, actions.ParentElement);
+            Assert.Equal(["Save", "Cancel"], actions.QuerySelectorAll("button, a.btn").Select(control => control.TextContent.Trim()));
+        });
+    }
+
     [Fact]
     public void Fuel_ShowsTheFuelLabelsHelperTextAndInputLimits()
     {

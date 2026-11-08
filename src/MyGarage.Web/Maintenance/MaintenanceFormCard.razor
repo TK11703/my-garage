@@ -1,22 +1,14 @@
-@* The card around a Maintenance entry form: the form in the body, Save, Cancel, and an optional Delete in the footer (or, with ActionsOutside, in a row below the card like the vehicle forms). *@
+@* The card around a Maintenance entry form: a title and the form in the body; Save, Cancel, and an optional Delete sit in a row below the card. *@
 <div class="card border-0 shadow-sm">
     <div class="card-body vstack gap-3">
+        <h2 class="h5 card-title mb-0">@Title</h2>
         <p class="form-text mb-0">* Required</p>
         @ChildContent
     </div>
-    @if (!ActionsOutside)
-    {
-        <div class="card-footer d-flex flex-wrap gap-2">
-            @Actions
-        </div>
-    }
 </div>
-@if (ActionsOutside)
-{
-    <div class="d-flex flex-wrap gap-2 mt-3" data-testid="form-actions">
-        @Actions
-    </div>
-}
+<div class="d-flex flex-wrap gap-2 mt-3" data-testid="form-actions">
+    @Actions
+</div>
 
 @code {
     // The actions sit outside the form so Delete can have a form of its own; "form" ties Save to the entry form.
@@ -33,6 +25,9 @@
     public string FormId { get; set; } = string.Empty;
 
     [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
     public string SubmitText { get; set; } = string.Empty;
 
     [Parameter, EditorRequired]
@@ -47,8 +42,4 @@
     // Shown after Cancel; only the edit pages pass it.
     [Parameter]
     public RenderFragment? Delete { get; set; }
-
-    // Put Save and Cancel in a row below the card instead of in its footer.
-    [Parameter]
-    public bool ActionsOutside { get; set; }
 }

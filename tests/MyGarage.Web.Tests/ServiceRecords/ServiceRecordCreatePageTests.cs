@@ -60,6 +60,7 @@ public class ServiceRecordCreatePageTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             var card = cut.Find("div.card");
+            Assert.Equal("Service Record", card.QuerySelector(":scope > .card-body")!.FirstElementChild!.TextContent.Trim());
             Assert.Empty(card.QuerySelectorAll(".card-footer"));
             Assert.Empty(card.QuerySelectorAll("button[type='submit']"));
             var actions = cut.Find("[data-testid='form-actions']");
