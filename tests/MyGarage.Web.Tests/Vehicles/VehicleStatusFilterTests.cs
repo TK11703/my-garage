@@ -11,22 +11,23 @@ public class VehicleListCriteriaStatusTests
         VehicleListCriteria.FromQuery(q, make, null, null, null, null, null, status: status);
 
     [Theory]
-    [InlineData(null, "active")]
+    [InlineData(null, "all")]
     [InlineData("active", "active")]
-    [InlineData("Archived", "active")]
-    [InlineData("closed", "active")]
-    [InlineData("", "active")]
+    [InlineData("Archived", "all")]
+    [InlineData("closed", "all")]
+    [InlineData("", "all")]
     [InlineData("archived", "archived")]
     [InlineData("all", "all")]
-    public void FromQuery_KeepsOnlyArchivedAndAll_EverythingElseIsActive(string? status, string expected) =>
+    public void FromQuery_KeepsOnlyActiveAndArchived_EverythingElseIsAll(string? status, string expected) =>
         Assert.Equal(expected, From(status).Status);
 
     [Fact]
     public void ToQueryString_OmitsTheDefaultStatusAndWritesTheOthers()
     {
-        Assert.Equal(string.Empty, From("active").ToQueryString());
+        Assert.Equal(string.Empty, From("all").ToQueryString());
+        Assert.Equal("status=all", From("all").ToQueryString(includeDefaultStatus: true));
         Assert.Equal("status=archived", From("archived").ToQueryString());
-        Assert.Equal("status=all&page=2", From("all").ToQueryString(2));
+        Assert.Equal("status=active&page=2", From("active").ToQueryString(2));
         Assert.Equal("q=truck&make=Ford&status=archived", From("archived", "truck", "Ford").ToQueryString());
         Assert.Equal("page=3", From(null).ToQueryString(3));
     }
@@ -40,9 +41,9 @@ public class VehicleListCriteriaStatusTests
         Assert.True(archived.HasAny);
         Assert.False(archived.HasFilters);
         Assert.Equal([("status", "Status: Archived")], archived.Active());
-        Assert.Equal([("status", "Status: All")], From("all").Active());
-        Assert.Empty(From("active").Active());
-        Assert.False(From("active").HasAny);
+        Assert.Equal([("status", "Status: Active")], From("active").Active());
+        Assert.Empty(From("all").Active());
+        Assert.False(From("all").HasAny);
     }
 
     [Fact]
@@ -50,7 +51,7 @@ public class VehicleListCriteriaStatusTests
     {
         var criteria = From("archived", "truck", "Ford");
 
-        Assert.Equal("active", criteria.Without("status").Status);
+        Assert.Equal("all", criteria.Without("status").Status);
         Assert.Equal("truck", criteria.Without("status").Query);
         Assert.Equal("Ford", criteria.Without("status").Make);
         var cleared = criteria.WithoutFilters();
@@ -87,7 +88,7 @@ public class VehicleStatusFilterPagesTests : VehicleTestContext
         };
 
     [Fact]
-    public void TheListShowsTheThreeStatusLinks_WithActiveCurrentByDefault()
+    public void TheListShowsTheThreeStatusLinks_WithAllCurrentByDefault()
     {
         RegisterApi(_ => Json(Page([Summary("Alpha")])));
 
@@ -98,19 +99,20 @@ public class VehicleStatusFilterPagesTests : VehicleTestContext
             var nav = cut.Find("nav[aria-label='Show vehicles']");
             var links = nav.QuerySelectorAll("a").ToList();
             Assert.Equal(["All", "Active", "Archived"], links.Select(link => link.TextContent.Trim()));
-            Assert.Equal(["/vehicles?status=all", "/vehicles", "/vehicles?status=archived"], links.Select(link => link.GetAttribute("href")));
-            Assert.Null(links[0].GetAttribute("aria-current"));
-            Assert.Equal("page", links[1].GetAttribute("aria-current"));
-            Assert.Contains("active", links[1].ClassList);
+            Assert.Equal(["/vehicles", "/vehicles?status=active", "/vehicles?status=archived"], links.Select(link => link.GetAttribute("href")));
+            Assert.Equal("page", links[0].GetAttribute("aria-current"));
+            Assert.Contains("active", links[0].ClassList);
+            Assert.Null(links[1].GetAttribute("aria-current"));
             Assert.NotNull(cut.Find(".card-header nav[aria-label='Show vehicles']"));
         });
     }
 
     [Theory]
-    [InlineData("/vehicles", "active")]
+    [InlineData("/vehicles", "all")]
+    [InlineData("/vehicles?status=active", "active")]
     [InlineData("/vehicles?status=archived", "archived")]
     [InlineData("/vehicles?status=all", "all")]
-    [InlineData("/vehicles?status=bogus", "active")]
+    [InlineData("/vehicles?status=bogus", "all")]
     public void TheListAsksTheApiForTheChosenStatus_AndDoesNotRedirectToSearch(string uri, string expected)
     {
         RegisterApi(_ => Json(Page([Summary("Alpha")])));
@@ -119,14 +121,7 @@ public class VehicleStatusFilterPagesTests : VehicleTestContext
 
         cut.WaitForAssertion(() => Assert.Contains("Alpha", cut.Markup));
         var query = QueryOf(ListRequests.First());
-        if (expected == "active")
-        {
-            Assert.DoesNotContain("status=", query);
-        }
-        else
-        {
-            Assert.Contains($"status={expected}", query);
-        }
+        Assert.Contains($"status={expected}", query);
 
         Assert.EndsWith(uri, Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>().Uri);
         Assert.Equal(expected, cut.Find("nav[aria-label='Show vehicles'] a[aria-current='page']").GetAttribute("data-status"));
@@ -144,6 +139,21 @@ public class VehicleStatusFilterPagesTests : VehicleTestContext
             var hrefs = cut.FindAll(".pagination a").Select(link => link.GetAttribute("href")).Where(href => href is not null).ToList();
             Assert.NotEmpty(hrefs);
             Assert.All(hrefs, href => Assert.Contains("status=archived", href));
+        });
+    }
+
+    [Fact]
+    public void ThePagerKeepsTheActiveStatus()
+    {
+        RegisterApi(_ => Json(Page([Summary("Alpha")], page: 1, totalCount: 30)));
+
+        var cut = RenderList("/vehicles?status=active");
+
+        cut.WaitForAssertion(() =>
+        {
+            var hrefs = cut.FindAll(".pagination a").Select(link => link.GetAttribute("href")).Where(href => href is not null).ToList();
+            Assert.NotEmpty(hrefs);
+            Assert.All(hrefs, href => Assert.Contains("status=active", href));
         });
     }
 
@@ -182,7 +192,7 @@ public class VehicleStatusFilterPagesTests : VehicleTestContext
     {
         RegisterApi(request => Json(QueryOf(request).Contains("status=archived") ? Page([ArchivedSummary()]) : Page([])));
 
-        var cut = RenderList();
+        var cut = RenderList("/vehicles?status=active");
 
         cut.WaitForAssertion(() =>
         {
@@ -213,8 +223,8 @@ public class VehicleStatusFilterPagesTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             var links = cut.FindAll("nav[aria-label='Show vehicles'] a").ToList();
-            Assert.Equal(["/search?q=truck&make=Ford&status=all", "/search?q=truck&make=Ford", "/search?q=truck&make=Ford&status=archived"], links.Select(link => link.GetAttribute("href")));
-            Assert.Equal("page", links[1].GetAttribute("aria-current"));
+            Assert.Equal(["/search?q=truck&make=Ford", "/search?q=truck&make=Ford&status=active", "/search?q=truck&make=Ford&status=archived"], links.Select(link => link.GetAttribute("href")));
+            Assert.Equal("page", links[0].GetAttribute("aria-current"));
         });
     }
 

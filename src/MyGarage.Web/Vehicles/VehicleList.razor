@@ -22,7 +22,7 @@
 }
 else if (vehicles is not null)
 {
-    @if (vehicles.TotalCount == 0 && criteria.Status == VehicleStatusFilter.Active && !hasArchived)
+    @if (vehicles.TotalCount == 0 && (criteria.Status == VehicleStatusFilter.All || (criteria.Status == VehicleStatusFilter.Active && !hasArchived)))
     {
         <EmptyState Message="You have no vehicles yet." ActionText="Add your first vehicle" ActionHref="/vehicles/new" />
     }
@@ -84,7 +84,7 @@ else if (vehicles is not null)
     [Parameter, SupplyParameterFromQuery(Name = "page")]
     public string? Page { get; set; }
 
-    // active (default), archived, or all; anything else means active.
+    // all (default), active, or archived; anything else means all.
     [Parameter, SupplyParameterFromQuery(Name = "status")]
     public string? Status { get; set; }
 

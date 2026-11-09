@@ -241,7 +241,7 @@ else if (vehicles is not null)
 
             // With no active vehicles and no search, say whether archived ones exist instead of inviting a first vehicle.
             hasArchived = false;
-            if (vehicles is { TotalCount: 0 } && !criteria.HasAny && errors.Count == 0)
+            if (vehicles is { TotalCount: 0 } && criteria.Status == VehicleStatusFilter.Active && criteria.Query is null && !criteria.HasFilters && errors.Count == 0)
             {
                 hasArchived = (await Api.ListAsync(criteria with { Status = VehicleStatusFilter.Archived }, 1)).Value?.TotalCount > 0;
             }
