@@ -10,10 +10,10 @@ namespace MyGarage.Web.Vehicles;
 public sealed class VehiclesApiClient(HttpClient http)
 {
     public Task<ApiResult<PagedResultDto<VehicleSummaryDto>>> ListAsync(VehicleListCriteria criteria, int page, CancellationToken cancellationToken = default) =>
-        SendAsync<PagedResultDto<VehicleSummaryDto>>(HttpMethod.Get, $"api/vehicles?{criteria.ToQueryString(page)}", null, cancellationToken);
+        SendAsync<PagedResultDto<VehicleSummaryDto>>(HttpMethod.Get, $"api/vehicles?{criteria.ToQueryString(page, includeDefaultStatus: true)}", null, cancellationToken);
 
     public Task<ApiResult<VehicleFilterOptionsDto>> GetFilterOptionsAsync(string? status = null, CancellationToken cancellationToken = default) =>
-        SendAsync<VehicleFilterOptionsDto>(HttpMethod.Get, status is null or VehicleStatusFilter.Active ? "api/vehicles/filter-options" : $"api/vehicles/filter-options?status={Uri.EscapeDataString(status)}", null, cancellationToken);
+        SendAsync<VehicleFilterOptionsDto>(HttpMethod.Get, status is null ? "api/vehicles/filter-options" : $"api/vehicles/filter-options?status={Uri.EscapeDataString(status)}", null, cancellationToken);
 
     public Task<ApiResult<VehicleDetailDto>> CreateAsync(VehicleRequest request, CancellationToken cancellationToken = default) =>
         SendAsync<VehicleDetailDto>(HttpMethod.Post, "api/vehicles", request, cancellationToken);

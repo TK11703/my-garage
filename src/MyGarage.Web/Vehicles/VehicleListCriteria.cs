@@ -35,10 +35,10 @@ public sealed record VehicleListCriteria
 
     public Guid? DrivetrainId { get; init; }
 
-    // active (the default), archived, or all; anything else in a link means active.
-    public string Status { get; init; } = VehicleStatusFilter.Active;
+    // all (the default), active, or archived; anything else in a link means all.
+    public string Status { get; init; } = VehicleStatusFilter.All;
 
-    public bool HasStatus => Status != VehicleStatusFilter.Active;
+    public bool HasStatus => Status != VehicleStatusFilter.All;
 
     public bool HasFilters =>
         Make is not null || Color is not null || Doors is not null || Tag is not null || MinMileage is not null || MaxMileage is not null
@@ -78,10 +78,11 @@ public sealed record VehicleListCriteria
             FuelTypeId = ParseGuid(fuelTypeId),
             TransmissionId = ParseGuid(transmissionId),
             DrivetrainId = ParseGuid(drivetrainId),
-            Status = status is VehicleStatusFilter.Archived or VehicleStatusFilter.All ? status : VehicleStatusFilter.Active,
+            Status = status is VehicleStatusFilter.Archived or VehicleStatusFilter.Active ? status : VehicleStatusFilter.All,
         };
 
-    public string ToQueryString(int? page = null)
+    // The API treats a missing status as active, so requests to it always name the status.
+    public string ToQueryString(int? page = null, bool includeDefaultStatus = false)
     {
         var parts = new List<string>();
         Add(parts, "q", Query);
@@ -97,7 +98,7 @@ public sealed record VehicleListCriteria
         Add(parts, "fuelTypeId", FuelTypeId?.ToString());
         Add(parts, "transmissionId", TransmissionId?.ToString());
         Add(parts, "drivetrainId", DrivetrainId?.ToString());
-        Add(parts, "status", HasStatus ? Status : null);
+        Add(parts, "status", HasStatus || includeDefaultStatus ? Status : null);
         if (page is not null)
         {
             parts.Add($"page={page.Value.ToString(CultureInfo.InvariantCulture)}");
@@ -180,7 +181,7 @@ public sealed record VehicleListCriteria
 
         if (HasStatus)
         {
-            yield return ("status", Status == VehicleStatusFilter.Archived ? "Status: Archived" : "Status: All");
+            yield return ("status", Status == VehicleStatusFilter.Archived ? "Status: Archived" : "Status: Active");
         }
     }
 
@@ -200,7 +201,7 @@ public sealed record VehicleListCriteria
             "fuelTypeId" => this with { FuelTypeId = null },
             "transmissionId" => this with { TransmissionId = null },
             "drivetrainId" => this with { DrivetrainId = null },
-            "status" => this with { Status = VehicleStatusFilter.Active },
+            "status" => this with { Status = VehicleStatusFilter.All },
             _ => this,
         };
 
