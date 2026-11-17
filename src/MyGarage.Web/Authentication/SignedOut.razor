@@ -1,8 +1,14 @@
 @page "/authentication/signed-out"
 @attribute [AllowAnonymous]
 
-<PageHeader Title="You have been signed out" Trail="@(new[] { new Crumb("Signed out") })" />
+<PageTitle>You have been signed out – My Garage</PageTitle>
 
-<p>Your session has ended. Sign in again to continue.</p>
-
-<a class="btn btn-primary" href="/authentication/login">Sign in</a>
+<div class="mg-stage">
+    <section class="card mg-stage-card" aria-labelledby="signed-out-heading">
+        <div class="mg-stage-mark" aria-hidden="true"><Logo Size="36" /></div>
+        <h1 id="signed-out-heading">You have been signed out</h1>
+        <p>Your session has ended. Sign in again to continue.</p>
+        <a class="btn btn-primary" href="/authentication/login">Sign in</a>
+        <a class="mg-stage-alt" href="/about">What is My Garage?</a>
+    </section>
+</div>

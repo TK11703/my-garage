@@ -15,7 +15,14 @@ else
 {
     var current = CurrentTab();
 
-    <TabNav Tabs="Tabs" Current="@current" />
+    @if (Steps)
+    {
+        <ImportSteps Current="@current" Imported="Imported" />
+    }
+    else
+    {
+        <TabNav Tabs="Tabs" Current="@current" />
+    }
 
     <EditForm EditContext="editContext" FormName="@FormName" OnValidSubmit="OnSubmit">
         <div class="tab-content">
@@ -94,6 +101,14 @@ else
     // Edit layout: the Details tab (Basic and Specifications groups) holds this form; Media and Description hold their own forms.
     [Parameter]
     public bool Tabbed { get; set; }
+
+    // The add page shows its import and details panes as steps (Sticker, Reading, Review) rather than tabs.
+    [Parameter]
+    public bool Steps { get; set; }
+
+    // True once a sticker was read, so the first two steps show as done.
+    [Parameter]
+    public bool Imported { get; set; }
 
     // details, media, or description; anything else means details.
     [Parameter]

@@ -208,7 +208,9 @@ public abstract class VehicleTestContext : BunitContext
         string? transmission = null,
         OwnershipType? ownership = null,
         int? purchasedYear = null,
-        IReadOnlyList<VehicleMatchDto>? matches = null) =>
+        IReadOnlyList<VehicleMatchDto>? matches = null,
+        VehicleNextDueDto? nextDue = null,
+        decimal? spendThisYear = null) =>
         new()
         {
             Id = Guid.NewGuid(),
@@ -222,6 +224,8 @@ public abstract class VehicleTestContext : BunitContext
             Ownership = ownership,
             PurchasedYear = purchasedYear,
             Matches = matches ?? [],
+            NextDue = nextDue,
+            SpendThisYear = spendThisYear,
         };
 
     protected static PagedResultDto<VehicleSummaryDto> Page(IReadOnlyList<VehicleSummaryDto> items, int page = 1, int totalCount = -1, int pageSize = 12)

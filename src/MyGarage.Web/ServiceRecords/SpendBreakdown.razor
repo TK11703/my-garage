@@ -1,0 +1,50 @@
+@using System.Globalization
+@using MyGarage.Shared.ServiceRecords
+@using MyGarage.Web.Common
+
+@if (Shares.Count > 0)
+{
+    <section class="card border-0 shadow-sm" aria-labelledby="spend-breakdown-heading" data-testid="spend-breakdown">
+        <h2 id="spend-breakdown-heading" class="card-header h6 mb-0 d-flex justify-content-between gap-2">
+            <span>Where it went</span>
+            <span data-testid="breakdown-gross">@DisplayFormat.Money(Gross) gross</span>
+        </h2>
+        <div class="card-body">
+            <svg class="mg-stack" viewBox="0 0 100 3" preserveAspectRatio="none" role="img" aria-label="@Summary" focusable="false">
+                @{
+                    var x = 0m;
+                }
+                @foreach (var share in Shares.Where(share => share.Amount > 0))
+                {
+                    var width = share.Amount / Gross * 100m;
+                    <rect class="mg-stack-@share.Key" x="@Number(x)" y="0" width="@Number(width)" height="3" />
+                    x += width;
+                }
+            </svg>
+            <dl class="mg-legend mb-0">
+                @foreach (var share in Shares)
+                {
+                    <div data-testid="breakdown-@share.Key">
+                        <dt><i class="mg-swatch mg-swatch-@share.Key" aria-hidden="true"></i>@share.Label</dt>
+                        <dd class="mg-num">@DisplayFormat.Money(share.Amount)</dd>
+                    </div>
+                }
+            </dl>
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public ServiceRecordDto Record { get; set; } = default!;
+
+    private IReadOnlyList<ServiceRecordFormat.SpendShare> Shares => ServiceRecordFormat.Breakdown(Record);
+
+    // The charges before any credit; the bar is drawn from these.
+    private decimal Gross => Shares.Where(share => share.Amount > 0).Sum(share => share.Amount);
+
+    private string Summary =>
+        string.Join(", ", Shares.Where(share => share.Amount > 0).Select(share => $"{share.Label} {Math.Round(share.Amount / Gross * 100m, 0, MidpointRounding.AwayFromZero).ToString(CultureInfo.InvariantCulture)}%"));
+
+    private static string Number(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+}

@@ -1,0 +1,32 @@
+@if (Suggestions.Count > 0)
+{
+    <section class="card border-0 shadow-sm" aria-labelledby="suggested-reminders-heading" data-testid="reminder-suggestions">
+        <div class="card-body">
+            <h2 id="suggested-reminders-heading" class="h5 card-title mb-1">Suggested reminders</h2>
+            <p class="text-body-secondary">Services you have done more than once with no reminder yet, with the interval your own history shows</p>
+
+            <ul class="list-group list-group-flush">
+                @foreach (var suggestion in Suggestions)
+                {
+                    <li class="list-group-item px-0 mg-suggestion" data-testid="reminder-suggestion">
+                        <div>
+                            <div class="fw-semibold text-break" data-testid="suggestion-name">@suggestion.Name</div>
+                            <div class="small text-body-secondary mg-num">@ReminderFormat.Interval(suggestion)</div>
+                            <div class="small text-body-secondary">@suggestion.Basis</div>
+                        </div>
+                        <a class="btn btn-sm btn-outline-primary" href="@ReminderLinks.New(VehicleId, suggestion)"
+                           aria-label="@($"Set up a reminder for {suggestion.Name}")" data-testid="use-suggestion">Set up reminder</a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<SuggestedReminderDto> Suggestions { get; set; } = [];
+}

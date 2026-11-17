@@ -65,6 +65,10 @@
                 </div>
             </div>
         </fieldset>
+        <div class="mg-next-due-preview" data-reminder-preview aria-live="polite" data-testid="next-due-preview">
+            <p class="mg-label mb-1">Next due</p>
+            <p class="mb-0 mg-num" data-preview-text>@ReminderFormat.NextDuePreview(Model.IntervalMiles, Model.TimeValue, Model.TimeUnit, Model.LastDoneOn, Model.LastDoneMileage)</p>
+        </div>
     </EditForm>
 </MaintenanceFormCard>
 

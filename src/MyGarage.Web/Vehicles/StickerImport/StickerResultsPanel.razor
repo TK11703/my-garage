@@ -1,3 +1,4 @@
+@using System.Globalization
 <div class="alert @(Result.Outcome == StickerImportOutcome.NoDetailsFound ? "alert-warning" : "alert-success")" role="status" tabindex="-1" id="sticker-result" data-testid="sticker-result">
     @if (Result.Outcome == StickerImportOutcome.NoDetailsFound)
     {
@@ -8,12 +9,33 @@
         <p class="mb-0" data-testid="sticker-read-count">
             Read @Result.FieldsFilled @(Result.FieldsFilled == 1 ? "detail" : "details")@(Result.Features.Count > 0 ? $" and {Result.Features.Count} {(Result.Features.Count == 1 ? "feature" : "features")}" : string.Empty) from the sticker. Review them on the Details tab.
         </p>
-        <button type="button" class="btn btn-sm btn-outline-success mt-2" data-bs-toggle="tab" data-bs-target="#tab-details">Open the Details tab</button>
+
+        @if (Reads.Count > 0)
+        {
+            <dl class="mg-read-list mt-3 mb-0" data-testid="sticker-read-list">
+                @foreach (var read in Reads)
+                {
+                    <div class="mg-read @(read.Check is null ? null : "mg-read-check")" data-read="@read.Key">
+                        <dt>@read.Label</dt>
+                        <dd>
+                            <span class="mg-num text-break">@read.Value</span>
+                            <span class="mg-source-tag">From sticker</span>
+                            @if (read.Check is not null)
+                            {
+                                <span class="mg-read-note">@read.Check</span>
+                            }
+                        </dd>
+                    </div>
+                }
+            </dl>
+        }
+
+        <button type="button" class="btn btn-sm btn-primary mt-3" data-bs-toggle="tab" data-bs-target="#tab-details">Open the Details tab</button>
     }
 
     @if (Notices.Count > 0)
     {
-        <ul class="mb-0 mt-2" data-testid="sticker-notices">
+        <ul class="mb-0 mt-2 mg-read-note" data-testid="sticker-notices">
             @foreach (var notice in Notices)
             {
                 <li data-notice="@notice.Code">@notice.Message</li>
@@ -23,10 +45,57 @@
 </div>
 
 @code {
+    private sealed record Read(string Key, string Label, string Value, string? Check = null);
+
     [Parameter, EditorRequired]
     public StickerImportResultDto Result { get; set; } = default!;
 
     // The no-details result already has its own message above, so its notice is not repeated.
     private IReadOnlyList<StickerNoticeDto> Notices =>
         [.. Result.Notices.Where(notice => Result.Outcome != StickerImportOutcome.NoDetailsFound || notice.Code != StickerNoticeCode.NoDetails)];
+
+    // Every value the sticker supplied, in form order; the VIN and a lookup with no match in the user's list are flagged for a second look.
+    private IReadOnlyList<Read> Reads
+    {
+        get
+        {
+            var reads = new List<Read>();
+            AddText(reads, "year", "Year", Result.Year?.ToString(CultureInfo.InvariantCulture));
+            AddText(reads, "make", "Make", Result.Make);
+            AddText(reads, "model", "Model", Result.Model);
+            AddText(reads, "trim", "Trim", Result.Trim);
+            AddText(reads, "vin", "VIN", Result.Vin, "Check it before saving.");
+            AddLookup(reads, "vehicle-type", "Vehicle type", Result.VehicleTypeId, Result.VehicleTypeText);
+            AddText(reads, "engine", "Engine", Result.Engine);
+            AddText(reads, "horsepower", "Horsepower", Result.Horsepower?.ToString(CultureInfo.InvariantCulture));
+            AddLookup(reads, "drivetrain", "Drivetrain", Result.DrivetrainId, Result.DrivetrainText);
+            AddText(reads, "color", "Color", Result.Color);
+            AddLookup(reads, "fuel-type", "Fuel type", Result.FuelTypeId, Result.FuelTypeText);
+            AddLookup(reads, "transmission", "Transmission", Result.TransmissionId, Result.TransmissionText);
+            AddText(reads, "seats", "Seats", Result.Seats?.ToString(CultureInfo.InvariantCulture));
+            AddText(reads, "doors", "Doors", Result.Doors?.ToString(CultureInfo.InvariantCulture));
+            AddText(reads, "wheel-size", "Wheel size", Result.WheelSize?.ToString("0.#", CultureInfo.InvariantCulture));
+            AddText(reads, "tire-size", "Tire size", Result.TireSize);
+            return reads;
+        }
+    }
+
+    private static void AddText(List<Read> reads, string key, string label, string? value, string? check = null)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            reads.Add(new Read(key, label, value, check));
+        }
+    }
+
+    private static void AddLookup(List<Read> reads, string key, string label, Guid? id, string? text)
+    {
+        if (id is null && string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        reads.Add(new Read(key, label, string.IsNullOrWhiteSpace(text) ? "Matched to your list" : text,
+            id is null ? "Not matched to your list. Pick one on the Details tab." : null));
+    }
 }

@@ -1,5 +1,5 @@
-// FAQ page: filters questions as you type (every typed word must match; matches open) and lets a card's
-// "Browse all questions" button open or close every answer in that card. Delegated so it survives enhanced navigation.
+// FAQ page: filters questions as you type (every typed word must match; matches open) and hides the topics that
+// have no match left. Delegated so it survives enhanced navigation.
 function applyFilter(search) {
     const grid = document.querySelector("[data-faq-grid]");
     if (!grid) {
@@ -23,7 +23,12 @@ function applyFilter(search) {
     }
 
     for (const category of grid.querySelectorAll("[data-faq-category]")) {
-        category.hidden = !category.querySelector("[data-faq-item]:not([hidden])");
+        const visible = !!category.querySelector("[data-faq-item]:not([hidden])");
+        category.hidden = !visible;
+        const topic = grid.querySelector(`[data-faq-topic="${category.dataset.faqCategory}"]`);
+        if (topic) {
+            topic.hidden = !visible;
+        }
     }
 
     const empty = document.querySelector("[data-faq-empty]");
@@ -36,19 +41,4 @@ document.addEventListener("input", event => {
     if (event.target instanceof HTMLInputElement && event.target.hasAttribute("data-faq-search")) {
         applyFilter(event.target);
     }
-});
-
-document.addEventListener("click", event => {
-    const button = event.target instanceof Element ? event.target.closest("[data-faq-expand]") : null;
-    if (!button) {
-        return;
-    }
-
-    const details = [...button.closest("[data-faq-category]").querySelectorAll("[data-faq-item]:not([hidden]) details")];
-    const open = details.some(item => !item.open);
-    for (const item of details) {
-        item.open = open;
-    }
-
-    button.setAttribute("aria-expanded", open ? "true" : "false");
 });

@@ -8,6 +8,7 @@ public static class VehicleMessages
     public const string ArchivedCannotChange = "This vehicle is archived and cannot be changed.";
     public const string Archived = "Vehicle archived. Find it under Archived in My Vehicles.";
     public const string Restored = "Vehicle restored.";
+    public const string NoteAdded = "Journal note added.";
     public const string AlreadyArchived = "This vehicle was already archived.";
     public const string AlreadyActive = "This vehicle was already active.";
     public const string NoActiveVehicles = "You have no active vehicles.";
@@ -28,6 +29,7 @@ public static class VehicleMessages
     {
         "archived" => Archived,
         "restored" => Restored,
+        "note" => NoteAdded,
         _ => null,
     };
 }

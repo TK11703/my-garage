@@ -1,0 +1,18 @@
+@if (ReminderFormat.PercentUsed(Reminder) is { } percent)
+{
+    @* A native progress element: named for assistive technology and drawn without inline styles. The remaining text beside it says the same in words. *@
+    <progress class="mg-gauge @ToneClass" value="@percent" max="100" aria-label="@($"{percent}% of the interval used")" data-testid="reminder-gauge">@percent%</progress>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public ReminderDto Reminder { get; set; } = default!;
+
+    private string ToneClass => Reminder.Status switch
+    {
+        ReminderStatus.Overdue => "mg-gauge-bad",
+        ReminderStatus.DueSoon => "mg-gauge-accent",
+        ReminderStatus.Upcoming => "mg-gauge-ok",
+        _ => "mg-gauge-muted",
+    };
+}

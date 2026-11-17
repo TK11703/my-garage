@@ -74,7 +74,7 @@ public class FaqPageTests : IClassFixture<WebAppFactory>
     }
 
     [Fact]
-    public async Task ItIsLaidOutAsASearchFieldAndCardsOfQuestions()
+    public async Task ItIsLaidOutAsASearchFieldATopicListAndSectionsOfQuestions()
     {
         var (_, html) = await GetAsync();
         var document = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
@@ -84,16 +84,36 @@ public class FaqPageTests : IClassFixture<WebAppFactory>
         Assert.Equal("search", search.GetAttribute("type"));
         Assert.False(string.IsNullOrWhiteSpace(search.GetAttribute("aria-label")));
 
-        var cards = document.QuerySelectorAll("[data-faq-category]");
-        Assert.Equal(7, cards.Length);
-        Assert.All(cards, card =>
+        var sections = document.QuerySelectorAll("[data-faq-category]");
+        Assert.Equal(7, sections.Length);
+        Assert.All(sections, section =>
         {
-            Assert.NotNull(card.QuerySelector("h2"));
-            Assert.NotNull(card.QuerySelector("svg.bi"));
-            Assert.NotEmpty(card.QuerySelectorAll("[data-faq-item] details > summary"));
-            Assert.NotNull(card.QuerySelector("button[data-faq-expand]"));
+            Assert.NotNull(section.QuerySelector("h2"));
+            Assert.NotEmpty(section.QuerySelectorAll("[data-faq-item] details > summary"));
         });
-        Assert.True(document.QuerySelectorAll("[data-faq-item]").Length >= 20);
+        var total = document.QuerySelectorAll("[data-faq-item]").Length;
+        Assert.True(total >= 20);
+
+        var topics = document.QuerySelectorAll("nav[aria-label='Topics'] a");
+        Assert.Equal(8, topics.Length);
+        Assert.Equal("All topics", topics[0].FirstChild!.TextContent.Trim());
+        Assert.Equal(total.ToString(System.Globalization.CultureInfo.InvariantCulture), topics[0].QuerySelector("em")!.TextContent);
+        Assert.All(topics.Skip(1), topic =>
+        {
+            Assert.StartsWith("/faq#faq-", topic.GetAttribute("href"));
+            var section = document.QuerySelector(topic.GetAttribute("href")![4..])!.Closest("[data-faq-category]")!;
+            Assert.Equal(section.QuerySelectorAll("[data-faq-item]").Length.ToString(System.Globalization.CultureInfo.InvariantCulture), topic.QuerySelector("em")!.TextContent);
+        });
+    }
+
+    [Fact]
+    public async Task OnlyAVisitorWhoIsNotSignedIn_IsOfferedToSignIn()
+    {
+        var (_, anonymous) = await GetAsync();
+        var (_, signedIn) = await GetAsync("Ada Lovelace");
+
+        Assert.Contains("data-testid=\"faq-cta\"", anonymous);
+        Assert.DoesNotContain("data-testid=\"faq-cta\"", signedIn);
     }
 
     [Fact]

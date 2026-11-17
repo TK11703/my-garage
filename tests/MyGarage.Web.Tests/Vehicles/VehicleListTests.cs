@@ -19,7 +19,7 @@ public class VehicleListTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             Assert.Single(cut.FindAll("h1"));
-            Assert.Equal("My Vehicles", cut.Find("h1").TextContent);
+            Assert.Equal("Your garage", cut.Find("h1").TextContent);
             var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
             Assert.Equal(["Home", "Garage"], items.Select(item => item.TextContent.Trim()));
             var add = cut.Find(".mg-pagebar").QuerySelector("a[data-testid='add-vehicle']")!;

@@ -1,7 +1,14 @@
 <div class="@Column">
     <div class="mg-view-field">
         <dt class="small fw-normal text-body-secondary">@Label</dt>
-        <dd class="mb-0 text-break">@Value</dd>
+        @if (AddHref is not null && (string.IsNullOrWhiteSpace(Value) || Value == DisplayFormat.NotSet))
+        {
+            <dd class="mb-0"><a class="mg-add-link" href="@AddHref" data-testid="add-value" aria-label="Add @Label.ToLowerInvariant()">Add</a></dd>
+        }
+        else
+        {
+            <dd class="mb-0 text-break">@Value</dd>
+        }
     </div>
 </div>
 
@@ -15,4 +22,8 @@
     // Matches the column the same field takes on the edit form.
     [Parameter]
     public string Column { get; set; } = "col-sm-4";
+
+    // Where to add the value; an unset value then reads as an "Add" link instead of "Not set".
+    [Parameter]
+    public string? AddHref { get; set; }
 }

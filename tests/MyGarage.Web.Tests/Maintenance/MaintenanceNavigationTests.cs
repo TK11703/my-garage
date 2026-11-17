@@ -54,7 +54,10 @@ public class MaintenanceNavigationTests : VehicleTestContext
             Assert.Contains("page=4", PageRequested("fuel-energy-entries"));
             Assert.Contains("page=1", PageRequested("registrations"));
             Assert.Contains("page=1", PageRequested("insurance"));
-            Assert.Contains("page=1", PageRequested("service-records"));
+            // The overview also asks for the newest record, so more than one request goes to this list.
+            Assert.All(
+                Requests.Where(request => request.RequestUri!.AbsolutePath.EndsWith("/service-records", StringComparison.Ordinal)),
+                request => Assert.Contains("page=1", request.RequestUri!.Query));
         });
     }
 

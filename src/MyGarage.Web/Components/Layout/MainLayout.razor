@@ -3,14 +3,16 @@
 
 <a class="visually-hidden-focusable mg-skip-link" href="#main-content">Skip to main content</a>
 
-<AppNavbar OnCountLoaded="OnCountLoaded" />
-
 @if (isSignedIn)
 {
-    <AppSidebar DraftsAwaitingReview="draftsAwaitingReview" />
+    <AppRail />
+}
+else
+{
+    <PublicBar />
 }
 
-<main id="main-content" class="mg-content @(isSignedIn ? "mg-content-with-sidebar" : null)" tabindex="-1">
+<main id="main-content" class="mg-content @(isSignedIn ? "mg-content-with-rail" : "mg-content-public")" tabindex="-1">
     @Body
 </main>
 
@@ -22,10 +24,6 @@
 
 @code {
     private bool isSignedIn;
-    private int draftsAwaitingReview;
-
-    // The bell loads the counts; the menu shows how many drafts wait.
-    private void OnCountLoaded(UnreadCountDto count) => draftsAwaitingReview = count.DraftsAwaitingReview;
 
     protected override async Task OnInitializedAsync()
     {

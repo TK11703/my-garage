@@ -1,0 +1,121 @@
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+@* Phone: a slim strip with the menu button; the rail below opens over the page as a drawer. *@
+<header class="mg-mobilebar">
+    <button type="button" class="mg-nav-btn" aria-label="Open menu" aria-controls="mg-rail" aria-expanded="false" data-mg-rail-toggle>
+        <Icon Name="IconName.List" Size="24" />
+    </button>
+    <a class="mg-mobilebar-brand" href="/">My Garage</a>
+</header>
+
+<div class="mg-rail-backdrop" data-mg-rail-close></div>
+
+<aside id="mg-rail" class="mg-rail" aria-label="Site menu">
+    <a class="mg-rail-logo" href="/" aria-label="My Garage home" title="My Garage"><Logo Size="24" /></a>
+
+    <nav aria-label="Primary">
+        <ul class="mg-rail-list">
+            @foreach (var item in NavMenu.Items)
+            {
+                var active = NavMenu.IsActive(item, CurrentPath);
+                <li>
+                    <a class="mg-rail-link @(active ? "active" : null)" href="@item.Href" title="@item.Label"
+                       aria-current="@(active ? "page" : null)">
+                        <span class="mg-rail-icon" aria-hidden="true"><Icon Name="item.Icon" Size="22" /></span>
+                        <span class="visually-hidden">@item.Label</span>
+                        @if (item == NavMenu.Drafts && draftsAwaitingReview > 0)
+                        {
+                            <span class="mg-rail-count" data-testid="nav-drafts-count" aria-hidden="true">@draftsAwaitingReview</span>
+                            <span class="visually-hidden">, @draftsAwaitingReview awaiting review</span>
+                        }
+                    </a>
+                </li>
+            }
+        </ul>
+    </nav>
+
+    <div class="mg-rail-list mt-auto">
+        <NotificationsMenu OnCountLoaded="OnCountLoaded" />
+
+        <div class="dropdown dropend">
+            <button type="button" class="mg-nav-btn" aria-label="Help" title="Help"
+                    data-bs-toggle="dropdown" aria-expanded="false">
+                <Icon Name="IconName.QuestionCircle" Size="20" />
+            </button>
+            <ul class="dropdown-menu mg-menu">
+                <li><a class="dropdown-item" href="/faq">FAQ</a></li>
+                <li><a class="dropdown-item" href="/about">About</a></li>
+            </ul>
+        </div>
+
+        <ThemeToggle />
+
+        <div class="dropdown dropend mg-profile">
+            <button type="button" class="mg-nav-btn mg-profile-btn" aria-label="Account menu for @displayName" title="Account"
+                    data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="mg-avatar" aria-hidden="true">
+                    @if (initials.Length > 0)
+                    {
+                        @initials
+                    }
+                    else
+                    {
+                        <Icon Name="IconName.PersonCircle" Size="20" />
+                    }
+                </span>
+            </button>
+            <ul class="dropdown-menu mg-menu mg-profile-menu">
+                <li class="px-3 py-2">
+                    <span class="mg-profile-name text-truncate">@displayName</span>
+                    @if (email.Length > 0)
+                    {
+                        <span class="mg-profile-email" data-testid="profile-email">@email</span>
+                    }
+                </li>
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                    <a class="dropdown-item d-flex align-items-center gap-2" href="/preferences">
+                        <Icon Name="IconName.Sliders" /> Preferences
+                    </a>
+                </li>
+                <li>
+                    <form method="post" action="/authentication/logout">
+                        <AntiforgeryToken />
+                        <button type="submit" class="dropdown-item d-flex align-items-center gap-2">
+                            <Icon Name="IconName.BoxArrowRight" /> Sign out
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</aside>
+
+@code {
+    private string displayName = ClaimsPrincipalExtensions.NeutralName;
+    private string initials = string.Empty;
+    private string email = string.Empty;
+    private int draftsAwaitingReview;
+
+    private string CurrentPath
+    {
+        get
+        {
+            var relative = Navigation.ToBaseRelativePath(Navigation.Uri);
+            var end = relative.IndexOfAny(['?', '#']);
+            return "/" + (end >= 0 ? relative[..end] : relative).TrimEnd('/');
+        }
+    }
+
+    // The bell loads the counts; the Drafts item shows how many drafts wait.
+    private void OnCountLoaded(UnreadCountDto count) => draftsAwaitingReview = count.DraftsAwaitingReview;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        displayName = state.User.GetDisplayName();
+        initials = state.User.GetInitials();
+        email = state.User.GetEmail();
+    }
+}

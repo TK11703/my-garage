@@ -46,7 +46,7 @@ public partial class LogoutEndpointTests(WebAppFactory factory) : IClassFixture<
     public async Task Post_WithAntiforgeryToken_SignsOutAndReturnsToSignedOutPage()
     {
         var client = CreateSignedInClient();
-        var page = await client.GetAsync("/");
+        var page = await client.GetAsync("/about");
         var html = await page.Content.ReadAsStringAsync();
 
         var token = TokenPattern().Match(html).Groups["token"].Value;

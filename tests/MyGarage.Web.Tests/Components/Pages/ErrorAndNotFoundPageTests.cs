@@ -28,11 +28,24 @@ public class ErrorAndNotFoundPageTests : IClassFixture<WebAppFactory>
         Assert.Contains("PAGE NOT FOUND", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("wrong turn", html);
         Assert.Contains("data-testid=\"return-home\"", html);
-        Assert.Matches("class=\"btn btn-outline-primary[^\"]*\"[^>]*data-testid=\"return-home\"", html);
+        Assert.Matches("class=\"btn btn-primary[^\"]*\"[^>]*data-testid=\"return-home\"", html);
         Assert.Contains("Return Home", html);
         Assert.Contains("aria-label=\"Breadcrumb\"", html);
         Assert.Contains("href=\"#main-content\"", html);
-        Assert.Contains("aria-label=\"Main\"", html);
+        Assert.Contains("aria-label=\"Site menu\"", html);
+    }
+
+    [Fact]
+    public async Task NotFound_ShowsAnOdometerThatRollsTo404_AndOffersSearchBesideHome()
+    {
+        var html = await GetHtmlAsync("/this-page-does-not-exist");
+
+        Assert.Matches("<div[^>]*class=\"mg-notfound-code mg-odometer\"[^>]*role=\"img\"[^>]*aria-label=\"404\"", html);
+        Assert.Equal(3, Regex.Matches(html, "class=\"mg-odo-wheel mg-odo-d[04]\"").Count);
+        Assert.Equal(2, Regex.Matches(html, "mg-odo-d4").Count);
+        Assert.Matches("<form[^>]*action=\"/search\"[^>]*data-testid=\"search-instead\"", html);
+        Assert.Contains("MILES FROM HOME: 404", html);
+        Assert.Matches("href=\"/faq\"", html);
     }
 
     [Fact]
@@ -44,6 +57,6 @@ public class ErrorAndNotFoundPageTests : IClassFixture<WebAppFactory>
         Assert.Contains("Something went wrong</h1>", html);
         Assert.Contains("aria-label=\"Breadcrumb\"", html);
         Assert.Contains("href=\"#main-content\"", html);
-        Assert.Contains("aria-label=\"Main\"", html);
+        Assert.Contains("aria-label=\"Site menu\"", html);
     }
 }

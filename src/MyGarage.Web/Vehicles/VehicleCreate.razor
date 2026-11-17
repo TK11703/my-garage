@@ -16,7 +16,7 @@
 
 @if (!lookupsFailed)
 {
-    <VehicleForm Tabbed="true" AttachmentTabs="false" ActiveTab="@activeTab" Model="Model" FormName="create-vehicle" SubmitText="Save" CancelHref="/vehicles"
+    <VehicleForm Tabbed="true" Steps="true" Imported="@(importResult is { Outcome: not StickerImportOutcome.NoDetailsFound })" AttachmentTabs="false" ActiveTab="@activeTab" Model="Model" FormName="create-vehicle" SubmitText="Save" CancelHref="/vehicles"
                  Lookups="lookups" Errors="errors" Hints="hints" OnSubmit="SubmitAsync">
         <ImportContent>
             <StickerImportPanel Existing="false" Result="importResult" Message="@importMessage" Level="@importLevel" OnImport="ImportAsync" />
@@ -42,8 +42,17 @@
     [CascadingParameter]
     private HttpContext? HttpContext { get; set; }
 
+    // details opens the manual form (the Enter manually link works without script); anything else opens the sticker step.
+    [Parameter, SupplyParameterFromQuery(Name = "tab")]
+    public string? Tab { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
+        if (Tab == "details")
+        {
+            activeTab = "details";
+        }
+
         Model ??= new VehicleFormModel();
         if (HttpContext is { Request.HasFormContentType: true } http)
         {

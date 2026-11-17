@@ -1,4 +1,5 @@
 using System.Globalization;
+using MyGarage.Shared.Reminders;
 using MyGarage.Shared.Vehicles;
 
 namespace MyGarage.Web.Vehicles;
@@ -26,6 +27,33 @@ public static class VehicleFormat
 
     public static string Acquired(OwnershipType? ownership, int year) =>
         ownership switch { OwnershipType.Purchased => $"Purchased {year}", OwnershipType.Leased => $"Leased {year}", _ => $"Acquired {year}" };
+
+    // "3,780 mi left" or "3 days overdue": with both a distance and a time left, the one that is overdue or nearest its due-soon limit.
+    public static string NextDueRemaining(VehicleNextDueDto due)
+    {
+        if (due.MilesRemaining is null && due.DaysRemaining is null)
+        {
+            return "Needs a mileage";
+        }
+
+        var useDays = due.DaysRemaining is { } days
+            && (due.MilesRemaining is not { } m || (days <= 0 && m > 0) || (m > ReminderThresholds.DueSoonMiles && days <= ReminderThresholds.DueSoonDays));
+        return useDays ? DaysRemaining(due.DaysRemaining!.Value) : MilesRemaining(due.MilesRemaining!.Value);
+    }
+
+    private static string MilesRemaining(int miles) => miles switch
+    {
+        0 => "due now",
+        > 0 => $"{miles.ToString("N0", CultureInfo.InvariantCulture)} mi left",
+        _ => $"{(-miles).ToString("N0", CultureInfo.InvariantCulture)} mi overdue",
+    };
+
+    private static string DaysRemaining(int days) => days switch
+    {
+        0 => "due today",
+        > 0 => $"in {days.ToString(CultureInfo.InvariantCulture)} day{(days == 1 ? string.Empty : "s")}",
+        _ => $"{(-days).ToString(CultureInfo.InvariantCulture)} day{(days == -1 ? string.Empty : "s")} overdue",
+    };
 
     public static string DateLabel(OwnershipType? ownership) =>
         ownership switch { OwnershipType.Purchased => "Date Purchased", OwnershipType.Leased => "Date Leased", _ => "Date purchased or leased" };

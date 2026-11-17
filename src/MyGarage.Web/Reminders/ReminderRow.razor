@@ -1,4 +1,4 @@
-<li class="list-group-item" data-testid="reminder">
+<li class="list-group-item mg-reminder" data-testid="reminder">
     <div class="d-flex flex-wrap justify-content-between gap-2">
         <div>
             <a class="fw-semibold me-2" href="@ReminderLinks.Detail(Reminder.VehicleId, Reminder.Id)" data-testid="reminder-link">@Reminder.Name</a>
@@ -9,7 +9,7 @@
                 <div class="small"><a href="@ReminderLinks.Tab(Reminder.VehicleId)" data-testid="reminder-vehicle">@Reminder.VehicleName</a></div>
             }
         </div>
-        <div class="small text-md-end">
+        <div class="small text-md-end mg-reminder-side">
             <div>Last done: @ReminderFormat.LastDone(Reminder)</div>
             <div>Next due: @ReminderFormat.NextDue(Reminder)</div>
             @if (Reminder.Status == ReminderStatus.MileageNeeded)
@@ -18,7 +18,7 @@
             }
             else if (Reminder.Status is not (ReminderStatus.Paused or ReminderStatus.Archived) && ReminderFormat.RemainingParts(Reminder) is { Count: > 0 } parts)
             {
-                <div data-testid="reminder-remaining">
+                <div class="mg-num" data-testid="reminder-remaining">
                     @for (var i = 0; i < parts.Count; i++)
                     {
                         if (i > 0)
@@ -36,6 +36,7 @@
                         }
                     }
                 </div>
+                <ReminderGauge Reminder="Reminder" />
             }
         </div>
     </div>

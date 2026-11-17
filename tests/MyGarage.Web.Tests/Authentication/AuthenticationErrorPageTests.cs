@@ -41,14 +41,23 @@ public class AuthenticationErrorPageTests : BunitContext
     }
 
     [Fact]
-    public void ShowsStandardPageHeader()
+    public void TheHeadingIsTheOnlyH1_InACenteredCardWithNoBreadcrumb()
     {
         var cut = RenderWithReason(AuthFailureReason.Cancelled);
 
         Assert.Single(cut.FindAll("h1"));
         Assert.Equal("Sign-in problem", cut.Find("h1").TextContent);
-        var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-        Assert.Equal(["Home"], items.Select(item => item.TextContent.Trim()));
+        Assert.NotNull(cut.Find(".mg-stage .mg-stage-card h1"));
+        Assert.Empty(cut.FindAll("nav[aria-label='Breadcrumb']"));
+        Assert.Equal("alert", cut.Find(".mg-stage-card .mg-stage-warn").GetAttribute("role"));
+    }
+
+    [Fact]
+    public void OffersTheFaqBesideTryAgain()
+    {
+        var cut = RenderWithReason(AuthFailureReason.Cancelled);
+
+        Assert.Equal("/faq", cut.Find("a.mg-stage-alt").GetAttribute("href"));
     }
 
     [Fact]

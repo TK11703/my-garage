@@ -5,6 +5,7 @@
 @inject RemindersApiClient Api
 @inject NavigationManager Navigation
 @inject TimeProvider Time
+@using System.Globalization
 
 <ReminderPage Title="Add reminder" VehicleId="VehicleId" VehicleName="@vehicleName" Failure="failure"
               ReturnUrl="@($"/vehicles/{VehicleId}/reminders/new")" NotFound="notFound"
@@ -58,6 +59,22 @@
     [Parameter, SupplyParameterFromQuery(Name = "preset")]
     public string? Preset { get; set; }
 
+    // A suggestion's values (from the suggested reminders panel); the owner still reviews and saves.
+    [Parameter, SupplyParameterFromQuery(Name = "name")]
+    public string? SuggestedName { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "miles")]
+    public int? SuggestedMiles { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "months")]
+    public int? SuggestedMonths { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "doneOn")]
+    public string? SuggestedDoneOn { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "mileage")]
+    public int? SuggestedMileage { get; set; }
+
     [SupplyParameterFromForm(FormName = "create-reminder")]
     private ReminderFormModel? Model { get; set; }
 
@@ -74,13 +91,16 @@
                 return;
             }
 
+            var today = DateOnly.FromDateTime(Time.GetUtcNow().UtcDateTime);
             var vehicle = result.Value!;
             vehicleName = vehicle.Name;
-            currentMileage = vehicle.Mileage is null && vehicle.LatestOdometerReading is null
+            currentMileage = vehicle.CurrentMileage ?? (vehicle.Mileage is null && vehicle.LatestOdometerReading is null
                 ? null
-                : Math.Max(vehicle.Mileage ?? 0, vehicle.LatestOdometerReading ?? 0);
+                : Math.Max(vehicle.Mileage ?? 0, vehicle.LatestOdometerReading ?? 0));
 
-            Model ??= ReminderFormModel.ForNew(ReminderPresets.Find(Preset), DateOnly.FromDateTime(Time.GetUtcNow().UtcDateTime), currentMileage);
+            Model ??= string.IsNullOrWhiteSpace(SuggestedName)
+                ? ReminderFormModel.ForNew(ReminderPresets.Find(Preset), today, currentMileage)
+                : ReminderFormModel.ForSuggestion(SuggestedName, SuggestedMiles, SuggestedMonths, DateOnly.TryParse(SuggestedDoneOn, CultureInfo.InvariantCulture, out var doneOn) ? doneOn : null, SuggestedMileage, today, currentMileage);
 
             // The warning is a courtesy; the form works without it.
             try

@@ -16,6 +16,23 @@ public static class VehicleTabs
     // Anything that is not a known tab means the first one.
     public static string Normalize(string? tab) => All.Any(known => known.Id == tab) ? tab! : "details";
 
+    public const string Overview = "overview";
+
+    public const string Timeline = "timeline";
+
+    // The vehicle page: it opens on the overview; the others keep the ids the edit form and the links to them use.
+    public static readonly (string Id, string Label, IconName Icon)[] View =
+    [
+        (Overview, "Overview", IconName.Speedometer),
+        ("details", "Specs", IconName.InfoCircle),
+        ("media", "Photos", IconName.Image),
+        ("service-records", "Maintenance", IconName.Wrench),
+        (Reminders, "Reminders", IconName.Bell),
+        (Timeline, "Timeline", IconName.ClockHistory),
+    ];
+
+    public static string NormalizeView(string? tab) => View.Any(known => known.Id == tab) ? tab! : Overview;
+
     public const string ServiceRecords = "service-records";
 
     public const string Reminders = "reminders";

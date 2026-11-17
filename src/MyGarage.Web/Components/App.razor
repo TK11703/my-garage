@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -6,10 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
     <link rel="icon" type="image/svg+xml" href="@Assets["images/favicon.svg"]" />
-    <meta name="theme-color" content="#1976D2" />
+    <meta name="theme-color" content="#E6EBEF" />
     <script src="@Assets["js/theme-init.js"]"></script>
     <ResourcePreloader />
+    @* Same URLs the stylesheet uses, so the preload is reused instead of fetched twice. *@
+    <link rel="preload" href="fonts/ChakraPetch-700.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="fonts/Inter-Variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
+    <link rel="stylesheet" href="@Assets["css/fonts.css"]" />
+    <link rel="stylesheet" href="@Assets["css/tokens.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["MyGarage.Web.styles.css"]" />
     <ImportMap />
@@ -32,6 +37,7 @@
     <script type="module" src="@Assets["js/submit-busy.js"]"></script>
     <script type="module" src="@Assets["js/tab-memory.js"]"></script>
     <script type="module" src="@Assets["js/faq-search.js"]"></script>
+    <script type="module" src="@Assets["js/reminder-preview.js"]"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
 </body>
 

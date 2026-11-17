@@ -3,6 +3,7 @@
 @attribute [ExcludeFromInteractiveRouting]
 @inject VehiclesApiClient VehiclesApi
 @inject ServiceRecordsApiClient Api
+@inject RemindersApiClient RemindersApi
 @inject NavigationManager Navigation
 
 @if (failure is not null)
@@ -53,14 +54,22 @@ else if (record is not null && vehicleName is not null)
         </Actions>
     </PageHeader>
 
-    <FieldGroup Id="service-record" Title="Service record">
-        <dl class="row g-3 mb-0" aria-label="Service record">
-            <ViewField Label="Date serviced" Value="@DisplayFormat.Date(record.DateServiced)" />
-            <ViewField Label="Odometer reading" Value="@ServiceRecordFormat.Odometer(record.OdometerReading)" />
-            <ViewField Label="Shop name or person" Value="@ServiceRecordFormat.ShopOrNotSet(record.ShopOrPerson)" />
-        </dl>
-    </FieldGroup>
+    <section id="group-service-record" class="card border-0 shadow-sm mb-3 mg-receipt-band" aria-labelledby="group-service-record-title">
+        <h2 id="group-service-record-title" class="card-header h6 mb-0">Service record</h2>
+        <div class="card-body">
+            <p class="mg-receipt-vehicle mb-3">
+                <span class="mg-label">Vehicle</span>
+                <a class="fw-semibold text-break" href="@TabHref" data-testid="receipt-vehicle">@vehicleName</a>
+            </p>
+            <dl class="row g-3 mb-0" aria-label="Service record">
+                <ViewField Label="Date serviced" Value="@DisplayFormat.Date(record.DateServiced)" />
+                <ViewField Label="Odometer reading" Value="@ServiceRecordFormat.Odometer(record.OdometerReading)" />
+                <ViewField Label="Shop name or person" Value="@ServiceRecordFormat.ShopOrNotSet(record.ShopOrPerson)" />
+            </dl>
+        </div>
+    </section>
 
+    <div class="mg-record-cols">
     <FieldGroup Id="line-items" Title="Line items">
         @if (record.LineItems.Count == 0)
         {
@@ -68,7 +77,13 @@ else if (record is not null && vehicleName is not null)
         }
         else
         {
-            <ul class="list-group mb-3" data-testid="line-item-list">
+            <div class="mg-receipt-head" aria-hidden="true">
+                <span>What was done</span>
+                <span>Pricing</span>
+                <span>Amount</span>
+                <span></span>
+            </div>
+            <ul class="list-group list-group-flush mg-receipt-lines mb-3" data-testid="line-item-list">
                 @foreach (var line in record.LineItems)
                 {
                     <ServiceLineItemRow @key="line.Id" VehicleId="VehicleId" RecordId="RecordId" Line="line" ReadOnly="vehicleArchived" />
@@ -83,21 +98,38 @@ else if (record is not null && vehicleName is not null)
             </a>
         }
 
-        @if (record.Tax is { } tax)
-        {
-            <p class="mt-3 mb-0">
-                Tax: <span data-testid="tax">@DisplayFormat.Money(tax)</span>
-            </p>
-        }
-
-        <p class="fs-5 fw-semibold mt-3 mb-0">
-            Total cost: <span data-testid="total-cost"><MoneyText Amount="record.TotalCost" /></span>
-        </p>
+        <dl class="mg-receipt-totals mb-0" aria-label="Totals">
+            @if (record.LineItems.Count > 0)
+            {
+                <div>
+                    <dt>Subtotal</dt>
+                    <dd class="mg-num" data-testid="subtotal"><MoneyText Amount="record.LineItems.Sum(line => line.TotalCost)" /></dd>
+                </div>
+            }
+            @if (record.Tax is { } tax)
+            {
+                <div>
+                    <dt>Tax</dt>
+                    <dd class="mg-num" data-testid="tax">@DisplayFormat.Money(tax)</dd>
+                </div>
+            }
+            <div class="mg-receipt-total">
+                <dt>Total cost</dt>
+                <dd class="mg-num" data-testid="total-cost"><MoneyText Amount="record.TotalCost" /></dd>
+            </div>
+        </dl>
     </FieldGroup>
+
+    <div class="mg-record-side">
+        <SpendBreakdown Record="record" />
+        <ReminderSuggestions VehicleId="VehicleId" Suggestions="suggestions" />
+    </div>
+    </div>
 }
 
 @code {
     private ServiceRecordDto? record;
+    private IReadOnlyList<SuggestedReminderDto> suggestions = [];
     private string? vehicleName;
     private bool vehicleArchived;
     private bool notFound;
@@ -138,6 +170,27 @@ else if (record is not null && vehicleName is not null)
         catch (GarageApiException ex)
         {
             failure = ex.Failure;
+            return;
+        }
+
+        await LoadSuggestionsAsync();
+    }
+
+    // Only the suggestions for services on this record; a courtesy, so a failure shows nothing.
+    private async Task LoadSuggestionsAsync()
+    {
+        if (vehicleArchived || record is null || record.LineItems.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var names = record.LineItems.Select(line => line.Description.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            suggestions = [.. ((await RemindersApi.SuggestionsAsync(VehicleId)).Value ?? []).Where(suggestion => names.Contains(suggestion.Name.Trim()))];
+        }
+        catch (GarageApiException)
+        {
         }
     }
 

@@ -1,0 +1,247 @@
+/*
+  My Garage design tokens (direction B: "instrument cluster").
+  One design, two palettes: dark mode only swaps colour values. Layout, type, spacing, radius and motion are shared.
+  Theme switch: data-bs-theme="light|dark" on <html> (same attribute theme-init.js already sets).
+  Rules: no hard-coded colours in components; use these variables or the Bootstrap bridge at the bottom.
+*/
+
+:root,
+[data-bs-theme="light"] {
+  /* Surfaces */
+  --mg-bg: #E6EBEF;             /* page background */
+  --mg-surface: #FFFFFF;        /* panels, cards, forms */
+  --mg-surface-2: #F1F4F7;      /* inputs, table heads, inset blocks */
+  --mg-line: #D2DAE1;           /* borders, dividers */
+  --mg-line-strong: #7E8B98;    /* input and control edges (3:1 against surfaces) */
+  --mg-track: #D8E0E7;          /* empty part of bars, rings, switches */
+
+  /* Text */
+  --mg-text: #0E1318;
+  --mg-text-muted: #5A6672;
+
+  /* Accent (signal amber). Fill and text are separate because light amber fails contrast as text. */
+  --mg-accent: #BC7000;         /* fills, rings, progress, focus ring */
+  --mg-accent-text: #8F5400;    /* links and small amber text on light surfaces */
+  --mg-on-accent: #1A1204;      /* text on an amber fill */
+  --mg-accent-glow: rgba(188, 112, 0, 0.25);
+
+  /* Status vocabulary (use only for status) */
+  --mg-ok: #187A43;             /* upcoming, ready, credit */
+  --mg-due: var(--mg-accent);   /* due soon */
+  --mg-due-text: var(--mg-accent-text);
+  --mg-bad: #C23B30;            /* overdue, failed, destructive */
+  --mg-on-bad: #FFFFFF;         /* text on a red fill */
+  --mg-info: #2B6CB0;           /* neutral information; charts only, never status */
+
+  /* Soft tints for alerts and badges, derived so both themes stay in sync */
+  --mg-ok-soft: color-mix(in srgb, var(--mg-ok) 14%, transparent);
+  --mg-due-soft: color-mix(in srgb, var(--mg-accent) 16%, transparent);
+  --mg-bad-soft: color-mix(in srgb, var(--mg-bad) 14%, transparent);
+  --mg-info-soft: color-mix(in srgb, var(--mg-info) 14%, transparent);
+
+  /* Navigation rail (dark in both themes) */
+  --mg-rail-bg: #0E1318;
+  --mg-rail-text: #AEB9C4;
+  --mg-rail-active: #FFB000;
+  --mg-rail-active-bg: rgba(255, 176, 0, 0.14);
+
+  /* Paper: documents (window sticker, invoice) stay paper in both themes */
+  --mg-paper: #FBFAF6;
+  --mg-paper-ink: #1B1B19;
+  --mg-paper-rule: #DDDAD0;
+
+  /* Search match highlight */
+  --mg-mark-bg: rgba(255, 176, 0, 0.30);
+
+  /* Photo placeholders (a vehicle with no picture) */
+  --mg-photo-top: #D5DDE5;
+  --mg-photo-bottom: #B9C4CE;
+  --mg-photo-car: #7D8590;
+
+  /* Chart series: one hue per measure, never per vehicle */
+  --mg-chart-fuel: var(--mg-accent);
+  --mg-chart-charging: var(--mg-ok);
+  --mg-chart-service: var(--mg-info);
+  --mg-chart-other: var(--mg-text-muted);
+  --mg-chart-1: var(--mg-accent);
+  --mg-chart-2: var(--mg-info);
+  --mg-chart-3: var(--mg-ok);
+  --mg-chart-4: var(--mg-bad);
+  --mg-chart-5: color-mix(in srgb, var(--mg-accent) 55%, var(--mg-text-muted));
+  --mg-chart-6: color-mix(in srgb, var(--mg-info) 55%, var(--mg-text-muted));
+  --mg-chart-7: color-mix(in srgb, var(--mg-ok) 55%, var(--mg-text-muted));
+
+  /* Focus */
+  --mg-focus: var(--mg-accent-text);
+
+  /* Elevation: panels use a border, only floating things use a shadow */
+  --mg-shadow-pop: 0 12px 30px rgba(0, 0, 0, 0.25);
+  --mg-shadow-paper: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+[data-bs-theme="dark"] {
+  --mg-bg: #080B0E;
+  --mg-surface: #10151A;
+  --mg-surface-2: #171E25;
+  --mg-line: #222B34;
+  --mg-line-strong: #5F6E7C;
+  --mg-track: #1F2832;
+
+  --mg-text: #E8EEF3;
+  --mg-text-muted: #8895A2;
+
+  --mg-accent: #FFB000;
+  --mg-accent-text: #FFB000;
+  --mg-on-accent: #1A1204;
+  --mg-accent-glow: rgba(255, 176, 0, 0.28);
+
+  --mg-ok: #3DDC84;
+  --mg-bad: #FF5B4D;
+  --mg-on-bad: #1A1204;
+  --mg-info: #5AA9E6;
+
+  --mg-rail-bg: #05070A;
+  --mg-rail-text: #7C8A97;
+
+  --mg-photo-top: #1A222A;
+  --mg-photo-bottom: #0F151A;
+  --mg-photo-car: #4A525B;
+
+  --mg-shadow-pop: 0 12px 30px rgba(0, 0, 0, 0.6);
+}
+
+/* ---------- Theme-independent tokens ---------- */
+:root {
+  /* The Light and Dark previews on the Preferences page show both themes whichever one is active. */
+  --mg-swatch-light-bg: #E6EBEF;
+  --mg-swatch-light-accent: #C77900;
+  --mg-swatch-light-rail: #0E1318;
+  --mg-swatch-dark-bg: #080B0E;
+  --mg-swatch-dark-accent: #FFB000;
+  --mg-swatch-dark-rail: #05070A;
+  --mg-swatch-dark-line: #222B34;
+
+  /* Families. Self-host WOFF2 (OFL): Chakra Petch 500/600/700, Inter (variable), JetBrains Mono (variable). */
+  --mg-font-display: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --mg-font-body: "Inter", "Inter Fallback", "Segoe UI", system-ui, sans-serif;
+  --mg-font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  /* Scale (rem; root stays 16px) */
+  --mg-fs-2xs: 0.625rem;   /* 10  field labels */
+  --mg-fs-xs: 0.6875rem;   /* 11  eyebrows, chips, buttons */
+  --mg-fs-sm: 0.75rem;     /* 12  hints, meta */
+  --mg-fs-base: 0.875rem;  /* 14  body, inputs */
+  --mg-fs-md: 1rem;        /* 16  emphasised body, row titles */
+  --mg-fs-lg: 1.25rem;     /* 20  panel titles, search field */
+  --mg-fs-xl: 1.625rem;    /* 26  totals, panel readouts */
+  --mg-fs-2xl: 2.375rem;   /* 38  page title */
+  --mg-fs-readout: 2.5rem; /* 40  odometer, big readouts */
+  --mg-fs-display: 3.5rem; /* 56  About / marketing statement only */
+
+  /* Spacing (4px base) */
+  --mg-space-1: 0.25rem;
+  --mg-space-2: 0.5rem;
+  --mg-space-3: 0.75rem;
+  --mg-space-4: 1rem;
+  --mg-space-5: 1.5rem;
+  --mg-space-6: 2rem;
+  --mg-space-7: 3rem;
+
+  /* Radius */
+  --mg-radius-sm: 6px;     /* chips, small buttons */
+  --mg-radius-md: 8px;     /* inputs, buttons */
+  --mg-radius-lg: 12px;    /* rows, popovers, tab bars */
+  --mg-radius-xl: 14px;    /* panels, cards */
+  --mg-radius-pill: 999px;
+
+  /* Layout */
+  --mg-rail-width: 4.25rem;     /* 68px */
+  --mg-content-max: 77.5rem;    /* 1240px */
+  --mg-page-pad-x: 2rem;
+  --mg-page-pad-y: 1.5rem;
+  --mg-pubtop-height: 3.5rem;
+
+  /* Motion */
+  --mg-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --mg-dur-fast: 150ms;    /* hover, focus, switches */
+  --mg-dur-ui: 300ms;      /* ring and bar fills */
+  --mg-dur-reveal: 1400ms; /* odometer roll (first digit; later digits 1.8s, 2.2s) */
+  --mg-dur-scan: 2200ms;   /* sticker scan line */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --mg-dur-fast: 0ms;
+    --mg-dur-ui: 0ms;
+    --mg-dur-reveal: 0ms;
+    --mg-dur-scan: 0ms;
+  }
+
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ---------- Type roles (use these instead of ad-hoc font declarations) ---------- */
+.mg-title    { font: 700 var(--mg-fs-2xl)/1 var(--mg-font-display); text-transform: uppercase; letter-spacing: 0.02em; }
+.mg-heading  { font: 700 1.125rem/1.2 var(--mg-font-display); text-transform: uppercase; letter-spacing: 0.03em; }
+.mg-eyebrow  { font: 500 var(--mg-fs-xs)/1.4 var(--mg-font-mono); text-transform: uppercase; letter-spacing: 0.18em; color: var(--mg-accent-text); }
+.mg-label    { font: 600 var(--mg-fs-2xs)/1.4 var(--mg-font-mono); text-transform: uppercase; letter-spacing: 0.14em; color: var(--mg-text-muted); }
+.mg-body     { font: 400 var(--mg-fs-base)/1.5 var(--mg-font-body); }
+.mg-data     { font: 500 var(--mg-fs-base)/1.4 var(--mg-font-mono); font-variant-numeric: tabular-nums; }
+.mg-amount   { font: 500 var(--mg-fs-md)/1.4 var(--mg-font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.mg-readout  { font: 700 var(--mg-fs-readout)/1 var(--mg-font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.mg-total    { font: 700 var(--mg-fs-xl)/1 var(--mg-font-mono); font-variant-numeric: tabular-nums; color: var(--mg-accent-text); }
+
+/* ---------- Bootstrap 5.3 bridge (keeps existing components on the new palette) ---------- */
+:root,
+[data-bs-theme="light"],
+[data-bs-theme="dark"] {
+  --bs-body-font-family: var(--mg-font-body);
+  --bs-body-font-size: var(--mg-fs-base);
+  --bs-body-color: var(--mg-text);
+  --bs-body-bg: var(--mg-surface);
+  --bs-secondary-color: var(--mg-text-muted);
+  --bs-tertiary-bg: var(--mg-surface-2);
+  --bs-border-color: var(--mg-line);
+  --bs-link-color: var(--mg-accent-text);
+  --bs-link-hover-color: var(--mg-text);
+  --bs-focus-ring-color: var(--mg-accent-glow);
+  --bs-border-radius: var(--mg-radius-md);
+  --bs-border-radius-lg: var(--mg-radius-xl);
+  --bs-success: var(--mg-ok);
+  --bs-danger: var(--mg-bad);
+  --bs-warning: var(--mg-accent);
+  --bs-info: var(--mg-info);
+  --bs-success-bg-subtle: var(--mg-ok-soft);
+  --bs-danger-bg-subtle: var(--mg-bad-soft);
+  --bs-warning-bg-subtle: var(--mg-due-soft);
+  --bs-info-bg-subtle: var(--mg-info-soft);
+  --bs-success-text-emphasis: var(--mg-ok);
+  --bs-danger-text-emphasis: var(--mg-bad);
+  --bs-warning-text-emphasis: var(--mg-due-text);
+  --bs-info-text-emphasis: var(--mg-info);
+}
+
+body { background: var(--mg-bg); color: var(--mg-text); font-family: var(--mg-font-body); }
+
+.btn-primary {
+  --bs-btn-color: var(--mg-on-accent);
+  --bs-btn-bg: var(--mg-accent);
+  --bs-btn-border-color: var(--mg-accent);
+  --bs-btn-hover-color: var(--mg-on-accent);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--mg-accent) 88%, #fff);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--mg-accent) 88%, #fff);
+  --bs-btn-active-color: var(--mg-on-accent);
+  --bs-btn-active-bg: color-mix(in srgb, var(--mg-accent) 80%, #000);
+  --bs-btn-active-border-color: color-mix(in srgb, var(--mg-accent) 80%, #000);
+  --bs-btn-disabled-color: var(--mg-on-accent);
+  --bs-btn-disabled-bg: var(--mg-accent);
+  --bs-btn-disabled-border-color: var(--mg-accent);
+  font: 600 var(--mg-fs-xs)/1.2 var(--mg-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:focus-visible { outline: 2px solid var(--mg-focus); outline-offset: 2px; }

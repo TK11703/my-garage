@@ -1,0 +1,39 @@
+<nav aria-label="Steps" class="mg-steps-bar">
+    <ol class="mg-steps" role="tablist">
+        <li role="presentation">
+            <button type="button" id="tab-import-tab" role="tab" class="mg-step @(Imported ? "done" : null) @(Current == "import" ? "active" : null)"
+                    data-bs-toggle="tab" data-bs-target="#tab-import" aria-controls="tab-import" aria-selected="@(Current == "import" ? "true" : "false")">
+                <i aria-hidden="true">1</i>Sticker
+            </button>
+        </li>
+        <li role="presentation">
+            <span class="mg-step @(Imported ? "done" : null)"><i aria-hidden="true">2</i>Reading</span>
+        </li>
+        <li role="presentation">
+            <button type="button" id="tab-details-tab" role="tab" class="mg-step @(ReviewOpen ? "active" : null)"
+                    data-bs-toggle="tab" data-bs-target="#tab-details" aria-controls="tab-details" aria-selected="@(ReviewOpen ? "true" : "false")">
+                <i aria-hidden="true">3</i>Review
+            </button>
+        </li>
+        <li role="presentation" class="ms-auto">
+            <a id="tab-manual-tab" role="tab" href="/vehicles/new?tab=details" class="mg-step @(ManualOpen ? "active" : null)"
+               data-bs-toggle="tab" data-bs-target="#tab-details" aria-controls="tab-details" aria-selected="@(ManualOpen ? "true" : "false")">
+                <i aria-hidden="true">+</i>Enter manually
+            </a>
+        </li>
+    </ol>
+</nav>
+
+@code {
+    // The id of the open pane: import or details.
+    [Parameter, EditorRequired]
+    public string Current { get; set; } = "import";
+
+    // True once a sticker was read.
+    [Parameter]
+    public bool Imported { get; set; }
+
+    private bool ReviewOpen => Current == "details" && Imported;
+
+    private bool ManualOpen => Current == "details" && !Imported;
+}

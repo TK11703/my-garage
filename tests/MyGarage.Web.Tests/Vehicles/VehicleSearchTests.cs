@@ -48,7 +48,7 @@ public class VehicleSearchTests : VehicleTestContext
     {
         RegisterApi(_ => Json(Page([Summary("Alpha")])));
 
-        var cut = RenderSearch();
+        var cut = RenderSearch("/search?q=alpha");
 
         cut.WaitForAssertion(() => Assert.Contains("Alpha", cut.Markup));
         Assert.Contains("/api/vehicles/filter-options", Requests.Select(request => request.RequestUri!.AbsolutePath));
@@ -71,7 +71,7 @@ public class VehicleSearchTests : VehicleTestContext
             Assert.Equal("Showing 13 to 24 of 30 results for", summary.QuerySelector("[data-testid='result-count']")!.TextContent.Trim());
             var badges = summary.QuerySelectorAll("[data-testid='active-criterion']");
             Assert.Equal(["Search: Roof", "Make: Jeep"], badges.Select(badge => badge.TextContent.Replace("\u00D7", string.Empty).Trim()));
-            Assert.All(badges, badge => Assert.Contains("bg-info-subtle", badge.ClassList));
+            Assert.All(badges, badge => Assert.Contains("mg-chip", badge.ClassList));
             Assert.Empty(cut.FindAll(".mg-filter-card [data-testid='active-criterion']"));
         });
         Assert.Empty(cut.FindAll("[data-testid='showing-range']"));
@@ -82,10 +82,27 @@ public class VehicleSearchTests : VehicleTestContext
     {
         RegisterApi(_ => Json(Page([Summary("Alpha"), Summary("Bravo")], page: 3, totalCount: 26)));
 
-        var cut = RenderSearch("/search?page=3");
+        var cut = RenderSearch("/search?q=a&page=3");
 
         cut.WaitForAssertion(() =>
-            Assert.Equal("Showing 25 to 26 of 26 vehicles", cut.Find("[data-testid='result-count']").TextContent.Trim()));
+            Assert.Equal("Showing 25 to 26 of 26 results for", cut.Find("[data-testid='result-count']").TextContent.Trim()));
+    }
+
+    [Fact]
+    public void WithNoSearchTextAndNoFilters_NoResultsAreShownYet()
+    {
+        RegisterApi(_ => Json(Page([Summary("Alpha")])));
+
+        var cut = RenderSearch();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.NotNull(cut.Find("form[role='search']"));
+            Assert.NotNull(cut.Find("[data-testid='search-prompt']"));
+        });
+        Assert.Empty(cut.FindAll("[data-testid='search-hit']"));
+        Assert.Empty(cut.FindAll(".mg-results"));
+        Assert.DoesNotContain("Alpha", cut.Markup);
     }
 
     [Fact]

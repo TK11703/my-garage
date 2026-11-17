@@ -29,6 +29,58 @@ public static class ReminderFormat
         return parts;
     }
 
+    // How much of the interval is already used, 0 to 100, from the more used of the distance and time parts; null for a paused or archived reminder or one with nothing to measure.
+    public static int? PercentUsed(ReminderDto reminder)
+    {
+        if (reminder.Status is ReminderStatus.Paused or ReminderStatus.Archived)
+        {
+            return null;
+        }
+
+        double? used = null;
+        if (reminder.IntervalMiles is > 0 and var intervalMiles && reminder.MilesRemaining is { } miles)
+        {
+            used = 1d - ((double)miles / intervalMiles);
+        }
+
+        if (reminder.IntervalTime is { Value: > 0 } time && reminder.DaysRemaining is { } days)
+        {
+            var intervalDays = time.Value * (time.Unit == ReminderTimeUnit.Years ? 365.25 : 30.4375);
+            var usedTime = 1d - (days / intervalDays);
+            used = used is null ? usedTime : Math.Max(used.Value, usedTime);
+        }
+
+        return used is null ? null : (int)Math.Round(Math.Clamp(used.Value, 0d, 1d) * 100d, MidpointRounding.AwayFromZero);
+    }
+
+    // "45,000 miles or Nov 1, 2026, whichever comes first": the first due point from the form values so far. Keep wwwroot/js/reminder-preview.js in step.
+    public static string NextDuePreview(int? intervalMiles, int? timeValue, ReminderTimeUnit unit, DateOnly? lastDoneOn, int? lastDoneMileage)
+    {
+        string? miles = intervalMiles is > 0 and <= 999_999 && lastDoneMileage is >= 0 and <= 9_999_999 and var done ? Miles(done + intervalMiles.Value) : null;
+        string? date = timeValue is > 0 and <= 600 && lastDoneOn is { } on && AddInterval(on, timeValue.Value, unit) is { } due ? DisplayFormat.Date(due) : null;
+
+        return (miles, date) switch
+        {
+            (not null, not null) => $"{miles} or {date}, whichever comes first",
+            (not null, null) => miles,
+            (null, not null) => date,
+            _ => "Enter how often it repeats and when it was last done to see when it is next due.",
+        };
+    }
+
+    // Null when the result is past the last supported date.
+    private static DateOnly? AddInterval(DateOnly from, int value, ReminderTimeUnit unit)
+    {
+        try
+        {
+            return unit == ReminderTimeUnit.Years ? from.AddYears(value) : from.AddMonths(value);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return null;
+        }
+    }
+
     private static string MilesRemaining(int remaining) => remaining switch
     {
         0 => "due now",
@@ -44,15 +96,20 @@ public static class ReminderFormat
     };
 
     // "Every 5,000 miles or 6 months".
-    public static string Interval(ReminderDto reminder)
+    public static string Interval(ReminderDto reminder) => Interval(reminder.IntervalMiles, reminder.IntervalTime);
+
+    public static string Interval(SuggestedReminderDto suggestion) =>
+        Interval(suggestion.IntervalMiles, suggestion.IntervalMonths is { } months ? new ReminderTimeIntervalDto { Value = months, Unit = ReminderTimeUnit.Months } : null);
+
+    private static string Interval(int? intervalMiles, ReminderTimeIntervalDto? intervalTime)
     {
         var parts = new List<string>();
-        if (reminder.IntervalMiles is { } miles)
+        if (intervalMiles is { } miles)
         {
             parts.Add($"{Miles(miles)}");
         }
 
-        if (reminder.IntervalTime is { } time)
+        if (intervalTime is { } time)
         {
             var unit = time.Unit == ReminderTimeUnit.Years ? "year" : "month";
             parts.Add($"{time.Value.ToString(CultureInfo.InvariantCulture)} {unit}{(time.Value == 1 ? string.Empty : "s")}");

@@ -16,7 +16,19 @@
         }
         else
         {
-            <p class="fw-semibold mb-0 @(Compatibility.IsAcceptable ? "text-success" : "text-danger-emphasis")" data-testid="compatibility-summary">@Summary</p>
+            <div class="d-flex align-items-center gap-3">
+                @if (Compatibility.Fields.Count > 0)
+                {
+                    <svg class="mg-ring @(OkCount == Compatibility.Fields.Count ? "mg-ring-ok" : "mg-ring-bad")" viewBox="0 0 36 36" role="img"
+                         aria-label="@($"{OkCount} of {Compatibility.Fields.Count} checks are OK")" data-testid="readiness-ring">
+                        <circle class="mg-ring-track" cx="18" cy="18" r="15.9155" fill="none" stroke-width="3.5" />
+                        <circle class="mg-ring-arc" cx="18" cy="18" r="15.9155" fill="none" stroke-width="3.5" pathLength="100"
+                                stroke-dasharray="@($"{Percent} 100")" transform="rotate(-90 18 18)" data-testid="readiness-arc" />
+                        <text class="mg-ring-text" x="18" y="20.5" text-anchor="middle" data-testid="readiness-count">@OkCount/@Compatibility.Fields.Count</text>
+                    </svg>
+                }
+                <p class="fw-semibold mb-0 @(Compatibility.IsAcceptable ? "text-success" : "text-danger-emphasis")" data-testid="compatibility-summary">@Summary</p>
+            </div>
 
             @if (Compatibility.Warnings.Count > 0)
             {
@@ -30,10 +42,10 @@
                 </div>
             }
 
-            <ul class="list-group list-group-flush" data-testid="compatibility-fields">
+            <ul class="list-group list-group-flush mg-compat-list" data-testid="compatibility-fields">
                 @foreach (var field in Ordered)
                 {
-                    <li class="list-group-item px-0" data-testid="compatibility-field" data-status="@StatusValue(field.Status)">
+                    <li class="list-group-item px-0 mg-compat-row" data-testid="compatibility-field" data-status="@StatusValue(field.Status)">
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <span class="badge @BadgeClass(field.Status)" data-testid="compatibility-status">@StatusText(field.Status)</span>
                             <a href="#@DraftFormat.FieldId(field.Path)">@DraftFormat.FieldLabel(field.Path)</a>
@@ -60,6 +72,10 @@
     // Problems first, then what is fine; each group keeps the order the check gave.
     private IEnumerable<CompatibilityFieldDto> Ordered =>
         Compatibility is null ? [] : Compatibility.Fields.OrderBy(item => item.Status == CompatibilityStatus.Ok);
+
+    private int OkCount => Compatibility?.Fields.Count(item => item.Status == CompatibilityStatus.Ok) ?? 0;
+
+    private int Percent => Compatibility is { Fields.Count: > 0 } ? (int)Math.Round(100d * OkCount / Compatibility.Fields.Count, MidpointRounding.AwayFromZero) : 0;
 
     private string Summary
     {

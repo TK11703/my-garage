@@ -12,6 +12,10 @@ public sealed class RemindersApiClient(HttpClient http)
     public Task<ApiResult<List<ReminderDto>>> ListAllAsync(CancellationToken cancellationToken = default) =>
         ApiCalls.SendAsync<List<ReminderDto>>(http, HttpMethod.Get, "api/reminders", null, cancellationToken);
 
+    // Reminders the vehicle's own service history suggests; empty for an archived vehicle.
+    public Task<ApiResult<List<SuggestedReminderDto>>> SuggestionsAsync(Guid vehicleId, CancellationToken cancellationToken = default) =>
+        ApiCalls.SendAsync<List<SuggestedReminderDto>>(http, HttpMethod.Get, $"api/vehicles/{vehicleId}/reminder-suggestions", null, cancellationToken);
+
     public Task<ApiResult<ReminderDetailDto>> GetAsync(Guid vehicleId, Guid reminderId, CancellationToken cancellationToken = default) =>
         ApiCalls.SendAsync<ReminderDetailDto>(http, HttpMethod.Get, $"api/vehicles/{vehicleId}/reminders/{reminderId}", null, cancellationToken);
 

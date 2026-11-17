@@ -10,7 +10,7 @@
             <div class="alert alert-warning" role="alert" data-testid="tab-message">@message</div>
         }
 
-        <div class="row g-2 px-3 pb-2 fw-semibold small text-body-secondary" aria-hidden="true">
+        <div class="row g-2 px-3 pb-2 mg-list-head" aria-hidden="true">
             <div class="col-6">Name</div>
             <div class="col-3">Item Type</div>
             <div class="col-3">Item Status</div>
@@ -21,11 +21,11 @@
                 <li class="list-group-item @(item.IsHidden ? "text-body-secondary" : null)" data-testid="lookup-item" @key="item.Id">
                     <div class="row g-2 align-items-center">
                         <div class="col-6 text-break" data-testid="item-name">@item.Name</div>
-                        <div class="col-3" data-testid="item-type">@(item.IsDefault ? "Default" : "Custom")</div>
+                        <div class="col-3" data-testid="item-type"><span class="mg-pill">@(item.IsDefault ? "Default" : "Custom")</span></div>
                         <div class="col-3">
                             <form method="post" @formname="@($"toggle-{item.Id}")" @onsubmit="() => ToggleAsync(item)" data-testid="@($"toggle-{Slug}-{item.Id}")">
                                 <AntiforgeryToken />
-                                <div class="form-check form-switch mb-0">
+                                <div class="form-check form-switch mb-0 mg-switch-right">
                                     <input type="checkbox" role="switch" class="form-check-input" id="@($"switch-{item.Id}")" checked="@(!item.IsHidden)"
                                            data-auto-submit aria-label="@($"Show {item.Name}")" />
                                     <label class="form-check-label" for="@($"switch-{item.Id}")" data-testid="item-status">@(item.IsHidden ? "Hidden" : "Shown")</label>

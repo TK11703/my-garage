@@ -1,0 +1,159 @@
+@using System.Globalization
+@using MyGarage.Web.Common
+@inject VehiclesApiClient Api
+
+<section class="card border-0 shadow-sm" aria-labelledby="timeline-heading" data-testid="timeline">
+    <div class="card-header d-flex flex-wrap align-items-center gap-2">
+        <h2 id="timeline-heading" class="h6 mb-0">Timeline</h2>
+        <nav aria-label="Filter the timeline by kind" class="ms-auto" data-testid="timeline-filters">
+            <ul class="mg-segmented flex-wrap list-unstyled mb-0">
+                @foreach (var choice in Choices)
+                {
+                    var current = choice.Query == selectedKind;
+                    <li>
+                        <a class="mg-segmented-link @(current ? "active" : null)" href="@Href(choice.Query, 1)" aria-current="@(current ? "page" : null)" data-kind="@(choice.Query ?? "all")">@choice.Label</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    </div>
+    <div class="card-body">
+        @if (failure is not null)
+        {
+            <ApiFailureAlert Failure="failure.Value" ReturnUrl="@Href(selectedKind, Page)"
+                             NotAcceptedMessage="@VehicleMessages.NotAccepted" UnavailableMessage="@VehicleMessages.Unavailable" />
+        }
+        else if (entries is not null)
+        {
+            @if (entries.TotalCount == 0)
+            {
+                <p class="text-body-secondary mb-0" data-testid="timeline-empty">@(selectedKind is null ? "Nothing has been recorded for this vehicle yet." : "Nothing of this kind has been recorded yet.")</p>
+            }
+            else
+            {
+                <ol class="mg-feed list-unstyled mb-0" aria-labelledby="timeline-heading">
+                    @foreach (var entry in entries.Items)
+                    {
+                        <li @key="@($"{entry.Kind}-{entry.Id}")" class="mg-feed-item" data-testid="timeline-entry" data-kind="@KindQuery(entry.Kind)">
+                            <time class="mg-feed-date" datetime="@entry.OccurredOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)">@DisplayFormat.Date(entry.OccurredOn)</time>
+                            <span class="mg-kind mg-kind-@KindQuery(entry.Kind)" data-testid="timeline-kind">@KindLabel(entry.Kind)</span>
+                            <div class="mg-feed-body">
+                                @if (entry.Kind == VehicleTimelineKind.Service)
+                                {
+                                    <a class="mg-feed-title text-break" href="/vehicles/@VehicleId/service-records/@entry.Id" data-testid="timeline-receipt">@entry.Title</a>
+                                }
+                                else
+                                {
+                                    <span class="mg-feed-title text-break">@entry.Title</span>
+                                }
+                                @if (entry.FromEmail)
+                                {
+                                    <span class="badge text-bg-info fw-normal ms-1" data-testid="from-email">From email</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(entry.Detail))
+                                {
+                                    <span class="mg-feed-detail text-break">@entry.Detail</span>
+                                }
+                            </div>
+                            <div class="mg-feed-figures mg-num">
+                                @if (entry.Amount is { } amount)
+                                {
+                                    <span data-testid="timeline-amount">@DisplayFormat.Money(amount)</span>
+                                }
+                                @if (entry.OdometerReading is { } odometer)
+                                {
+                                    <span class="text-body-secondary" data-testid="timeline-odometer">@odometer.ToString("N0", CultureInfo.InvariantCulture) mi</span>
+                                }
+                            </div>
+                        </li>
+                    }
+                </ol>
+
+                <Pager Page="entries.Page" TotalPages="entries.TotalPages" HrefFor="@(p => Href(selectedKind, p))" />
+            }
+        }
+    </div>
+</section>
+
+@code {
+    private sealed record Choice(string? Query, string Label);
+
+    private static readonly Choice[] Choices =
+    [
+        new(null, "All"),
+        new("service", "Service"),
+        new("fuel-energy", "Fuel and charging"),
+        new("inspection", "Inspections"),
+        new("registration", "Registrations"),
+        new("insurance", "Insurance"),
+        new("tax", "Taxes"),
+        new("journal", "Journal"),
+    ];
+
+    private PagedResultDto<VehicleTimelineEntryDto>? entries;
+    private GarageApiFailure? failure;
+    private string? selectedKind;
+
+    [Parameter, EditorRequired]
+    public Guid VehicleId { get; set; }
+
+    // The kind filter from the address; anything that is not a known kind shows everything.
+    [Parameter]
+    public string? Kind { get; set; }
+
+    // The page to show (1-based).
+    [Parameter]
+    public int Page { get; set; } = 1;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        selectedKind = Choices.Any(choice => choice.Query is not null && choice.Query == Kind) ? Kind : null;
+        try
+        {
+            entries = (await Api.GetTimelineAsync(VehicleId, selectedKind, Math.Max(1, Page))).Value;
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+        }
+    }
+
+    private static string KindQuery(VehicleTimelineKind kind) => kind switch
+    {
+        VehicleTimelineKind.Service => "service",
+        VehicleTimelineKind.FuelEnergy => "fuel-energy",
+        VehicleTimelineKind.Inspection => "inspection",
+        VehicleTimelineKind.Registration => "registration",
+        VehicleTimelineKind.Insurance => "insurance",
+        VehicleTimelineKind.Tax => "tax",
+        _ => "journal",
+    };
+
+    private static string KindLabel(VehicleTimelineKind kind) => kind switch
+    {
+        VehicleTimelineKind.Service => "Service",
+        VehicleTimelineKind.FuelEnergy => "Fuel",
+        VehicleTimelineKind.Inspection => "Inspection",
+        VehicleTimelineKind.Registration => "Registration",
+        VehicleTimelineKind.Insurance => "Insurance",
+        VehicleTimelineKind.Tax => "Tax",
+        _ => "Journal",
+    };
+
+    // Page 1 and the unfiltered view leave their values out so the address stays tidy.
+    private string Href(string? kind, int page)
+    {
+        var query = new List<string> { "tab=timeline" };
+        if (kind is not null)
+        {
+            query.Add($"kind={kind}");
+        }
+
+        if (page > 1)
+        {
+            query.Add($"timelinePage={page}");
+        }
+
+        return $"/vehicles/{VehicleId}?{string.Join('&', query)}";
+    }
+}

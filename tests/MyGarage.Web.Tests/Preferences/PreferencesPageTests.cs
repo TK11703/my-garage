@@ -26,17 +26,30 @@ public class PreferencesPageTests : VehicleTestContext
     }
 
     [Fact]
-    public void AccountDetails_ShowNameAndEmailAsReadOnlyText()
+    public void AccountDetails_ShowInitialsNameAndEmailAsReadOnlyText()
     {
         var cut = RenderPage();
 
         cut.WaitForAssertion(() =>
         {
             var account = cut.Find("[data-testid='account-details']");
-            Assert.Equal(["Name", "Email"], account.QuerySelectorAll("dt").Select(dt => dt.TextContent.Trim()));
-            Assert.Equal(["Ada Lovelace", "ada@example.com"], account.QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()));
+            Assert.Equal("AL", account.QuerySelector("[data-testid='account-initials']")!.TextContent.Trim());
+            Assert.Equal("Ada Lovelace", account.QuerySelector("[data-testid='account-name']")!.TextContent.Trim());
+            Assert.Equal("ada@example.com", account.QuerySelector("[data-testid='account-email']")!.TextContent.Trim());
+            Assert.Equal(["Sign-in", "Visibility"], account.QuerySelectorAll("dt").Select(dt => dt.TextContent.Trim()));
+            Assert.Equal(["Microsoft account", "Only you"], account.QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()));
             Assert.Empty(account.QuerySelectorAll("input, select, textarea, button, form"));
         });
+    }
+
+    [Fact]
+    public void SignOut_IsAPostedFormInThePageHeader()
+    {
+        var cut = RenderPage();
+
+        var form = cut.Find(".mg-pagebar-actions form[action='/authentication/logout']");
+        Assert.Equal("post", form.GetAttribute("method"), ignoreCase: true);
+        Assert.Equal("Sign out", form.QuerySelector("button[type='submit']")!.TextContent.Trim());
     }
 
     [Fact]
@@ -48,7 +61,9 @@ public class PreferencesPageTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            Assert.Equal(["Not available", "Not available"], cut.Find("[data-testid='account-details']").QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()));
+            var account = cut.Find("[data-testid='account-details']");
+            Assert.Equal("Not available", account.QuerySelector("[data-testid='account-name']")!.TextContent.Trim());
+            Assert.Equal("Not available", account.QuerySelector("[data-testid='account-email']")!.TextContent.Trim());
             Assert.Equal(4, cut.FindAll("button[role='tab']").Count);
         });
     }
@@ -63,7 +78,7 @@ public class PreferencesPageTests : VehicleTestContext
         cut.WaitForAssertion(() =>
         {
             Assert.Empty(cut.FindAll("[data-testid='account-details'] b"));
-            Assert.Contains("<b>Eve</b>", cut.Find("[data-testid='account-details'] dd").TextContent);
+            Assert.Contains("<b>Eve</b>", cut.Find("[data-testid='account-name']").TextContent);
         });
     }
 

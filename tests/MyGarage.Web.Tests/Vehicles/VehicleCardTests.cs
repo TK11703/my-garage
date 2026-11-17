@@ -1,4 +1,5 @@
 using Bunit;
+using MyGarage.Shared.Reminders;
 using MyGarage.Shared.Vehicles;
 using MyGarage.Web.Vehicles;
 
@@ -9,6 +10,9 @@ public class VehicleCardTests : VehicleTestContext
     private IRenderedComponent<VehicleCard> RenderCard(VehicleSummaryDto vehicle) =>
         Render<VehicleCard>(parameters => parameters.Add(card => card.Vehicle, vehicle));
 
+    private static VehicleNextDueDto Due(ReminderStatus status, int? miles = null, int? days = null, string name = "Oil change") =>
+        new() { ReminderId = Guid.NewGuid(), Name = name, Status = status, MilesRemaining = miles, DaysRemaining = days };
+
     [Fact]
     public void ShowsTheComputedNameAsLinkMakeModelAndFormattedMileage()
     {
@@ -16,7 +20,7 @@ public class VehicleCardTests : VehicleTestContext
 
         var cut = RenderCard(vehicle);
 
-        var link = cut.Find("a.stretched-link, .card-title a");
+        var link = cut.Find(".card-title a");
         Assert.Equal("2019 Subaru Outback", link.TextContent.Trim());
         Assert.Equal($"/vehicles/{vehicle.Id}", link.GetAttribute("href"));
         Assert.Contains("42,000 mi", cut.Markup);
@@ -27,15 +31,26 @@ public class VehicleCardTests : VehicleTestContext
         Assert.Contains("Mileage not set", RenderCard(Summary()).Markup);
 
     [Fact]
-    public void NoMainImage_ShowsPlaceholderAndNoImageElement()
+    public void NoMainImage_ShowsATypographicPlaceholderAndNoImageElement()
     {
-        var cut = RenderCard(Summary());
+        var cut = RenderCard(Summary(model: "Outback", year: 2019));
 
         Assert.Empty(cut.FindAll("img"));
         var placeholder = cut.Find("[data-testid='vehicle-placeholder']");
-        Assert.NotNull(placeholder.QuerySelector("svg.bi"));
-        Assert.Equal(string.Empty, placeholder.TextContent.Trim());
+        Assert.Empty(placeholder.QuerySelectorAll("svg"));
+        Assert.Equal("2019", placeholder.QuerySelector(".mg-vehicle-placeholder-year")!.TextContent.Trim());
+        Assert.Equal("Outback", placeholder.QuerySelector(".mg-vehicle-placeholder-model")!.TextContent.Trim());
+        Assert.Equal("img", placeholder.GetAttribute("role"));
         Assert.StartsWith("No picture for", placeholder.GetAttribute("aria-label"));
+    }
+
+    [Fact]
+    public void PlaceholderWithoutAYear_ShowsOnlyTheModel()
+    {
+        var cut = RenderCard(Summary(model: "Outback", year: null));
+
+        Assert.Empty(cut.FindAll(".mg-vehicle-placeholder-year"));
+        Assert.Equal("Outback", cut.Find(".mg-vehicle-placeholder-model").TextContent.Trim());
     }
 
     [Fact]
@@ -64,31 +79,24 @@ public class VehicleCardTests : VehicleTestContext
     public void DoesNotUseTableMarkup() => Assert.DoesNotContain("<table", RenderCard(Summary()).Markup);
 
     [Fact]
-    public void IsAnImageForwardCardWithAWidescreenPicture()
+    public void IsAnImageForwardCardWithTheNameOnAWidescreenPicture()
     {
         var cut = RenderCard(Summary(mainImageId: Guid.NewGuid()));
 
         Assert.Contains("mg-vehicle-card", cut.Find(".card").ClassList);
-        Assert.Contains("ratio-16x9", cut.Find(".ratio").ClassList);
-        Assert.Contains("card-img-top", cut.Find("img").ClassList);
+        var top = cut.Find(".mg-vehicle-top");
+        Assert.Contains("card-img-top", top.QuerySelector("img")!.ClassList);
+        Assert.NotNull(top.QuerySelector(".mg-vehicle-plate .card-title a"));
     }
 
     [Fact]
-    public void PlaceholderUsesTheSameWidescreenFrame()
-    {
-        var cut = RenderCard(Summary());
-
-        Assert.Contains("ratio-16x9", cut.Find(".ratio").ClassList);
-    }
-
-    [Fact]
-    public void MileageIsShownWithADecorativeIcon()
+    public void OdometerIsAReadoutWithItsOwnLabel()
     {
         var cut = RenderCard(Summary(mileage: 5_000));
 
-        var line = cut.Find("[data-testid='vehicle-mileage']");
-        Assert.Equal("5,000 mi", line.TextContent.Trim());
-        Assert.Equal("true", line.QuerySelector("svg.bi")!.GetAttribute("aria-hidden"));
+        var readout = cut.Find("[data-testid='vehicle-mileage']");
+        Assert.Equal("5,000 mi", readout.TextContent.Trim());
+        Assert.Equal("Odometer", readout.ParentElement!.QuerySelector("dt")!.TextContent.Trim());
     }
 
     [Fact]
@@ -100,7 +108,7 @@ public class VehicleCardTests : VehicleTestContext
     }
 
     [Fact]
-    public void FuelAndTransmission_RenderAsBadgesBelowTheTitle()
+    public void FuelAndTransmission_RenderAsBadges()
     {
         var cut = RenderCard(Summary(fuelType: "Gasoline", transmission: "Automatic"));
 
@@ -108,7 +116,6 @@ public class VehicleCardTests : VehicleTestContext
         Assert.Equal("Gasoline", badges.QuerySelector("[data-testid='vehicle-fuel']")!.TextContent.Trim());
         Assert.Equal("Automatic", badges.QuerySelector("[data-testid='vehicle-transmission']")!.TextContent.Trim());
         Assert.Equal(2, badges.QuerySelectorAll("span.badge").Length);
-        Assert.Equal("vehicle-badges", cut.Find(".card-title + p").GetAttribute("data-testid"));
     }
 
     [Fact]
@@ -156,7 +163,7 @@ public class VehicleCardTests : VehicleTestContext
     {
         var cut = RenderCard(Summary(fuelType: "A very long fuel type name", transmission: "A very long transmission name"));
 
-        Assert.Contains("flex-wrap", cut.Find("[data-testid='vehicle-badges']").ClassList);
+        Assert.Contains("mg-vehicle-tags", cut.Find("[data-testid='vehicle-badges']").ClassList);
         Assert.All(cut.FindAll("span.badge"), badge => Assert.Contains("text-break", badge.ClassList));
     }
 
@@ -183,15 +190,13 @@ public class VehicleCardTests : VehicleTestContext
     }
 
     [Fact]
-    public void MileageAndAcquiredShareOneWrappingDetailLine()
+    public void BadgesAndAcquiredShareOneWrappingLine()
     {
-        var cut = RenderCard(Summary(mileage: 5_000, ownership: OwnershipType.Purchased, purchasedYear: 2022));
+        var cut = RenderCard(Summary(mileage: 5_000, fuelType: "Gasoline", ownership: OwnershipType.Purchased, purchasedYear: 2022));
 
-        var line = cut.Find("p.card-text");
-        Assert.Contains("flex-wrap", line.ClassList);
-        Assert.NotNull(line.QuerySelector("[data-testid='vehicle-mileage']"));
-        Assert.NotNull(line.QuerySelector("[data-testid='vehicle-acquired']"));
-        Assert.Equal("5,000 mi", line.QuerySelector("[data-testid='vehicle-mileage']")!.TextContent.Trim());
+        var line = cut.Find("p.mg-vehicle-tags");
+        Assert.NotNull(line.QuerySelector("[data-testid='vehicle-fuel']"));
+        Assert.Equal("Purchased 2022", line.QuerySelector("[data-testid='vehicle-acquired']")!.TextContent.Trim());
     }
 
     [Fact]
@@ -213,5 +218,100 @@ public class VehicleCardTests : VehicleTestContext
         Assert.Equal("Automatic", cut.Find("[data-testid='vehicle-transmission']").TextContent.Trim());
         Assert.Equal("42,000 mi", cut.Find("[data-testid='vehicle-mileage']").TextContent.Trim());
         Assert.Equal("Leased 2022", cut.Find("[data-testid='vehicle-acquired']").TextContent.Trim());
+    }
+
+    [Theory]
+    [InlineData(ReminderStatus.Overdue, "Overdue", "mg-status-bad")]
+    [InlineData(ReminderStatus.DueSoon, "Due soon", "mg-status-due")]
+    public void AReminderThatNeedsAttention_ShowsAStatusPill(ReminderStatus status, string label, string cssClass)
+    {
+        var cut = RenderCard(Summary(nextDue: Due(status, miles: 100)));
+
+        var pill = cut.Find("[data-testid='vehicle-status']");
+        Assert.Equal(label, pill.TextContent.Trim());
+        Assert.Contains(cssClass, pill.ClassList);
+    }
+
+    [Theory]
+    [InlineData(ReminderStatus.Upcoming)]
+    [InlineData(ReminderStatus.MileageNeeded)]
+    public void AQuietReminder_ShowsNoPill(ReminderStatus status) =>
+        Assert.Empty(RenderCard(Summary(nextDue: Due(status, miles: 4_000))).FindAll("[data-testid='vehicle-status']"));
+
+    [Fact]
+    public void NoReminder_ShowsNoPillAndOffersToSetOne()
+    {
+        var cut = RenderCard(Summary());
+
+        Assert.Empty(cut.FindAll("[data-testid='vehicle-status']"));
+        Assert.Equal("No reminder set", cut.Find("[data-testid='vehicle-next-due'] dd").TextContent.Trim());
+    }
+
+    [Theory]
+    [InlineData(3_780, null, "3,780 mi left")]
+    [InlineData(-120, null, "120 mi overdue")]
+    [InlineData(0, null, "due now")]
+    [InlineData(null, 9, "in 9 days")]
+    [InlineData(null, 1, "in 1 day")]
+    [InlineData(null, -3, "3 days overdue")]
+    [InlineData(null, 0, "due today")]
+    public void NextDue_NamesTheReminderAndTheRemainingDistanceOrTime(int? miles, int? days, string expected)
+    {
+        var status = miles <= 0 || days <= 0 ? ReminderStatus.Overdue : ReminderStatus.Upcoming;
+
+        var cut = RenderCard(Summary(nextDue: Due(status, miles, days, "Inspection")));
+
+        var area = cut.Find("[data-testid='vehicle-next-due']");
+        Assert.Equal("Inspection", area.QuerySelector("dt")!.TextContent.Trim());
+        Assert.Equal(expected, area.QuerySelector("dd")!.TextContent.Trim());
+    }
+
+    [Fact]
+    public void NextDue_WithBothDistanceAndTime_ShowsTheOneThatIsOverdue()
+    {
+        var cut = RenderCard(Summary(nextDue: Due(ReminderStatus.Overdue, miles: 3_000, days: -3)));
+
+        Assert.Equal("3 days overdue", cut.Find("[data-testid='vehicle-next-due'] dd").TextContent.Trim());
+    }
+
+    [Fact]
+    public void NextDue_ForAMileageReminderWithNoOdometer_SaysItNeedsAMileage()
+    {
+        var cut = RenderCard(Summary(nextDue: Due(ReminderStatus.MileageNeeded)));
+
+        Assert.Equal("Needs a mileage", cut.Find("[data-testid='vehicle-next-due'] dd").TextContent.Trim());
+        Assert.Contains("mg-readout-needed", cut.Find("[data-testid='vehicle-next-due']").ClassList);
+    }
+
+    [Theory]
+    [InlineData(null, "$0.00")]
+    [InlineData(345.92, "$345.92")]
+    [InlineData(1234.5, "$1,234.50")]
+    public void SpendThisYear_IsShownAsMoneyUnderTheYear(double? amount, string expected)
+    {
+        var cut = RenderCard(Summary(spendThisYear: amount is { } value ? (decimal)value : null));
+
+        Assert.Equal(expected, cut.Find("[data-testid='vehicle-spend']").TextContent.Trim());
+        Assert.Equal($"Spent {DateTime.UtcNow.Year}", cut.Find("[data-testid='vehicle-spend']").ParentElement!.QuerySelector("dt")!.TextContent.Trim());
+    }
+
+    [Fact]
+    public void AnArchivedVehicle_ShowsItsDateAndNoStatusPillOrNextDue()
+    {
+        var archived = Summary(nextDue: Due(ReminderStatus.Overdue, miles: -5));
+        var cut = RenderCard(new VehicleSummaryDto
+        {
+            Id = archived.Id,
+            Make = archived.Make,
+            Model = archived.Model,
+            Year = archived.Year,
+            NextDue = archived.NextDue,
+            ArchivedAt = new DateTimeOffset(2026, 11, 8, 0, 0, 0, TimeSpan.Zero),
+        });
+
+        Assert.Equal("Archived Nov 8, 2026", cut.Find("[data-testid='vehicle-archived']").TextContent.Trim());
+        Assert.Empty(cut.FindAll("[data-testid='vehicle-status']"));
+        Assert.Empty(cut.FindAll("[data-testid='vehicle-next-due']"));
+        Assert.Contains("mg-vehicle-card-archived", cut.Find(".mg-vehicle-card").ClassList);
     }
 }

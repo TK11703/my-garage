@@ -31,6 +31,12 @@ else if (vehicles is not null)
         <VehicleSearchCard Criteria="criteria" />
         <VehicleFilterPanel Criteria="criteria" Options="filterOptions" />
 
+        @if (!ShowResults)
+        {
+            <p class="mg-search-prompt" data-testid="search-prompt">Type something to search for, or choose a filter, to see matching vehicles.</p>
+        }
+        else
+        {
         <section class="card border-0 shadow-sm mg-results" aria-label="Search results">
             <div class="card-header bg-transparent d-flex flex-wrap align-items-center gap-2 py-3" aria-live="polite" data-testid="result-summary">
                 <span class="fw-medium" data-testid="result-count">@Summary</span>
@@ -40,7 +46,7 @@ else if (vehicles is not null)
                         @foreach (var (key, label) in badges)
                         {
                             <li @key="key">
-                                <span class="badge bg-info-subtle text-info-emphasis fw-normal d-inline-flex align-items-center gap-2" data-testid="active-criterion">
+                                <span class="badge mg-chip fw-normal d-inline-flex align-items-center gap-2" data-testid="active-criterion">
                                     @label
                                     <a class="text-reset text-decoration-none" href="@criteria.Without(key).ToHref()" aria-label="Remove filter @label"><span aria-hidden="true">&times;</span></a>
                                 </span>
@@ -132,6 +138,7 @@ else if (vehicles is not null)
                 }
             }
         </section>
+        }
     }
 }
 
@@ -191,6 +198,9 @@ else if (vehicles is not null)
 
     [Parameter, SupplyParameterFromQuery(Name = "status")]
     public string? Status { get; set; }
+
+    // The page starts empty: results appear once there is search text, a filter, a chosen status, or a rejected search to explain.
+    private bool ShowResults => criteria.HasAny || errors.Count > 0;
 
     // The filter panel is only on the page when there is something to search.
     private bool ShowFilterToggle =>

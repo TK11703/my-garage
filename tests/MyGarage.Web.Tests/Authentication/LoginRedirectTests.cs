@@ -57,12 +57,12 @@ public class LoginRedirectTests(WebAppFactory factory) : IClassFixture<WebAppFac
     }
 
     [Fact]
-    public async Task SignedInUser_SeesNameOnHomePage()
+    public async Task SignedInUser_SeesNameInTheRail()
     {
         var client = CreateClient();
         client.DefaultRequestHeaders.Add(TestAuthHandler.UserHeader, "Alice Garage");
 
-        var response = await client.GetAsync("/");
+        var response = await client.GetAsync("/about");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("Alice Garage", await response.Content.ReadAsStringAsync());
@@ -74,7 +74,7 @@ public class LoginRedirectTests(WebAppFactory factory) : IClassFixture<WebAppFac
         var client = CreateClient();
         client.DefaultRequestHeaders.Add(TestAuthHandler.UserHeader, "Alice Garage");
 
-        var response = await client.GetAsync("/");
+        var response = await client.GetAsync("/about");
 
         Assert.True(response.Headers.CacheControl?.NoStore);
     }
