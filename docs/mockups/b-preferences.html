@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup B – Preferences</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="b-base.css">
+<style>
+.cols{display:grid;grid-template-columns:320px minmax(0,1fr);gap:1rem;align-items:start}
+.panel{min-width:0}
+.acct{display:flex;gap:1rem;align-items:center;margin-bottom:1rem}
+.av{width:56px;height:56px;border-radius:50%;background:var(--amber);color:#1A1204;display:grid;place-items:center;font:700 20px var(--display);box-shadow:0 0 16px var(--amber-glow)}
+.acct b{display:block;font:600 16px var(--body)}.acct small{font:400 11px var(--mono);color:var(--muted);word-break:normal;overflow-wrap:anywhere}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:.35rem 1rem;font:500 12px var(--mono);margin:0}
+.dl dt{color:var(--muted)}.dl dd{margin:0;text-align:right}
+.themes{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem}
+.themes button{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:.6rem;color:var(--ink);cursor:pointer;font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.themes button i{display:block;height:34px;border-radius:6px;margin-bottom:.5rem}
+.themes button.on{border-color:var(--amber);color:var(--amber)}
+.themes .l i{background:linear-gradient(90deg,#E6EBEF 60%,#C77900 60% 80%,#0E1318 80%)}
+.themes .d i{background:linear-gradient(90deg,#080B0E 60%,#FFB000 60% 80%,#05070A 80%);border:1px solid #222B34}
+.help{font:400 11px var(--mono);color:var(--muted);margin:.7rem 0 0}
+.tabs{display:flex;gap:.25rem;margin-bottom:.9rem;padding:.3rem;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow-x:auto;scrollbar-width:none}
+.tabs button{font:600 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);background:transparent;border:0;padding:.55rem .9rem;border-radius:8px;cursor:pointer;white-space:nowrap}
+.tabs button.on{background:var(--panel2);color:var(--amber);box-shadow:inset 0 -2px 0 var(--amber)}
+.row{display:grid;grid-template-columns:1fr 90px 110px;gap:1rem;align-items:center;padding:.7rem 0;border-bottom:1px solid var(--line)}
+.row.h{padding-top:0;font:600 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.row .n{font-weight:500}
+.row.off .n{color:var(--muted);text-decoration:line-through}
+.sw{position:relative;width:42px;height:24px;background:var(--track);border-radius:999px;border:0;cursor:pointer;justify-self:end;transition:background .15s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .15s}
+.sw[aria-checked=true]{background:var(--amber)}.sw[aria-checked=true]::after{transform:translateX(18px)}
+.sw-l{display:flex;gap:.6rem;align-items:center;justify-content:flex-end;font:500 11px var(--mono);color:var(--muted)}
+.add{display:flex;gap:.6rem;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--line)}
+.add input{flex:1;font:500 14px var(--mono);color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:.55rem .7rem}
+.add input:focus{outline:2px solid var(--amber);outline-offset:1px}
+.msg{font:500 12px var(--mono);color:var(--ok);margin-top:.6rem;min-height:1em}
+[hidden]{display:none!important}
+@media(max-width:900px){.cols{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="mockbar"><span><strong>MOCKUP B</strong> &nbsp;
+<a href="b-garage.html">Garage</a><a href="b-instrument-cluster.html">Vehicle</a><a href="b-service-record.html">Service record</a><a href="b-reminders.html">Reminders</a><a href="b-add-vehicle.html">Add vehicle</a><a href="b-draft-review.html">Review draft</a> &nbsp;|&nbsp; <a href="b-search.html">Search</a><a href="b-preferences.html">Preferences</a><a href="b-faq.html">FAQ</a><a href="b-about.html">About</a><a href="b-signed-out.html">Signed out</a><a href="b-404.html">404</a></span>
+<button id="t">Toggle light / dark</button></div>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="logo">MG</div>
+    <a href="b-garage.html" title="Garage">GAR</a><a href="b-add-vehicle.html" title="Add vehicle">NEW</a><a href="b-reminders.html" title="Reminders">REM</a><a href="b-draft-review.html" title="Drafts">DRF</a><a href="b-search.html" title="Search">SRC</a><a href="#" title="Spend">$</a>
+    <span class="sp"></span><a href="b-faq.html" title="Help">?</a><a class="on" href="b-preferences.html" title="Account">AC</a>
+  </aside>
+
+  <main>
+    <div class="top">
+      <div><div class="eyebrow">Account</div><h1>Preferences</h1></div>
+      <a class="btn ghost" href="b-signed-out.html">Sign out</a>
+    </div>
+
+    <div class="cols">
+      <div style="display:grid;gap:1rem">
+        <section class="panel">
+          <h3><span>Account</span></h3>
+          <div class="acct"><span class="av">AC</span><div><b>Aaron Chorpenning</b><small>aaron.chorpenning@outlook.com</small></div></div>
+          <dl class="dl"><dt>SIGN-IN</dt><dd>Microsoft account</dd><dt>VISIBILITY</dt><dd>Only you</dd></dl>
+        </section>
+        <section class="panel">
+          <h3><span>Appearance</span></h3>
+          <div class="themes" role="group" aria-label="Theme">
+            <button class="l" data-th="light"><i></i>Light</button>
+            <button class="d" data-th="dark"><i></i>Dark</button>
+          </div>
+          <p class="help">Kept only in this browser. A new browser or private window starts from your device setting.</p>
+        </section>
+      </div>
+
+      <section class="panel">
+        <h3><span>Your lists</span><span class="pill mute">Shown in your forms</span></h3>
+        <div class="tabs" role="tablist" id="tabs">
+          <button class="on" data-l="vehicleTypes">Vehicle types</button><button data-l="fuelTypes">Fuel types</button><button data-l="transmissions">Transmissions</button><button data-l="drivetrains">Drivetrains</button>
+        </div>
+        <div class="row h"><span>Name</span><span>Source</span><span style="text-align:right">Status</span></div>
+        <div id="list"></div>
+        <form class="add" id="addf"><input id="nm" aria-label="New item name" placeholder="Add an item, e.g. Roadster" maxlength="50"><button class="btn">+ Add item</button></form>
+        <div class="msg" id="msg" role="status"></div>
+      </section>
+    </div>
+    <p class="note">Account details and the four lists follow the real Preferences page. Default list items are illustrative. Theme is Light or Dark only.</p>
+  </main>
+</div>
+<script>
+const r=document.documentElement;
+const sys=()=>matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+let pref=sys();
+function theme(){r.dataset.theme=pref;document.querySelectorAll('.themes button').forEach(b=>b.classList.toggle('on',b.dataset.th===pref))}
+document.getElementById('t').onclick=()=>{pref=r.dataset.theme==='dark'?'light':'dark';theme()};
+document.querySelectorAll('.themes button').forEach(b=>b.onclick=()=>{pref=b.dataset.th;theme()});
+theme();
+const L={
+ vehicleTypes:[['SUV',1],['Sedan',1],['Truck',1],['Coupe',1],['Van',0]],
+ fuelTypes:[['Gasoline',1],['Diesel',1],['Electric',1],['Hybrid',1]],
+ transmissions:[['Automatic',1],['Manual',1],['CVT',0]],
+ drivetrains:[['FWD',1],['RWD',1],['AWD',1],['4WD',1]]
+};
+const state={};Object.keys(L).forEach(k=>state[k]=L[k].map(([n,d])=>({n,def:true,on:true})));
+state.vehicleTypes[4].on=false;state.transmissions[2].on=false;
+let cur='vehicleTypes';
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function draw(){
+  $('list').innerHTML=state[cur].map((it,i)=>`<div class="row ${it.on?'':'off'}"><span class="n">${esc(it.n)}</span><span class="pill ${it.def?'mute':'due'}">${it.def?'Default':'Custom'}</span>
+   <span class="sw-l">${it.on?'Shown':'Hidden'}<button class="sw" role="switch" aria-checked="${it.on}" aria-label="${esc(it.n)} shown" data-i="${i}"></button></span></div>`).join('');
+  document.querySelectorAll('.sw').forEach(b=>b.onclick=()=>{const it=state[cur][+b.dataset.i];it.on=!it.on;$('msg').textContent='';draw()});
+}
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{cur=b.dataset.l;document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));$('msg').textContent='';draw()});
+$('addf').onsubmit=e=>{e.preventDefault();const v=$('nm').value.trim();if(!v)return;state[cur].push({n:v,def:false,on:true});$('nm').value='';$('msg').textContent='Added “'+v+'”. It now appears in your forms.';draw()};
+draw();
+</script>
+</body>
+</html>

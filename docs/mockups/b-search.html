@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup B – Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="b-base.css">
+<style>
+.big{display:flex;gap:.8rem;align-items:center;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:.9rem 1.1rem;margin-bottom:.9rem;transition:border-color .15s,box-shadow .15s}
+.big:focus-within{border-color:var(--amber);box-shadow:0 0 0 4px var(--amber-glow)}
+.big span{color:var(--amber);font:700 20px var(--mono)}
+.big input{flex:1;border:0;background:transparent;color:var(--ink);font:500 20px var(--mono);outline:none;min-width:0}
+.big kbd{font:500 11px var(--mono);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:.1rem .45rem}
+.bar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.9rem}
+.bar select{font:500 12px var(--mono);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:.45rem .8rem;max-width:150px}
+.bar select.on{border-color:var(--amber);color:var(--amber)}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;margin-left:auto}
+.seg button{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;border:0;background:transparent;color:var(--muted);padding:.4rem .75rem;border-radius:7px;cursor:pointer}
+.seg button.on{background:var(--panel2);color:var(--amber);box-shadow:inset 0 -2px 0 var(--amber)}
+details.more{margin-bottom:.9rem}
+details.more summary{cursor:pointer;font:600 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);list-style:none}
+details.more summary::-webkit-details-marker{display:none}
+details.more[open] summary{color:var(--amber)}
+details.more .g{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.7rem;margin-top:.8rem}
+.sum{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:0 0 .8rem;font:500 12px var(--mono);color:var(--muted)}
+.sum b{color:var(--ink);font-weight:600}
+.crit{display:inline-flex;gap:.45rem;align-items:center;font:500 11px var(--mono);color:var(--amber);border:1px solid var(--amber);border-radius:999px;padding:.15rem .3rem .15rem .65rem}
+.crit button{border:0;background:transparent;color:inherit;cursor:pointer;font:700 13px var(--mono);padding:0 .3rem}
+.hit{display:grid;grid-template-columns:108px 1fr auto;gap:1rem;align-items:center;padding:.8rem 1rem;color:inherit;text-decoration:none;margin-bottom:.6rem;transition:border-color .15s}
+.hit:hover{border-color:var(--amber)}
+.thumb{aspect-ratio:16/9;border-radius:8px;background:linear-gradient(var(--sky1),var(--sky2));position:relative;overflow:hidden}
+.thumb svg{position:absolute;left:8%;width:84%;bottom:8%}
+.hit .nm{font:700 18px var(--display);text-transform:uppercase;letter-spacing:.02em}
+.hit .ctx{display:flex;gap:.4rem 1rem;flex-wrap:wrap;margin-top:.3rem;font:400 12px var(--mono);color:var(--muted)}
+.hit .ctx i{font-style:normal;font-weight:600;font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-right:.35rem}
+.hit .mt{text-align:right;font:500 12px var(--mono);color:var(--muted)}
+.hit .mt b{display:block;font:600 16px var(--mono);color:var(--ink)}
+mark{background:rgba(255,176,0,.3);color:inherit;border-radius:3px;padding:0 .12rem;outline:1px solid var(--amber)}
+.empty{text-align:center;padding:2.5rem 1rem;border:2px dashed var(--line);border-radius:14px;color:var(--muted)}
+.empty b{display:block;font:700 22px var(--display);color:var(--ink);text-transform:uppercase;margin-bottom:.3rem}
+[hidden]{display:none!important}
+@media(max-width:640px){.hit{grid-template-columns:1fr}.hit .thumb{max-width:160px}.hit .mt{text-align:left}}
+</style>
+</head>
+<body>
+<div class="mockbar"><span><strong>MOCKUP B</strong> &nbsp;
+<a href="b-garage.html">Garage</a><a href="b-instrument-cluster.html">Vehicle</a><a href="b-service-record.html">Service record</a><a href="b-reminders.html">Reminders</a><a href="b-add-vehicle.html">Add vehicle</a><a href="b-draft-review.html">Review draft</a> &nbsp;|&nbsp; <a href="b-search.html">Search</a><a href="b-preferences.html">Preferences</a><a href="b-faq.html">FAQ</a><a href="b-about.html">About</a><a href="b-signed-out.html">Signed out</a><a href="b-404.html">404</a></span>
+<button id="t">Toggle light / dark</button></div>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="logo">MG</div>
+    <a href="b-garage.html" title="Garage">GAR</a><a href="b-add-vehicle.html" title="Add vehicle">NEW</a><a href="b-reminders.html" title="Reminders">REM</a><a href="b-draft-review.html" title="Drafts">DRF</a><a class="on" href="b-search.html" title="Search">SRC</a><a href="#" title="Spend">$</a>
+    <span class="sp"></span><a href="b-faq.html" title="Help">?</a><a href="b-preferences.html" title="Account">AC</a>
+  </aside>
+
+  <main>
+    <div class="top">
+      <div><div class="eyebrow">Garage / Search</div><h1>Search</h1></div>
+      <div class="status"><span id="count">3 vehicles</span></div>
+    </div>
+
+    <label class="big"><span>⌕</span><input id="q" aria-label="Search your vehicles" placeholder="Search make, model, color, VIN, features…" value="automatic" autocomplete="off"><kbd>/</kbd></label>
+
+    <div class="bar" id="filters">
+      <select id="f-make" aria-label="Make"><option value="">Make</option><option>Jeep</option><option>Toyota</option><option>Ford</option></select>
+      <select id="f-color" aria-label="Color"><option value="">Color</option><option>Silver</option><option>Blue</option><option>Red</option></select>
+      <select id="f-tag" aria-label="Feature"><option value="">Feature</option><option>Leather seats</option><option>Sunroof</option><option>V8</option></select>
+      <select id="f-fuel" aria-label="Fuel type"><option value="">Fuel</option><option>Gasoline</option></select>
+      <select id="f-trans" aria-label="Transmission"><option value="">Transmission</option><option>Automatic</option><option>Manual</option></select>
+      <div class="seg" role="group" aria-label="Show"><button class="on" data-s="active">Active</button><button data-s="archived">Archived</button><button data-s="all">All</button></div>
+    </div>
+
+    <details class="more"><summary>More filters ▾</summary>
+      <div class="g">
+        <label class="fld"><span>Doors</span><select><option>Any</option><option>2</option><option>4</option></select></label>
+        <label class="fld"><span>Vehicle type</span><select><option>Any</option><option>SUV</option><option>Coupe</option></select></label>
+        <label class="fld"><span>Drivetrain</span><select><option>Any</option><option>4WD</option><option>RWD</option></select></label>
+        <label class="fld"><span>Min mileage</span><input placeholder="0"></label>
+        <label class="fld"><span>Max mileage</span><input placeholder="200,000"></label>
+        <label class="fld"><span>Min year</span><input placeholder="1995"></label>
+        <label class="fld"><span>Max year</span><input placeholder="2026"></label>
+      </div>
+    </details>
+
+    <div class="sum" id="sum"></div>
+    <div id="results"></div>
+    <div class="empty" id="none" hidden><b>No matches</b>Try a different word, or clear a filter.</div>
+    <p class="note">Result rows show where the match was found, with the match highlighted. Sample colors, features and the Jeep's odometer are illustrative. Layout follows the real Search page (search field, filters, active criteria, status switch).</p>
+  </main>
+</div>
+<svg width="0" height="0" style="position:absolute"><symbol id="car" viewBox="0 0 400 170"><path d="M18 124 L30 98 Q36 86 54 82 L118 74 Q140 44 182 40 L252 40 Q286 42 306 70 L352 80 Q376 86 380 108 L384 124 Q386 132 378 132 L22 132 Q14 132 18 124Z" fill="currentColor"/><path d="M138 74 Q154 54 184 52 L244 52 Q268 54 282 74Z" fill="#fff" opacity=".3"/><circle cx="98" cy="132" r="24" fill="#05070A"/><circle cx="98" cy="132" r="10" fill="#6d747b"/><circle cx="306" cy="132" r="24" fill="#05070A"/><circle cx="306" cy="132" r="10" fill="#6d747b"/></symbol></svg>
+<script>
+const r=document.documentElement;
+r.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+document.getElementById('t').onclick=()=>r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';
+const V=[
+ {name:'2015 Jeep Grand Cherokee',make:'Jeep',color:'Silver',fuel:'Gasoline',trans:'Automatic',drive:'4WD',tags:['Leather seats','Sunroof'],trim:'Limited',odo:'91,320 mi',car:'#8C9097',status:'active'},
+ {name:'2010 Toyota Venza',make:'Toyota',color:'Blue',fuel:'Gasoline',trans:'Automatic',drive:'FWD',tags:[],trim:'',odo:'157 mi',car:'#9B8467',status:'active'},
+ {name:'2005 Ford Mustang',make:'Ford',color:'Red',fuel:'Gasoline',trans:'Manual',drive:'RWD',tags:['V8'],trim:'GT',odo:'Not set',car:'#C0504A',status:'archived'}
+];
+let status='active';
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function hl(text,q){if(!q)return esc(text);const re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig');return esc(text).replace(re,'<mark>$1</mark>')}
+function run(){
+  const q=$('q').value.trim(),ql=q.toLowerCase();
+  const fm=$('f-make').value,fc=$('f-color').value,ft=$('f-tag').value,ff=$('f-fuel').value,fx=$('f-trans').value;
+  ['f-make','f-color','f-tag','f-fuel','f-trans'].forEach(id=>$(id).classList.toggle('on',!!$(id).value));
+  const rows=V.filter(v=>(status==='all'||v.status===status)&&(!fm||v.make===fm)&&(!fc||v.color===fc)&&(!ft||v.tags.includes(ft))&&(!ff||v.fuel===ff)&&(!fx||v.trans===fx)
+    &&(!ql||[v.name,v.make,v.color,v.fuel,v.trans,v.drive,v.trim,...v.tags].join(' ').toLowerCase().includes(ql)));
+  $('results').innerHTML=rows.map(v=>{
+    const fields=[['Color',v.color],['Fuel',v.fuel],['Transmission',v.trans],['Drivetrain',v.drive],['Trim',v.trim],...v.tags.map(t=>['Feature',t])].filter(f=>f[1]&&ql&&f[1].toLowerCase().includes(ql));
+    return `<a class="panel hit" href="b-instrument-cluster.html"><div class="thumb"><svg viewBox="0 0 400 170" style="color:${v.car}"><use href="#car"/></svg></div>
+    <div><div class="nm">${hl(v.name,q)}${v.status==='archived'?' <span class="pill mute" style="font-size:10px;vertical-align:middle">Archived</span>':''}</div>
+    <div class="ctx">${fields.map(f=>`<span><i>${f[0]}</i>${hl(f[1],q)}</span>`).join('')||'<span>Name match</span>'}</div></div>
+    <div class="mt"><b>${v.odo}</b>${v.fuel} · ${v.trans}</div></a>`}).join('');
+  $('none').hidden=rows.length>0;
+  const crit=[];
+  if(q)crit.push(['q','“'+q+'”']);if(fm)crit.push(['f-make','Make: '+fm]);if(fc)crit.push(['f-color','Color: '+fc]);if(ft)crit.push(['f-tag','Feature: '+ft]);if(ff)crit.push(['f-fuel','Fuel: '+ff]);if(fx)crit.push(['f-trans','Transmission: '+fx]);
+  $('sum').innerHTML=`<span>Showing <b>${rows.length?1:0} to ${rows.length}</b> of <b>${rows.length}</b> results</span>`+crit.map(c=>`<span class="crit">${esc(c[1])}<button data-k="${c[0]}" aria-label="Remove ${esc(c[1])}">×</button></span>`).join('');
+  $('count').textContent=rows.length+(rows.length===1?' result':' results');
+  document.querySelectorAll('.crit button').forEach(b=>b.onclick=()=>{const el=$(b.dataset.k);el.value='';run()});
+}
+['q','f-make','f-color','f-tag','f-fuel','f-trans'].forEach(id=>$(id).addEventListener('input',run));
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{status=b.dataset.s;document.querySelectorAll('.seg button').forEach(x=>x.classList.toggle('on',x===b));run()});
+document.addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement!==$('q')){e.preventDefault();$('q').focus()}});
+run();
+</script>
+</body>
+</html>

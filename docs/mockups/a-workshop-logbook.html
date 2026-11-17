@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup A – Workshop logbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F3EEE4; --card:#FBF8F1; --ink:#1F1B16; --muted:#6E655A; --rule:#D8D0C0;
+  --accent:#C96F00; --accent-ink:#fff; --ok:#2F7D4F; --bad:#B3392F; --bar:#1F1B16; --bar-ink:#F3EEE4;
+  --sky1:#E8DFCB; --sky2:#CFC3A8; --car:#8C9097;
+  --display:"Archivo",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+[data-theme=dark]{
+  --paper:#171410; --card:#1F1B16; --ink:#EDE6D8; --muted:#A3998A; --rule:#3A332A;
+  --accent:#F0A030; --accent-ink:#1A1204; --ok:#6CC48C; --bad:#E5766B; --bar:#0F0D0A; --bar-ink:#EDE6D8;
+  --sky1:#2A241C; --sky2:#1B1712; --car:#6B7078;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--body)}
+a{color:inherit}
+.mockbar{display:flex;gap:1rem;align-items:center;justify-content:space-between;padding:.4rem 1rem;background:#000;color:#ddd;font:12px var(--body)}
+.mockbar a{color:#ffb74d;margin-right:.75rem}.mockbar button{font:inherit;background:#333;color:#fff;border:0;border-radius:4px;padding:.2rem .6rem;cursor:pointer}
+header.top{background:var(--bar);color:var(--bar-ink);display:flex;align-items:center;gap:2rem;padding:.75rem 2rem}
+.brand{display:flex;align-items:center;gap:.6rem;font:800 18px var(--display);letter-spacing:.14em;text-transform:uppercase}
+.plate{width:34px;height:22px;border:2px solid var(--accent);border-radius:4px;display:grid;place-items:center;font:600 9px var(--mono);color:var(--accent);letter-spacing:.05em}
+nav.main{display:flex;gap:1.5rem;font:600 13px var(--display);letter-spacing:.1em;text-transform:uppercase;flex:1}
+nav.main a{text-decoration:none;opacity:.7;padding:.25rem 0;border-bottom:2px solid transparent}
+nav.main a.on{opacity:1;border-color:var(--accent)}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:700 12px var(--display)}
+main{max-width:1120px;margin:0 auto;padding:2rem}
+.crumb{font:500 12px var(--mono);color:var(--muted);letter-spacing:.05em;margin-bottom:1rem}
+.head{display:grid;grid-template-columns:1.1fr 1fr;gap:2rem;align-items:stretch}
+.photo{position:relative;min-height:260px;border-radius:4px;background:linear-gradient(var(--sky1),var(--sky2));overflow:hidden;border:1px solid var(--rule)}
+.photo svg{position:absolute;left:8%;right:8%;bottom:12%;width:84%;color:var(--car)}
+.photo .road{position:absolute;left:0;right:0;bottom:0;height:18%;background:rgba(0,0,0,.14)}
+.tape{position:absolute;top:14px;left:-30px;transform:rotate(-35deg);background:var(--accent);color:var(--accent-ink);font:700 10px var(--mono);letter-spacing:.12em;padding:.2rem 2.2rem}
+h1{font:800 40px/1 var(--display);text-transform:uppercase;letter-spacing:.01em;margin:0 0 .35rem}
+.sub{font:500 13px var(--mono);color:var(--muted);letter-spacing:.04em;margin:0 0 1.25rem}
+.dataplate{border:2px solid var(--ink);border-radius:6px;padding:1rem 1.25rem;position:relative;background:var(--card)}
+.dataplate::before,.dataplate::after{content:"";position:absolute;top:8px;width:7px;height:7px;border-radius:50%;background:var(--muted);opacity:.6}
+.dataplate::before{left:8px}.dataplate::after{right:8px}
+.dataplate .lbl{font:600 10px var(--mono);letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+.odo{font:600 44px/1.1 var(--mono);letter-spacing:.04em}.odo small{font-size:16px;color:var(--muted)}
+.plate-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem 1.5rem;margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--rule)}
+.plate-grid b{display:block;font:500 15px var(--mono)}
+.plate-grid .add{color:var(--accent);text-decoration:none;font:500 13px var(--mono)}
+h2{font:800 15px var(--display);letter-spacing:.14em;text-transform:uppercase;margin:2.5rem 0 .75rem;display:flex;align-items:center;gap:.75rem}
+h2::after{content:"";flex:1;height:2px;background:var(--ink);opacity:.85}
+.ledger{background:var(--card);border:1px solid var(--rule);border-radius:4px}
+.row{display:grid;grid-template-columns:1fr auto auto;gap:1rem;align-items:center;padding:.85rem 1.1rem;border-bottom:1px solid var(--rule)}
+.row:last-child{border:0}
+.row .t{font-weight:600}.row .m{font:400 13px var(--mono);color:var(--muted)}
+.chip{font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:.15rem .55rem;border-radius:3px;border:1.5px solid currentColor}
+.chip.ok{color:var(--ok)}.chip.due{color:var(--accent)}.chip.bad{color:var(--bad)}
+.btn{font:700 12px var(--display);letter-spacing:.1em;text-transform:uppercase;border:2px solid var(--ink);background:transparent;color:var(--ink);padding:.4rem .8rem;border-radius:3px;cursor:pointer}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:2rem}
+.tabs{display:flex;gap:1.5rem;border-bottom:2px solid var(--ink);margin-top:2rem}
+.tabs a{font:700 13px var(--display);letter-spacing:.1em;text-transform:uppercase;text-decoration:none;padding:.6rem 0;color:var(--muted);margin-bottom:-2px;border-bottom:4px solid transparent}
+.tabs a.on{color:var(--ink);border-color:var(--accent)}
+.receipt{background:var(--card);border:1px solid var(--rule);padding:1.5rem 1.75rem;box-shadow:0 1px 0 var(--rule),0 6px 0 -3px var(--card),0 6px 0 -2px var(--rule)}
+.receipt header{display:flex;justify-content:space-between;gap:1rem;margin-bottom:1rem;background:var(--card);padding-bottom:.5rem}
+.receipt header b{font:800 18px var(--display);text-transform:uppercase;letter-spacing:.06em}
+.receipt header span{font:400 12px var(--mono);color:var(--muted);display:block;text-align:right}
+.line{display:flex;align-items:baseline;gap:.5rem;font-size:15px;line-height:32px}
+.line .lead{flex:1;border-bottom:2px dotted var(--muted);transform:translateY(-4px);opacity:.5}
+.line .amt{font:500 15px var(--mono);font-variant-numeric:tabular-nums}
+.line.neg .amt{color:var(--ok)}
+.line .kind{font:400 11px var(--mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.total{display:flex;justify-content:space-between;align-items:baseline;margin-top:.5rem;padding-top:.6rem;border-top:4px double var(--ink)}
+.total b{font:800 14px var(--display);letter-spacing:.14em;text-transform:uppercase}
+.total span{font:600 28px var(--mono);font-variant-numeric:tabular-nums}
+.note{font:400 12px var(--mono);color:var(--muted);margin-top:2.5rem}
+@media(max-width:860px){.head,.cols{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><symbol id="car" viewBox="0 0 400 170"><path d="M18 124 L30 98 Q36 86 54 82 L118 74 Q140 44 182 40 L252 40 Q286 42 306 70 L352 80 Q376 86 380 108 L384 124 Q386 132 378 132 L22 132 Q14 132 18 124Z" fill="currentColor"/><path d="M138 74 Q154 54 184 52 L244 52 Q268 54 282 74Z" fill="#fff" opacity=".35"/><circle cx="98" cy="132" r="24" fill="#15171a"/><circle cx="98" cy="132" r="10" fill="#9aa0a6"/><circle cx="306" cy="132" r="24" fill="#15171a"/><circle cx="306" cy="132" r="10" fill="#9aa0a6"/></symbol></svg>
+
+<div class="mockbar"><span><strong>MOCKUP A of 3 · Workshop logbook</strong> &nbsp;
+<a href="a-workshop-logbook.html">A</a><a href="b-instrument-cluster.html">B</a><a href="c-clean-editorial.html">C</a></span>
+<button id="t">Toggle light / dark</button></div>
+
+<header class="top">
+  <div class="brand"><span class="plate">MG</span>My Garage</div>
+  <nav class="main"><a class="on" href="#">Garage</a><a href="#">Reminders</a><a href="#">Drafts</a><a href="#">Spend</a></nav>
+  <span class="avatar">AC</span>
+</header>
+
+<main>
+  <div class="crumb">GARAGE / VEHICLES / 2015 JEEP GRAND CHEROKEE</div>
+
+  <section class="head">
+    <div class="photo"><span class="tape">SILVER</span><div class="road"></div><svg viewBox="0 0 400 170"><use href="#car"/></svg></div>
+    <div>
+      <h1>2015 Jeep<br>Grand Cherokee</h1>
+      <p class="sub">LIMITED · 3.5L V6 · 285 HP · 4WD · AUTOMATIC</p>
+      <div class="dataplate">
+        <div class="lbl">Odometer</div>
+        <div class="odo">091,320 <small>MI</small></div>
+        <div class="plate-grid">
+          <div><div class="lbl">Last service</div><b>Oct 30, 2026</b></div>
+          <div><div class="lbl">Spent this year</div><b>$345.92</b></div>
+          <div><div class="lbl">VIN</div><a class="add" href="#">+ add VIN</a></div>
+          <div><div class="lbl">Acquired</div><a class="add" href="#">+ add date</a></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <h2>Needs attention</h2>
+  <div class="ledger">
+    <div class="row"><div><div class="t">Oil change</div><div class="m">Suggested from your Oct 30 service · every 5,000 mi</div></div><span class="chip due">3,780 mi left</span><button class="btn pri">Set reminder</button></div>
+    <div class="row"><div><div class="t">Registration</div><div class="m">Expires Mar 14, 2027</div></div><span class="chip ok">120 days</span><button class="btn">Open</button></div>
+  </div>
+
+  <nav class="tabs"><a class="on" href="#">Timeline</a><a href="#">Specs</a><a href="#">Photos</a><a href="#">Reminders</a><a href="#">Documents</a></nav>
+
+  <h2>Service record</h2>
+  <article class="receipt">
+    <header>
+      <div><b>Oil change &amp; labor</b><span style="text-align:left">Allen Ng · Oct 30, 2026 · 90,100 mi</span></div>
+      <div><span>RECORD</span><span>#0001</span></div>
+    </header>
+    <div class="line"><span>Synthetic oil change</span><span class="kind">flat</span><span class="lead"></span><span class="amt">$100.00</span></div>
+    <div class="line neg"><span>Coupon</span><span class="kind">credit</span><span class="lead"></span><span class="amt">−$4.04</span></div>
+    <div class="line"><span>Labor</span><span class="kind">labor</span><span class="lead"></span><span class="amt">$180.00</span></div>
+    <div class="line"><span>Tax</span><span class="lead"></span><span class="amt">$8.25</span></div>
+    <div class="total"><b>Total</b><span>$284.21</span></div>
+  </article>
+
+  <p class="note">Sample data based on your Jeep. Current odometer, reminders, spend total, and registration date are illustrative.</p>
+</main>
+<script>
+const r=document.documentElement;
+r.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+document.getElementById('t').onclick=()=>r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';
+</script>
+</body>
+</html>

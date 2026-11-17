@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup B – Review draft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="b-base.css">
+<style>
+.cols{display:grid;grid-template-columns:1fr 1.1fr;gap:1rem;align-items:start}
+.src{display:flex;gap:.5rem;flex-wrap:wrap}
+.src span{font:500 11px var(--mono);color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:.25rem .7rem}
+.src span b{color:var(--ink);font-weight:500}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:.25rem 1rem;font:500 12px var(--mono);margin:0 0 1rem}
+.meta dt{color:var(--muted)}.meta dd{margin:0;word-break:break-all}
+.inv{min-height:430px}
+.inv .tot{display:flex;justify-content:space-between;font:700 15px "JetBrains Mono",monospace;padding-top:.4rem;border-top:2px solid #1B1B19;margin-top:.5rem}
+.expire{font:400 11px var(--mono);color:var(--muted);margin-top:.8rem}
+/* compatibility */
+.compat{display:flex;gap:1.1rem;align-items:center;margin-bottom:.9rem}
+.ring{width:76px;height:76px;flex:none;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:8;stroke-linecap:round}
+.ring .tr{stroke:var(--track)}
+.ring .pg{stroke:var(--amber);stroke-dasharray:201;stroke-dashoffset:34;transition:stroke-dashoffset .5s,stroke .3s;filter:drop-shadow(0 0 5px var(--amber-glow))}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font:700 16px var(--mono)}
+.compat h2{margin:0;font:700 20px var(--display);text-transform:uppercase;letter-spacing:.03em}
+.compat p{margin:.1rem 0 0;font:400 12px var(--mono);color:var(--muted)}
+.ready .ring .pg{stroke:var(--ok);stroke-dashoffset:0;filter:drop-shadow(0 0 5px var(--ok))}
+.checks{list-style:none;margin:0;padding:0}
+.checks li{display:flex;gap:.7rem;align-items:center;padding:.45rem 0;border-top:1px solid var(--line);font-size:13px}
+.checks li small{display:block;font:400 11px var(--mono);color:var(--muted)}
+.checks li a{color:inherit;text-decoration:none}
+.checks .pill{margin-left:auto}
+.checks li.problem a{color:var(--amber);font-weight:600}
+.advice{margin-top:.8rem;padding:.55rem .8rem;border-left:4px solid var(--amber);background:var(--panel2);border-radius:8px;font-size:12px}
+/* form */
+.kinds{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem}
+.kinds button{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:.45rem .7rem;cursor:pointer}
+.kinds button.on{background:var(--amber);color:#1A1204;border-color:var(--amber)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.g2 .full{grid-column:1/-1}
+.fld.flag input{outline:2px solid var(--amber);outline-offset:1px;background:color-mix(in srgb,var(--amber) 10%,var(--panel2))}
+.lines{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:1rem}
+.lines .h,.lines .r{display:grid;grid-template-columns:1fr 92px 96px 28px;gap:.5rem;align-items:center;padding:.5rem .7rem}
+.lines .h{background:var(--panel2);font:600 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.lines .r{border-top:1px solid var(--line)}
+.lines input{font:500 13px var(--mono);color:var(--ink);background:transparent;border:0;border-bottom:1px dashed var(--line);padding:.2rem 0;width:100%}
+.lines .amt{text-align:right}
+.lines .x{color:var(--muted);text-align:center;cursor:pointer}
+.lines .more{padding:.55rem .7rem;border-top:1px solid var(--line);font:500 12px var(--mono);color:var(--amber)}
+.sum{display:flex;justify-content:space-between;align-items:baseline;padding:.3rem .7rem;font:500 13px var(--mono)}
+.sum.t{padding-top:.7rem;border-top:4px double var(--line)}
+.sum.t b{font:600 11px var(--mono);letter-spacing:.16em;color:var(--muted)}.sum.t span{font:700 26px var(--mono);color:var(--amber)}
+.keep{display:flex;gap:.6rem;align-items:center;font-size:13px;margin:.8rem 0}
+.keep input{accent-color:var(--amber);width:16px;height:16px}
+.foot{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;border-top:1px solid var(--line);padding-top:1rem}
+.foot .sp{flex:1}
+@media(max-width:900px){.cols{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="mockbar"><span><strong>MOCKUP B · Review draft</strong> &nbsp;
+<a href="b-garage.html">Garage</a><a href="b-instrument-cluster.html">Vehicle</a><a href="b-service-record.html">Service record</a><a href="b-reminders.html">Reminders</a><a href="b-add-vehicle.html">Add vehicle</a><a href="b-draft-review.html">Review draft</a> &nbsp;|&nbsp; <a href="b-search.html">Search</a><a href="b-preferences.html">Preferences</a><a href="b-faq.html">FAQ</a><a href="b-about.html">About</a><a href="b-signed-out.html">Signed out</a><a href="b-404.html">404</a></span>
+<button id="t">Toggle light / dark</button></div>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="logo">MG</div>
+    <a href="b-garage.html" title="Garage">GAR</a><a href="b-add-vehicle.html" title="Add vehicle">NEW</a><a href="b-reminders.html" title="Reminders">REM</a><a class="on" href="b-draft-review.html" title="Drafts">DRF</a><a href="b-search.html" title="Search">SRC</a><a href="#" title="Spend">$</a>
+    <span class="sp"></span><a href="b-faq.html" title="Help">?</a><a href="b-preferences.html" title="Account">AC</a>
+  </aside>
+
+  <main>
+    <div class="top">
+      <div><div class="eyebrow">Drafts / Review</div><h1>Review draft</h1></div>
+      <div class="src"><span>FROM <b>EMAIL</b></span><span>ARRIVED <b>Nov 14, 3:30 PM</b></span><span>EXPIRES <b>Dec 14</b></span></div>
+    </div>
+
+    <div class="cols">
+      <!-- Original -->
+      <section class="panel">
+        <h3><span>Original</span><a class="btn ghost" style="padding:.3rem .7rem" href="#">Download</a></h3>
+        <dl class="meta"><dt>FROM</dt><dd>receipts@allens-garage.example</dd><dt>SUBJECT</dt><dd>Your invoice #4821 — 2015 Jeep Grand Cherokee</dd></dl>
+        <div class="paper inv">
+          <h4>Allen Ng Auto</h4>
+          <div class="row"><span>INVOICE #4821</span><span><mark>NOV 14, 2026</mark></span></div>
+          <div class="row"><span>2015 JEEP GRAND CHEROKEE</span><span><mark class="miss">ODOMETER —</mark></span></div>
+          <div class="sep"></div>
+          <div class="row"><span><mark>TIRE ROTATION</mark></span><span><mark>$40.00</mark></span></div>
+          <div class="row"><span><mark>BALANCE 4 TIRES · 1.0 H @ $60</mark></span><span><mark>$60.00</mark></span></div>
+          <div class="row"><span><mark>WHEEL WEIGHTS × 4 @ $2.50</mark></span><span><mark>$10.00</mark></span></div>
+          <div class="sep"></div>
+          <div class="row"><span>SUBTOTAL</span><span>$110.00</span></div>
+          <div class="row"><span><mark>TAX</mark></span><span><mark>$8.80</mark></span></div>
+          <div class="tot"><span>TOTAL</span><span><mark>$118.80</mark></span></div>
+          <div class="ln" style="width:60%;margin-top:1rem"></div><div class="ln" style="width:40%"></div>
+        </div>
+        <p class="expire">Removed Dec 14, 2026 unless you save or discard it first. Amber is read, red is not on the invoice.</p>
+      </section>
+
+      <div style="display:grid;gap:1rem">
+        <!-- Compatibility -->
+        <section class="panel" id="compat" aria-live="polite">
+          <h3><span>Compatibility</span><span class="pill due" id="cpill">1 to fix</span></h3>
+          <div class="compat">
+            <div class="ring"><svg viewBox="0 0 76 76"><circle class="tr" cx="38" cy="38" r="32"/><circle class="pg" cx="38" cy="38" r="32"/></svg><b id="cscore">5/6</b></div>
+            <div><h2 id="ctitle">1 thing needs attention</h2><p id="csub">Fix the item below, then check again.</p></div>
+          </div>
+          <ul class="checks">
+            <li class="problem" id="c-odo"><div><a href="#odo">Odometer reading</a><small id="c-odo-msg">Not on the invoice. Add it to save.</small></div><span class="pill bad" id="c-odo-pill">Missing</span></li>
+            <li><div><a href="#veh">Vehicle</a><small>Matched from the email subject</small></div><span class="pill ok">OK</span></li>
+            <li><div><a href="#date">Date serviced</a></div><span class="pill ok">OK</span></li>
+            <li><div><a href="#shop">Shop</a></div><span class="pill ok">OK</span></li>
+            <li><div><a href="#lines">Line items</a><small>3 lines, $110.00</small></div><span class="pill ok">OK</span></li>
+            <li><div><a href="#lines">Total</a><small>Matches lines plus tax</small></div><span class="pill ok">OK</span></li>
+          </ul>
+          <div class="advice">"Rear brakes inspected" on the invoice is not saved as its own record.</div>
+        </section>
+
+        <!-- Proposed record -->
+        <section class="panel">
+          <h3><span>Proposed record</span><span class="pill mute">* required</span></h3>
+          <div class="kinds" role="group" aria-label="Record type">
+            <button class="on">Service record</button><button>Fuel / charge</button><button>Inspection</button><button>Registration</button><button>Insurance</button><button>Tax</button>
+          </div>
+          <div class="g2">
+            <label class="fld full" id="veh"><span>Vehicle *</span><select><option>2015 Jeep Grand Cherokee</option><option>2010 Toyota Venza</option></select><small>Matched from the email. Change it if wrong.</small></label>
+            <label class="fld" id="date"><span>Date serviced *</span><input value="2026-11-14"></label>
+            <label class="fld flag" id="odoField"><span>Odometer reading *</span><input id="odo" inputmode="numeric" placeholder="e.g. 91,320"><small>Not on the invoice. Check your dashboard.</small></label>
+            <label class="fld full" id="shop"><span>Shop name or person</span><input value="Allen Ng"></label>
+          </div>
+
+          <div class="sub" style="font:600 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:.5rem 0">Line items</div>
+          <div class="lines" id="lines">
+            <div class="h"><span>What was done</span><span>Pricing</span><span class="amt">Amount</span><span></span></div>
+            <div class="r"><input value="Tire rotation"><span class="pill mute">Flat</span><input class="amt" value="40.00"><span class="x">✕</span></div>
+            <div class="r"><input value="Balance 4 tires"><span class="pill mute">Labor</span><input class="amt" value="60.00"><span class="x">✕</span></div>
+            <div class="r"><input value="Wheel weights × 4"><span class="pill mute">Parts</span><input class="amt" value="10.00"><span class="x">✕</span></div>
+            <div class="more">+ Add another line</div>
+          </div>
+          <div class="sum"><span>Tax</span><span>$8.80</span></div>
+          <div class="sum t"><b>TOTAL</b><span>$118.80</span></div>
+
+          <label class="keep"><input type="checkbox" checked>Keep the original file with this record</label>
+          <div class="foot">
+            <button class="btn" id="save" aria-disabled="true">Save record</button>
+            <button class="btn ghost" id="again">Check again</button>
+            <a class="btn ghost" href="b-instrument-cluster.html">Cancel</a>
+            <span class="sp"></span>
+            <button class="btn danger">Discard</button>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <p class="note">Sample content: the sender, invoice lines and "rear brakes" advisory are illustrative. Try it: enter an odometer, then click Check again. Sections follow the real review page.</p>
+  </main>
+</div>
+<script>
+const r=document.documentElement;
+r.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+document.getElementById('t').onclick=()=>r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';
+const $=id=>document.getElementById(id);
+$('again').onclick=()=>{
+  const ok=$('odo').value.trim().length>0;
+  $('compat').classList.toggle('ready',ok);
+  $('cscore').textContent=ok?'6/6':'5/6';
+  $('ctitle').textContent=ok?'Ready to save':'1 thing needs attention';
+  $('csub').textContent=ok?'Everything checks out.':'Fix the item below, then check again.';
+  $('cpill').textContent=ok?'Ready':'1 to fix';$('cpill').className='pill '+(ok?'ok':'due');
+  $('c-odo').classList.toggle('problem',!ok);
+  $('c-odo-pill').textContent=ok?'OK':'Missing';$('c-odo-pill').className='pill '+(ok?'ok':'bad');
+  $('c-odo-msg').textContent=ok?'Entered by you':'Not on the invoice. Add it to save.';
+  $('odoField').classList.toggle('flag',!ok);
+  $('save').setAttribute('aria-disabled',ok?'false':'true');
+};
+$('save').onclick=()=>{if($('save').getAttribute('aria-disabled')==='false')location.href='b-instrument-cluster.html#timeline'};
+</script>
+</body>
+</html>

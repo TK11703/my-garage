@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup B – Reminders</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="b-base.css">
+<style>
+.cols{display:grid;grid-template-columns:1.7fr 1fr;gap:1rem;align-items:start}
+.filters{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem}
+.filters button{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;background:var(--panel);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:.4rem .8rem;cursor:pointer;display:inline-flex;gap:.45rem;align-items:center}
+.filters button b{font-weight:600;color:var(--ink)}
+.filters button.on{background:var(--amber);color:#1A1204;border-color:var(--amber)}.filters button.on b{color:#1A1204}
+.filters button i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.list{display:grid;gap:.6rem}
+.rem{display:grid;grid-template-columns:6px 1fr 230px auto;gap:1rem;align-items:center;padding:.9rem 1rem .9rem 0;overflow:hidden}
+.rem .strip{align-self:stretch;border-radius:0}
+.rem .t{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.rem .t b{font:600 16px var(--body)}
+.rem .v{font:500 12px var(--mono);color:var(--muted);margin-top:.15rem}
+.rem .v a{color:var(--muted)}
+.rem .iv{font:400 11px var(--mono);color:var(--muted)}
+.gauge .lbl{display:flex;justify-content:space-between;font:600 12px var(--mono);margin-bottom:.35rem}
+.gauge .lbl em{font-style:normal;color:var(--muted);font-weight:400}
+.gauge .bar{height:8px;border-radius:4px;background:var(--track);overflow:hidden}
+.gauge .bar i{display:block;height:100%;border-radius:4px}
+.gauge .sub{font:400 11px var(--mono);color:var(--muted);margin-top:.3rem}
+.rem[data-s=overdue] .strip{background:var(--bad)}.rem[data-s=overdue] .bar i{background:var(--bad);width:100%}.rem[data-s=overdue] .lbl b{color:var(--bad)}
+.rem[data-s=soon] .strip{background:var(--amber)}.rem[data-s=soon] .bar i{background:var(--amber);box-shadow:0 0 8px var(--amber-glow)}.rem[data-s=soon] .lbl b{color:var(--amber)}
+.rem[data-s=upcoming] .strip{background:var(--ok)}.rem[data-s=upcoming] .bar i{background:var(--ok)}
+.rem[data-s=mileage] .strip{background:var(--muted)}.rem[data-s=mileage] .bar{background:repeating-linear-gradient(90deg,var(--line) 0 6px,transparent 6px 10px)}
+.rem[data-s=paused]{opacity:.6}.rem[data-s=paused] .strip{background:var(--line)}
+.rem[data-s=archived]{opacity:.5}
+.acts{display:flex;gap:.4rem;align-items:center}
+.acts .btn{padding:.45rem .7rem}
+.menu{position:relative}
+.menu summary{list-style:none;cursor:pointer;width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--line);border-radius:8px;color:var(--muted);font:700 15px var(--mono)}
+.menu summary::-webkit-details-marker{display:none}
+.menu[open] summary{border-color:var(--amber);color:var(--amber)}
+.menu .pop{position:absolute;right:0;top:38px;z-index:5;min-width:170px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.3rem;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+.menu .pop a,.menu .pop button{display:block;width:100%;text-align:left;font:500 12px var(--mono);color:var(--ink);background:transparent;border:0;border-radius:6px;padding:.5rem .7rem;text-decoration:none;cursor:pointer}
+.menu .pop a:hover,.menu .pop button:hover{background:var(--panel2)}
+.menu .pop .del{color:var(--bad)}
+.rem.done .gauge,.rem.done .t b{text-decoration:line-through;opacity:.5}
+.hint{font:500 12px var(--mono);color:var(--amber);text-decoration:none}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:.8rem}.g2 .full{grid-column:1/-1}
+.fs{border:0;padding:0;margin:0 0 1rem}
+.fs legend{font:600 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem;padding:0}
+.fs p{margin:0 0 .6rem;font:400 12px var(--mono);color:var(--muted)}
+.prev{margin-top:.5rem;padding:.6rem .8rem;border-radius:10px;background:var(--panel2);font:500 12px var(--mono);border-left:4px solid var(--amber)}
+.prev b{color:var(--amber)}
+.sug{display:flex;gap:.8rem;align-items:center;padding:.7rem 0;border-top:1px solid var(--line)}
+.sug:first-of-type{border-top:0}
+.sug div{flex:1}.sug b{font-weight:600}.sug small{display:block;font:400 11px var(--mono);color:var(--muted)}
+.sug .btn{padding:.4rem .7rem}
+[hidden]{display:none!important}
+@media(max-width:1000px){.cols{grid-template-columns:1fr}.rem{grid-template-columns:6px 1fr auto}.rem .gauge{grid-column:2/4;grid-row:2}.rem .acts{grid-column:3;grid-row:1}}
+</style>
+</head>
+<body>
+<div class="mockbar"><span><strong>MOCKUP B</strong> &nbsp;
+<a href="b-garage.html">Garage</a><a href="b-instrument-cluster.html">Vehicle</a><a href="b-service-record.html">Service record</a><a href="b-reminders.html">Reminders</a><a href="b-add-vehicle.html">Add vehicle</a><a href="b-draft-review.html">Review draft</a> &nbsp;|&nbsp; <a href="b-search.html">Search</a><a href="b-preferences.html">Preferences</a><a href="b-faq.html">FAQ</a><a href="b-about.html">About</a><a href="b-signed-out.html">Signed out</a><a href="b-404.html">404</a></span>
+<button id="t">Toggle light / dark</button></div>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="logo">MG</div>
+    <a href="b-garage.html" title="Garage">GAR</a><a href="b-add-vehicle.html" title="Add vehicle">NEW</a><a class="on" href="b-reminders.html" title="Reminders">REM</a><a href="b-draft-review.html" title="Drafts">DRF</a><a href="b-search.html" title="Search">SRC</a><a href="#" title="Spend">$</a>
+    <span class="sp"></span><a href="b-faq.html" title="Help">?</a><a href="b-preferences.html" title="Account">AC</a>
+  </aside>
+
+  <main>
+    <div class="top">
+      <div><div class="eyebrow">Garage / Reminders</div><h1>Reminders</h1></div>
+      <div class="status"><span class="led" style="background:var(--bad);box-shadow:0 0 8px var(--bad)"></span>1 OVERDUE · 1 DUE SOON · 1 UPCOMING</div>
+    </div>
+
+    <div class="cols">
+      <div>
+        <div class="filters" id="filters" role="group" aria-label="Filter reminders by status">
+          <button class="on" data-f="all">All <b>5</b></button>
+          <button data-f="overdue"><i style="background:var(--bad)"></i>Overdue <b>1</b></button>
+          <button data-f="soon"><i style="background:var(--amber)"></i>Due soon <b>1</b></button>
+          <button data-f="upcoming"><i style="background:var(--ok)"></i>Upcoming <b>1</b></button>
+          <button data-f="mileage"><i style="background:var(--muted)"></i>Mileage needed <b>1</b></button>
+          <button data-f="paused">Paused <b>1</b></button>
+        </div>
+
+        <div class="list" id="list">
+          <article class="panel rem" data-s="overdue">
+            <span class="strip"></span>
+            <div><div class="t"><b>Inspection</b><span class="pill bad">Overdue</span></div>
+              <div class="v"><a href="b-instrument-cluster.html">2010 Toyota Venza</a></div><div class="iv">Every 1 year · last done Nov 14, 2025</div></div>
+            <div class="gauge"><div class="lbl"><b>3 days overdue</b><em>Due Nov 14</em></div><div class="bar"><i></i></div><div class="sub">Last done 1 year and 3 days ago</div></div>
+            <div class="acts"><button class="btn done">Mark done</button><details class="menu"><summary aria-label="More actions for Inspection">⋯</summary><div class="pop"><a href="#">Edit</a><button>Pause</button><button class="del">Delete…</button></div></details></div>
+          </article>
+
+          <article class="panel rem" data-s="soon">
+            <span class="strip"></span>
+            <div><div class="t"><b>Oil change</b><span class="pill due">Due soon</span></div>
+              <div class="v"><a href="b-instrument-cluster.html">2015 Jeep Grand Cherokee</a></div><div class="iv">Every 5,000 mi or 6 months · last done Oct 30 at 90,100 mi</div></div>
+            <div class="gauge"><div class="lbl"><b>3,780 mi left</b><em>~ 5 wk</em></div><div class="bar"><i style="width:24%"></i></div><div class="sub">Due at 95,100 mi or Apr 30, 2027</div></div>
+            <div class="acts"><button class="btn done">Mark done</button><details class="menu"><summary aria-label="More actions for Oil change">⋯</summary><div class="pop"><a href="#">Edit</a><button>Pause</button><button class="del">Delete…</button></div></details></div>
+          </article>
+
+          <article class="panel rem" data-s="upcoming">
+            <span class="strip"></span>
+            <div><div class="t"><b>Registration renewal</b><span class="pill ok">Upcoming</span></div>
+              <div class="v"><a href="b-instrument-cluster.html">2015 Jeep Grand Cherokee</a></div><div class="iv">Every 1 year · last done Mar 14, 2026</div></div>
+            <div class="gauge"><div class="lbl"><b>120 days</b><em>Mar 14, 2027</em></div><div class="bar"><i style="width:67%"></i></div><div class="sub">67% of the year used</div></div>
+            <div class="acts"><button class="btn done">Mark done</button><details class="menu"><summary aria-label="More actions for Registration">⋯</summary><div class="pop"><a href="#">Edit</a><button>Pause</button><button class="del">Delete…</button></div></details></div>
+          </article>
+
+          <article class="panel rem" data-s="mileage">
+            <span class="strip"></span>
+            <div><div class="t"><b>Cabin air filter</b><span class="pill mute">Mileage needed</span></div>
+              <div class="v"><a href="b-instrument-cluster.html">2010 Toyota Venza</a></div><div class="iv">Every 15,000 mi · last done Jun 2, 2026</div></div>
+            <div class="gauge"><div class="lbl"><b>Can't tell yet</b></div><div class="bar"><i style="width:0"></i></div><div class="sub">Record the vehicle's mileage to see how far away this is.</div></div>
+            <div class="acts"><a class="hint" href="#">+ Add mileage</a><details class="menu"><summary aria-label="More actions for Cabin air filter">⋯</summary><div class="pop"><a href="#">Edit</a><button>Pause</button><button class="del">Delete…</button></div></details></div>
+          </article>
+
+          <article class="panel rem" data-s="paused">
+            <span class="strip"></span>
+            <div><div class="t"><b>Tire rotation</b><span class="pill mute">Paused</span></div>
+              <div class="v"><a href="b-instrument-cluster.html">2015 Jeep Grand Cherokee</a></div><div class="iv">Every 7,500 mi · last done Sep 9, 2026</div></div>
+            <div class="gauge"><div class="lbl"><b>Paused</b></div><div class="bar"><i style="width:0"></i></div><div class="sub">Resume to see when it is due again.</div></div>
+            <div class="acts"><button class="btn ghost">Resume</button><details class="menu"><summary aria-label="More actions for Tire rotation">⋯</summary><div class="pop"><a href="#">Edit</a><button class="del">Delete…</button></div></details></div>
+          </article>
+        </div>
+        <p class="note" id="none" hidden>No reminders match this filter. <a href="#" id="showall" class="hint">Show all reminders</a></p>
+      </div>
+
+      <div style="display:grid;gap:1rem">
+        <section class="panel">
+          <h3><span>New reminder</span><span class="pill mute">* required</span></h3>
+          <div class="g2">
+            <label class="fld full"><span>Vehicle *</span><select><option>2015 Jeep Grand Cherokee</option><option>2010 Toyota Venza</option></select></label>
+            <label class="fld full"><span>Name *</span><input id="nm" placeholder="e.g. Transmission fluid"></label>
+          </div>
+          <fieldset class="fs"><legend>How often it repeats</legend><p>Set miles, months or years, or both. It is due when whichever comes first.</p>
+            <div class="g2"><label class="fld"><span>Every (miles)</span><input id="mi" inputmode="numeric" placeholder="5,000"></label>
+              <label class="fld"><span>Or every</span><div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem"><input id="tv" inputmode="numeric" placeholder="6"><select id="tu"><option>months</option><option>years</option></select></div></label></div></fieldset>
+          <fieldset class="fs"><legend>When it was last done</legend>
+            <div class="g2"><label class="fld"><span>Last done on *</span><input id="ld" value="2026-10-30"></label>
+              <label class="fld"><span>Last done mileage</span><input id="lm" inputmode="numeric" value="90,100"></label></div></fieldset>
+          <div class="prev" id="prev">Next due: <b>enter an interval above</b></div>
+          <div style="display:flex;gap:.6rem;margin-top:1rem"><button class="btn">Save reminder</button><button class="btn ghost" type="reset">Cancel</button></div>
+        </section>
+
+        <section class="panel">
+          <h3><span>Suggested from your history</span></h3>
+          <div class="sug"><div><b>Oil change</b><small>From your Oct 30 service · every 5,000 mi</small></div><button class="btn" data-fill="Oil change|5000|6|months">Use</button></div>
+          <div class="sug"><div><b>Tire rotation</b><small>Typical for SUVs · every 7,500 mi</small></div><button class="btn ghost" data-fill="Tire rotation|7500||months">Use</button></div>
+          <div class="sug"><div><b>Registration</b><small>On file · every 1 year</small></div><button class="btn ghost" data-fill="Registration||1|years">Use</button></div>
+        </section>
+      </div>
+    </div>
+
+    <p class="note">The Jeep's oil change and registration, and every Venza reminder, are illustrative (you have no reminders yet). Statuses, the repeat-every and last-done fields, and the filters match the real page.</p>
+  </main>
+</div>
+<script>
+const r=document.documentElement;
+r.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+document.getElementById('t').onclick=()=>r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';
+const $=id=>document.getElementById(id);
+function filter(f){
+  document.querySelectorAll('#filters button').forEach(b=>b.classList.toggle('on',b.dataset.f===f));
+  let n=0;document.querySelectorAll('.rem').forEach(el=>{const show=f==='all'||el.dataset.s===f;el.hidden=!show;if(show)n++});
+  $('none').hidden=n>0;
+}
+document.querySelectorAll('#filters button').forEach(b=>b.onclick=()=>filter(b.dataset.f));
+$('showall').onclick=e=>{e.preventDefault();filter('all')};
+document.querySelectorAll('.btn.done').forEach(b=>b.onclick=()=>b.closest('.rem').classList.toggle('done'));
+document.addEventListener('click',e=>{document.querySelectorAll('.menu[open]').forEach(m=>{if(!m.contains(e.target))m.open=false})});
+function preview(){
+  const mi=parseInt($('mi').value.replace(/,/g,''))||0,tv=parseInt($('tv').value)||0,lm=parseInt($('lm').value.replace(/,/g,''))||0;
+  const parts=[];
+  if(mi)parts.push(lm?(lm+mi).toLocaleString()+' mi':mi.toLocaleString()+' mi after the last service');
+  if(tv){const [y,m,dd]=($('ld').value||'2026-10-30').split('-').map(Number);const d=new Date(y,m-1,dd);if($('tu').value==='years')d.setFullYear(d.getFullYear()+tv);else d.setMonth(d.getMonth()+tv);parts.push(d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))}
+  $('prev').innerHTML='Next due: <b>'+(parts.length?parts.join('</b> or <b>')+'</b> · whichever comes first':'enter an interval above</b>');
+}
+['mi','tv','tu','ld','lm'].forEach(id=>$(id).addEventListener('input',preview));
+document.querySelectorAll('[data-fill]').forEach(b=>b.onclick=()=>{
+  const [n,m,t,u]=b.dataset.fill.split('|');$('nm').value=n;$('mi').value=m?(+m).toLocaleString():'';$('tv').value=t;$('tu').value=u||'months';preview();
+});
+preview();
+</script>
+</body>
+</html>

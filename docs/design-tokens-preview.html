@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Garage – design tokens</title>
+<link rel="stylesheet" href="../src/MyGarage.Web/wwwroot/css/fonts.css">
+<link rel="stylesheet" href="../src/MyGarage.Web/wwwroot/css/tokens.css">
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:2rem;background:var(--mg-bg);color:var(--mg-text);font:var(--mg-fs-base)/1.5 var(--mg-font-body);max-width:1200px;margin-inline:auto}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;flex-wrap:wrap;margin-bottom:2rem}
+button.tg{font:600 var(--mg-fs-xs) var(--mg-font-mono);letter-spacing:.1em;text-transform:uppercase;background:var(--mg-surface);color:var(--mg-text);border:1px solid var(--mg-line);border-radius:var(--mg-radius-md);padding:.6rem 1rem;cursor:pointer}
+h2{margin:2.5rem 0 1rem;display:flex;gap:.6rem;align-items:center}
+h2::after{content:"";flex:1;height:1px;background:var(--mg-line)}
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.75rem}
+.chip{background:var(--mg-surface);border:1px solid var(--mg-line);border-radius:var(--mg-radius-lg);overflow:hidden}
+.chip i{display:block;height:54px;border-bottom:1px solid var(--mg-line)}
+.chip div{padding:.5rem .7rem}
+.chip b{display:block;font:600 var(--mg-fs-sm) var(--mg-font-mono)}
+.chip small{display:block;font:400 var(--mg-fs-2xs) var(--mg-font-mono);color:var(--mg-text-muted);overflow-wrap:anywhere}
+table{width:100%;border-collapse:collapse;background:var(--mg-surface);border:1px solid var(--mg-line);border-radius:var(--mg-radius-lg);overflow:hidden}
+th,td{padding:.55rem .8rem;text-align:left;border-bottom:1px solid var(--mg-line);font:500 var(--mg-fs-sm) var(--mg-font-mono)}
+th{background:var(--mg-surface-2);color:var(--mg-text-muted);font-size:var(--mg-fs-2xs);letter-spacing:.14em;text-transform:uppercase}
+.pass{color:var(--mg-ok)}.fail{color:var(--mg-bad)}
+.demo{display:inline-block;padding:.2rem .6rem;border-radius:var(--mg-radius-sm)}
+.role{display:grid;grid-template-columns:160px 1fr;gap:1rem;align-items:baseline;padding:.9rem 0;border-bottom:1px solid var(--mg-line)}
+.role code{font:400 var(--mg-fs-sm) var(--mg-font-mono);color:var(--mg-text-muted)}
+.box{background:var(--mg-surface);border:1px solid var(--mg-line);border-radius:var(--mg-radius-xl);padding:1.25rem}
+.scale{display:flex;gap:1rem;align-items:flex-end;flex-wrap:wrap}
+.scale div{background:var(--mg-accent);height:1rem}
+.rad{display:flex;gap:1rem;flex-wrap:wrap}
+.rad div{width:92px;height:64px;background:var(--mg-surface-2);border:1px solid var(--mg-line);display:grid;place-items:center;font:500 var(--mg-fs-sm) var(--mg-font-mono)}
+.stat{display:flex;gap:.6rem;flex-wrap:wrap}
+.pill{font:600 var(--mg-fs-xs) var(--mg-font-mono);letter-spacing:.06em;text-transform:uppercase;padding:.2rem .7rem;border-radius:var(--mg-radius-pill);border:1px solid currentColor}
+.pill.ok{color:var(--mg-ok);background:var(--mg-ok-soft)}.pill.due{color:var(--mg-due-text);background:var(--mg-due-soft)}.pill.bad{color:var(--mg-bad);background:var(--mg-bad-soft)}.pill.mute{color:var(--mg-text-muted)}.pill.info{color:var(--mg-info);background:var(--mg-info-soft)}
+.btn-a{font:600 var(--mg-fs-xs) var(--mg-font-mono);letter-spacing:.08em;text-transform:uppercase;background:var(--mg-accent);color:var(--mg-on-accent);border:0;border-radius:var(--mg-radius-md);padding:.6rem 1rem}
+.bar{height:8px;border-radius:4px;background:var(--mg-track);overflow:hidden;width:240px}.bar i{display:block;height:100%;width:24%;background:var(--mg-accent);box-shadow:0 0 8px var(--mg-accent-glow)}
+.rail{display:inline-flex;gap:.4rem;background:var(--mg-rail-bg);padding:.5rem;border-radius:var(--mg-radius-lg)}
+.rail span{width:42px;height:42px;display:grid;place-items:center;border-radius:10px;color:var(--mg-rail-text);font:600 var(--mg-fs-xs) var(--mg-font-mono)}
+.rail span.on{background:var(--mg-rail-active-bg);color:var(--mg-rail-active)}
+.paper{background:var(--mg-paper);color:var(--mg-paper-ink);padding:1rem;border-radius:6px;box-shadow:var(--mg-shadow-paper);width:220px;font:var(--mg-fs-sm) var(--mg-font-mono)}
+.paper mark{background:var(--mg-mark-bg);color:inherit;padding:0 .2rem;border-radius:3px}
+.photo{width:220px;height:90px;border-radius:var(--mg-radius-lg);background:linear-gradient(var(--mg-photo-top),var(--mg-photo-bottom));position:relative;overflow:hidden}
+.photo b{position:absolute;left:.7rem;bottom:.5rem;color:var(--mg-photo-car);font:700 var(--mg-fs-md) var(--mg-font-display);text-transform:uppercase}
+.row{display:flex;gap:2rem;flex-wrap:wrap;align-items:flex-start}
+.motion{font:400 var(--mg-fs-sm) var(--mg-font-mono);color:var(--mg-text-muted)}
+</style>
+</head>
+<body>
+<header>
+  <div><div class="mg-eyebrow">My Garage</div><h1 class="mg-title" style="margin:.25rem 0 0">Design tokens</h1></div>
+  <button class="tg" id="t">Toggle light / dark</button>
+</header>
+
+<h2 class="mg-label">Colour</h2>
+<div class="sw" id="sw"></div>
+
+<h2 class="mg-label">Contrast (computed from the live values, WCAG 2.x)</h2>
+<table><thead><tr><th>Pair</th><th>Sample</th><th>Ratio</th><th>Need</th><th>Result</th></tr></thead><tbody id="ct"></tbody></table>
+
+<h2 class="mg-label">Type roles</h2>
+<div class="box">
+  <div class="role"><code>.mg-title</code><span class="mg-title">Grand Cherokee</span></div>
+  <div class="role"><code>.mg-heading</code><span class="mg-heading">Needs attention</span></div>
+  <div class="role"><code>.mg-eyebrow</code><span class="mg-eyebrow">Garage / Reminders</span></div>
+  <div class="role"><code>.mg-label</code><span class="mg-label">Odometer</span></div>
+  <div class="role"><code>.mg-body</code><span class="mg-body">Forward a service invoice or receipt to your My Garage mailbox, or upload a file.</span></div>
+  <div class="role"><code>.mg-data</code><span class="mg-data">VIN 1C4R••••  ·  285 hp  ·  Oct 30, 2026</span></div>
+  <div class="role"><code>.mg-amount</code><span class="mg-amount" style="display:block;max-width:220px">$100.00<br>−$4.04<br>$180.00</span></div>
+  <div class="role"><code>.mg-readout</code><span class="mg-readout">91,320 <small style="font-size:var(--mg-fs-md);color:var(--mg-text-muted)">mi</small></span></div>
+  <div class="role"><code>.mg-total</code><span class="mg-total">$284.21</span></div>
+  <div class="role"><code>--mg-fs-display</code><span style="font:700 var(--mg-fs-display)/1.02 var(--mg-font-display);text-transform:uppercase">Private home</span></div>
+</div>
+
+<h2 class="mg-label">Components on the tokens</h2>
+<div class="row">
+  <div class="stat"><span class="pill bad">Overdue</span><span class="pill due">Due soon</span><span class="pill ok">Upcoming</span><span class="pill mute">Paused</span><span class="pill info">Info</span></div>
+  <button class="btn-a">Save record</button>
+  <div class="bar" role="img" aria-label="24 percent"><i></i></div>
+  <div class="rail"><span class="on">GAR</span><span>NEW</span><span>REM</span></div>
+  <div class="paper">INVOICE #4821<br><mark>TIRE ROTATION</mark> $40.00</div>
+  <div class="photo"><b>Jeep Grand Cherokee</b></div>
+</div>
+
+<h2 class="mg-label">Spacing, radius, elevation, motion</h2>
+<div class="box">
+  <div class="scale" id="sp"></div>
+  <div class="rad" style="margin-top:1.25rem">
+    <div style="border-radius:var(--mg-radius-sm)">sm 6</div><div style="border-radius:var(--mg-radius-md)">md 8</div><div style="border-radius:var(--mg-radius-lg)">lg 12</div><div style="border-radius:var(--mg-radius-xl)">xl 14</div><div style="border-radius:var(--mg-radius-pill)">pill</div>
+    <div style="box-shadow:var(--mg-shadow-pop);border-color:transparent">pop shadow</div>
+  </div>
+  <p class="motion">150ms hover and focus · 300ms ring and bar fill · 1.4–2.2s odometer roll · 2.2s sticker scan · ease <code>cubic-bezier(.2,.8,.2,1)</code> · all motion off under prefers-reduced-motion.</p>
+</div>
+
+<script>
+const r=document.documentElement;
+r.dataset.bsTheme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+document.getElementById('t').onclick=()=>{r.dataset.bsTheme=r.dataset.bsTheme==='dark'?'light':'dark';render()};
+const groups={
+ Surfaces:['--mg-bg','--mg-surface','--mg-surface-2','--mg-line','--mg-line-strong','--mg-track'],
+ Text:['--mg-text','--mg-text-muted'],
+ Accent:['--mg-accent','--mg-accent-text','--mg-on-accent'],
+ Status:['--mg-ok','--mg-due','--mg-bad','--mg-info'],
+ Rail:['--mg-rail-bg','--mg-rail-text','--mg-rail-active'],
+ Paper:['--mg-paper','--mg-paper-ink'],
+ Photo:['--mg-photo-top','--mg-photo-bottom','--mg-photo-car']
+};
+const css=n=>getComputedStyle(r).getPropertyValue(n).trim();
+function rgb(v){const e=document.createElement('i');e.style.color=v;document.body.appendChild(e);const m=getComputedStyle(e).color.match(/[\d.]+/g).map(Number);e.remove();return m}
+const lin=c=>{c/=255;return c<=.03928?c/12.92:Math.pow((c+.055)/1.055,2.4)};
+const lum=([R,G,B])=>.2126*lin(R)+.7152*lin(G)+.0722*lin(B);
+function ratio(a,b){const x=lum(rgb(a)),y=lum(rgb(b));return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)}
+const hex=([R,G,B])=>'#'+[R,G,B].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('').toUpperCase();
+function render(){
+  document.getElementById('sw').innerHTML=Object.entries(groups).flatMap(([g,names])=>names.map(n=>`<div class="chip"><i style="background:var(${n})"></i><div><b>${n}</b><small>${g} · ${hex(rgb(css(n)))}</small></div></div>`)).join('');
+  const pairs=[
+   ['text on surface','--mg-text','--mg-surface',4.5],['text on page','--mg-text','--mg-bg',4.5],
+   ['muted on surface','--mg-text-muted','--mg-surface',4.5],['muted on surface-2','--mg-text-muted','--mg-surface-2',4.5],['muted on page','--mg-text-muted','--mg-bg',4.5],
+   ['accent-text on surface','--mg-accent-text','--mg-surface',4.5],['accent-text on surface-2','--mg-accent-text','--mg-surface-2',4.5],['accent-text on page','--mg-accent-text','--mg-bg',4.5],
+   ['on-accent on accent (buttons)','--mg-on-accent','--mg-accent',4.5],
+   ['ok on surface','--mg-ok','--mg-surface',4.5],['bad on surface','--mg-bad','--mg-surface',4.5],['info on surface','--mg-info','--mg-surface',4.5],
+   ['rail text on rail','--mg-rail-text','--mg-rail-bg',4.5],['rail active on rail','--mg-rail-active','--mg-rail-bg',4.5],
+   ['accent fill vs surface (UI, rings)','--mg-accent','--mg-surface',3],['accent fill vs page (UI, rings)','--mg-accent','--mg-bg',3],
+   ['line vs surface (divider only)','--mg-line','--mg-surface',1],
+   ['line-strong vs surface (input edge)','--mg-line-strong','--mg-surface',3],['line-strong vs surface-2 (input edge)','--mg-line-strong','--mg-surface-2',3],
+   ['paper ink on paper','--mg-paper-ink','--mg-paper',4.5]
+  ];
+  document.getElementById('ct').innerHTML=pairs.map(([l,a,b,need])=>{const x=ratio(css(a),css(b));const ok=x>=need;return `<tr><td>${l}</td><td><span class="demo" style="background:var(${b});color:var(${a});border:1px solid var(--mg-line)">Aa 12:34</span></td><td>${x.toFixed(2)}:1</td><td>${need===1?'—':need+':1'}</td><td class="${ok?'pass':'fail'}">${need===1?'—':ok?'Pass':'Fail'}</td></tr>`}).join('');
+}
+document.getElementById('sp').innerHTML=[1,2,3,4,5,6,7].map(i=>`<div style="width:var(--mg-space-${i})" title="space-${i}"></div>`).join('')+'<span class="motion">space 1–7: 4 · 8 · 12 · 16 · 24 · 32 · 48 px</span>';
+render();
+</script>
+</body>
+</html>

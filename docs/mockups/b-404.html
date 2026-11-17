@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup B – 404</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="b-base.css">
+<style>
+.stage{display:grid;place-items:center;min-height:62vh;text-align:center}
+.odo{display:inline-flex;gap:6px;padding:10px;background:var(--rail);border-radius:14px;box-shadow:inset 0 2px 6px rgba(0,0,0,.5),0 0 0 2px var(--line)}
+.dig{width:clamp(56px,13vw,104px);height:clamp(84px,19vw,150px);border-radius:8px;background:linear-gradient(#10151A,#1E2730 50%,#10151A);color:#FFB000;display:grid;place-items:center;font:700 clamp(46px,11vw,92px)/1 var(--mono);overflow:hidden;position:relative;border:1px solid #2A343E}
+.dig::after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(0,0,0,.55),transparent 28%,transparent 72%,rgba(0,0,0,.55));pointer-events:none}
+.dig .reel{display:flex;flex-direction:column;align-items:center;transform:translateY(calc(var(--stop) * -1 * clamp(84px,19vw,150px)));animation:roll 1.4s cubic-bezier(.2,.8,.2,1) both}
+.dig .reel span{display:block;height:clamp(84px,19vw,150px);line-height:clamp(84px,19vw,150px)}
+.dig:nth-child(2) .reel{animation-duration:1.8s}.dig:nth-child(3) .reel{animation-duration:2.2s}
+@keyframes roll{from{transform:translateY(0)}}
+.dig:nth-child(1){--stop:4}.dig:nth-child(2){--stop:6}.dig:nth-child(3){--stop:4}
+.label{margin-top:1.4rem;font:700 24px var(--display);letter-spacing:.2em;text-transform:uppercase}
+.label small{display:block;font:500 12px var(--mono);letter-spacing:.14em;color:var(--muted);margin-top:.3rem}
+.copy{color:var(--muted);max-width:30rem;margin:1rem auto 1.5rem}
+.acts{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap}
+.find{display:flex;gap:.6rem;align-items:center;max-width:420px;margin:1.5rem auto 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.5rem .8rem}
+.find span{color:var(--amber);font:700 16px var(--mono)}
+.find input{flex:1;border:0;background:transparent;color:var(--ink);font:500 14px var(--mono);outline:none}
+</style>
+</head>
+<body>
+<div class="mockbar"><span><strong>MOCKUP B</strong> &nbsp;
+<a href="b-garage.html">Garage</a><a href="b-instrument-cluster.html">Vehicle</a><a href="b-service-record.html">Service record</a><a href="b-reminders.html">Reminders</a><a href="b-add-vehicle.html">Add vehicle</a><a href="b-draft-review.html">Review draft</a> &nbsp;|&nbsp; <a href="b-search.html">Search</a><a href="b-preferences.html">Preferences</a><a href="b-faq.html">FAQ</a><a href="b-about.html">About</a><a href="b-signed-out.html">Signed out</a><a href="b-404.html">404</a></span>
+<button id="t">Toggle light / dark</button></div>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="logo">MG</div>
+    <a href="b-garage.html" title="Garage">GAR</a><a href="b-add-vehicle.html" title="Add vehicle">NEW</a><a href="b-reminders.html" title="Reminders">REM</a><a href="b-draft-review.html" title="Drafts">DRF</a><a href="b-search.html" title="Search">SRC</a><a href="#" title="Spend">$</a>
+    <span class="sp"></span><a href="b-faq.html" title="Help">?</a><a href="b-preferences.html" title="Account">AC</a>
+  </aside>
+
+  <main>
+    <div class="top">
+      <div><div class="eyebrow">Not found</div><h1>404 Error</h1></div>
+    </div>
+
+    <section class="panel stage" data-testid="not-found">
+      <div>
+        <div class="odo" role="img" aria-label="404">
+          <div class="dig"><div class="reel"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span></div></div>
+          <div class="dig"><div class="reel"><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span><span>0</span></div></div>
+          <div class="dig"><div class="reel"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span></div></div>
+        </div>
+        <div class="label">Page not found<small>MILES FROM HOME: 404</small></div>
+        <p class="copy">It's looking like you may have taken a wrong turn. Don't worry... it happens to the best of us. Here's a little tip that might help you get back on track.</p>
+        <div class="acts"><a class="btn" href="b-garage.html">← Return Home</a><a class="btn ghost" href="b-faq.html">Read the FAQ</a></div>
+        <label class="find"><span>⌕</span><input aria-label="Search your vehicles" placeholder="Or search your vehicles"></label>
+      </div>
+    </section>
+    <p class="note">The odometer rolls to 404 on load (static with reduced motion). Copy is from the real page.</p>
+  </main>
+</div>
+<script>
+const r=document.documentElement;
+r.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+document.getElementById('t').onclick=()=>r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';
+</script>
+</body>
+</html>
