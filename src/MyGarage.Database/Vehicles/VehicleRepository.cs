@@ -246,6 +246,51 @@ public sealed class VehicleRepository(NpgsqlDataSource dataSource, SqlScriptStor
         return new PagedResult<VehicleSummaryRecord>(items, page, pageSize, total);
     }
 
+    // The vehicle's history across record kinds, newest first; kind is null for all of them. Null when the vehicle is not the owner's; a page past the last is empty.
+    public async Task<PagedResult<VehicleTimelineRecord>?> GetTimelinePageAsync(
+        string ownerId,
+        Guid vehicleId,
+        string? kind,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+
+        var total = await connection.ExecuteScalarAsync<int?>(new CommandDefinition(
+            scripts.Get("Vehicles/TimelineCount"), new { VehicleId = vehicleId, OwnerId = ownerId, Kind = kind }, cancellationToken: cancellationToken));
+        if (total is null)
+        {
+            return null;
+        }
+
+        var items = (await connection.QueryAsync<VehicleTimelineRecord>(new CommandDefinition(
+            scripts.Get("Vehicles/TimelinePage"),
+            new { VehicleId = vehicleId, OwnerId = ownerId, Kind = kind, PageSize = pageSize, Offset = (page - 1) * pageSize },
+            cancellationToken: cancellationToken))).ToList();
+
+        return new PagedResult<VehicleTimelineRecord>(items, page, pageSize, total.Value);
+    }
+
+    // What the owner spent per vehicle on dated records between from and to (both inclusive); vehicles with nothing spent are absent.
+    public async Task<IReadOnlyDictionary<Guid, decimal>> GetSpendAsync(string ownerId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
+        await QuerySpendAsync(ownerId, null, from, to, cancellationToken);
+
+    // The same for one of the owner's vehicles; null when nothing was spent or it is not theirs.
+    public async Task<decimal?> GetVehicleSpendAsync(string ownerId, Guid vehicleId, DateOnly from, DateOnly to, CancellationToken cancellationToken)
+    {
+        var spend = await QuerySpendAsync(ownerId, vehicleId, from, to, cancellationToken);
+        return spend.TryGetValue(vehicleId, out var amount) ? amount : null;
+    }
+
+    private async Task<IReadOnlyDictionary<Guid, decimal>> QuerySpendAsync(string ownerId, Guid? vehicleId, DateOnly from, DateOnly to, CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var rows = await connection.QueryAsync<(Guid VehicleId, decimal Amount)>(new CommandDefinition(
+            scripts.Get("Vehicles/SpendInRange"), new { OwnerId = ownerId, VehicleId = vehicleId, From = from, To = to }, cancellationToken: cancellationToken));
+        return rows.ToDictionary(row => row.VehicleId, row => row.Amount);
+    }
+
     public Task<VehicleFilterOptionsRecord> GetFilterOptionsAsync(string ownerId, CancellationToken cancellationToken) =>
         GetFilterOptionsAsync(ownerId, "active", cancellationToken);
 

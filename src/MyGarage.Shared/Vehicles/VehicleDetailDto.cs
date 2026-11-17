@@ -43,6 +43,15 @@ public sealed class VehicleDetailDto
     // Entered by the owner; the garage card shows the greater of this, the latest service record's odometer, and the mileage above.
     public int? LatestOdometerReading { get; init; }
 
+    // The odometer figure shown everywhere: the greater of the latest odometer reading, the latest service record's odometer, and the mileage above.
+    public int? CurrentMileage { get; init; }
+
+    // Date of the latest-dated service record; null when there is none.
+    public DateOnly? LastServiceOn { get; init; }
+
+    // Service, fuel and charging, and inspection costs dated in the current calendar year; null when nothing was spent.
+    public decimal? SpendThisYear { get; init; }
+
     public string? Color { get; init; }
 
     public int? Seats { get; init; }

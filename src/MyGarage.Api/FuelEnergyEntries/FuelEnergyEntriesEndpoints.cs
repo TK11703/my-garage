@@ -2,8 +2,10 @@ using System.Security.Claims;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MyGarage.Api.Common;
+using MyGarage.Api.Reminders;
 using MyGarage.Api.Vehicles;
 using MyGarage.Database.FuelEnergyEntries;
+using MyGarage.Shared.Dashboard;
 using MyGarage.Shared.FuelEnergyEntries;
 using MyGarage.Shared.Vehicles;
 
@@ -12,6 +14,7 @@ namespace MyGarage.Api.FuelEnergyEntries;
 public static class FuelEnergyEntriesEndpoints
 {
     private const int DefaultPageSize = 10;
+    private const int SpendMonths = 12;
 
     public static IServiceCollection AddFuelEnergyEntries(this IServiceCollection services)
     {
@@ -95,6 +98,49 @@ public static class FuelEnergyEntriesEndpoints
             .WithSummary("Add a fuel entry or a charging entry to the vehicle.")
             .Produces<FuelEnergyEntryDto>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapGet("/spend", async (
+                Guid vehicleId,
+                ClaimsPrincipal user,
+                FuelEnergyEntryRepository entries,
+                TimeProvider timeProvider,
+                CancellationToken cancellationToken) =>
+            {
+                if (CurrentOwner.Get(user) is not { } ownerId)
+                {
+                    return VehiclesEndpoints.NoOwner();
+                }
+
+                var today = ReminderRules.Today(timeProvider);
+                var thisMonth = new DateOnly(today.Year, today.Month, 1);
+                var first = thisMonth.AddMonths(1 - SpendMonths);
+                var rows = await entries.GetMonthlySpendAsync(ownerId, vehicleId, first, thisMonth.AddMonths(1).AddDays(-1), cancellationToken);
+                if (rows is null)
+                {
+                    return VehiclesEndpoints.NotFound();
+                }
+
+                IReadOnlyList<FuelEnergySpendMonthDto> months =
+                [
+                    .. Enumerable.Range(0, SpendMonths).Select(offset =>
+                    {
+                        var month = first.AddMonths(offset);
+                        return new FuelEnergySpendMonthDto
+                        {
+                            Month = month,
+                            Fuel = rows.Where(row => row.Month == month && row.Kind == "fuel").Sum(row => row.Total),
+                            Charging = rows.Where(row => row.Month == month && row.Kind == "energy").Sum(row => row.Total),
+                        };
+                    }),
+                ];
+                return Results.Ok(months);
+            })
+            .WithName("GetFuelEnergySpend")
+            .WithSummary("The vehicle's fuel and charging cost for each of the last 12 calendar months, oldest month first.")
+            .Produces<IReadOnlyList<FuelEnergySpendMonthDto>>()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);

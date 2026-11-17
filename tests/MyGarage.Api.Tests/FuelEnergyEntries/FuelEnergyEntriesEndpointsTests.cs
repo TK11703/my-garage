@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
 using MyGarage.Api.Tests.Common;
+using MyGarage.Shared.Dashboard;
 using MyGarage.Shared.FuelEnergyEntries;
 using static MyGarage.Api.Tests.FuelEnergyEntries.FuelEnergyEntryTestData;
 using static MyGarage.Api.Tests.ServiceRecords.ServiceRecordTestData;
@@ -247,6 +248,56 @@ public class FuelEnergyEntriesEndpointsTests(ApiFactory factory) : IClassFixture
 
         var unchanged = await alice.GetFromJsonAsync<FuelEnergyEntryDto>(Url(vehicle.Id, entry.Id));
         Assert.Equal(entry.UnitPrice, unchanged!.UnitPrice);
+    }
+
+    [Fact]
+    public async Task Spend_IsTheLast12MonthsOldestFirst_SplitByKind_ForThatVehicleOnly()
+    {
+        var alice = factory.CreateClientForUser(Alice);
+        var vehicle = await CreateVehicleAsync(alice);
+        var other = await CreateVehicleAsync(alice);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var thisMonth = new DateOnly(today.Year, today.Month, 1);
+        await CreateAsync(alice, vehicle.Id, Request(FuelEnergyKind.Fuel, thisMonth, totalCost: 40m));
+        await CreateAsync(alice, vehicle.Id, Request(FuelEnergyKind.Fuel, thisMonth, totalCost: 10.25m));
+        await CreateAsync(alice, vehicle.Id, Request(FuelEnergyKind.Energy, thisMonth, totalCost: 7m));
+        await CreateAsync(alice, vehicle.Id, Request(FuelEnergyKind.Fuel, thisMonth.AddMonths(-11), totalCost: 30m));
+        await CreateAsync(alice, vehicle.Id, Request(FuelEnergyKind.Fuel, thisMonth.AddMonths(-12), totalCost: 99m));
+        await CreateAsync(alice, other.Id, Request(FuelEnergyKind.Fuel, thisMonth, totalCost: 500m));
+
+        var spend = await alice.GetFromJsonAsync<List<FuelEnergySpendMonthDto>>($"{Url(vehicle.Id)}/spend");
+
+        Assert.NotNull(spend);
+        Assert.Equal(12, spend.Count);
+        Assert.Equal(thisMonth.AddMonths(-11), spend[0].Month);
+        Assert.Equal(thisMonth, spend[^1].Month);
+        Assert.Equal((30m, 0m), (spend[0].Fuel, spend[0].Charging));
+        Assert.Equal((50.25m, 7m), (spend[^1].Fuel, spend[^1].Charging));
+        Assert.All(spend.Skip(1).SkipLast(1), month => Assert.Equal((0m, 0m), (month.Fuel, month.Charging)));
+    }
+
+    [Fact]
+    public async Task Spend_ForAVehicleWithNoEntries_IsTwelveMonthsOfZeros()
+    {
+        var client = factory.CreateClientForUser(Alice);
+        var vehicle = await CreateVehicleAsync(client);
+
+        var spend = await client.GetFromJsonAsync<List<FuelEnergySpendMonthDto>>($"{Url(vehicle.Id)}/spend");
+
+        Assert.Equal(12, spend!.Count);
+        Assert.All(spend, month => Assert.Equal((0m, 0m), (month.Fuel, month.Charging)));
+    }
+
+    [Fact]
+    public async Task Spend_ForAnotherUsersOrUnknownVehicle_IsNotFound_AndWithoutAToken_Is401()
+    {
+        var alice = factory.CreateClientForUser(Alice);
+        var bob = factory.CreateClientForUser(Bob);
+        var vehicle = await CreateVehicleAsync(alice);
+
+        Assert.Equal(HttpStatusCode.NotFound, (await bob.GetAsync($"{Url(vehicle.Id)}/spend")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await alice.GetAsync($"{Url(Guid.NewGuid())}/spend")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClientWithToken(null).GetAsync($"{Url(vehicle.Id)}/spend")).StatusCode);
     }
 
     [Fact]

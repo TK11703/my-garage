@@ -44,6 +44,21 @@ public sealed class ReminderRepository(NpgsqlDataSource dataSource, SqlScriptSto
             scripts.Get("Reminders/ListForVehicle"), new { VehicleId = vehicleId, OwnerId = ownerId }, cancellationToken: cancellationToken))).ToList();
     }
 
+    // At most five, most recently done first. Empty for an archived vehicle; null when the vehicle does not exist for that owner.
+    public async Task<IReadOnlyList<ReminderSuggestionRecord>?> ListSuggestionsAsync(string ownerId, Guid vehicleId, CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var owns = await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+            scripts.Get("Reminders/VehicleExists"), new { VehicleId = vehicleId, OwnerId = ownerId }, cancellationToken: cancellationToken));
+        if (!owns)
+        {
+            return null;
+        }
+
+        return (await connection.QueryAsync<ReminderSuggestionRecord>(new CommandDefinition(
+            scripts.Get("Reminders/ListSuggestions"), new { VehicleId = vehicleId, OwnerId = ownerId }, cancellationToken: cancellationToken))).ToList();
+    }
+
     public async Task<ReminderRecord?> GetAsync(string ownerId, Guid vehicleId, Guid reminderId, CancellationToken cancellationToken)
     {
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);

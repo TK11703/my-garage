@@ -44,6 +44,12 @@ public sealed record VehicleRecord
 
     public int? LatestOdometerReading { get; init; }
 
+    // Read only: the greater of the latest service record's odometer, the latest odometer reading, and the purchase mileage.
+    public int? CurrentMileage { get; init; }
+
+    // Read only: the date of the latest-dated service record.
+    public DateOnly? LastServiceOn { get; init; }
+
     public string? Color { get; init; }
 
     public int? Seats { get; init; }

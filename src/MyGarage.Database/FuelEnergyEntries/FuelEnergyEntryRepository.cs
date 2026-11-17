@@ -54,6 +54,29 @@ public sealed class FuelEnergyEntryRepository(NpgsqlDataSource dataSource, SqlSc
         return new PagedResult<FuelEnergyEntryRecord>(items, page, pageSize, total);
     }
 
+    // Months with no entries are absent. Null when the vehicle does not exist for that owner.
+    public async Task<IReadOnlyList<FuelEnergyMonthRecord>?> GetMonthlySpendAsync(
+        string ownerId,
+        Guid vehicleId,
+        DateOnly from,
+        DateOnly to,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+
+        var owns = await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+            scripts.Get("FuelEnergyEntries/VehicleExists"), new { VehicleId = vehicleId, OwnerId = ownerId }, cancellationToken: cancellationToken));
+        if (!owns)
+        {
+            return null;
+        }
+
+        return [.. await connection.QueryAsync<FuelEnergyMonthRecord>(new CommandDefinition(
+            scripts.Get("FuelEnergyEntries/MonthlySpend"),
+            new { VehicleId = vehicleId, OwnerId = ownerId, From = from, To = to },
+            cancellationToken: cancellationToken))];
+    }
+
     public async Task<FuelEnergyEntryRecord?> GetAsync(string ownerId, Guid vehicleId, Guid entryId, CancellationToken cancellationToken)
     {
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
