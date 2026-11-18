@@ -1039,7 +1039,7 @@ html {
 .mg-feed-item {
     display: grid;
     grid-template-columns: 7.5rem 7rem minmax(0, 1fr) auto;
-    align-items: baseline;
+    align-items: center;
     gap: var(--mg-space-2) var(--mg-space-3);
     padding: var(--mg-space-3) 0;
     border-top: 1px solid var(--mg-line);
@@ -2855,33 +2855,33 @@ form[data-sticker-import] .btn {
     flex: 1 0 100%;
 }
 
-/* FAQ (Mockup B): hero search, a topics list beside sections of accordion questions, and a sign-in call to action. */
-.mg-faq-hero {
-    margin: 0 0 var(--mg-space-6);
-    text-align: center;
-}
-
-.mg-faq-hero h2 {
-    margin: 0;
-    font: 700 clamp(1.75rem, 4vw, 2.75rem)/1.1 var(--mg-font-display);
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-}
-
+/* FAQ (Mockup B): a topics column with search beside sections of accordion questions, and a sign-in call to action. */
 .mg-faq-lead {
-    max-width: 34rem;
-    margin: var(--mg-space-3) auto var(--mg-space-4);
+    margin: 0 0 var(--mg-space-5);
     color: var(--mg-text-muted);
 }
 
 .mg-faq-search {
-    max-width: 30rem;
-    margin-inline: auto;
+    width: 100%;
 }
 
 .mg-faq-search .form-control {
-    padding-block: 0.75rem;
+    padding-block: 0.65rem;
     background-color: var(--mg-surface);
+}
+
+/* The search and the topics stay in view while the questions scroll. */
+.mg-faq-side {
+    position: sticky;
+    top: var(--mg-space-4);
+    display: grid;
+    gap: var(--mg-space-3);
+    max-height: calc(100vh - 2 * var(--mg-space-4));
+    overflow-y: auto;
+}
+
+.mg-faq-side .mg-topics {
+    position: static;
 }
 
 /* A search box is one field: the magnifier sits inside the input, so the border runs all the way round. */
@@ -2892,6 +2892,14 @@ form[data-sticker-import] .btn {
 .mg-search-field .form-control {
     padding-left: 2.75rem;
     border-radius: var(--mg-radius-lg);
+}
+
+/* Focus is the accent border plus a thin ring, not Bootstrap's wide glow with the outline on top. */
+.mg-search-field .form-control:focus,
+.mg-search-field .form-control:focus-visible {
+    border-color: var(--mg-accent);
+    outline: 0;
+    box-shadow: 0 0 0 1px var(--mg-accent);
 }
 
 .mg-search-field-icon {
@@ -3048,6 +3056,12 @@ form[data-sticker-import] .btn {
         position: static;
         grid-auto-flow: column;
         overflow-x: auto;
+    }
+
+    .mg-faq-side {
+        position: static;
+        max-height: none;
+        overflow-y: visible;
     }
 
     .mg-topics a {
@@ -3422,19 +3436,8 @@ form[data-sticker-import] .btn {
     margin: 1.5rem 0 2.5rem;
 }
 
-.mg-about-hero h2 {
-    margin: 0;
-    font: 700 clamp(2.25rem, 5vw, 3.6rem)/1.02 var(--mg-font-display);
-    text-transform: uppercase;
-}
-
-.mg-about-hero h2 em {
-    color: var(--mg-accent-text);
-    font-style: normal;
-}
-
 .mg-about-lead {
-    margin: 1rem 0 0.5rem;
+    margin: 0 0 0.5rem;
     font-size: 1.125rem;
 }
 
