@@ -72,7 +72,7 @@ public class ReminderStatusDisplayTests : VehicleTestContext
     [InlineData(ReminderStatus.Overdue, "Overdue", "text-bg-danger")]
     [InlineData(ReminderStatus.DueSoon, "Due soon", "text-bg-warning")]
     [InlineData(ReminderStatus.Upcoming, "Upcoming", "text-bg-secondary")]
-    [InlineData(ReminderStatus.MileageNeeded, "Mileage needed", "text-bg-info")]
+    [InlineData(ReminderStatus.MileageNeeded, "Mileage needed", "text-bg-light")]
     [InlineData(ReminderStatus.Paused, "Paused", "text-bg-light")]
     public void TheBadgeAlwaysHasText_AndAColorPerStatus(ReminderStatus status, string text, string cssClass)
     {
@@ -169,7 +169,7 @@ public class GarageRemindersPageTests : VehicleTestContext
         ];
 
     [Fact]
-    public void ListsEveryReminderInTheOrderGiven_EachWithItsVehicleLinkingToTheTab()
+    public void ListsEveryReminder_RankedOverdueDueSoonUpcomingMileageNeededPaused_EachWithItsVehicleLinkingToTheTab()
     {
         Seed();
 
@@ -180,8 +180,8 @@ public class GarageRemindersPageTests : VehicleTestContext
             Assert.Equal("Reminders", cut.Find("h1").TextContent);
             var rows = cut.FindAll("[data-testid='reminder']");
             Assert.Equal(5, rows.Count);
-            Assert.Equal(["Inspection", "Oil change", "Tire rotation", "Registration", "Winter tires"], rows.Select(row => row.QuerySelector("[data-testid='reminder-link']")!.TextContent.Trim()));
-            var vehicle = rows[2].QuerySelector("[data-testid='reminder-vehicle']")!;
+            Assert.Equal(["Inspection", "Oil change", "Registration", "Tire rotation", "Winter tires"], rows.Select(row => row.QuerySelector("[data-testid='reminder-link']")!.TextContent.Trim()));
+            var vehicle = rows[3].QuerySelector("[data-testid='reminder-vehicle']")!;
             Assert.Equal("2018 Honda Civic", vehicle.TextContent.Trim());
             Assert.Equal($"/vehicles/{vehicleB}?tab=reminders", vehicle.GetAttribute("href"));
         });

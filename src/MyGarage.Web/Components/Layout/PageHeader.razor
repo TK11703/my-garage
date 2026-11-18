@@ -12,9 +12,19 @@
                     <li class="breadcrumb-item"><span class="mg-crumb text-truncate d-inline-block"><a href="/">Home</a></span></li>
                     @if (group is not null)
                     {
-                        <li class="breadcrumb-item"><span class="mg-crumb text-truncate d-inline-block">@group</span></li>
+                        @* The first crumb is the page group's own page (for example Vehicles under Garage), so the group stands for it and links to it when it has an address. *@
+                        <li class="breadcrumb-item">
+                            @if (Trail.Count > 1 && Trail[0].Href is { } groupHref)
+                            {
+                                <span class="mg-crumb text-truncate d-inline-block"><a href="@groupHref">@group</a></span>
+                            }
+                            else
+                            {
+                                <span class="mg-crumb text-truncate d-inline-block">@group</span>
+                            }
+                        </li>
                     }
-                    @for (var i = 0; i < Trail.Count - 1; i++)
+                    @for (var i = group is null ? 0 : 1; i < Trail.Count - 1; i++)
                     {
                         var crumb = Trail[i];
                         if (crumb.Href is not null)

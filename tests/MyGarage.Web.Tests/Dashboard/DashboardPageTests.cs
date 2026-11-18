@@ -284,7 +284,7 @@ public class DashboardPageTests : VehicleTestContext
             var rows = section.QuerySelectorAll("[data-testid='activity']");
             Assert.Equal(2, rows.Length);
             Assert.Equal("2020 Ford F-150", rows[0].QuerySelector("[data-testid='activity-vehicle']")!.TextContent.Trim());
-            Assert.Equal($"/vehicles/{vehicleId}?tab=description", rows[0].QuerySelector("[data-testid='activity-vehicle']")!.GetAttribute("href"));
+            Assert.Equal($"/vehicles/{vehicleId}?tab=timeline&kind=journal", rows[0].QuerySelector("[data-testid='activity-vehicle']")!.GetAttribute("href"));
             Assert.Equal("added a Maintenance note", rows[0].QuerySelector("[data-testid='activity-kind']")!.TextContent.Trim());
             Assert.Equal("Changed the cabin air filter", rows[0].QuerySelector("[data-testid='activity-excerpt']")!.TextContent.Trim());
             Assert.Equal("12 minutes ago", rows[0].QuerySelector("[data-testid='activity-time']")!.TextContent.Trim());

@@ -39,12 +39,13 @@ public class MainLayoutTests : BunitContext
     }
 
     [Fact]
-    public void NavbarPrecedesTheMainContentArea()
+    public void SignedOut_ThePublicBarPrecedesTheMainContentArea()
     {
         var cut = RenderLayout();
         var markup = cut.Markup;
 
-        Assert.True(markup.IndexOf("fixed-top", StringComparison.Ordinal) < markup.IndexOf("id=\"main-content\"", StringComparison.Ordinal));
+        Assert.NotNull(cut.Find("header.mg-publicbar"));
+        Assert.True(markup.IndexOf("mg-publicbar", StringComparison.Ordinal) < markup.IndexOf("id=\"main-content\"", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -59,16 +60,17 @@ public class MainLayoutTests : BunitContext
     }
 
     [Fact]
-    public void SignedOut_ThereIsNoSidebarAndTheContentTakesTheWholeWidth()
+    public void SignedOut_ThereIsNoRail()
     {
         var cut = RenderLayout();
 
-        Assert.Empty(cut.FindAll("aside#mg-sidebar"));
-        Assert.DoesNotContain("mg-content-with-sidebar", cut.Find("main#main-content").ClassName);
+        Assert.Empty(cut.FindAll("aside#mg-rail"));
+        Assert.DoesNotContain("mg-content-with-rail", cut.Find("main#main-content").ClassName);
+        Assert.Contains("mg-content-public", cut.Find("main#main-content").ClassName);
     }
 
     [Fact]
-    public void SignedIn_TheSidebarSitsBetweenTheNavbarAndTheContent_AndTheContentMakesRoomForIt()
+    public void SignedIn_TheRailPrecedesTheContent_AndTheContentMakesRoomForIt_WithNoPublicBar()
     {
         auth.SetAuthorized("Ada Lovelace");
 
@@ -77,13 +79,13 @@ public class MainLayoutTests : BunitContext
 
         var order = new[]
         {
-            markup.IndexOf("fixed-top", StringComparison.Ordinal),
-            markup.IndexOf("id=\"mg-sidebar\"", StringComparison.Ordinal),
+            markup.IndexOf("id=\"mg-rail\"", StringComparison.Ordinal),
             markup.IndexOf("id=\"main-content\"", StringComparison.Ordinal),
         };
         Assert.All(order, index => Assert.True(index >= 0));
         Assert.Equal(order.OrderBy(i => i), order);
-        Assert.Contains("mg-content-with-sidebar", cut.Find("main#main-content").ClassName);
+        Assert.Contains("mg-content-with-rail", cut.Find("main#main-content").ClassName);
+        Assert.Empty(cut.FindAll(".mg-publicbar"));
     }
 
     [Fact]

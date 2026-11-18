@@ -81,7 +81,7 @@ public class VehicleTagsViewTests : VehicleTestContext
         Assert.Empty(cut.FindAll("details"));
         Assert.Contains("9 features match \"SENSOR\".", cut.Find("[data-testid='feature-search-summary']").TextContent);
         Assert.Equal("SENSOR", cut.Find("#feature-query").GetAttribute("value"));
-        Assert.Equal($"/vehicles/{vehicleId}?tab=description", cut.Find("[data-testid='feature-search-summary'] a").GetAttribute("href"));
+        Assert.Equal($"/vehicles/{vehicleId}?tab=details#group-features", cut.Find("[data-testid='feature-search-summary'] a").GetAttribute("href"));
     }
 
     [Fact]
@@ -95,15 +95,15 @@ public class VehicleTagsViewTests : VehicleTestContext
     }
 
     [Fact]
-    public void SearchForm_IsAGetToTheDescriptionTabWithALabelledBox()
+    public void SearchForm_IsAGetToTheSpecsTabWithALabelledBox()
     {
         var cut = RenderView(null, Tag("Airbags", "Safety"));
 
         var form = cut.Find("form[data-testid='feature-search']");
         Assert.Equal("get", form.GetAttribute("method"));
-        Assert.Equal($"/vehicles/{vehicleId}", form.GetAttribute("action"));
         Assert.Equal("search", form.GetAttribute("role"));
-        Assert.Equal("description", form.QuerySelector("input[name='tab']")!.GetAttribute("value"));
+        Assert.Equal("details", form.QuerySelector("input[name='tab']")!.GetAttribute("value"));
+        Assert.Equal($"/vehicles/{vehicleId}#group-features", form.GetAttribute("action"));
         Assert.Equal("featureQuery", cut.Find("#feature-query").GetAttribute("name"));
         Assert.Equal("Search features", cut.Find("label[for='feature-query']").TextContent.Trim());
     }

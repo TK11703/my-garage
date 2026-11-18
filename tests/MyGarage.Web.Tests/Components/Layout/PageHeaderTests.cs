@@ -65,8 +65,8 @@ public class PageHeaderTests : BunitContext
         var cut = RenderHeader("Civic", [new Crumb("Vehicles", "/vehicles"), new Crumb("Civic")]);
 
         var items = cut.FindAll("ol.breadcrumb > li");
-        Assert.Equal(["Home", "Garage", "Vehicles"], items.Select(item => item.TextContent.Trim()));
-        Assert.Equal("/vehicles", items[2].QuerySelector("a")!.GetAttribute("href"));
+        Assert.Equal(["Home", "Garage"], items.Select(item => item.TextContent.Trim()));
+        Assert.Equal("/vehicles", items[1].QuerySelector("a")!.GetAttribute("href"));
         Assert.Empty(cut.FindAll("[aria-current]"));
     }
 
@@ -76,8 +76,8 @@ public class PageHeaderTests : BunitContext
         var cut = RenderHeader("Edit", [new Crumb("Vehicles"), new Crumb("Edit")]);
 
         var items = cut.FindAll("ol.breadcrumb > li");
-        Assert.Equal(["Home", "Garage", "Vehicles"], items.Select(item => item.TextContent.Trim()));
-        Assert.Empty(items[2].QuerySelectorAll("a"));
+        Assert.Equal(["Home", "Garage"], items.Select(item => item.TextContent.Trim()));
+        Assert.Empty(items[1].QuerySelectorAll("a"));
     }
 
     [Fact]

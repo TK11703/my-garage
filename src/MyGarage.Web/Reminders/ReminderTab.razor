@@ -38,10 +38,13 @@
             }
         </div>
     </section>
+
+    <ReminderSuggestions VehicleId="VehicleId" Suggestions="suggestions" />
 </div>
 
 @code {
     private IReadOnlyList<ReminderDto>? reminders;
+    private IReadOnlyList<SuggestedReminderDto> suggestions = [];
     private GarageApiFailure? failure;
 
     [Parameter, EditorRequired]
@@ -63,6 +66,16 @@
         catch (GarageApiException ex)
         {
             failure = ex.Failure;
+            return;
+        }
+
+        // A courtesy: the tab works without it.
+        try
+        {
+            suggestions = (await Api.SuggestionsAsync(VehicleId)).Value ?? [];
+        }
+        catch (GarageApiException)
+        {
         }
     }
 }

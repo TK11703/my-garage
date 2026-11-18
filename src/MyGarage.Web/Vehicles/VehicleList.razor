@@ -1,13 +1,18 @@
+@page "/"
 @page "/vehicles"
 @attribute [Authorize]
 @attribute [ExcludeFromInteractiveRouting]
 @inject VehiclesApiClient Api
+@inject RemindersApiClient RemindersApi
 @inject NavigationManager Navigation
 
-<PageHeader Title="My Vehicles" Trail="@(new[] { new Crumb("Vehicles") })">
+<PageHeader Title="Your garage" Trail="@(new[] { new Crumb("Vehicles") })">
     <Actions>
-        <a class="btn btn-primary d-inline-flex align-items-center gap-2" href="/search" data-testid="search-vehicles" title="Search and filter your vehicles">
+        <a class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" href="/search" data-testid="search-vehicles" title="Search and filter your vehicles">
             <Icon Name="IconName.Search" /> Search
+        </a>
+        <a class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" href="/drafts/upload" data-testid="add-maintenance" title="Add a service record or receipt from a file">
+            <Icon Name="IconName.CloudUpload" /> Add maintenance
         </a>
         <a class="btn btn-primary d-inline-flex align-items-center gap-2" href="/vehicles/new" data-testid="add-vehicle" title="Add a new vehicle">
             <Icon Name="IconName.Plus" /> Add vehicle
@@ -28,7 +33,12 @@ else if (vehicles is not null)
     }
     else
     {
-        <section class="card border-0 shadow-sm mg-results" aria-label="Vehicles">
+        @if (attention is not null)
+        {
+            <AttentionStrip Reminders="attention" />
+        }
+
+        <section class="card border-0 shadow-sm mg-results mg-results-flat" aria-label="Vehicles">
             <div class="card-header bg-transparent d-flex flex-wrap align-items-center gap-2 py-3">
                 <p class="mb-0 text-body-secondary" aria-live="polite" data-testid="result-summary">@Summary</p>
                 <VehicleStatusLinks Criteria="criteria" />
@@ -50,14 +60,44 @@ else if (vehicles is not null)
             else
             {
                 <div class="card-body">
-                    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-3">
-                        @foreach (var vehicle in vehicles.Items)
-                        {
-                            <div class="col" @key="vehicle.Id">
-                                <VehicleCard Vehicle="vehicle" />
+                    @if (activeVehicles.Count > 0)
+                    {
+                        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-3" data-testid="active-vehicles">
+                            @foreach (var vehicle in activeVehicles)
+                            {
+                                <div class="col" @key="vehicle.Id">
+                                    <VehicleCard Vehicle="vehicle" />
+                                </div>
+                            }
+                            <div class="col">
+                                <a class="mg-add-card" href="/vehicles/new" data-testid="add-vehicle-card">
+                                    <span><b aria-hidden="true">+</b> Add a vehicle <small>Import from a window sticker or enter details</small></span>
+                                </a>
                             </div>
-                        }
-                    </div>
+                        </div>
+                    }
+
+                    @if (archivedVehicles.Count > 0)
+                    {
+                        <section class="@(activeVehicles.Count > 0 ? "mt-5" : null)" aria-labelledby="archived-heading" data-testid="archived-section">
+                            <h2 id="archived-heading" class="mg-section-label">Archived</h2>
+                            <p class="text-body-secondary small">Archived vehicles keep their history, and their reminders are off.</p>
+                            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-3">
+                                @foreach (var vehicle in archivedVehicles)
+                                {
+                                    <div class="col d-flex flex-column gap-2" @key="vehicle.Id">
+                                        <VehicleCard Vehicle="vehicle" />
+                                        <form method="post" @formname="@($"restore-{vehicle.Id}")" @onsubmit="() => RestoreAsync(vehicle.Id)" data-testid="restore-form">
+                                            <AntiforgeryToken />
+                                            <button type="submit" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-2" aria-label="Restore @vehicle.Name">
+                                                <Icon Name="IconName.ArrowCounterclockwise" /> Restore
+                                            </button>
+                                        </form>
+                                    </div>
+                                }
+                            </div>
+                        </section>
+                    }
                 </div>
 
                 <div class="card-footer bg-transparent d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
@@ -79,6 +119,9 @@ else if (vehicles is not null)
     private GarageApiFailure? failure;
     private VehicleListCriteria criteria = VehicleListCriteria.None;
     private bool hasArchived;
+    private IReadOnlyList<ReminderDto>? attention;
+    private IReadOnlyList<VehicleSummaryDto> activeVehicles = [];
+    private IReadOnlyList<VehicleSummaryDto> archivedVehicles = [];
 
     // Query-string values are read as text: a bad value must be ignored, not throw a binding error.
     [Parameter, SupplyParameterFromQuery(Name = "page")]
@@ -104,7 +147,7 @@ else if (vehicles is not null)
     {
         var uri = new Uri(Navigation.Uri);
         var query = uri.Query.TrimStart('?');
-        if (uri.AbsolutePath.TrimEnd('/') == "/vehicles"
+        if (uri.AbsolutePath.TrimEnd('/') is "/vehicles" or ""
             && query.Split('&', StringSplitOptions.RemoveEmptyEntries)
                 .Any(pair => SearchKeys.Contains(Uri.UnescapeDataString(pair.Split('=')[0]), StringComparer.Ordinal)))
         {
@@ -118,11 +161,46 @@ else if (vehicles is not null)
         try
         {
             vehicles = (await Api.ListAsync(criteria, requestedPage)).Value;
+            activeVehicles = [.. vehicles?.Items.Where(vehicle => vehicle.ArchivedAt is null) ?? []];
+            archivedVehicles = [.. vehicles?.Items.Where(vehicle => vehicle.ArchivedAt is not null) ?? []];
 
             // With no active vehicles the page says whether archived ones exist instead of inviting a first vehicle.
             if (vehicles is { TotalCount: 0 } && criteria.Status == VehicleStatusFilter.Active)
             {
                 hasArchived = (await Api.ListAsync(criteria with { Status = VehicleStatusFilter.Archived }, 1)).Value?.TotalCount > 0;
+            }
+        }
+        catch (GarageApiException ex)
+        {
+            failure = ex.Failure;
+            return;
+        }
+
+        await LoadAttentionAsync();
+    }
+
+    // The strip is a convenience: when the reminders cannot be read, the garage shows without it.
+    private async Task LoadAttentionAsync()
+    {
+        try
+        {
+            attention = (await RemindersApi.ListAllAsync()).Value;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            attention = null;
+        }
+    }
+
+    // Restoring is one click and reversible; success returns to the garage, and a vehicle that is already active changes nothing.
+    private async Task RestoreAsync(Guid vehicleId)
+    {
+        try
+        {
+            var result = await Api.RestoreAsync(vehicleId);
+            if (result.IsSuccess || result.Outcome == ApiOutcome.Conflict)
+            {
+                Navigation.NavigateTo("/vehicles");
             }
         }
         catch (GarageApiException ex)

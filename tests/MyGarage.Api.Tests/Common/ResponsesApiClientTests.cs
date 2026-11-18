@@ -47,6 +47,28 @@ public class ResponsesApiClientTests
     private static ResponsesApiClient Create(HttpMessageHandler handler, FakeCredential? credential = null, string? endpoint = Endpoint, string? deployment = "gpt-test") =>
         new(new HttpClient(handler), Options.Create(new ExtractionOptions { Endpoint = endpoint, Deployment = deployment }), credential ?? new FakeCredential());
 
+    private sealed class UnavailableCredential : TokenCredential
+    {
+        public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken) =>
+            throw new Azure.Identity.CredentialUnavailableException("No signed-in account can reach the service.");
+
+        public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken) =>
+            throw new Azure.Identity.CredentialUnavailableException("No signed-in account can reach the service.");
+    }
+
+    [Fact]
+    public async Task WhenNoAccountCanSignIn_TheReasonIsACredentialError_AndNothingIsSent()
+    {
+        var handler = FakeHandler.Always(HttpStatusCode.OK, "{}");
+        var client = new ResponsesApiClient(new HttpClient(handler), Options.Create(new ExtractionOptions { Endpoint = Endpoint, Deployment = "gpt-test" }), new UnavailableCredential());
+
+        var outcome = await client.SendAsync(Call(), CancellationToken.None);
+
+        Assert.True(outcome.IsFailure);
+        Assert.Equal("credential_error", outcome.FailureReason);
+        Assert.Empty(handler.Requests);
+    }
+
     private static ResponsesCall Call(ResponsesDocument? document = null, TimeSpan? timeout = null) =>
         new("INSTRUCTIONS-MARK", "test_schema", Schema, "INPUT-MARK", document, timeout ?? TimeSpan.FromSeconds(30));
 

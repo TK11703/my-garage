@@ -72,6 +72,16 @@ else
     [Parameter, SupplyParameterFromQuery(Name = "status")]
     public string? Status { get; set; }
 
+    private static int Rank(ReminderStatus status) => status switch
+    {
+        ReminderStatus.Overdue => 0,
+        ReminderStatus.DueSoon => 1,
+        ReminderStatus.Upcoming => 2,
+        ReminderStatus.MileageNeeded => 3,
+        ReminderStatus.Paused => 4,
+        _ => 5,
+    };
+
     private static string FilterWords(ReminderStatus status) => status switch
     {
         ReminderStatus.Overdue => "overdue",
@@ -85,7 +95,8 @@ else
     {
         try
         {
-            all = (await Api.ListAllAsync()).Value ?? [];
+            // Ranked overdue, due soon, upcoming, mileage needed, paused; the order within a status is kept.
+            all = [.. ((await Api.ListAllAsync()).Value ?? []).OrderBy(reminder => Rank(reminder.Status))];
         }
         catch (GarageApiException ex)
         {

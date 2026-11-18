@@ -1,5 +1,5 @@
 // Remembers which tab of a vehicle's page is open: the Edit link opens the same tab, and ?tab= follows the tab so a reload stays on it.
-const EDIT_TABS = new Set(["media", "description"]);
+const EDIT_TABS = new Set(["media"]);
 
 document.addEventListener("shown.bs.tab", event => {
     const button = event.target;

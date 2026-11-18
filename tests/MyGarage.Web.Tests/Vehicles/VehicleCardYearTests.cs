@@ -31,7 +31,7 @@ public class VehicleCardYearTests : VehicleTestContext
     {
         var cut = RenderCard(Summary("Toyota", "Tacoma", year: 2018));
 
-        var text = cut.Find(".card-body").TextContent;
+        var text = cut.Find(".card").TextContent;
         Assert.Equal(1, text.Split("Toyota Tacoma").Length - 1);
     }
 }

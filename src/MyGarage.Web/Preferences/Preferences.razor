@@ -4,10 +4,23 @@
 @inject GarageApiClient UserApi
 @inject LookupsApiClient LookupsApi
 
-<PageHeader Title="Preferences" Trail="@(new[] { new Crumb("Preferences") })" />
+<PageHeader Title="Preferences" Trail="@(new[] { new Crumb("Preferences") })">
+    <Actions>
+        <form method="post" action="/authentication/logout">
+            <AntiforgeryToken />
+            <button type="submit" class="btn btn-outline-secondary">Sign out</button>
+        </form>
+    </Actions>
+</PageHeader>
 
-<AccountDetails User="user" />
+<div class="mg-prefs">
+<div class="mg-prefs-side">
+    <AccountDetails User="user" />
 
+    <AppearanceCard />
+</div>
+
+<div class="mg-prefs-main">
 @if (failure is not null)
 {
     <ApiFailureAlert Failure="failure.Value" ReturnUrl="/preferences"
@@ -37,6 +50,8 @@ else if (lookups is not null)
         </FormMappingScope>
     </div>
 }
+</div>
+</div>
 
 @code {
     private CurrentUserDto? user;

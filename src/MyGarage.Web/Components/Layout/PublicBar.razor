@@ -1,0 +1,26 @@
+@inject NavigationManager Navigation
+
+<header class="mg-publicbar">
+    <a class="mg-publicbar-brand" href="/">
+        <span class="mg-publicbar-mark" aria-hidden="true"><Logo Size="20" /></span>
+        <span>My Garage</span>
+    </a>
+
+    <nav class="mg-publicbar-nav" aria-label="Help">
+        <a href="/faq" class="@(IsCurrent("/faq") ? "active" : null)" aria-current="@(IsCurrent("/faq") ? "page" : null)">FAQ</a>
+        <a href="/about" class="@(IsCurrent("/about") ? "active" : null)" aria-current="@(IsCurrent("/about") ? "page" : null)">About</a>
+    </nav>
+
+    <ThemeToggle />
+
+    <a class="btn btn-primary btn-sm" href="/authentication/login">Sign in</a>
+</header>
+
+@code {
+    private bool IsCurrent(string path)
+    {
+        var relative = Navigation.ToBaseRelativePath(Navigation.Uri);
+        var end = relative.IndexOfAny(['?', '#']);
+        return ("/" + (end >= 0 ? relative[..end] : relative).TrimEnd('/')).Equals(path, StringComparison.OrdinalIgnoreCase);
+    }
+}

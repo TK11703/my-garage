@@ -158,7 +158,7 @@ public class VehicleStatusFilterPagesTests : VehicleTestContext
     }
 
     [Fact]
-    public void AnArchivedVehicleCard_ShowsAnArchivedBadgeWithTheDate_AnActiveCardShowsNone()
+    public void AnArchivedVehicleCard_ShowsAnArchivedBadgeWithTheDate_AnActiveCardShowsNone_AndActiveCardsComeFirst()
     {
         RegisterApi(_ => Json(Page([ArchivedSummary(), Summary("Ford")])));
 
@@ -168,8 +168,8 @@ public class VehicleStatusFilterPagesTests : VehicleTestContext
         {
             var cards = cut.FindAll(".mg-vehicle-card");
             Assert.Equal(2, cards.Count);
-            Assert.Equal("Archived Nov 8, 2026", cards[0].QuerySelector("[data-testid='vehicle-archived']")!.TextContent.Trim());
-            Assert.Empty(cards[1].QuerySelectorAll("[data-testid='vehicle-archived']"));
+            Assert.Equal("Archived Nov 8, 2026", cards[1].QuerySelector("[data-testid='vehicle-archived']")!.TextContent.Trim());
+            Assert.Empty(cards[0].QuerySelectorAll("[data-testid='vehicle-archived']"));
         });
     }
 

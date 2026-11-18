@@ -233,7 +233,7 @@ public class StickerImportSsrTests(WebAppFactory factory) : IClassFixture<WebApp
 
         Assert.True(response.IsSuccessStatusCode, await Describe(response));
         var page = await ParseAsync(response);
-        Assert.Equal(["Import from sticker", "Details"], page.QuerySelectorAll("ul.mg-tabs button[role='tab']").Select(tab => tab.TextContent.Trim()));
+        Assert.Equal(["1Sticker", "3Review"], page.QuerySelectorAll("ol.mg-steps button[role='tab']").Select(tab => tab.TextContent.Trim()));
         Assert.Equal(["tab-import"], ActivePanes(page));
         Assert.NotNull(FormNamed(page, "import-sticker").QuerySelector("input[name='stickerFile']"));
         Assert.NotNull(FormNamed(page, "create-vehicle"));

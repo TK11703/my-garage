@@ -1,0 +1,41 @@
+@using MyGarage.Shared.Reminders
+@using MyGarage.Web.Reminders
+
+@* The garage's one-line answer to "does anything need me?", linking to the reminders. *@
+<div class="mg-attention-strip @(overdue > 0 ? "mg-attention-strip-bad" : due > 0 ? "mg-attention-strip-due" : "mg-attention-strip-ok")" role="status" data-testid="attention-strip">
+    <span class="mg-status-led" aria-hidden="true"></span>
+    <div class="mg-attention-text">
+        <strong data-testid="attention-summary">@Summary</strong>
+        @if (top is not null)
+        {
+            <small class="text-break" data-testid="attention-top">@top.Name on @top.VehicleName &middot; @ReminderFormat.Remaining(top)</small>
+        }
+    </div>
+    <a class="mg-attention-link" href="/reminders" data-testid="attention-link">Open reminders <span aria-hidden="true">&rarr;</span></a>
+</div>
+
+@code {
+    private int overdue;
+    private int due;
+    private ReminderDto? top;
+
+    // Every reminder across the garage; paused ones and those of archived vehicles do not count.
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ReminderDto> Reminders { get; set; } = [];
+
+    private string Summary => (overdue, due) switch
+    {
+        (0, 0) => "Nothing needs attention",
+        (_, 0) => $"{overdue} overdue",
+        (0, _) => $"{due} due soon",
+        _ => $"{overdue} overdue, {due} due soon",
+    };
+
+    protected override void OnParametersSet()
+    {
+        overdue = Reminders.Count(reminder => reminder.Status == ReminderStatus.Overdue);
+        due = Reminders.Count(reminder => reminder.Status == ReminderStatus.DueSoon);
+        top = Reminders.FirstOrDefault(reminder => reminder.Status == ReminderStatus.Overdue)
+            ?? Reminders.FirstOrDefault(reminder => reminder.Status == ReminderStatus.DueSoon);
+    }
+}

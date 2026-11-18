@@ -38,6 +38,10 @@ public class VehicleRepositoryTests(PostgresFixture postgres)
             TireSize = "225/60R17",
         };
 
+    // The read-only current mileage is the greater of the latest odometer reading and the purchase mileage when there is no service record.
+    private static int? Greatest(VehicleRecord vehicle) =>
+        vehicle.LatestOdometerReading is null && vehicle.Mileage is null ? null : Math.Max(vehicle.LatestOdometerReading ?? 0, vehicle.Mileage ?? 0);
+
     [Fact]
     public async Task InsertThenGet_RoundTripsEveryNewColumnAndReturnsLookupNames()
     {
@@ -53,7 +57,7 @@ public class VehicleRepositoryTests(PostgresFixture postgres)
         var loaded = await repository.GetByIdAsync("owner-1", vehicle.Id, CancellationToken.None);
 
         Assert.Equal(
-            vehicle with { VehicleTypeName = "Wagon", FuelTypeName = "Gasoline", TransmissionName = "Automatic", DrivetrainName = "AWD" },
+            vehicle with { VehicleTypeName = "Wagon", FuelTypeName = "Gasoline", TransmissionName = "Automatic", DrivetrainName = "AWD", CurrentMileage = Greatest(vehicle) },
             loaded);
     }
 
@@ -154,7 +158,7 @@ public class VehicleRepositoryTests(PostgresFixture postgres)
         await repository.InsertAsync(vehicle, CancellationToken.None);
         var loaded = await repository.GetByIdAsync("owner-1", vehicle.Id, CancellationToken.None);
 
-        Assert.Equal(vehicle, loaded);
+        Assert.Equal(vehicle with { CurrentMileage = Greatest(vehicle) }, loaded);
     }
 
     [Fact]

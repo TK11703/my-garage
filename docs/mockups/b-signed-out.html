@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup B – Signed out</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="b-base.css">
+<style>
+.pubtop{display:flex;align-items:center;gap:1.5rem;padding:.8rem 2rem;background:var(--rail);color:#E8EEF3}
+.pubtop .brand{display:flex;gap:.7rem;align-items:center;font:700 16px var(--display);letter-spacing:.14em;text-transform:uppercase;text-decoration:none;color:inherit}
+.pubtop .logo{margin:0;width:32px;height:32px;font-size:11px}
+.pubtop nav{display:flex;gap:1.25rem;margin-left:1rem;flex:1}
+.pubtop nav a{font:600 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:#AEB9C4;text-decoration:none;padding:.3rem 0}
+.stage{min-height:calc(100vh - 100px);display:grid;place-items:center;padding:2rem;background:radial-gradient(ellipse at 50% 30%,var(--amber-glow),transparent 55%)}
+.card{width:min(480px,100%);text-align:center;padding:2.2rem 2rem}
+.card .mark{width:64px;height:64px;margin:0 auto 1.2rem;border-radius:16px;border:2px solid var(--amber);color:var(--amber);display:grid;place-items:center;font:700 20px var(--mono);box-shadow:0 0 22px var(--amber-glow)}
+.card h1{font-size:30px;margin-bottom:.5rem}
+.card p{color:var(--muted);margin:.4rem 0 1.4rem}
+.card .btn{padding:.8rem 1.4rem}
+.card .alt{display:block;margin-top:1rem;font:500 12px var(--mono);color:var(--muted);text-decoration:none}
+.card .alt:hover{color:var(--amber)}
+.warn{display:flex;gap:.7rem;text-align:left;padding:.8rem 1rem;border-radius:12px;background:var(--panel2);border-left:4px solid var(--amber);font-size:13px;margin-bottom:1.4rem}
+.warn b{color:var(--amber);font:700 14px var(--mono)}
+.tog{position:fixed;right:1rem;bottom:1rem;display:flex;gap:.3rem;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;z-index:3}
+.tog button{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;border:0;background:transparent;color:var(--muted);padding:.4rem .7rem;border-radius:7px;cursor:pointer}
+.tog button.on{background:var(--panel2);color:var(--amber)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="mockbar"><span><strong>MOCKUP B</strong> &nbsp;
+<a href="b-garage.html">Garage</a><a href="b-instrument-cluster.html">Vehicle</a><a href="b-service-record.html">Service record</a><a href="b-reminders.html">Reminders</a><a href="b-add-vehicle.html">Add vehicle</a><a href="b-draft-review.html">Review draft</a> &nbsp;|&nbsp; <a href="b-search.html">Search</a><a href="b-preferences.html">Preferences</a><a href="b-faq.html">FAQ</a><a href="b-about.html">About</a><a href="b-signed-out.html">Signed out</a><a href="b-404.html">404</a></span>
+<button id="t">Toggle light / dark</button></div>
+
+<header class="pubtop">
+  <a class="brand" href="b-about.html"><span class="logo">MG</span>My Garage</a>
+  <nav><a href="b-faq.html">FAQ</a><a href="b-about.html">About</a></nav>
+  <a class="btn" href="b-garage.html">Sign in</a>
+</header>
+
+<div class="stage">
+  <section class="panel card" id="out">
+    <div class="mark">MG</div>
+    <h1>You have been signed out</h1>
+    <p>Your session has ended. Sign in again to continue.</p>
+    <a class="btn" href="b-garage.html">Sign in</a>
+    <a class="alt" href="b-about.html">What is My Garage?</a>
+  </section>
+
+  <section class="panel card" id="err" hidden>
+    <div class="mark" style="border-color:var(--bad);color:var(--bad);box-shadow:0 0 22px rgba(194,59,48,.3)">!</div>
+    <h1>Sign-in problem</h1>
+    <div class="warn" role="alert"><b>!</b><span>We could not complete sign-in. Please try again. If it keeps happening, close this tab and open My Garage again.</span></div>
+    <a class="btn" href="b-garage.html">Try again</a>
+    <a class="alt" href="b-faq.html">Read the FAQ</a>
+  </section>
+</div>
+
+<div class="tog" role="group" aria-label="Demo state"><button class="on" data-s="out">Signed out</button><button data-s="err">Sign-in problem</button></div>
+<p class="note" style="position:fixed;left:1rem;bottom:.5rem;margin:0">Two real pages shown with one toggle. The sign-in problem wording is a stand-in for the app's reason-specific messages.</p>
+<script>
+const r=document.documentElement;
+r.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+document.getElementById('t').onclick=()=>r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';
+function show(s){['out','err'].forEach(id=>document.getElementById(id).hidden=id!==s);document.querySelectorAll('.tog button').forEach(b=>b.classList.toggle('on',b.dataset.s===s))}
+document.querySelectorAll('.tog button').forEach(b=>b.onclick=()=>show(b.dataset.s));
+</script>
+</body>
+</html>

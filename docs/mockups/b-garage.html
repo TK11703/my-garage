@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup B – Garage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="b-base.css">
+<style>
+.attn{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem}
+.attn .alert{flex:1;display:flex;gap:.8rem;align-items:center;padding:.7rem 1rem;border-radius:12px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--amber);min-width:280px}
+.attn .alert b{font-weight:600}.attn .alert small{display:block;font:400 12px var(--mono);color:var(--muted)}
+.attn .alert a{margin-left:auto;font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--amber);text-decoration:none}
+.search{display:flex;gap:.5rem;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.4rem .8rem;min-width:240px}
+.search input{border:0;background:transparent;color:var(--ink);font:500 13px var(--mono);width:100%;outline:none}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;border:0;background:transparent;color:var(--muted);padding:.45rem .8rem;border-radius:7px;cursor:pointer}
+.seg button.on{background:var(--panel2);color:var(--amber);box-shadow:inset 0 -2px 0 var(--amber)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:1rem}
+.vcard{padding:0;overflow:hidden;display:block;color:inherit;text-decoration:none;transition:transform .15s,border-color .15s}
+.vcard:hover,.vcard:focus-visible{transform:translateY(-2px);border-color:var(--amber);outline:none}
+.ph{position:relative;aspect-ratio:16/7;background:linear-gradient(var(--sky1),var(--sky2));overflow:hidden}
+.ph svg{position:absolute;left:12%;width:76%;bottom:6%;color:var(--car)}
+.ph::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 40%,rgba(5,7,10,.78))}
+.plate{position:absolute;left:1rem;bottom:.8rem;z-index:1;color:#fff}
+.plate small{display:block;font:500 11px var(--mono);letter-spacing:.16em;opacity:.8}
+.plate b{font:700 24px/1.1 var(--display);text-transform:uppercase;letter-spacing:.02em}
+.ph .pill{position:absolute;top:.8rem;right:.8rem;z-index:1;background:rgba(5,7,10,.78);backdrop-filter:blur(4px)}
+.ph .pill.bad{color:#FF6B5E}.ph .pill.due{color:#FFB000}.ph .pill.mute{color:#C5CED6}
+.ro{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:1px;background:var(--line)}
+.ro>div{background:var(--panel);padding:.8rem 1rem}
+.ro span{display:block;font:500 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.ro b{font:600 20px/1.2 var(--mono);font-variant-numeric:tabular-nums}.ro b small{font-size:11px;color:var(--muted);font-weight:500;margin-left:.2rem}
+.ro .bar{height:5px;background:var(--track);border-radius:3px;margin-top:.45rem;overflow:hidden}.ro .bar i{display:block;height:100%;background:var(--amber);box-shadow:0 0 8px var(--amber-glow)}
+.ro .set{font:500 12px var(--mono);color:var(--amber)}
+.tags{display:flex;gap:.4rem;padding:.7rem 1rem;align-items:center;flex-wrap:wrap}
+.tags em{font-style:normal;font:500 11px var(--mono);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:.1rem .6rem}
+.tags .go{margin-left:auto;font:600 11px var(--mono);letter-spacing:.1em;color:var(--amber);text-transform:uppercase}
+.add{display:grid;place-items:center;text-align:center;min-height:300px;border:2px dashed var(--line);border-radius:14px;color:var(--muted);text-decoration:none;font:500 12px var(--mono);padding:1.5rem}
+.add:hover{border-color:var(--amber);color:var(--ink)}
+.add b{display:block;font:700 40px/1 var(--display);color:var(--amber)}
+.add span{display:block;margin-top:.4rem}
+.arch-h{margin:2rem 0 .6rem;font:600 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);display:flex;gap:.6rem;align-items:center}
+.arch-h::after{content:"";flex:1;height:1px;background:var(--line)}
+.arch{display:flex;gap:1rem;align-items:center;padding:.7rem 1rem;opacity:.8}
+.arch .th{width:92px;aspect-ratio:16/9;border-radius:8px;background:linear-gradient(var(--sky1),var(--sky2));position:relative;overflow:hidden;filter:grayscale(1)}
+.arch .th svg{position:absolute;left:8%;width:84%;bottom:8%;color:var(--car)}
+.arch b{font:600 15px var(--display);text-transform:uppercase;letter-spacing:.03em}
+.arch small{display:block;font:400 12px var(--mono);color:var(--muted)}
+.arch .btn{margin-left:auto;padding:.4rem .8rem}
+[hidden]{display:none!important}
+@media(max-width:560px){.cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="mockbar"><span><strong>MOCKUP B</strong> &nbsp;
+<a href="b-garage.html">Garage</a><a href="b-instrument-cluster.html">Vehicle</a><a href="b-service-record.html">Service record</a><a href="b-reminders.html">Reminders</a><a href="b-add-vehicle.html">Add vehicle</a><a href="b-draft-review.html">Review draft</a> &nbsp;|&nbsp; <a href="b-search.html">Search</a><a href="b-preferences.html">Preferences</a><a href="b-faq.html">FAQ</a><a href="b-about.html">About</a><a href="b-signed-out.html">Signed out</a><a href="b-404.html">404</a></span>
+<button id="t">Toggle light / dark</button></div>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="logo">MG</div>
+    <a class="on" href="b-garage.html" title="Garage">GAR</a><a href="b-add-vehicle.html" title="Add vehicle">NEW</a><a href="b-reminders.html" title="Reminders">REM</a><a href="b-draft-review.html" title="Drafts">DRF</a><a href="b-search.html" title="Search">SRC</a><a href="#" title="Spend">$</a>
+    <span class="sp"></span><a href="b-faq.html" title="Help">?</a><a href="b-preferences.html" title="Account">AC</a>
+  </aside>
+
+  <main>
+    <div class="top">
+      <div><div class="eyebrow">Garage</div><h1>Your garage</h1></div>
+      <div class="status"><span class="led"></span>2 ACTIVE · 1 ARCHIVED · $345.92 SPENT IN 2026</div>
+    </div>
+
+    <div class="attn">
+      <div class="alert"><span class="led" style="background:var(--bad);box-shadow:0 0 8px var(--bad)"></span><div><b>1 overdue, 1 due soon</b><small>Venza inspection · 3 days overdue &nbsp;|&nbsp; Jeep oil change · 3,780 mi left</small></div><a href="b-reminders.html">Open reminders →</a></div>
+      <label class="search"><span style="color:var(--muted)">⌕</span><input id="q" aria-label="Search vehicles" placeholder="Search vehicles, VIN, features"></label>
+      <div class="seg" role="group" aria-label="Show"><button class="on" data-f="active">Active</button><button data-f="archived">Archived</button><button data-f="all">All</button></div>
+    </div>
+
+    <div class="cards" id="active">
+      <a class="panel vcard" href="b-instrument-cluster.html" data-name="2015 jeep grand cherokee limited">
+        <div class="ph"><svg viewBox="0 0 400 170" style="color:#8C9097"><use href="#car"/></svg>
+          <span class="pill due">Due soon</span>
+          <div class="plate"><small>2015 · LIMITED</small><b>Jeep Grand Cherokee</b></div></div>
+        <div class="ro">
+          <div><span>Odometer</span><b>91,320<small>mi</small></b></div>
+          <div><span>Oil change</span><b>3,780<small>mi left</small></b><div class="bar"><i style="width:24%"></i></div></div>
+          <div><span>Spent 2026</span><b>$345.92</b></div>
+        </div>
+        <div class="tags"><em>Gasoline</em><em>Automatic</em><em>4WD</em><span class="go">Open →</span></div>
+      </a>
+
+      <a class="panel vcard" href="b-instrument-cluster.html" data-name="2010 toyota venza">
+        <div class="ph"><svg viewBox="0 0 400 170" style="color:#9B8467"><use href="#car"/></svg>
+          <span class="pill bad">Overdue</span>
+          <div class="plate"><small>2010</small><b>Toyota Venza</b></div></div>
+        <div class="ro">
+          <div><span>Odometer</span><b>157<small>mi</small></b></div>
+          <div><span>Inspection</span><b style="color:var(--bad)">3<small>days overdue</small></b><div class="bar"><i style="width:100%;background:var(--bad);box-shadow:none"></i></div></div>
+          <div><span>Spent 2026</span><b>$0.00</b></div>
+        </div>
+        <div class="tags"><em>Gasoline</em><em>Automatic</em><span class="go">Open →</span></div>
+      </a>
+
+      <a class="add" href="b-add-vehicle.html"><div><b>+</b><span>Add a vehicle</span><span style="opacity:.7">Import from a window sticker or enter details</span></div></a>
+    </div>
+
+    <div id="archived">
+      <div class="arch-h">Archived</div>
+      <div class="panel arch" data-name="2005 ford mustang">
+        <div class="th"><svg viewBox="0 0 400 170" style="color:#C0504A"><use href="#car"/></svg></div>
+        <div><b>2005 Ford Mustang</b><small>Archived Nov 8, 2026 · history kept · reminders off</small></div>
+        <button class="btn ghost">Restore</button>
+      </div>
+    </div>
+
+    <p id="none" class="note" hidden>No vehicles match your search.</p>
+    <p class="note">The Venza's odometer (157 mi) and the archived Mustang come from your data. The Jeep's odometer, all reminders and spend are illustrative.</p>
+  </main>
+</div>
+<svg width="0" height="0" style="position:absolute"><symbol id="car" viewBox="0 0 400 170"><path d="M18 124 L30 98 Q36 86 54 82 L118 74 Q140 44 182 40 L252 40 Q286 42 306 70 L352 80 Q376 86 380 108 L384 124 Q386 132 378 132 L22 132 Q14 132 18 124Z" fill="currentColor"/><path d="M138 74 Q154 54 184 52 L244 52 Q268 54 282 74Z" fill="#fff" opacity=".3"/><circle cx="98" cy="132" r="24" fill="#05070A"/><circle cx="98" cy="132" r="10" fill="#6d747b"/><circle cx="306" cy="132" r="24" fill="#05070A"/><circle cx="306" cy="132" r="10" fill="#6d747b"/></symbol></svg>
+<script>
+const r=document.documentElement;
+r.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+document.getElementById('t').onclick=()=>r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';
+let f='active';
+function apply(){
+  const q=document.getElementById('q').value.trim().toLowerCase();
+  const a=document.getElementById('active'),z=document.getElementById('archived');
+  a.hidden=f==='archived';z.hidden=f==='active';
+  let n=0;
+  document.querySelectorAll('[data-name]').forEach(el=>{
+    const hit=!q||el.dataset.name.includes(q);el.hidden=!hit;
+    if(hit&&!el.closest('[hidden]'))n++;
+  });
+  document.getElementById('none').hidden=n>0;
+}
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{
+  f=b.dataset.f;document.querySelectorAll('.seg button').forEach(x=>x.classList.toggle('on',x===b));apply();
+});
+document.getElementById('q').oninput=apply;
+apply();
+</script>
+</body>
+</html>

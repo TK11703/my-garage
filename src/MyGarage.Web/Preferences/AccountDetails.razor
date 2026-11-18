@@ -1,9 +1,18 @@
 <section class="card border-0 shadow-sm mb-4" aria-labelledby="account-heading" data-testid="account-details">
     <div class="card-body">
         <h2 id="account-heading" class="h5">Account</h2>
-        <dl class="row g-3 mb-2">
-            <ViewField Label="Name" Value="@Show(User?.DisplayName)" Column="col-sm-6" />
-            <ViewField Label="Email" Value="@Show(User?.Email)" Column="col-sm-6" />
+        <div class="mg-acct">
+            <span class="mg-avatar mg-avatar-lg" aria-hidden="true" data-testid="account-initials">@Initials</span>
+            <div class="mg-acct-who">
+                <strong data-testid="account-name">@Show(User?.DisplayName)</strong>
+                <small data-testid="account-email">@Show(User?.Email)</small>
+            </div>
+        </div>
+        <dl class="mg-acct-facts mb-3">
+            <dt>Sign-in</dt>
+            <dd>Microsoft account</dd>
+            <dt>Visibility</dt>
+            <dd>Only you</dd>
         </dl>
         <p class="form-text mb-0">Your account details come from your sign-in and cannot be changed here.</p>
     </div>
@@ -13,6 +22,24 @@
     // Null when the details could not be loaded.
     [Parameter]
     public CurrentUserDto? User { get; set; }
+
+    // The first letters of the first and last words of the name, as the account menu shows them.
+    private string Initials
+    {
+        get
+        {
+            var words = (User?.DisplayName ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (words.Length == 0 || !char.IsLetterOrDigit(words[0][0]))
+            {
+                return "?";
+            }
+
+            var last = words[^1];
+            return words.Length > 1 && char.IsLetterOrDigit(last[0])
+                ? string.Concat(char.ToUpperInvariant(words[0][0]), char.ToUpperInvariant(last[0]))
+                : char.ToUpperInvariant(words[0][0]).ToString();
+        }
+    }
 
     private static string Show(string? value) => string.IsNullOrWhiteSpace(value) ? "Not available" : value;
 }

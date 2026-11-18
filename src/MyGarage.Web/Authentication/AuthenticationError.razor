@@ -1,11 +1,20 @@
 @page "/authentication/error"
 @attribute [AllowAnonymous]
 
-<PageHeader Title="Sign-in problem" Trail="@(new[] { new Crumb("Sign-in problem") })" />
+<PageTitle>Sign-in problem – My Garage</PageTitle>
 
-<div class="alert alert-warning" role="alert">@AuthFailureMessages.For(Reason)</div>
-
-<a class="btn btn-primary" href="/authentication/login">Try again</a>
+<div class="mg-stage">
+    <section class="card mg-stage-card" aria-labelledby="sign-in-problem-heading">
+        <div class="mg-stage-mark mg-stage-mark-bad" aria-hidden="true">!</div>
+        <h1 id="sign-in-problem-heading">Sign-in problem</h1>
+        <div class="mg-stage-warn" role="alert">
+            <b aria-hidden="true">!</b>
+            <span>@AuthFailureMessages.For(Reason)</span>
+        </div>
+        <a class="btn btn-primary" href="/authentication/login">Try again</a>
+        <a class="mg-stage-alt" href="/faq">Read the FAQ</a>
+    </section>
+</div>
 
 @code {
     [SupplyParameterFromQuery]

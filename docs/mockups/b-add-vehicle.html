@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup B – Add vehicle (sticker import)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="b-base.css">
+<style>
+.steps{display:flex;gap:.5rem;margin:0 0 1.25rem;flex-wrap:wrap}
+.steps a{display:flex;align-items:center;gap:.6rem;text-decoration:none;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.55rem .9rem;font:600 11px var(--mono);letter-spacing:.12em;text-transform:uppercase}
+.steps a i{font-style:normal;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;border:1.5px solid currentColor;font-size:11px}
+.steps a.on{color:var(--amber);box-shadow:inset 0 -2px 0 var(--amber)}
+.steps a.done{color:var(--ok)}
+.cols{display:grid;grid-template-columns:1.5fr 1fr;gap:1rem}
+.drop{min-height:340px;display:grid;place-items:center;text-align:center;border:2px dashed var(--line);border-radius:14px;background:radial-gradient(ellipse at 50% 0%,var(--amber-glow),transparent 60%),var(--panel);padding:2rem;cursor:pointer;transition:border-color .15s}
+.drop:hover{border-color:var(--amber)}
+.glyph{width:84px;height:104px;margin:0 auto 1rem;border-radius:6px;background:#FBFAF6;position:relative;box-shadow:0 8px 22px rgba(0,0,0,.2);transform:rotate(-4deg)}
+.glyph::before{content:"";position:absolute;left:12px;right:12px;top:14px;height:6px;border-radius:3px;background:#C8C4B8;box-shadow:0 12px 0 #DDDAD0,0 24px 0 #DDDAD0,0 36px 0 #DDDAD0,0 48px 0 #DDDAD0}
+.glyph::after{content:"";position:absolute;left:-10px;top:50px;width:104px;height:3px;background:var(--amber);box-shadow:0 0 14px var(--amber)}
+.drop b{display:block;font:700 22px var(--display);text-transform:uppercase;letter-spacing:.04em}
+.drop p{margin:.4rem auto;color:var(--muted);max-width:30rem}
+.drop .fine{font:400 11px var(--mono)}
+.reads{list-style:none;margin:0;padding:0}
+.reads li{display:flex;gap:.7rem;align-items:center;padding:.55rem 0;border-bottom:1px solid var(--line);font:500 13px var(--mono)}
+.reads li:last-child{border:0}
+.reads li::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--amber);box-shadow:0 0 8px var(--amber-glow);flex:none}
+.reads small{margin-left:auto;color:var(--muted);font:400 11px var(--mono)}
+.linkish{color:var(--amber);font:500 12px var(--mono);text-decoration:none}
+/* reading */
+.scan{position:absolute;left:0;right:0;height:46px;top:-46px;background:linear-gradient(transparent,var(--amber-glow),transparent);border-bottom:2px solid var(--amber);animation:scan 2.2s linear infinite}
+@keyframes scan{to{top:100%}}
+.tick{display:grid;grid-template-columns:auto 1fr auto;gap:.8rem;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--line);opacity:0;animation:pop .35s forwards}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.tick span{font:500 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);min-width:96px}
+.tick b{font:500 14px var(--mono)}
+.tick i{font-style:normal;color:var(--ok);font:700 13px var(--mono)}
+/* review */
+.banner{display:flex;gap:.9rem;align-items:center;padding:.9rem 1.1rem;border-radius:12px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--ok);margin-bottom:1rem}
+.banner b{font-weight:600}.banner small{display:block;font:400 12px var(--mono);color:var(--muted)}
+.notice{display:flex;gap:.6rem;padding:.55rem .8rem;border-radius:10px;background:var(--panel2);border-left:4px solid var(--amber);font-size:13px;margin-bottom:.4rem}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.fgrid>div{background:var(--panel);padding:.7rem .9rem;position:relative}
+.fgrid span{display:flex;justify-content:space-between;font:500 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.fgrid b{font:500 14px var(--mono)}
+.fgrid .src{color:var(--amber);letter-spacing:.06em}
+.fgrid .chk{outline:2px solid var(--amber);outline-offset:-2px}
+.fgrid .empty b{color:var(--amber)}
+.sub{margin:1.25rem 0 .6rem;font:600 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.feat{display:flex;gap:.7rem;align-items:flex-start;padding:.65rem .9rem;border:1px solid var(--line);border-radius:10px;margin-bottom:.4rem;background:var(--panel);cursor:pointer}
+.feat input{accent-color:var(--amber);margin-top:.2rem;width:16px;height:16px}
+.feat b{font-weight:600}.feat small{display:block;font:400 11px var(--mono);color:var(--muted)}
+.feat input:not(:checked)~div b{color:var(--muted);text-decoration:line-through}
+.actions{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--line)}
+.actions .fine{margin-left:auto;font:400 11px var(--mono);color:var(--muted)}
+.sticky{position:sticky;top:1rem;align-self:start}
+@media(max-width:860px){.cols{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="mockbar"><span><strong>MOCKUP B · Add vehicle</strong> &nbsp;
+<a href="b-garage.html">Garage</a><a href="b-instrument-cluster.html">Vehicle</a><a href="b-service-record.html">Service record</a><a href="b-reminders.html">Reminders</a><a href="b-add-vehicle.html">Add vehicle</a><a href="b-draft-review.html">Review draft</a> &nbsp;|&nbsp; <a href="b-search.html">Search</a><a href="b-preferences.html">Preferences</a><a href="b-faq.html">FAQ</a><a href="b-about.html">About</a><a href="b-signed-out.html">Signed out</a><a href="b-404.html">404</a></span>
+<button id="t">Toggle light / dark</button></div>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="logo">MG</div>
+    <a href="b-garage.html" title="Garage">GAR</a><a class="on" href="b-add-vehicle.html" title="Add vehicle">NEW</a><a href="b-reminders.html" title="Reminders">REM</a><a href="b-draft-review.html" title="Drafts">DRF</a><a href="b-search.html" title="Search">SRC</a><a href="#" title="Spend">$</a>
+    <span class="sp"></span><a href="b-faq.html" title="Help">?</a><a href="b-preferences.html" title="Account">AC</a>
+  </aside>
+
+  <main>
+    <div class="top">
+      <div><div class="eyebrow">Garage / New vehicle</div><h1>Add a vehicle</h1></div>
+      <div class="status"><span>Nothing is saved until you save the vehicle</span></div>
+    </div>
+
+    <nav class="steps" aria-label="Steps">
+      <a href="#upload" data-step="upload"><i>1</i>Sticker</a>
+      <a href="#reading" data-step="reading"><i>2</i>Reading</a>
+      <a href="#review" data-step="review"><i>3</i>Review</a>
+      <a href="#manual" data-step="manual" style="margin-left:auto"><i>+</i>Enter manually</a>
+    </nav>
+
+    <!-- 1 · Upload -->
+    <div class="view" id="v-upload">
+      <div class="cols">
+        <label class="drop" for="file">
+          <div>
+            <div class="glyph"></div>
+            <b>Drop the window sticker here</b>
+            <p>We read the year, make, model, trim, engine, options and VIN, and fill in the vehicle for you.</p>
+            <p class="fine">PDF, JPG, PNG or WebP · up to 10 MB · on a phone, take a photo of the sticker</p>
+            <input id="file" type="file" hidden>
+            <p style="margin-top:1.25rem"><span class="btn ghost">Choose file</span></p>
+          </div>
+        </label>
+        <div style="display:grid;gap:1rem;align-content:start">
+          <section class="panel">
+            <h3><span>What gets read</span></h3>
+            <ul class="reads">
+              <li>Year, make, model, trim</li>
+              <li>VIN<small>worth a second look</small></li>
+              <li>Engine, horsepower, drivetrain</li>
+              <li>Color, fuel, transmission</li>
+              <li>Seats, doors, wheel and tire size</li>
+              <li>Options<small>become features</small></li>
+            </ul>
+          </section>
+          <section class="panel">
+            <h3><span>Good to know</span></h3>
+            <p style="margin:0 0 .5rem;color:var(--muted)">The sticker file is not kept. Importing replaces any unsaved changes on this form.</p>
+            <a class="linkish" href="#manual" data-step="manual">No sticker? Enter details manually →</a>
+          </section>
+          <button class="btn" id="read" style="padding:.8rem 1rem">Read sticker</button>
+          <p class="note" style="margin:0">Demo: this button runs steps 2 and 3. It can take up to two minutes in the real app.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 · Reading -->
+    <div class="view" id="v-reading" hidden>
+      <div class="cols">
+        <div class="paper" style="min-height:360px">
+          <div class="scan"></div>
+          <h4>Window sticker</h4><div class="ln" style="width:60%"></div>
+          <div class="sep"></div>
+          <div class="row"><span>2015 JEEP GRAND CHEROKEE LIMITED</span><span>•••••</span></div>
+          <div class="ln"></div><div class="ln" style="width:80%"></div><div class="ln" style="width:92%"></div>
+          <div class="sep"></div>
+          <div class="ln" style="width:70%"></div><div class="ln"></div><div class="ln" style="width:55%"></div><div class="ln" style="width:88%"></div><div class="ln" style="width:40%"></div>
+        </div>
+        <section class="panel">
+          <h3><span>Reading the sticker</span><span class="pill due">working</span></h3>
+          <div class="tick" style="animation-delay:.2s"><span>Year</span><b>2015</b><i>✓</i></div>
+          <div class="tick" style="animation-delay:.6s"><span>Make / model</span><b>Jeep Grand Cherokee</b><i>✓</i></div>
+          <div class="tick" style="animation-delay:1s"><span>Trim</span><b>Limited</b><i>✓</i></div>
+          <div class="tick" style="animation-delay:1.4s"><span>Engine</span><b>3.5L V6 · 285 hp</b><i>✓</i></div>
+          <div class="tick" style="animation-delay:1.8s"><span>Drivetrain</span><b>4WD</b><i>✓</i></div>
+          <div class="tick" style="animation-delay:2.2s"><span>Options</span><b>6 features found</b><i>✓</i></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- 3 · Review -->
+    <div class="view" id="v-review" hidden>
+      <div class="banner">
+        <span class="led"></span>
+        <div><b>Read 14 details and 6 features from the sticker.</b><small>Review them below. Nothing is saved yet.</small></div>
+      </div>
+      <div class="cols" style="grid-template-columns:1fr 1.5fr">
+        <div class="sticky">
+          <div class="paper">
+            <h4>Window sticker</h4>
+            <div class="row"><span><mark>2015 JEEP GRAND CHEROKEE</mark></span></div>
+            <div class="row"><span><mark>LIMITED</mark> · <mark>3.5L V6</mark></span></div>
+            <div class="sep"></div>
+            <div class="row"><span>VIN</span><span><mark class="miss">1C4R••••••••••••</mark></span></div>
+            <div class="row"><span>Drive</span><span><mark>4WD</mark></span></div>
+            <div class="row"><span>Color</span><span><mark>BILLET SILVER</mark></span></div>
+            <div class="sep"></div>
+            <div class="ln" style="width:70%"></div><div class="ln"></div><div class="ln" style="width:85%"></div>
+            <div class="row"><span><mark>LEATHER-TRIMMED SEATS</mark></span></div>
+            <div class="row"><span><mark>UCONNECT 8.4 TOUCHSCREEN</mark></span></div>
+            <div class="ln" style="width:60%"></div><div class="ln" style="width:75%"></div>
+          </div>
+          <p class="note" style="margin-top:.6rem">Amber marks are read values. Red is unclear. The file is not kept.</p>
+        </div>
+
+        <div>
+          <section class="panel">
+            <h3><span>Needs a look</span><span class="pill due">2</span></h3>
+            <div class="notice">The VIN is partly hidden on the sticker. Check it before saving.</div>
+            <div class="notice">Color "Billet Silver Metallic" was matched to your color "Silver".</div>
+          </section>
+
+          <div class="sub">Basic</div>
+          <div class="fgrid">
+            <div><span>Year<em class="src">sticker</em></span><b>2015</b></div>
+            <div><span>Make<em class="src">sticker</em></span><b>Jeep</b></div>
+            <div><span>Model<em class="src">sticker</em></span><b>Grand Cherokee</b></div>
+            <div><span>Trim<em class="src">sticker</em></span><b>Limited</b></div>
+            <div class="chk"><span>VIN<em class="src">check</em></span><b>1C4R…</b></div>
+            <div><span>Vehicle type</span><b>SUV</b></div>
+          </div>
+          <div class="sub">Specifications</div>
+          <div class="fgrid">
+            <div><span>Engine<em class="src">sticker</em></span><b>3.5L V6</b></div>
+            <div><span>Horsepower<em class="src">sticker</em></span><b>285 hp</b></div>
+            <div><span>Drivetrain<em class="src">sticker</em></span><b>4WD</b></div>
+            <div><span>Color<em class="src">sticker</em></span><b>Silver</b></div>
+            <div><span>Fuel type<em class="src">sticker</em></span><b>Gasoline</b></div>
+            <div><span>Transmission<em class="src">sticker</em></span><b>Automatic</b></div>
+            <div><span>Seats<em class="src">sticker</em></span><b>5</b></div>
+            <div><span>Doors<em class="src">sticker</em></span><b>4</b></div>
+            <div class="empty"><span>Wheel size</span><b>+ add</b></div>
+            <div class="empty"><span>Tire size</span><b>+ add</b></div>
+          </div>
+
+          <div class="sub">Features from the sticker</div>
+          <p style="margin:0 0 .6rem;color:var(--muted);font-size:13px">These are added when you save. Features they replace are removed. Untick any you do not want.</p>
+          <label class="feat"><input type="checkbox" checked><div><b>Leather-trimmed seats</b><small>Replaces: Leather seats</small></div></label>
+          <label class="feat"><input type="checkbox" checked><div><b>Uconnect 8.4 touchscreen</b></div></label>
+          <label class="feat"><input type="checkbox" checked><div><b>Quadra-Trac II 4x4</b></div></label>
+          <label class="feat"><input type="checkbox" checked><div><b>Heated front seats</b></div></label>
+          <label class="feat"><input type="checkbox" checked><div><b>Remote start</b></div></label>
+          <label class="feat"><input type="checkbox"><div><b>Roof rails</b></div></label>
+
+          <div class="actions">
+            <a class="btn" href="b-instrument-cluster.html">Save vehicle</a>
+            <a class="btn ghost" href="#upload" data-step="upload">Start over</a>
+            <span class="fine">Nothing is saved until you click Save</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual -->
+    <div class="view" id="v-manual" hidden>
+      <section class="panel">
+        <h3><span>Basic</span><span class="pill mute">* required</span></h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem">
+          <label class="fld"><span>Year</span><input placeholder="2015"></label>
+          <label class="fld"><span>Make *</span><input placeholder="Jeep"></label>
+          <label class="fld"><span>Model *</span><input placeholder="Grand Cherokee"></label>
+          <label class="fld"><span>Trim</span><input placeholder="Limited"></label>
+          <label class="fld"><span>VIN</span><input placeholder="17 characters"></label>
+          <label class="fld"><span>Vehicle type</span><select><option>Not set</option><option>SUV</option></select></label>
+        </div>
+        <div class="actions"><button class="btn">Save vehicle</button><a class="btn ghost" href="#upload" data-step="upload">Import from sticker instead</a></div>
+      </section>
+    </div>
+
+    <p class="note">Sample content: the sticker text, VIN, features, notices and the "Replaces" example are illustrative. Field names and flow follow the real Add Vehicle page.</p>
+  </main>
+</div>
+<script>
+const r=document.documentElement;
+r.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+document.getElementById('t').onclick=()=>r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';
+const order=['upload','reading','review'];
+let timer;
+function show(n){
+  clearTimeout(timer);
+  if(!document.getElementById('v-'+n))n='upload';
+  document.querySelectorAll('.view').forEach(v=>v.hidden=v.id!=='v-'+n);
+  document.querySelectorAll('.steps a').forEach(a=>{
+    const s=a.dataset.step,i=order.indexOf(s),c=order.indexOf(n);
+    a.classList.toggle('on',s===n);a.classList.toggle('done',i>-1&&c>-1&&i<c);
+  });
+  if(n==='reading')timer=setTimeout(()=>go('review'),3000);
+}
+function go(n){history.replaceState(null,'','#'+n);show(n)}
+document.querySelectorAll('[data-step]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();go(a.dataset.step)}));
+document.getElementById('read').onclick=()=>go('reading');
+show(location.hash.slice(1)||'upload');
+</script>
+</body>
+</html>

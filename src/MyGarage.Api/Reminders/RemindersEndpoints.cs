@@ -28,6 +28,28 @@ public static class RemindersEndpoints
 
     public static IEndpointRouteBuilder MapRemindersEndpoints(this IEndpointRouteBuilder endpoints)
     {
+        endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/reminder-suggestions").WithTags("Reminders")
+            .MapGet("", async (
+                Guid vehicleId,
+                ClaimsPrincipal user,
+                ReminderRepository reminders,
+                CancellationToken cancellationToken) =>
+            {
+                if (CurrentOwner.Get(user) is not { } ownerId)
+                {
+                    return VehiclesEndpoints.NoOwner();
+                }
+
+                var items = await reminders.ListSuggestionsAsync(ownerId, vehicleId, cancellationToken);
+                return items is null ? VehiclesEndpoints.NotFound() : Results.Ok(items.Select(ReminderMapper.ToSuggestionDto).ToList());
+            })
+            .WithName("ListReminderSuggestions")
+            .WithSummary("Reminders the vehicle's own service history suggests (at most five); empty for an archived vehicle.")
+            .Produces<List<SuggestedReminderDto>>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         var group = endpoints.MapGroup("/api/vehicles/{vehicleId:guid}/reminders").WithTags("Reminders").RequireActiveVehicleForWrites();
 
         group.MapGet("", async (

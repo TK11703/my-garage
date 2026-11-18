@@ -110,6 +110,51 @@ public class ServiceRecordLineItemsViewTests : VehicleTestContext
     }
 
     [Fact]
+    public void EachLineNamesHowItWasPriced_AndCreditsAreMarked()
+    {
+        var record = RecordDetail(vehicleId, recordId, lineItems: [FlatLine("Oil change", 50m), OilChange(), FlatLine("Coupon", -4.04m)]);
+
+        var cut = RenderPage(record);
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal(["Flat", "Itemized", "Credit"], cut.FindAll("[data-testid='line-kind']").Select(pill => pill.TextContent.Trim()));
+            Assert.Single(cut.FindAll("[data-testid='line-item'].mg-receipt-credit"));
+        });
+    }
+
+    [Fact]
+    public void WhereItWent_SplitsTheChargesAndListsTheCredit()
+    {
+        var record = RecordDetail(vehicleId, recordId, lineItems: [FlatLine("Oil change", 100m), FlatLine("Coupon", -4.04m)], tax: 8.25m);
+
+        var cut = RenderPage(record);
+
+        cut.WaitForAssertion(() =>
+        {
+            var panel = cut.Find("[data-testid='spend-breakdown']");
+            Assert.Equal("$108.25 gross", panel.QuerySelector("[data-testid='breakdown-gross']")!.TextContent.Trim());
+            Assert.Equal("$100.00", panel.QuerySelector("[data-testid='breakdown-flat'] dd")!.TextContent.Trim());
+            Assert.Equal("$8.25", panel.QuerySelector("[data-testid='breakdown-tax'] dd")!.TextContent.Trim());
+            Assert.Equal("-$4.04", panel.QuerySelector("[data-testid='breakdown-credit'] dd")!.TextContent.Trim());
+            Assert.Equal("img", panel.QuerySelector("svg")!.GetAttribute("role"));
+            Assert.Equal("Flat 92%, Tax 8%", panel.QuerySelector("svg")!.GetAttribute("aria-label"));
+        });
+    }
+
+    [Fact]
+    public void ARecordWithNoLines_HasNoBreakdown()
+    {
+        var cut = RenderPage(RecordDetail(vehicleId, recordId, lineItems: []));
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("No line items yet", cut.Markup);
+            Assert.Empty(cut.FindAll("[data-testid='spend-breakdown']"));
+        });
+    }
+
+    [Fact]
     public void ATax_IsShownSeparatelyAndIncludedInTheTotal()
     {
         var cut = RenderPage(RecordDetail(vehicleId, recordId, lineItems: [FlatLine("Oil change", 50m)], tax: 8.25m));
@@ -152,6 +197,37 @@ public class ServiceRecordLineItemsViewTests : VehicleTestContext
             Assert.Contains("Delete this line item? This cannot be undone.", delete.TextContent);
 
             Assert.Equal($"/vehicles/{vehicleId}/service-records/{recordId}/line-items/new", cut.Find("[data-testid='add-line-item']").GetAttribute("href"));
+        });
+    }
+
+    [Fact]
+    public void TheRowActionsSitInANamedMenu()
+    {
+        var cut = RenderPage(RecordDetail(vehicleId, recordId, lineItems: [FlatLine("Brake pads")]));
+
+        cut.WaitForAssertion(() =>
+        {
+            var menu = cut.Find("details[data-testid='line-menu']");
+            Assert.Equal("Actions for Brake pads", menu.QuerySelector(":scope > summary")!.GetAttribute("aria-label"));
+            Assert.NotNull(menu.QuerySelector("[data-testid='edit-line-item']"));
+            Assert.NotNull(menu.QuerySelector("[data-testid='delete-line-item']"));
+        });
+    }
+
+    [Fact]
+    public void TheReceiptNamesTheVehicle_AndShowsTheSubtotalTaxAndTotalInOrder()
+    {
+        var cut = RenderPage(RecordDetail(vehicleId, recordId, lineItems: [FlatLine("Oil change", 50m), FlatLine("Discount", -4m)], tax: 3m));
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("2020 Ford F-150", cut.Find("[data-testid='receipt-vehicle']").TextContent.Trim());
+            Assert.Equal(
+                ["Subtotal", "Tax", "Total cost"],
+                cut.FindAll("dl[aria-label='Totals'] dt").Select(term => term.TextContent.Trim()));
+            Assert.Equal("$46.00", cut.Find("[data-testid='subtotal']").TextContent.Trim());
+            Assert.Equal("$3.00", cut.Find("[data-testid='tax']").TextContent.Trim());
+            Assert.Equal("$49.00", cut.Find("[data-testid='total-cost']").TextContent.Trim());
         });
     }
 

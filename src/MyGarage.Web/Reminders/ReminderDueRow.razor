@@ -37,7 +37,7 @@
         }
         else if (Reminder.Status is not (ReminderStatus.Paused or ReminderStatus.Archived) && ReminderFormat.RemainingParts(Reminder) is { Count: > 0 } parts)
         {
-            <div class="small" data-testid="reminder-remaining">
+            <div class="small mg-num" data-testid="reminder-remaining">
                 @for (var i = 0; i < parts.Count; i++)
                 {
                     if (i > 0)
@@ -55,6 +55,7 @@
                     }
                 }
             </div>
+            <ReminderGauge Reminder="Reminder" />
         }
     </div>
     <ReminderStatusBadge Status="Reminder.Status" />
@@ -73,7 +74,7 @@
     {
         ReminderStatus.Overdue => "bg-danger-subtle text-danger-emphasis",
         ReminderStatus.DueSoon => "bg-warning-subtle text-warning-emphasis",
-        ReminderStatus.MileageNeeded => "bg-info-subtle text-info-emphasis",
+        ReminderStatus.MileageNeeded => "bg-secondary-subtle text-secondary-emphasis",
         ReminderStatus.Paused => "bg-secondary-subtle text-secondary-emphasis",
         ReminderStatus.Archived => "bg-secondary-subtle text-secondary-emphasis",
         _ => "bg-success-subtle text-success-emphasis",

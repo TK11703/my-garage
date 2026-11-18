@@ -1,10 +1,13 @@
+using MyGarage.Api.Reminders;
 using MyGarage.Api.Vehicles.Images;
 using MyGarage.Api.Vehicles.StickerImport;
 using MyGarage.Api.Vehicles.Tags;
+using MyGarage.Database.Reminders;
 using MyGarage.Database.Tags;
 using MyGarage.Database.VehicleDocuments;
 using MyGarage.Database.VehicleImages;
 using MyGarage.Database.Vehicles;
+using MyGarage.Shared.Reminders;
 using MyGarage.Shared.Vehicles;
 
 namespace MyGarage.Api.Vehicles;
@@ -17,6 +20,7 @@ public sealed class VehicleService(
     VehicleTagRepository tags,
     VehicleImageRepository images,
     VehicleDocumentRepository documents,
+    ReminderRepository reminders,
     FeatureCategorizationService categorization,
     TimeProvider timeProvider)
 {
@@ -60,7 +64,9 @@ public sealed class VehicleService(
 
         var vehicleTags = await tags.ListAsync(ownerId, vehicleId, cancellationToken);
         var vehicleImages = await images.ListAsync(ownerId, vehicleId, cancellationToken);
-        return VehicleMapper.ToDetailDto(record, VehicleTagMapper.ToDtos(vehicleTags), VehicleImageMapper.ToDtos(vehicleImages));
+        var year = ReminderRules.Today(timeProvider).Year;
+        var spend = await vehicles.GetVehicleSpendAsync(ownerId, vehicleId, new DateOnly(year, 1, 1), new DateOnly(year, 12, 31), cancellationToken);
+        return VehicleMapper.ToDetailDto(record, VehicleTagMapper.ToDtos(vehicleTags), VehicleImageMapper.ToDtos(vehicleImages), spend);
     }
 
     public async Task<VehicleSaveResult> UpdateAsync(string ownerId, Guid vehicleId, VehicleRequest request, CancellationToken cancellationToken)
@@ -117,7 +123,39 @@ public sealed class VehicleService(
             result = await vehicles.ListPageAsync(ownerId, criteria, effectivePage, pageSize, cancellationToken);
         }
 
-        return VehicleMapper.ToPageDto(result);
+        return VehicleMapper.ToPageDto(result, await NextDueByVehicleAsync(ownerId, cancellationToken), await SpendByVehicleAsync(ownerId, cancellationToken));
+    }
+
+    // The most urgent active reminder of each vehicle; paused reminders and archived vehicles' reminders do not count.
+    private async Task<IReadOnlyDictionary<Guid, VehicleNextDueDto>> NextDueByVehicleAsync(string ownerId, CancellationToken cancellationToken)
+    {
+        var today = ReminderRules.Today(timeProvider);
+        var active = (await reminders.ListForOwnerAsync(ownerId, cancellationToken))
+            .Select(record => ReminderMapper.ToDto(record, today))
+            .Where(reminder => reminder.Status is not (ReminderStatus.Paused or ReminderStatus.Archived));
+
+        return active
+            .GroupBy(reminder => reminder.VehicleId)
+            .ToDictionary(
+                group => group.Key,
+                group =>
+                {
+                    var top = ReminderOrdering.MostUrgentFirst(group)[0];
+                    return new VehicleNextDueDto
+                    {
+                        ReminderId = top.Id,
+                        Name = top.Name,
+                        Status = top.Status,
+                        MilesRemaining = top.MilesRemaining,
+                        DaysRemaining = top.DaysRemaining,
+                    };
+                });
+    }
+
+    private async Task<IReadOnlyDictionary<Guid, decimal>> SpendByVehicleAsync(string ownerId, CancellationToken cancellationToken)
+    {
+        var year = ReminderRules.Today(timeProvider).Year;
+        return await vehicles.GetSpendAsync(ownerId, new DateOnly(year, 1, 1), new DateOnly(year, 12, 31), cancellationToken);
     }
 
     public async Task<VehicleFilterOptionsDto> GetFilterOptionsAsync(string ownerId, string? status, CancellationToken cancellationToken) =>

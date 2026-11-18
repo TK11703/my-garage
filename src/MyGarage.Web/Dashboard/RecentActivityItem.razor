@@ -14,7 +14,7 @@
     }
     <div class="flex-grow-1 overflow-hidden">
         <div>
-            <a class="fw-semibold text-body text-decoration-none" href="/vehicles/@(Entry.VehicleId)?tab=description" data-testid="activity-vehicle">@Entry.VehicleName</a>
+            <a class="fw-semibold text-body text-decoration-none" href="/vehicles/@(Entry.VehicleId)?tab=timeline&kind=journal" data-testid="activity-vehicle">@Entry.VehicleName</a>
             <span class="text-body-secondary" data-testid="activity-kind">added a @(Entry.Category is { Length: > 0 } category ? $"{category} note" : "note")</span>
         </div>
         <div class="text-truncate" data-testid="activity-excerpt">@Entry.Excerpt</div>

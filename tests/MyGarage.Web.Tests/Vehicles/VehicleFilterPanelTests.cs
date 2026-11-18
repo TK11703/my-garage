@@ -75,7 +75,7 @@ public class VehicleFilterPanelTests : VehicleTestContext
     public void Panel_IsCollapsedUntilAFilterIsActive()
     {
         var collapsed = RenderSearch();
-        collapsed.WaitForAssertion(() => Assert.Contains("Alpha", collapsed.Markup));
+        collapsed.WaitForAssertion(() => Assert.NotNull(collapsed.Find("[data-testid='search-prompt']")));
 
         var body = collapsed.Find(".mg-filter-card .collapse");
         Assert.DoesNotContain("show", body.ClassList);
@@ -145,7 +145,7 @@ public class VehicleFilterPanelTests : VehicleTestContext
     {
         var cut = RenderSearch();
 
-        cut.WaitForAssertion(() => Assert.Contains("Alpha", cut.Markup));
+        cut.WaitForAssertion(() => Assert.NotNull(cut.Find("[data-testid='search-prompt']")));
         Assert.Empty(cut.FindAll("[data-testid='active-criterion']"));
         Assert.Empty(cut.FindAll("a[data-testid='clear-all']"));
     }
@@ -206,6 +206,7 @@ public class VehicleFilterPanelTests : VehicleTestContext
     {
         RegisterApi(_ => Json(Page([Summary("Alpha")])));
         FilterOptionsFailure = System.Net.HttpStatusCode.ServiceUnavailable;
+        NavigateTo("/search?q=alpha");
         var cut = Render<VehicleSearchPage>();
 
         cut.WaitForAssertion(() => Assert.Contains("Alpha", cut.Markup));

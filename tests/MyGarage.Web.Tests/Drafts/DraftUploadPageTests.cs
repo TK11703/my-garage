@@ -20,7 +20,7 @@ public class DraftUploadPageTests : DraftTestContext
         var cut = RenderPage();
 
         Assert.Equal("Add Maintenance", cut.Find("h1").TextContent);
-        Assert.Equal(["Home", "Maintenance", "Maintenance Drafts"], cut.FindAll("nav[aria-label='Breadcrumb'] li").Select(item => item.TextContent.Trim()));
+        Assert.Equal(["Home", "Maintenance"], cut.FindAll("nav[aria-label='Breadcrumb'] li").Select(item => item.TextContent.Trim()));
         Assert.Equal("/drafts", cut.Find("nav[aria-label='Breadcrumb'] li a[href='/drafts']").GetAttribute("href"));
         var text = cut.Find("[data-testid='upload-record']").TextContent;
         Assert.Contains("PDF, JPG, PNG, or WebP", text);

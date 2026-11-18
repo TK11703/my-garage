@@ -178,8 +178,8 @@ public class VehicleEditPageTests : VehicleTestContext
             Assert.Single(cut.FindAll("h1"));
             Assert.Equal("Edit 2020 Ford F-150", cut.Find("h1").TextContent);
             var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-            Assert.Equal(["Home", "Garage", "Vehicles", "2020 Ford F-150"], items.Select(item => item.TextContent.Trim()));
-            Assert.Equal($"/vehicles/{vehicleId}", items[3].QuerySelector("a")!.GetAttribute("href"));
+            Assert.Equal(["Home", "Garage", "2020 Ford F-150"], items.Select(item => item.TextContent.Trim()));
+            Assert.Equal($"/vehicles/{vehicleId}", items[2].QuerySelector("a")!.GetAttribute("href"));
         });
     }
 

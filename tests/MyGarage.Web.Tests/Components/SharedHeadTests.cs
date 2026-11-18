@@ -58,7 +58,7 @@ public class SharedHeadTests : IClassFixture<WebAppFactory>
     {
         var html = await GetSignedOutPageAsync();
 
-        Assert.Matches("<meta[^>]*name=\"theme-color\"[^>]*content=\"#1976D2\"", html);
+        Assert.Matches("<meta[^>]*name=\"theme-color\"[^>]*content=\"#E6EBEF\"", html);
     }
 
     [Fact]

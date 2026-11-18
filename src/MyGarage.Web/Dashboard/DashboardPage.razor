@@ -3,7 +3,7 @@
 @attribute [ExcludeFromInteractiveRouting]
 @inject DashboardApiClient Api
 
-<PageHeader Title="Dashboard" />
+<PageHeader Title="Dashboard" Trail="@(new[] { new Crumb("Dashboard") })" />
 
 @if (failure is not null)
 {

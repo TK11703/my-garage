@@ -1,0 +1,395 @@
+@using MyGarage.Shared.Reminders
+@using MyGarage.Shared.Dashboard
+@using MyGarage.Web.FuelEnergyEntries
+@using MyGarage.Shared.ServiceRecords
+@using MyGarage.Web.Common
+@using MyGarage.Web.Reminders
+@using MyGarage.Web.ServiceRecords
+@inject RemindersApiClient RemindersApi
+@inject ServiceRecordsApiClient ServiceRecordsApi
+@inject FuelEnergyEntriesApiClient FuelEnergyApi
+@inject TimeProvider Time
+
+<div class="mg-overview" data-testid="overview">
+    <section class="mg-overview-hero card border-0 shadow-sm" aria-label="@Vehicle.Name">
+        <div class="mg-vehicle-top mg-overview-photo">
+            @if (Vehicle.Images.FirstOrDefault(image => image.IsMain) is { } main)
+            {
+                <img class="mg-vehicle-photo object-fit-cover" src="/vehicles/@(Vehicle.Id)/images/@(main.Id)" alt="@Vehicle.Name" data-testid="overview-photo" />
+            }
+            else
+            {
+                <div class="mg-vehicle-photo mg-vehicle-placeholder" data-testid="overview-placeholder" role="img" aria-label="No picture for @Vehicle.Name">
+                    @if (Vehicle.Year is { } year)
+                    {
+                        <span class="mg-vehicle-placeholder-year" aria-hidden="true">@year</span>
+                    }
+                    <span class="mg-vehicle-placeholder-model text-break" aria-hidden="true">@Vehicle.Model</span>
+                </div>
+            }
+            @if (Archived)
+            {
+                <span class="mg-status-pill mg-status-muted" data-testid="overview-archived">Archived</span>
+            }
+        </div>
+        <dl class="mg-spec-plate" aria-label="Spec plate" data-testid="spec-plate">
+            @foreach (var (label, value) in PlateValues)
+            {
+                <div>
+                    <dt>@label</dt>
+                    <dd class="mg-num text-break">@value</dd>
+                </div>
+            }
+        </dl>
+    </section>
+
+    <section class="mg-overview-gauge card border-0 shadow-sm" aria-labelledby="odometer-heading" data-testid="overview-gauge">
+        <h2 id="odometer-heading" class="card-header h6 mb-0 d-flex justify-content-between gap-2">
+            <span>Odometer &amp; service interval</span>
+            @if (gauge is not null)
+            {
+                <span data-testid="gauge-name">@gauge.Name</span>
+            }
+        </h2>
+        <div class="card-body mg-gauge-body">
+            @if (gauge is not null && GaugePercent is { } percent)
+            {
+                <svg class="mg-dial" viewBox="0 0 200 120" role="img" aria-label="@($"{percent}% of the {gauge.Name} interval is used")" data-testid="gauge-dial" focusable="false">
+                    <path class="mg-dial-track" d="M20 100 A80 80 0 0 1 180 100" />
+                    <path class="mg-dial-arc mg-dial-@GaugeTone" d="M20 100 A80 80 0 0 1 180 100" stroke-dasharray="251" stroke-dashoffset="@DialOffset(percent)" />
+                    <text class="mg-dial-pct" x="100" y="88" text-anchor="middle">@percent%</text>
+                    <text class="mg-dial-sub" x="100" y="108" text-anchor="middle">USED</text>
+                </svg>
+            }
+            <dl class="mg-readouts mg-readouts-lg" aria-label="Readouts" data-testid="overview-readouts">
+                <div>
+                    <dt>Odometer</dt>
+                    <dd class="mg-num" data-testid="overview-odometer">@VehicleFormat.Mileage(Vehicle.CurrentMileage)</dd>
+                </div>
+                <div>
+                    <dt>Last service</dt>
+                    <dd class="mg-num" data-testid="overview-last-service">@(Vehicle.LastServiceOn is { } serviceDate ? DisplayFormat.Date(serviceDate) : "No service yet")</dd>
+                </div>
+                <div>
+                    <dt>Spent @Time.GetUtcNow().Year</dt>
+                    <dd class="mg-num" data-testid="overview-spend">@DisplayFormat.Money(Vehicle.SpendThisYear ?? 0m)</dd>
+                </div>
+                <div class="@NextDueClass" data-testid="overview-next-due">
+                    @if (next is { } due)
+                    {
+                        <dt>@due.Name</dt>
+                        <dd class="mg-num">@ReminderFormat.Remaining(due)</dd>
+                    }
+                    else
+                    {
+                        <dt>Next due</dt>
+                        <dd class="mg-readout-empty">@(Archived ? "Reminders are off" : "No reminder set")</dd>
+                    }
+                </div>
+            </dl>
+        </div>
+    </section>
+
+    <section class="mg-overview-attention card border-0 shadow-sm" aria-labelledby="attention-heading" data-testid="needs-attention">
+        <h2 id="attention-heading" class="card-header h6 mb-0 d-flex justify-content-between gap-2">
+            <span>Needs attention</span>
+            @if (attention.Count > 0)
+            {
+                <span data-testid="attention-count">@attention.Count</span>
+            }
+        </h2>
+        <div class="card-body">
+            @if (failed)
+            {
+                <p class="mb-0 text-body-secondary">Reminders are not available right now.</p>
+            }
+            else if (attention.Count == 0)
+            {
+                <p class="mb-0 text-body-secondary" data-testid="nothing-due">
+                    @if (Archived)
+                    {
+                        <text>This vehicle is archived, so its reminders are off.</text>
+                    }
+                    else if (reminders.Count == 0)
+                    {
+                        <text>No reminders yet.</text>
+                        @if (suggestions.Count == 0)
+                        {
+                            <a class="btn btn-sm btn-primary ms-2" href="/vehicles/@Vehicle.Id/reminders/new">Set reminder</a>
+                        }
+                    }
+                    else
+                    {
+                        <text>Nothing is due soon.</text>
+                    }
+                </p>
+            }
+            else
+            {
+                <ul class="list-unstyled mb-0 vstack gap-2">
+                    @foreach (var reminder in attention)
+                    {
+                        <li class="mg-attention-row mg-attention-@(reminder.Status == ReminderStatus.Overdue ? "bad" : "due")" data-testid="attention-item">
+                            <span class="mg-status-led" aria-hidden="true"></span>
+                            <a class="fw-semibold text-break" href="/vehicles/@Vehicle.Id/reminders/@reminder.Id">@reminder.Name</a>
+                            <span class="mg-num text-body-secondary">@ReminderFormat.Remaining(reminder)</span>
+                        </li>
+                    }
+                </ul>
+            }
+
+            @if (!failed && !Archived && suggestions.Count > 0)
+            {
+                <ul class="list-unstyled mb-0 vstack gap-2 mg-suggest-list" aria-label="Suggested reminders" data-testid="overview-suggestions">
+                    @foreach (var suggestion in suggestions)
+                    {
+                        <li class="mg-suggest-row" data-testid="overview-suggestion">
+                            <div class="mg-suggest-text">
+                                <span class="fw-semibold text-break" data-testid="suggestion-name">@suggestion.Name</span>
+                                <small class="text-body-secondary">@suggestion.Basis</small>
+                            </div>
+                            <span class="mg-num text-body-secondary">@ReminderFormat.Interval(suggestion)</span>
+                            <a class="btn btn-sm btn-outline-primary" href="@ReminderLinks.New(Vehicle.Id, suggestion)"
+                               aria-label="@($"Set up a reminder for {suggestion.Name}")" data-testid="set-reminder">Set reminder</a>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </section>
+
+    @if (latest is { } record)
+    {
+        <section class="mg-overview-receipt card border-0 shadow-sm" aria-labelledby="receipt-heading" data-testid="overview-receipt">
+            <h2 id="receipt-heading" class="card-header h6 mb-0 d-flex justify-content-between gap-2">
+                <span>Service record</span>
+                <span>@DisplayFormat.Date(record.DateServiced)</span>
+            </h2>
+            <div class="card-body">
+                <div class="mg-rc">
+                    <div class="mg-rc-head">
+                        <span class="text-break">@ServiceRecordFormat.ShopOrNotSet(record.ShopOrPerson)</span>
+                        <span class="mg-num">@ServiceRecordFormat.Odometer(record.OdometerReading)</span>
+                    </div>
+                    @foreach (var line in record.LineItems.Take(ReceiptLines))
+                    {
+                        <div class="mg-rc-line @(line.TotalCost < 0 ? "mg-rc-credit" : string.Empty)" data-testid="receipt-line">
+                            <span class="mg-rc-name text-break">@line.Description</span>
+                            <span class="mg-num"><MoneyText Amount="line.TotalCost" /></span>
+                        </div>
+                    }
+                    @if (record.LineItems.Count > ReceiptLines)
+                    {
+                        var left = record.LineItems.Count - ReceiptLines;
+                        <div class="mg-rc-more" data-testid="receipt-more">+ @left more line @(left == 1 ? "item" : "items")</div>
+                    }
+                    @if (record.Tax is { } tax)
+                    {
+                        <div class="mg-rc-line">
+                            <span>Tax</span>
+                            <span class="mg-num" data-testid="receipt-tax">@DisplayFormat.Money(tax)</span>
+                        </div>
+                    }
+                    <div class="mg-rc-total">
+                        <b>Total</b>
+                        <span class="mg-num" data-testid="receipt-total">@DisplayFormat.Money(record.TotalCost)</span>
+                    </div>
+                </div>
+                <a class="mg-add-link mg-rc-open" href="/vehicles/@Vehicle.Id/service-records/@record.Id">Open full record</a>
+            </div>
+        </section>
+    }
+
+    @if (spend is { } months)
+    {
+        <section class="mg-overview-spend card border-0 shadow-sm" aria-labelledby="spend-heading" data-testid="overview-spend-panel">
+            <h2 id="spend-heading" class="card-header h6 mb-0 d-flex justify-content-between gap-2">
+                <span>Fuel &amp; charging &middot; 12 mo</span>
+                <span data-testid="spend-total">@DisplayFormat.Money(months.Sum(month => month.Fuel + month.Charging))</span>
+            </h2>
+            <div class="card-body">
+                @if (months.All(month => month.Fuel + month.Charging == 0m))
+                {
+                    <p class="mb-0 text-body-secondary" data-testid="spend-empty">No fuel or charging entries in the last 12 months.</p>
+                }
+                else
+                {
+                    var peak = months.Max(month => month.Fuel + month.Charging);
+                    <svg class="mg-spark" viewBox="0 0 118 40" preserveAspectRatio="none" role="img" aria-label="@SpendSummary(months)" data-testid="spend-chart" focusable="false">
+                        @for (var index = 0; index < months.Count; index++)
+                        {
+                            var amount = months[index].Fuel + months[index].Charging;
+                            var height = Math.Max(40d * (double)(amount / peak), 1.5d);
+                            <rect class="mg-spark-bar @(index == months.Count - 1 ? "mg-spark-hi" : string.Empty)" data-testid="spend-bar"
+                                  x="@(index * 10)" y="@Svg(40d - height)" width="8" height="@Svg(height)">
+                                <title>@MonthName(months[index].Month, true): @DisplayFormat.Money(amount)</title>
+                            </rect>
+                        }
+                    </svg>
+                    <div class="mg-spark-axis" aria-hidden="true">
+                        <span>@MonthName(months[0].Month, false)</span>
+                        <span>@MonthName(months[^1].Month, false)</span>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<FuelEnergySpendMonthDto>? spend;
+    private ServiceRecordDto? latest;
+    private const int ReceiptLines = 4;
+    private const int MaxSuggestions = 3;
+
+    private IReadOnlyList<ReminderDto> reminders = [];
+    private IReadOnlyList<ReminderDto> attention = [];
+    private IReadOnlyList<SuggestedReminderDto> suggestions = [];
+    private ReminderDto? next;
+    private ReminderDto? gauge;
+    private bool failed;
+
+    [Parameter, EditorRequired]
+    public VehicleDetailDto Vehicle { get; set; } = default!;
+
+    [Parameter]
+    public bool Archived { get; set; }
+
+    private int? GaugePercent => gauge is null ? null : ReminderFormat.PercentUsed(gauge);
+
+    private string GaugeTone => gauge?.Status switch
+    {
+        ReminderStatus.Overdue => "bad",
+        ReminderStatus.DueSoon => "due",
+        _ => "ok",
+    };
+
+    // The dial arc is 251 long; the unused part is left as an offset.
+    private static string DialOffset(int percent) => (251d * (100 - percent) / 100d).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+
+    private string NextDueClass => next?.Status switch
+    {
+        ReminderStatus.Overdue => "mg-readout-bad",
+        ReminderStatus.DueSoon => "mg-readout-due",
+        ReminderStatus.MileageNeeded => "mg-readout-needed",
+        _ => string.Empty,
+    };
+
+    // Specs that are not set are left off the plate; the Specs tab offers to add them.
+    private IEnumerable<(string Label, string Value)> PlateValues
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(Vehicle.Engine))
+            {
+                yield return ("Engine", Vehicle.Engine);
+            }
+
+            if (Vehicle.Horsepower is { } horsepower)
+            {
+                yield return ("Power", VehicleFormat.Horsepower(horsepower));
+            }
+
+            if (Vehicle.Drivetrain is { } drivetrain)
+            {
+                yield return ("Drivetrain", drivetrain.Name);
+            }
+
+            if (Vehicle.Transmission is { } transmission)
+            {
+                yield return ("Transmission", transmission.Name);
+            }
+
+            if (!string.IsNullOrWhiteSpace(Vehicle.Vin))
+            {
+                yield return ("VIN", Vehicle.Vin);
+            }
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadLatestRecordAsync();
+        await LoadSpendAsync();
+
+        if (Archived)
+        {
+            return;
+        }
+
+        try
+        {
+            reminders = (await RemindersApi.ListAsync(Vehicle.Id)).Value ?? [];
+        }
+        catch (GarageApiException)
+        {
+            failed = true;
+            return;
+        }
+
+        var active = reminders.Where(reminder => reminder.Status is not (ReminderStatus.Paused or ReminderStatus.Archived)).ToList();
+        attention = [.. active.Where(reminder => reminder.Status is ReminderStatus.Overdue or ReminderStatus.DueSoon)];
+        next = active.OrderBy(Rank).FirstOrDefault();
+        gauge = active.OrderBy(Rank).FirstOrDefault(reminder => ReminderFormat.PercentUsed(reminder) is not null);
+
+        // A courtesy: without suggestions the rest of the panel is unchanged.
+        try
+        {
+            suggestions = [.. ((await RemindersApi.SuggestionsAsync(Vehicle.Id)).Value ?? []).Take(MaxSuggestions)];
+        }
+        catch (GarageApiException)
+        {
+            suggestions = [];
+        }
+    }
+
+    // The panel is left out when the API is unavailable.
+    private async Task LoadSpendAsync()
+    {
+        try
+        {
+            spend = (await FuelEnergyApi.SpendAsync(Vehicle.Id)).Value;
+        }
+        catch (GarageApiException)
+        {
+            spend = null;
+        }
+    }
+
+    private static string Svg(double value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string MonthName(DateOnly month, bool withYear) =>
+        month.ToString(withYear ? "MMM yyyy" : "MMM", System.Globalization.CultureInfo.InvariantCulture).ToUpperInvariant();
+
+    private static string SpendSummary(IReadOnlyList<FuelEnergySpendMonthDto> months)
+    {
+        var top = months.MaxBy(month => month.Fuel + month.Charging)!;
+        return $"Fuel and charging cost per month over the last 12 months; the highest is {DisplayFormat.Money(top.Fuel + top.Charging)} in {MonthName(top.Month, true)}.";
+    }
+
+    // The newest record is listed first; the panel is left out when there is none or the API is unavailable.
+    private async Task LoadLatestRecordAsync()
+    {
+        latest = null;
+        try
+        {
+            var newest = (await ServiceRecordsApi.ListAsync(Vehicle.Id, 1)).Value?.Items.FirstOrDefault();
+            if (newest is not null)
+            {
+                latest = (await ServiceRecordsApi.GetAsync(Vehicle.Id, newest.Id)).Value;
+            }
+        }
+        catch (GarageApiException)
+        {
+            latest = null;
+        }
+    }
+
+    private static int Rank(ReminderDto reminder) => reminder.Status switch
+    {
+        ReminderStatus.Overdue => 0,
+        ReminderStatus.DueSoon => 1,
+        ReminderStatus.MileageNeeded => 2,
+        _ => 3,
+    };
+}

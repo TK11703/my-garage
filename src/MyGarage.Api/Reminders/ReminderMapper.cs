@@ -1,3 +1,4 @@
+using System.Globalization;
 using MyGarage.Database.Reminders;
 using MyGarage.Shared.Reminders;
 using MyGarage.Shared.Vehicles;
@@ -7,6 +8,17 @@ namespace MyGarage.Api.Reminders;
 // Data records stay inside the Api; every response is built here.
 public static class ReminderMapper
 {
+    public static SuggestedReminderDto ToSuggestionDto(ReminderSuggestionRecord record) =>
+        new()
+        {
+            Name = record.Name,
+            IntervalMiles = record.IntervalMiles,
+            IntervalMonths = record.IntervalMonths,
+            LastDoneOn = record.LastDoneOn,
+            LastDoneMileage = record.LastDoneMileage,
+            Basis = $"Done {record.Times.ToString(CultureInfo.InvariantCulture)} times; last on {record.LastDoneOn.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)}",
+        };
+
     public static ReminderDto ToDto(ReminderRecord record, DateOnly today)
     {
         var calculation = Calculate(record, today);

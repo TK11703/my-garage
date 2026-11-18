@@ -17,8 +17,8 @@ public class VehicleCreatePageTests : VehicleTestContext
         Assert.Single(cut.FindAll("h1"));
         Assert.Equal("Add Vehicle", cut.Find("h1").TextContent);
         var items = cut.FindAll("nav[aria-label='Breadcrumb'] li");
-        Assert.Equal(["Home", "Garage", "Vehicles"], items.Select(item => item.TextContent.Trim()));
-        Assert.Equal("/vehicles", items[2].QuerySelector("a")!.GetAttribute("href"));
+        Assert.Equal(["Home", "Garage"], items.Select(item => item.TextContent.Trim()));
+        Assert.Equal("/vehicles", items[1].QuerySelector("a")!.GetAttribute("href"));
     }
 
     [Fact]
@@ -62,8 +62,8 @@ public class VehicleCreatePageTests : VehicleTestContext
 
         cut.WaitForAssertion(() =>
         {
-            var tabs = cut.FindAll("ul.mg-tabs[role='tablist'] button[role='tab']");
-            Assert.Equal(["Import from sticker", "Details"], tabs.Select(tab => tab.TextContent.Trim()));
+            var tabs = cut.FindAll("ol.mg-steps[role='tablist'] button[role='tab']");
+            Assert.Equal(["1Sticker", "3Review"], tabs.Select(tab => tab.TextContent.Trim()));
             Assert.Equal(["tab-import"], cut.FindAll(".tab-pane.active").Select(pane => pane.Id));
             Assert.Empty(cut.FindAll("#tab-media, #tab-description"));
             Assert.Equal(

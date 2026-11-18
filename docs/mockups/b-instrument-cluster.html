@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup B – Instrument cluster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E6EBEF; --panel:#FFFFFF; --panel2:#F1F4F7; --ink:#0E1318; --muted:#5A6672; --line:#D2DAE1;
+  --amber:#C77900; --amber-glow:rgba(199,121,0,.25); --ok:#1F8A4C; --bad:#C23B30; --track:#D8E0E7;
+  --rail:#0E1318; --rail-ink:#AEB9C4; --car:#7D8590; --sky1:#D5DDE5; --sky2:#B9C4CE;
+  --display:"Chakra Petch",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+[data-theme=dark]{
+  --bg:#080B0E; --panel:#10151A; --panel2:#171E25; --ink:#E8EEF3; --muted:#8895A2; --line:#222B34;
+  --amber:#FFB000; --amber-glow:rgba(255,176,0,.28); --ok:#3DDC84; --bad:#FF5B4D; --track:#1F2832;
+  --rail:#05070A; --rail-ink:#7C8A97; --car:#4A525B; --sky1:#1A222A; --sky2:#0F151A;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--body)}
+.mockbar{display:flex;gap:1rem;align-items:center;justify-content:space-between;padding:.4rem 1rem;background:#000;color:#ddd;font:12px var(--body)}
+.mockbar a{color:#ffb74d;margin-right:.75rem}.mockbar button{font:inherit;background:#333;color:#fff;border:0;border-radius:4px;padding:.2rem .6rem;cursor:pointer}
+.shell{display:grid;grid-template-columns:68px 1fr;min-height:calc(100vh - 32px)}
+.rail{background:var(--rail);display:flex;flex-direction:column;align-items:center;gap:.5rem;padding:1rem 0}
+.logo{width:38px;height:38px;border-radius:10px;border:2px solid var(--amber);color:var(--amber);display:grid;place-items:center;font:700 13px var(--mono);margin-bottom:1rem;box-shadow:0 0 14px var(--amber-glow)}
+.rail a{width:42px;height:42px;display:grid;place-items:center;border-radius:10px;color:var(--rail-ink);text-decoration:none;font:600 11px var(--mono);letter-spacing:.04em}
+.rail a.on{background:rgba(255,176,0,.14);color:#FFB000;box-shadow:inset 3px 0 0 #FFB000}
+.rail .sp{flex:1}
+main{padding:1.5rem 2rem 3rem;max-width:1240px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;margin-bottom:1.25rem}
+.eyebrow{font:500 11px var(--mono);letter-spacing:.18em;color:var(--amber);text-transform:uppercase}
+h1{font:700 38px/1 var(--display);margin:.25rem 0 0;text-transform:uppercase;letter-spacing:.02em}
+.status{display:flex;gap:.5rem;align-items:center;font:500 12px var(--mono);color:var(--muted)}
+.led{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.grid{display:grid;grid-template-columns:320px 1fr 1fr;grid-template-rows:auto auto;gap:1rem}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.25rem;position:relative}
+.panel h3{margin:0 0 .75rem;font:600 11px var(--mono);letter-spacing:.16em;color:var(--muted);text-transform:uppercase;display:flex;justify-content:space-between}
+.photo{grid-row:span 2;padding:0;overflow:hidden;display:flex;flex-direction:column}
+.photo .img{flex:1;min-height:240px;position:relative;background:linear-gradient(var(--sky1),var(--sky2))}
+.photo .img svg{position:absolute;left:6%;width:88%;bottom:16%;color:var(--car)}
+.photo .meta{padding:1rem 1.25rem;border-top:1px solid var(--line)}
+.spec{display:grid;grid-template-columns:auto 1fr;gap:.35rem 1rem;font:500 13px var(--mono);margin:0}
+.spec dt{color:var(--muted)}.spec dd{margin:0;text-align:right}
+.gauge{display:flex;gap:1.25rem;align-items:center}
+.gauge svg{width:150px;flex:none}
+.big{font:700 40px/1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.big small{font-size:14px;color:var(--muted);font-weight:500;margin-left:.25rem}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border-radius:10px;overflow:hidden;margin-top:1rem}
+.seg div{background:var(--panel2);padding:.7rem .85rem}
+.seg span{display:block;font:500 10px var(--mono);letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+.seg b{font:600 16px var(--mono);white-space:nowrap}
+.wide{grid-column:span 2}
+.warn{display:flex;gap:.9rem;align-items:center;padding:.7rem .9rem;border-radius:10px;background:var(--panel2);margin-bottom:.5rem;border-left:4px solid var(--amber)}
+.warn.ok{border-color:var(--ok)}
+.warn .t{font-weight:600}.warn .m{font:400 12px var(--mono);color:var(--muted)}
+.warn .r{margin-left:auto;font:600 13px var(--mono);color:var(--amber)}.warn.ok .r{color:var(--ok)}
+.bar{height:6px;background:var(--track);border-radius:3px;margin-top:.4rem;overflow:hidden}.bar i{display:block;height:100%;background:var(--amber);box-shadow:0 0 8px var(--amber-glow)}
+.btn{font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;background:var(--amber);color:#1A1204;border:0;border-radius:8px;padding:.5rem .9rem;cursor:pointer}
+.rc{font-family:var(--mono);font-size:13px}
+.rc .h{display:flex;justify-content:space-between;color:var(--muted);margin-bottom:.75rem;font-size:12px}
+.rc .l{display:flex;justify-content:space-between;padding:.45rem 0;border-bottom:1px solid var(--line)}
+.rc .l .a{font-variant-numeric:tabular-nums}.rc .neg .a{color:var(--ok)}
+.rc .t{display:flex;justify-content:space-between;align-items:baseline;padding-top:.8rem}
+.rc .t b{font:600 11px var(--mono);letter-spacing:.16em;color:var(--muted)}.rc .t span{font:700 26px var(--mono);color:var(--amber)}
+.spark{display:flex;gap:4px;align-items:flex-end;height:64px;margin-top:.5rem}
+.spark i{flex:1;background:var(--track);border-radius:2px}.spark i.hi{background:var(--amber)}
+.view[hidden]{display:none}
+.tabs{display:flex;gap:.25rem;margin:0 0 1.25rem;padding:.3rem;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+.tabs a{font:600 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;text-decoration:none;color:var(--muted);padding:.55rem .9rem;border-radius:8px;white-space:nowrap}
+.tabs a:hover{color:var(--ink)}
+.tabs a.on{background:var(--panel2);color:var(--amber);box-shadow:inset 0 -2px 0 var(--amber)}
+.tabs a em{font-style:normal;color:var(--muted);margin-left:.4rem}
+.head-actions{display:flex;gap:1rem;align-items:center}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.chips{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem}
+.chips button{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:.35rem .8rem;cursor:pointer}
+.chips button.on{color:#1A1204;background:var(--amber);border-color:var(--amber)}
+.tl{position:relative;margin:0;padding:0;list-style:none}
+.tl::before{content:"";position:absolute;left:96px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.tl li{display:grid;grid-template-columns:84px 24px 1fr;gap:0 .5rem;padding:.6rem 0}
+.tl li[hidden]{display:none}
+.tl .d{font:500 11px/1.4 var(--mono);color:var(--muted);text-align:right;letter-spacing:.04em;padding-top:.7rem}
+.tl .dot{width:12px;height:12px;border-radius:50%;background:var(--panel);border:2px solid var(--amber);margin:.8rem auto 0;box-shadow:0 0 8px var(--amber-glow);position:relative;z-index:1}
+.tl li.fuel .dot{border-color:var(--ok);box-shadow:none}.tl li.comp .dot{border-color:var(--muted);box-shadow:none}.tl li.jrnl .dot{border-color:var(--ink);box-shadow:none}
+.tl .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem}
+.tl .card .row1{display:flex;justify-content:space-between;gap:1rem;align-items:baseline}
+.tl .card .k{font:600 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.tl .card .t{font-weight:600}.tl .card .m{font:400 12px var(--mono);color:var(--muted)}
+.tl .card .amt{font:600 16px var(--mono);font-variant-numeric:tabular-nums}
+.tl details summary{cursor:pointer;list-style:none;color:var(--amber);font:500 12px var(--mono);margin-top:.5rem}
+.tl details summary::-webkit-details-marker{display:none}
+.tl details .rc{margin-top:.6rem}
+.specs{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.specs div{background:var(--panel);padding:.8rem 1rem;border-right:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 -1px -1px 0}
+.specs span{display:block;font:500 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.specs b{font:500 15px var(--mono)}.specs b.add{color:var(--amber);font-weight:500}
+.sub{margin:1.5rem 0 .6rem;font:600 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.sub:first-child{margin-top:0}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.75rem}
+.tile{position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:linear-gradient(var(--sky1),var(--sky2));border:1px solid var(--line)}
+.tile svg{position:absolute;left:8%;width:84%;bottom:14%;color:var(--car)}
+.tile .badge{position:absolute;top:8px;left:8px;font:700 10px var(--mono);letter-spacing:.1em;background:var(--amber);color:#1A1204;padding:.15rem .5rem;border-radius:999px}
+.tile .cap{position:absolute;left:0;right:0;bottom:0;padding:.3rem .6rem;font:400 11px var(--mono);background:rgba(0,0,0,.55);color:#fff}
+.drop{display:grid;place-items:center;text-align:center;border:2px dashed var(--line);background:transparent;color:var(--muted);font:500 12px var(--mono);padding:1rem}
+.drop b{display:block;color:var(--amber);font-size:22px}
+.empty{text-align:center;padding:2.5rem 1rem}
+.empty .big2{font:700 22px var(--display);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.empty p{color:var(--muted);max-width:34rem;margin:.25rem auto}
+.mailbox{display:inline-flex;gap:.6rem;align-items:center;margin-top:.8rem;background:var(--panel2);border:1px dashed var(--line);border-radius:10px;padding:.5rem .8rem;font:500 13px var(--mono)}
+.mailbox button{font:600 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;background:transparent;color:var(--amber);border:1px solid var(--amber);border-radius:6px;padding:.2rem .5rem;cursor:pointer}
+.rem{display:grid;grid-template-columns:1fr auto auto;gap:1rem;align-items:center;padding:1rem 0;border-bottom:1px solid var(--line)}
+.rem:last-child{border:0}
+.rem .t{font-weight:600}.rem .m{font:400 12px var(--mono);color:var(--muted)}
+.pill{font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:.2rem .6rem;border-radius:999px;border:1px solid currentColor}
+.pill.due{color:var(--amber)}.pill.ok{color:var(--ok)}
+.note{font:400 12px var(--mono);color:var(--muted);margin-top:1.5rem}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}.photo{grid-row:auto}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><symbol id="car" viewBox="0 0 400 170"><path d="M18 124 L30 98 Q36 86 54 82 L118 74 Q140 44 182 40 L252 40 Q286 42 306 70 L352 80 Q376 86 380 108 L384 124 Q386 132 378 132 L22 132 Q14 132 18 124Z" fill="currentColor"/><path d="M138 74 Q154 54 184 52 L244 52 Q268 54 282 74Z" fill="#fff" opacity=".3"/><circle cx="98" cy="132" r="24" fill="#05070A"/><circle cx="98" cy="132" r="10" fill="#6d747b"/><circle cx="306" cy="132" r="24" fill="#05070A"/><circle cx="306" cy="132" r="10" fill="#6d747b"/></symbol></svg>
+
+<div class="mockbar"><span><strong>MOCKUP B of 3 · Instrument cluster</strong> &nbsp;
+<a href="a-workshop-logbook.html">A</a><a href="b-instrument-cluster.html">B</a><a href="c-clean-editorial.html">C</a>&nbsp;|&nbsp; <a href="b-garage.html">B: Garage</a><a href="b-instrument-cluster.html">B: Vehicle</a><a href="b-service-record.html">B: Service record</a><a href="b-reminders.html">B: Reminders</a><a href="b-add-vehicle.html">B: Add vehicle</a><a href="b-draft-review.html">B: Review draft</a> &nbsp;|&nbsp; <a href="b-search.html">Search</a><a href="b-preferences.html">Preferences</a><a href="b-faq.html">FAQ</a><a href="b-about.html">About</a><a href="b-signed-out.html">Signed out</a><a href="b-404.html">404</a></span>
+<button id="t">Toggle light / dark</button></div>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="logo">MG</div>
+    <a class="on" href="b-garage.html" title="Garage">GAR</a><a href="b-add-vehicle.html" title="Add vehicle">NEW</a><a href="b-reminders.html" title="Reminders">REM</a><a href="b-draft-review.html" title="Drafts">DRF</a><a href="b-search.html" title="Search">SRC</a><a href="#" title="Spend">$</a>
+    <span class="sp"></span><a href="b-faq.html" title="Help">?</a><a href="b-preferences.html" title="Account">AC</a>
+  </aside>
+
+  <main>
+    <div class="top">
+      <div><div class="eyebrow">Garage / Vehicle 01</div><h1>Grand Cherokee</h1></div>
+      <div class="head-actions">
+        <div class="status"><span class="led"></span>2015 · LIMITED · SILVER · 1 ITEM DUE SOON</div>
+        <button class="btn">+ Add</button>
+      </div>
+    </div>
+
+    <nav class="tabs" role="tablist" aria-label="Vehicle sections">
+      <a href="#overview" data-tab="overview" role="tab">Overview</a>
+      <a href="#timeline" data-tab="timeline" role="tab">Timeline<em>4</em></a>
+      <a href="#specs" data-tab="specs" role="tab">Specs</a>
+      <a href="#photos" data-tab="photos" role="tab">Photos<em>6</em></a>
+      <a href="#reminders" data-tab="reminders" role="tab">Reminders<em>2</em></a>
+      <a href="#documents" data-tab="documents" role="tab">Documents<em>0</em></a>
+    </nav>
+
+    <div class="view" id="v-overview">
+
+    <div class="grid">
+      <section class="panel photo">
+        <div class="img"><svg viewBox="0 0 400 170"><use href="#car"/></svg></div>
+        <div class="meta">
+          <dl class="spec">
+            <dt>ENGINE</dt><dd>3.5L V6</dd><dt>POWER</dt><dd>285 HP</dd><dt>DRIVE</dt><dd>4WD</dd>
+            <dt>GEARBOX</dt><dd>AUTO</dd><dt>VIN</dt><dd style="color:var(--amber)">+ ADD</dd>
+          </dl>
+        </div>
+      </section>
+
+      <section class="panel wide">
+        <h3><span>Odometer &amp; service interval</span><span>OIL CHANGE</span></h3>
+        <div class="gauge">
+          <svg viewBox="0 0 200 120">
+            <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="var(--track)" stroke-width="12" stroke-linecap="round"/>
+            <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="var(--amber)" stroke-width="12" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="190" style="filter:drop-shadow(0 0 6px var(--amber-glow))"/>
+            <text x="100" y="88" text-anchor="middle" font-family="JetBrains Mono" font-weight="700" font-size="26" fill="var(--ink)">24%</text>
+            <text x="100" y="108" text-anchor="middle" font-family="JetBrains Mono" font-size="9" letter-spacing="2" fill="var(--muted)">OF 5,000 MI</text>
+          </svg>
+          <div style="flex:1">
+            <div class="big">91,320<small>MI</small></div>
+            <div style="font:400 12px var(--mono);color:var(--muted)">NEXT OIL CHANGE AT ~95,100 MI</div>
+            <div class="seg">
+              <div><span>Last service</span><b>OCT 30</b></div>
+              <div><span>Service $</span><b>284.21</b></div>
+              <div><span>Fuel $</span><b>61.71</b></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel wide">
+        <h3><span>Needs attention</span><span>2</span></h3>
+        <div class="warn"><div><div class="t">Oil change</div><div class="m">Suggested from your Oct 30 service</div><div class="bar" style="width:220px"><i style="width:24%"></i></div></div><span class="r">3,780 mi left</span><button class="btn">Set reminder</button></div>
+        <div class="warn ok"><div><div class="t">Registration</div><div class="m">Expires Mar 14, 2027</div></div><span class="r">120 days</span></div>
+      </section>
+
+      <section class="panel">
+        <h3><span>Service record</span><span>OCT 30, 2026</span></h3>
+        <div class="rc">
+          <div class="h"><span>ALLEN NG</span><span>90,100 MI</span></div>
+          <div class="l"><span>Synthetic oil change</span><span class="a">100.00</span></div>
+          <div class="l neg"><span>Coupon</span><span class="a">−4.04</span></div>
+          <div class="l"><span>Labor</span><span class="a">180.00</span></div>
+          <div class="l"><span>Tax</span><span class="a">8.25</span></div>
+          <div class="t"><b>TOTAL</b><span>$284.21</span></div>
+        </div>
+      </section>
+
+      <section class="panel wide">
+        <h3><span>Fuel &amp; charging · 12 mo</span><span>$61.71</span></h3>
+        <div class="spark"><i style="height:8%"></i><i style="height:8%"></i><i style="height:8%"></i><i style="height:8%"></i><i style="height:8%"></i><i style="height:8%"></i><i style="height:8%"></i><i style="height:8%"></i><i style="height:8%"></i><i style="height:8%"></i><i style="height:8%"></i><i class="hi" style="height:90%"></i></div>
+        <div style="display:flex;justify-content:space-between;font:400 11px var(--mono);color:var(--muted);margin-top:.4rem"><span>DEC</span><span>NOV</span></div>
+      </section>
+    </div>
+    </div>
+
+    <div class="view" id="v-timeline" hidden>
+      <div class="chips" role="group" aria-label="Filter timeline">
+        <button class="on" data-f="all">All</button><button data-f="svc">Service</button><button data-f="fuel">Fuel &amp; charging</button><button data-f="comp">Compliance</button><button data-f="jrnl">Journal</button>
+      </div>
+      <ul class="tl">
+        <li class="fuel" data-k="fuel"><span class="d">NOV 02<br>2026</span><i class="dot"></i>
+          <div class="card"><div class="row1"><span class="k">Fuel</span><span class="amt">$61.71</span></div><div class="t">Fill-up</div><div class="m">Gasoline</div></div></li>
+        <li class="svc" data-k="svc"><span class="d">OCT 30<br>2026</span><i class="dot"></i>
+          <div class="card"><div class="row1"><span class="k">Service · 90,100 mi</span><span class="amt">$284.21</span></div><div class="t">Oil change &amp; labor</div><div class="m">Allen Ng · 3 line items</div>
+            <details><summary>View receipt</summary><a href="b-service-record.html" style="display:block;margin-top:.4rem;font:500 12px var(--mono);color:var(--amber)">Open full record →</a>
+              <div class="rc"><div class="l"><span>Synthetic oil change</span><span class="a">100.00</span></div><div class="l neg"><span>Coupon</span><span class="a">−4.04</span></div><div class="l"><span>Labor</span><span class="a">180.00</span></div><div class="l"><span>Tax</span><span class="a">8.25</span></div><div class="t"><b>TOTAL</b><span>$284.21</span></div></div>
+            </details></div></li>
+        <li class="comp" data-k="comp"><span class="d">ON FILE</span><i class="dot"></i>
+          <div class="card"><div class="row1"><span class="k">Compliance</span><span class="amt" style="color:var(--ok)">120 days</span></div><div class="t">Registration</div><div class="m">Expires Mar 14, 2027</div></div></li>
+        <li class="jrnl" data-k="jrnl"><span class="d">OCT 28<br>2026</span><i class="dot"></i>
+          <div class="card"><div class="row1"><span class="k">Journal · Maintenance</span></div><div class="t">Slight rattle at idle, booked the oil change.</div><div class="m">Note</div></div></li>
+      </ul>
+    </div>
+
+    <div class="view" id="v-specs" hidden>
+      <div class="sub">Basic</div>
+      <div class="specs">
+        <div><span>Year</span><b>2015</b></div><div><span>Make</span><b>Jeep</b></div><div><span>Model</span><b>Grand Cherokee</b></div>
+        <div><span>Trim</span><b>Limited</b></div><div><span>VIN</span><b class="add">+ add</b></div><div><span>Vehicle type</span><b>SUV</b></div>
+        <div><span>Ownership</span><b>Purchased</b></div><div><span>Date purchased</span><b class="add">+ add</b></div><div><span>Mileage at purchase</span><b>12 mi</b></div>
+        <div><span>Latest odometer</span><b>91,320 mi</b></div>
+      </div>
+      <div class="sub">Specifications</div>
+      <div class="specs">
+        <div><span>Engine</span><b>3.5L V6</b></div><div><span>Horsepower</span><b>285 hp</b></div><div><span>Drivetrain</span><b>4WD</b></div>
+        <div><span>Color</span><b>Silver</b></div><div><span>Fuel type</span><b>Gasoline</b></div><div><span>Transmission</span><b>Automatic</b></div>
+        <div><span>Seats</span><b>5</b></div><div><span>Doors</span><b>4</b></div><div><span>Wheel size</span><b class="add">+ add</b></div><div><span>Tire size</span><b class="add">+ add</b></div>
+      </div>
+      <div class="sub">Features</div>
+      <div class="chips"><button disabled>Leather seats</button><button disabled>Sunroof</button><button disabled>Tow package</button><button class="on" style="background:transparent;color:var(--amber);border-style:dashed">+ add feature</button></div>
+    </div>
+
+    <div class="view" id="v-photos" hidden>
+      <div class="gallery">
+        <div class="tile"><span class="badge">MAIN</span><svg viewBox="0 0 400 170"><use href="#car"/></svg><span class="cap">Front three-quarter</span></div>
+        <div class="tile"><svg viewBox="0 0 400 170"><use href="#car"/></svg><span class="cap">Side</span></div>
+        <div class="tile"><svg viewBox="0 0 400 170"><use href="#car"/></svg><span class="cap">Rear</span></div>
+        <div class="tile"><svg viewBox="0 0 400 170"><use href="#car"/></svg></div>
+        <div class="tile"><svg viewBox="0 0 400 170"><use href="#car"/></svg></div>
+        <div class="tile"><svg viewBox="0 0 400 170"><use href="#car"/></svg></div>
+        <div class="tile drop"><div><b>+</b>Drop images here<br>or click to browse</div></div>
+      </div>
+    </div>
+
+    <div class="view" id="v-reminders" hidden>
+      <section class="panel">
+        <h3><span>Active reminders</span><button class="btn" style="padding:.35rem .7rem">+ New reminder</button></h3>
+        <div class="rem"><div><div class="t">Oil change</div><div class="m">Every 5,000 mi or 6 months, whichever comes first · last done Oct 30 at 90,100 mi</div><div class="bar" style="width:260px"><i style="width:24%"></i></div></div><span class="pill due">3,780 mi left</span><button class="btn ghost">Mark done</button></div>
+        <div class="rem"><div><div class="t">Registration renewal</div><div class="m">Due Mar 14, 2027</div></div><span class="pill ok">120 days</span><button class="btn ghost">Mark done</button></div>
+      </section>
+    </div>
+
+    <div class="view" id="v-documents" hidden>
+      <section class="panel empty">
+        <div class="big2">No documents kept yet</div>
+        <p>Forward a service invoice or receipt, or upload a file, and keep the original with its record.</p>
+        <div class="mailbox"><span>intake@your-domain.example</span><button>Copy</button></div>
+      </section>
+    </div>
+
+    <p class="note">Sample data based on your Jeep. Current odometer, interval progress, reminders, journal note, features, photo captions, intake address, and registration date are illustrative.</p>
+  </main>
+</div>
+<script>
+const r=document.documentElement;
+r.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+document.getElementById('t').onclick=()=>r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';
+const tabs=[...document.querySelectorAll('[data-tab]')];
+function show(n){
+  if(!document.getElementById('v-'+n))n='overview';
+  tabs.forEach(t=>{const on=t.dataset.tab===n;t.classList.toggle('on',on);t.setAttribute('aria-selected',on)});
+  document.querySelectorAll('.view').forEach(v=>v.hidden=v.id!=='v-'+n);
+}
+tabs.forEach(t=>t.addEventListener('click',e=>{e.preventDefault();show(t.dataset.tab);history.replaceState(null,'','#'+t.dataset.tab)}));
+show(location.hash.slice(1)||'overview');
+document.querySelectorAll('.chips[aria-label="Filter timeline"] button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.chips[aria-label="Filter timeline"] button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.tl li').forEach(li=>li.hidden=b.dataset.f!=='all'&&li.dataset.k!==b.dataset.f);
+});
+</script>
+</body>
+</html>

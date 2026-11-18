@@ -20,7 +20,8 @@ else if (notFound)
 }
 else if (vehicle is not null)
 {
-    var current = VehicleTabs.Normalize(Tab);
+    var current = VehicleTabs.NormalizeView(Tab);
+    var addHref = isArchived ? null : $"/vehicles/{VehicleId}/edit?tab=details";
 
     <PageHeader Title="@vehicle.Name" Trail="@(new[] { new Crumb("Vehicles", "/vehicles"), new Crumb(vehicle.Name) })">
         <Actions>
@@ -112,52 +113,58 @@ else if (vehicle is not null)
 
     <div class="tab-content">
         <CascadingValue Value="archivedState">
+                <div id="tab-overview" class="tab-pane @PaneState("overview", current)" role="tabpanel" aria-labelledby="tab-overview-tab" tabindex="0">
+                    <VehicleOverview Vehicle="vehicle" Archived="isArchived" />
+                </div>
+                <div id="tab-timeline" class="tab-pane @PaneState("timeline", current)" role="tabpanel" aria-labelledby="tab-timeline-tab" tabindex="0">
+                    <VehicleTimelineView VehicleId="VehicleId" Kind="@Kind" Page="timelinePage" />
+                </div>
                 <div id="tab-details" class="tab-pane @PaneState("details", current)" role="tabpanel" aria-labelledby="tab-details-tab" tabindex="0">
+                  <div class="mg-topics-layout">
+                    <nav class="mg-topics" aria-label="Spec sections" data-testid="specs-topics">
+                        <a href="/vehicles/@VehicleId?tab=details#group-basic">Basic</a>
+                        <a href="/vehicles/@VehicleId?tab=details#group-specifications">Detailed</a>
+                        <a href="/vehicles/@VehicleId?tab=details#group-features">Features <em>@vehicle.Tags.Count</em></a>
+                    </nav>
+                    <div class="mg-topics-body">
                     <FieldGroup Id="basic" Title="Basic">
                     <dl class="row g-3 mb-0" aria-label="Basic information">
                         <ViewField Label="Year" Value="@VehicleFormat.Number(vehicle.Year)" />
                         <ViewField Label="Make" Value="@vehicle.Make" />
                         <ViewField Label="Model" Value="@vehicle.Model" />
-                        <ViewField Label="Trim" Value="@VehicleFormat.Text(vehicle.Trim)" />
-                        <ViewField Label="VIN" Value="@VehicleFormat.Text(vehicle.Vin)" />
-                        <ViewField Label="Vehicle type" Value="@VehicleFormat.Text(vehicle.VehicleType?.Name)" />
-                        <ViewField Label="Purchased or leased" Value="@VehicleFormat.Ownership(vehicle.Ownership)" />
-                        <ViewField Label="@VehicleFormat.DateLabel(vehicle.Ownership)" Value="@VehicleFormat.Date(vehicle.PurchasedOn)" />
+                        <ViewField Label="Trim" Value="@VehicleFormat.Text(vehicle.Trim)" AddHref="@addHref" />
+                        <ViewField Label="VIN" Value="@VehicleFormat.Text(vehicle.Vin)" AddHref="@addHref" />
+                        <ViewField Label="Vehicle type" Value="@VehicleFormat.Text(vehicle.VehicleType?.Name)" AddHref="@addHref" />
+                        <ViewField Label="Purchased or leased" Value="@VehicleFormat.Ownership(vehicle.Ownership)" AddHref="@addHref" />
+                        <ViewField Label="@VehicleFormat.DateLabel(vehicle.Ownership)" Value="@VehicleFormat.Date(vehicle.PurchasedOn)" AddHref="@addHref" />
                         @if (vehicle.Ownership == OwnershipType.Leased)
                         {
-                            <ViewField Label="Date lease ends" Value="@VehicleFormat.Date(vehicle.LeaseEndsOn)" />
+                            <ViewField Label="Date lease ends" Value="@VehicleFormat.Date(vehicle.LeaseEndsOn)" AddHref="@addHref" />
                         }
-                        <ViewField Label="@VehicleFormat.MileageLabel(vehicle.Ownership)" Value="@VehicleFormat.MileageOrNotSet(vehicle.Mileage)" />
-                        <ViewField Label="Latest odometer reading" Value="@VehicleFormat.MileageOrNotSet(vehicle.LatestOdometerReading)" />
+                        <ViewField Label="@VehicleFormat.MileageLabel(vehicle.Ownership)" Value="@VehicleFormat.MileageOrNotSet(vehicle.Mileage)" AddHref="@addHref" />
+                        <ViewField Label="Latest odometer reading" Value="@VehicleFormat.MileageOrNotSet(vehicle.LatestOdometerReading)" AddHref="@addHref" />
                     </dl>
                     </FieldGroup>
-                    <FieldGroup Id="specifications" Title="Specifications">
+                    <FieldGroup Id="specifications" Title="Detailed">
                     <dl class="row g-3 mb-0" aria-label="Specifications">
-                        <ViewField Label="Engine" Value="@VehicleFormat.Text(vehicle.Engine)" />
-                        <ViewField Label="Horsepower" Value="@VehicleFormat.Horsepower(vehicle.Horsepower)" />
-                        <ViewField Label="Drivetrain" Value="@VehicleFormat.Text(vehicle.Drivetrain?.Name)" />
-                        <ViewField Label="Color" Value="@VehicleFormat.Text(vehicle.Color)" />
-                        <ViewField Label="Fuel type" Value="@VehicleFormat.Text(vehicle.FuelType?.Name)" />
-                        <ViewField Label="Transmission" Value="@VehicleFormat.Text(vehicle.Transmission?.Name)" />
-                        <ViewField Label="Seats" Value="@VehicleFormat.Number(vehicle.Seats)" Column="col-6 col-sm-3" />
-                        <ViewField Label="Doors" Value="@VehicleFormat.Number(vehicle.Doors)" Column="col-6 col-sm-3" />
-                        <ViewField Label="Wheel size" Value="@VehicleFormat.WheelSize(vehicle.WheelSize)" Column="col-6 col-sm-3" />
-                        <ViewField Label="Tire size" Value="@VehicleFormat.Text(vehicle.TireSize)" Column="col-6 col-sm-3" />
+                        <ViewField Label="Engine" Value="@VehicleFormat.Text(vehicle.Engine)" AddHref="@addHref" />
+                        <ViewField Label="Horsepower" Value="@VehicleFormat.Horsepower(vehicle.Horsepower)" AddHref="@addHref" />
+                        <ViewField Label="Drivetrain" Value="@VehicleFormat.Text(vehicle.Drivetrain?.Name)" AddHref="@addHref" />
+                        <ViewField Label="Color" Value="@VehicleFormat.Text(vehicle.Color)" AddHref="@addHref" />
+                        <ViewField Label="Fuel type" Value="@VehicleFormat.Text(vehicle.FuelType?.Name)" AddHref="@addHref" />
+                        <ViewField Label="Transmission" Value="@VehicleFormat.Text(vehicle.Transmission?.Name)" AddHref="@addHref" />
+                        <ViewField Label="Seats" Value="@VehicleFormat.Number(vehicle.Seats)" Column="col-6 col-sm-3" AddHref="@addHref" />
+                        <ViewField Label="Doors" Value="@VehicleFormat.Number(vehicle.Doors)" Column="col-6 col-sm-3" AddHref="@addHref" />
+                        <ViewField Label="Wheel size" Value="@VehicleFormat.WheelSize(vehicle.WheelSize)" Column="col-6 col-sm-3" AddHref="@addHref" />
+                        <ViewField Label="Tire size" Value="@VehicleFormat.Text(vehicle.TireSize)" Column="col-6 col-sm-3" AddHref="@addHref" />
                     </dl>
                     </FieldGroup>
+                    <VehicleTagsView VehicleId="VehicleId" Tags="vehicle.Tags" Query="@FeatureQuery" />
+                    </div>
+                  </div>
                 </div>
                 <div id="tab-media" class="tab-pane @PaneState("media", current)" role="tabpanel" aria-labelledby="tab-media-tab" tabindex="0">
                     <VehicleGalleryView VehicleId="VehicleId" VehicleName="@vehicle.Name" Images="vehicle.Images" />
-                </div>
-                <div id="tab-description" class="tab-pane @PaneState("description", current)" role="tabpanel" aria-labelledby="tab-description-tab" tabindex="0">
-                    <div class="row g-4">
-                        <div class="col-lg-8">
-                            <VehicleTagsView VehicleId="VehicleId" Tags="vehicle.Tags" Query="@FeatureQuery" />
-                        </div>
-                        <div class="col-lg-4">
-                            <VehicleJournalView VehicleId="VehicleId" NotesPage="journalPage" />
-                        </div>
-                    </div>
                 </div>
                 <div id="tab-service-records" class="tab-pane @PaneState("service-records", current)" role="tabpanel" aria-labelledby="tab-service-records-tab" tabindex="0">
                     <MaintenanceView VehicleId="VehicleId" Section="MaintenanceLinks.ParseSection(Section)" RecordsPage="recordsPage"
@@ -183,22 +190,25 @@ else if (vehicle is not null)
 
     private VehicleArchivedState archivedState => isArchived ? VehicleArchivedState.Archived : VehicleArchivedState.Active;
 
-    // The edit form opens on the tab being viewed (it has no Maintenance tab, so that one and Details open on Details).
+    // The edit form opens on the tab being viewed (it has no Maintenance tab, so that one, Details, and the overview open on Details).
     private string EditHref(string tab) =>
-        tab is "media" or "description" ? $"/vehicles/{VehicleId}/edit?tab={tab}" : $"/vehicles/{VehicleId}/edit";
+        tab is "media" ? $"/vehicles/{VehicleId}/edit?tab={tab}" : $"/vehicles/{VehicleId}/edit";
 
     [Parameter]
     public Guid VehicleId { get; set; }
 
-    // Which tab to open: details, media, description, service-records (shown as Maintenance), or reminders.
+    // Which tab to open: overview (default), timeline, details (shown as Specs), media (Photos), service-records (Maintenance), or reminders.
     [Parameter, SupplyParameterFromQuery(Name = "tab")]
     public string? Tab { get; set; }
 
-    // Read as text: a bad query value must mean the first page of notes, not a binding error.
-    [Parameter, SupplyParameterFromQuery(Name = "notesPage")]
-    public string? NotesPage { get; set; }
+    // The timeline's kind filter and page, read as text like the others.
+    [Parameter, SupplyParameterFromQuery(Name = "kind")]
+    public string? Kind { get; set; }
 
-    private int journalPage => int.TryParse(NotesPage, out var parsed) ? Math.Max(1, parsed) : 1;
+    [Parameter, SupplyParameterFromQuery(Name = "timelinePage")]
+    public string? TimelinePage { get; set; }
+
+    private int timelinePage => int.TryParse(TimelinePage, out var parsedTimeline) ? Math.Max(1, parsedTimeline) : 1;
 
     // Read as text: a bad query value must mean the first page of records, not a binding error.
     [Parameter, SupplyParameterFromQuery(Name = "recordsPage")]
@@ -229,7 +239,7 @@ else if (vehicle is not null)
     [Parameter, SupplyParameterFromQuery(Name = "documentsPage")]
     public string? DocumentsPage { get; set; }
 
-    // The text typed into the feature search on the Description tab.
+    // The text typed into the feature search on the Specs tab.
     [Parameter, SupplyParameterFromQuery(Name = "featureQuery")]
     public string? FeatureQuery { get; set; }
 

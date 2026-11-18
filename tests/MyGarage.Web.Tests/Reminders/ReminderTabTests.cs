@@ -92,7 +92,7 @@ public class ReminderTabTests : VehicleTestContext
     [InlineData(ReminderStatus.Overdue, "bg-danger-subtle")]
     [InlineData(ReminderStatus.DueSoon, "bg-warning-subtle")]
     [InlineData(ReminderStatus.Upcoming, "bg-success-subtle")]
-    [InlineData(ReminderStatus.MileageNeeded, "bg-info-subtle")]
+    [InlineData(ReminderStatus.MileageNeeded, "bg-secondary-subtle")]
     [InlineData(ReminderStatus.Paused, "bg-secondary-subtle")]
     public void EachRowLeadsWithADateTileColoredByStatus(ReminderStatus status, string tileClass)
     {

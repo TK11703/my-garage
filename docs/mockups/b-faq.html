@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup B – FAQ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="b-base.css">
+<style>
+.pubtop{display:flex;align-items:center;gap:1.5rem;padding:.8rem 2rem;background:var(--rail);color:#E8EEF3}
+.pubtop .brand{display:flex;gap:.7rem;align-items:center;font:700 16px var(--display);letter-spacing:.14em;text-transform:uppercase;text-decoration:none;color:inherit}
+.pubtop .logo{margin:0;width:32px;height:32px;font-size:11px}
+.pubtop nav{display:flex;gap:1.25rem;margin-left:1rem;flex:1}
+.pubtop nav a{font:600 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:#AEB9C4;text-decoration:none;padding:.3rem 0;border-bottom:2px solid transparent}
+.pubtop nav a.on{color:#FFB000;border-color:#FFB000}
+.wrap{max-width:1100px;margin:0 auto;padding:2rem}
+.hero{text-align:center;margin:1.5rem 0 2rem}
+.hero .eyebrow{margin-bottom:.4rem}
+.hero h1{font-size:44px}
+.hero p{color:var(--muted);margin:.6rem auto 1.2rem;max-width:34rem}
+.search{display:flex;gap:.7rem;align-items:center;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:.8rem 1rem;max-width:560px;margin:0 auto}
+.search:focus-within{border-color:var(--amber);box-shadow:0 0 0 4px var(--amber-glow)}
+.search span{color:var(--amber);font:700 18px var(--mono)}
+.search input{flex:1;border:0;background:transparent;color:var(--ink);font:500 16px var(--mono);outline:none;min-width:0}
+.cols{display:grid;grid-template-columns:240px 1fr;gap:1.5rem;align-items:start}
+.cats{position:sticky;top:1rem;display:grid;gap:.2rem}
+.cats button{display:flex;justify-content:space-between;gap:.5rem;align-items:center;text-align:left;font:500 13px var(--body);color:var(--muted);background:transparent;border:0;border-left:3px solid var(--line);padding:.6rem .8rem;cursor:pointer;border-radius:0 8px 8px 0}
+.cats button em{font:500 11px var(--mono);font-style:normal}
+.cats button:hover{color:var(--ink)}
+.cats button.on{color:var(--amber);border-color:var(--amber);background:var(--panel)}
+.cat{margin-bottom:1.75rem}
+.cat h2{font:700 12px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 .5rem;display:flex;gap:.6rem;align-items:center}
+.cat h2::after{content:"";flex:1;height:1px;background:var(--line)}
+details.q{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:.5rem;overflow:hidden}
+details.q[open]{border-color:var(--amber)}
+details.q summary{cursor:pointer;list-style:none;padding:.9rem 1.1rem;font-weight:600;display:flex;gap:1rem;justify-content:space-between;align-items:center}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::after{content:"+";font:700 18px var(--mono);color:var(--amber);flex:none}
+details.q[open] summary::after{content:"–"}
+details.q p{margin:0;padding:0 1.1rem 1.1rem;color:var(--muted);max-width:46rem}
+mark{background:rgba(255,176,0,.3);color:inherit;border-radius:3px;padding:0 .1rem}
+.empty{text-align:center;padding:2rem;border:2px dashed var(--line);border-radius:14px;color:var(--muted)}
+.cta{display:flex;gap:1rem;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:2rem;padding:1.2rem 1.4rem}
+[hidden]{display:none!important}
+@media(max-width:800px){.cols{grid-template-columns:1fr}.cats{position:static;grid-auto-flow:column;overflow-x:auto}.cats button{border-left:0;border-bottom:3px solid var(--line);border-radius:8px 8px 0 0;white-space:nowrap}.cats button.on{border-color:var(--amber)}}
+</style>
+</head>
+<body>
+<div class="mockbar"><span><strong>MOCKUP B</strong> &nbsp;
+<a href="b-garage.html">Garage</a><a href="b-instrument-cluster.html">Vehicle</a><a href="b-service-record.html">Service record</a><a href="b-reminders.html">Reminders</a><a href="b-add-vehicle.html">Add vehicle</a><a href="b-draft-review.html">Review draft</a> &nbsp;|&nbsp; <a href="b-search.html">Search</a><a href="b-preferences.html">Preferences</a><a href="b-faq.html">FAQ</a><a href="b-about.html">About</a><a href="b-signed-out.html">Signed out</a><a href="b-404.html">404</a></span>
+<button id="t">Toggle light / dark</button></div>
+
+<header class="pubtop">
+  <a class="brand" href="b-about.html"><span class="logo">MG</span>My Garage</a>
+  <nav><a class="on" href="b-faq.html">FAQ</a><a href="b-about.html">About</a></nav>
+  <a class="btn" href="b-garage.html">Sign in</a>
+</header>
+
+<div class="wrap">
+  <section class="hero">
+    <div class="eyebrow">Help</div>
+    <h1>How can we help?</h1>
+    <p>Find answers to common questions, or type a keyword.</p>
+    <label class="search"><span>⌕</span><input id="q" aria-label="Search the questions" placeholder="Type keywords to find answers…" autocomplete="off"></label>
+  </section>
+
+  <div class="cols">
+    <nav class="cats" id="cats" aria-label="Topics"></nav>
+    <div id="body"></div>
+  </div>
+  <div class="empty" id="none" hidden>No questions match those words. Try a different keyword.</div>
+
+  <section class="panel cta"><div><b>Ready to start?</b><div style="color:var(--muted);font:400 12px var(--mono)">Sign in to open your garage.</div></div><a class="btn ghost" href="b-garage.html">Sign in</a></section>
+  <p class="note">Help is public, so it uses the signed-out shell. Questions and answers are taken from the real FAQ (a selection per topic).</p>
+</div>
+<script>
+const r=document.documentElement;
+r.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+document.getElementById('t').onclick=()=>r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';
+const FAQ=[
+ {id:'start',title:'Getting started',items:[
+  ['How do I add a vehicle?','Open My Vehicles and choose Add vehicle. Enter the year, make, and model; the other details are optional. The vehicle is named from its year, make, and model.'],
+  ['Can I fill in a vehicle from its window sticker?','Yes. On the Add vehicle page open the Import from sticker tab, choose a photo or PDF of the window sticker, and choose Accept import. My Garage reads it and fills in the details and features for you to check. Nothing is saved until you choose Save.'],
+  ['How do I find a vehicle?','Use the search box at the top of any page, or the search and filters on My Vehicles to narrow by make, color, doors, tag, or mileage.']]},
+ {id:'vehicles',title:'Vehicles and pictures',items:[
+  ['What is the difference between archiving and deleting a vehicle?','Delete removes the vehicle and everything attached to it for good. Archive keeps all of its history, such as service records, fuel and charging entries, notes, pictures, documents, and reminders, but takes it out of your active garage and your garage figures. Archive a vehicle you sold or got rid of; you can still read everything, and you can restore it or delete it later.'],
+  ['What are tags?','Tags are short free-text words that describe a vehicle\'s features, such as "tow package" or "sunroof". You can search and filter by tag.'],
+  ['How many pictures can I add?','Each vehicle holds up to 10 pictures of up to 5 MB each. Choose one as the main picture to show on its card.']]},
+ {id:'maint',title:'Maintenance records',items:[
+  ['How do I add maintenance records to my vehicle?','There are three ways. 1) Create a record yourself: open the vehicle, choose Add at the top of the page, then Add service record. 2) Upload a PDF or image of the maintenance record: choose Add Maintenance and upload the file, and My Garage prepares a draft for you to review. 3) Send an email with the maintenance record in the body of the message or as an attachment to the application\'s mailbox, and it appears as a draft for you to review. Nothing from an upload or an email becomes a record until you include it.'],
+  ['What does a negative amount mean?','A discount or a credit. It is shown with a minus sign and subtracts from the total.']]},
+ {id:'email',title:'Email and drafts',items:[
+  ['Can I email an invoice instead?','Yes. Forward a service invoice or receipt from your account\'s email address to your My Garage mailbox. It is read the same way as an uploaded file and appears as a draft for you to review.'],
+  ['What happens to drafts I do not review?','A draft waits for you for 30 days. After that it expires and is not turned into a record.']]},
+ {id:'rem',title:'Reminders and the dashboard',items:[
+  ['What do Due soon and Overdue mean?','A reminder is Due soon within 500 miles or 30 days of its next due point and Overdue once that point is reached or passed. With both miles and time, it is due at whichever comes first. A reminder that repeats only by miles shows Mileage needed until the vehicle has a mileage.'],
+  ['What does Mark done do?','It records the date and mileage you enter, starts the next cycle from them, and adds an entry to the reminder\'s history. It can also raise the vehicle\'s mileage if you tick the box; it never lowers it.']]},
+ {id:'prefs',title:'Preferences and appearance',items:[
+  ['How do I switch between light and dark mode?','Use the moon or sun button at the right end of the top bar. Light and dark apply to this browser only; a new browser or a private window starts from your device\'s setting.']]},
+ {id:'priv',title:'Privacy and your data',items:[
+  ['Who can see my vehicles?','Only you. Your vehicles, notes, and pictures are private to your account.'],
+  ['Is my information shared?','Not with other users. Uploaded files and email text are sent to an AI reading service only to turn them into a draft for you, and their text is never written to the application\'s logs.']]}
+];
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let cat='all';
+function hl(t,q){if(!q)return esc(t);return esc(t).replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'),'<mark>$1</mark>')}
+function draw(){
+  const q=$('q').value.trim();const ql=q.toLowerCase();let n=0;
+  $('cats').innerHTML=[['all','All topics',FAQ.reduce((a,c)=>a+c.items.length,0)],...FAQ.map(c=>[c.id,c.title,c.items.length])]
+    .map(([id,t,c])=>`<button class="${cat===id?'on':''}" data-c="${id}">${t}<em>${c}</em></button>`).join('');
+  $('body').innerHTML=FAQ.filter(c=>cat==='all'||c.id===cat).map(c=>{
+    const items=c.items.filter(([a,b])=>!ql||(a+' '+b).toLowerCase().includes(ql));n+=items.length;
+    if(!items.length)return'';
+    return `<section class="cat"><h2>${c.title}</h2>${items.map(([a,b])=>`<details class="q" ${ql?'open':''}><summary>${hl(a,q)}</summary><p>${hl(b,q)}</p></details>`).join('')}</section>`}).join('');
+  $('none').hidden=n>0;
+  document.querySelectorAll('#cats button').forEach(b=>b.onclick=()=>{cat=b.dataset.c;draw()});
+}
+$('q').addEventListener('input',draw);
+draw();
+</script>
+</body>
+</html>

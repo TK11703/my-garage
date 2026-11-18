@@ -8,9 +8,9 @@ public class UiStandardConformanceTests
 {
     private static readonly string[] Sources = FindSources();
     private static readonly string WebProject = FindWebProject();
-    private static readonly string[] Scripts = ["lease-toggle.js", "pricing-toggle.js", "labor-total.js", "dropzone.js", "feature-suggest.js", "auto-submit.js", "clear-error.js", "submit-busy.js", "sticker-preview.js", "tab-memory.js", "faq-search.js"];
+    private static readonly string[] Scripts = ["lease-toggle.js", "pricing-toggle.js", "labor-total.js", "dropzone.js", "feature-suggest.js", "auto-submit.js", "clear-error.js", "submit-busy.js", "sticker-preview.js", "tab-memory.js", "faq-search.js", "reminder-preview.js"];
 
-    // Classic scripts (not modules) so docs/theme-preview.html can load them from a file:// page.
+    // Classic scripts (not modules) so a static preview page can load them from a file:// page.
     private static readonly string[] ShellScripts = ["theme-init.js", "app-shell.js"];
 
     private static string FindWebProject([CallerFilePath] string? sourceFile = null)
@@ -58,9 +58,11 @@ public class UiStandardConformanceTests
     }
 
     [Fact]
-    public void OnlyPageHeaderRendersAnH1()
+    public void OnlyPageHeaderRendersAnH1_ExceptTheCenteredSignedOutAndSignInProblemCards()
     {
-        var violations = Violations(new Regex("<h1[\\s>]"), path => Path.GetFileName(path) == "PageHeader.razor");
+        var violations = Violations(
+            new Regex("<h1[\\s>]"),
+            path => Path.GetFileName(path) is "PageHeader.razor" or "SignedOut.razor" or "AuthenticationError.razor");
 
         Assert.Empty(violations);
     }
@@ -275,6 +277,7 @@ public class UiStandardConformanceTests
     [InlineData("sticker-preview.js")]
     [InlineData("tab-memory.js")]
     [InlineData("faq-search.js")]
+    [InlineData("reminder-preview.js")]
     public void EachScript_ExistsAndIsLoadedAsAModuleFromTheAppShell(string script)
     {
         Assert.True(File.Exists(Path.Combine(WebProject, "wwwroot", "js", script)));
@@ -327,6 +330,7 @@ public class UiStandardConformanceTests
     [InlineData("sticker-preview.js")]
     [InlineData("tab-memory.js")]
     [InlineData("faq-search.js")]
+    [InlineData("reminder-preview.js")]
     [InlineData("theme-init.js")]
     [InlineData("app-shell.js")]
     public void Scripts_UseNoJQueryEvalOrInnerHtml(string script)

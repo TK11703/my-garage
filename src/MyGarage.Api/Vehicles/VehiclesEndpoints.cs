@@ -13,11 +13,14 @@ public static class VehiclesEndpoints
 {
     private const int DefaultPageSize = 12;
 
+    private const int DefaultTimelinePageSize = 20;
+
     public static IServiceCollection AddVehicles(this IServiceCollection services)
     {
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IValidator<VehicleRequest>, VehicleRequestValidator>();
         services.AddSingleton<IValidator<VehicleListQuery>, VehicleListQueryValidator>();
+        services.AddSingleton<IValidator<VehicleTimelineQuery>, VehicleTimelineQueryValidator>();
         services.AddSingleton<VehicleLookupChecker>();
         services.AddSingleton<VehicleService>();
         services.AddOpenTelemetry().WithMetrics(metrics => metrics.AddMeter(VehicleMetrics.MeterName));
@@ -133,6 +136,43 @@ public static class VehiclesEndpoints
             .WithName("UpdateVehicle")
             .WithSummary("Replace the editable details of a vehicle.")
             .Produces<VehicleDetailDto>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapGet("/{vehicleId:guid}/timeline", async (
+                Guid vehicleId,
+                [AsParameters] VehicleTimelineQuery query,
+                ClaimsPrincipal user,
+                VehicleRepository vehicles,
+                CancellationToken cancellationToken) =>
+            {
+                if (CurrentOwner.Get(user) is not { } ownerId)
+                {
+                    return NoOwner();
+                }
+
+                var pageSize = query.PageSize ?? DefaultTimelinePageSize;
+                var result = await vehicles.GetTimelinePageAsync(ownerId, vehicleId, query.Kind, query.Page, pageSize, cancellationToken);
+                if (result is null)
+                {
+                    return NotFound();
+                }
+
+                // A page beyond the last is answered with the last page; the returned Page is the one served.
+                var effectivePage = Math.Max(1, Math.Min(query.Page, result.TotalPages));
+                if (effectivePage != query.Page)
+                {
+                    result = await vehicles.GetTimelinePageAsync(ownerId, vehicleId, query.Kind, effectivePage, pageSize, cancellationToken);
+                }
+
+                return Results.Ok(VehicleTimelineMapper.ToPageDto(result!));
+            })
+            .AddEndpointFilter<ValidationFilter<VehicleTimelineQuery>>()
+            .WithName("ListVehicleTimeline")
+            .WithSummary("Page of the vehicle's history across service records, fuel and charging, inspections, registrations, insurance, taxes, and journal notes, newest first; optionally one kind.")
+            .Produces<PagedResultDto<VehicleTimelineEntryDto>>()
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)

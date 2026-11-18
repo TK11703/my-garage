@@ -48,7 +48,8 @@ public static class VehicleMapper
     public static VehicleDetailDto ToDetailDto(
         VehicleRecord vehicle,
         IReadOnlyList<VehicleTagDto> tags,
-        IReadOnlyList<VehicleImageDto> images) =>
+        IReadOnlyList<VehicleImageDto> images,
+        decimal? spendThisYear = null) =>
         new()
         {
             Id = vehicle.Id,
@@ -67,6 +68,9 @@ public static class VehicleMapper
             Transmission = Value(vehicle.TransmissionId, vehicle.TransmissionName),
             Mileage = vehicle.Mileage,
             LatestOdometerReading = vehicle.LatestOdometerReading,
+            CurrentMileage = vehicle.CurrentMileage,
+            LastServiceOn = vehicle.LastServiceOn,
+            SpendThisYear = spendThisYear,
             Color = vehicle.Color,
             Seats = vehicle.Seats,
             Doors = vehicle.Doors,
@@ -91,7 +95,7 @@ public static class VehicleMapper
     private static LookupValueDto? Value(Guid? id, string? name) =>
         id is { } itemId && name is not null ? new LookupValueDto { Id = itemId, Name = name } : null;
 
-    public static VehicleSummaryDto ToSummaryDto(VehicleSummaryRecord vehicle) =>
+    public static VehicleSummaryDto ToSummaryDto(VehicleSummaryRecord vehicle, VehicleNextDueDto? nextDue = null, decimal? spendThisYear = null) =>
         new()
         {
             Id = vehicle.Id,
@@ -105,13 +109,21 @@ public static class VehicleMapper
             Ownership = ToOwnership(vehicle.Ownership),
             PurchasedYear = vehicle.PurchasedOn?.Year,
             ArchivedAt = vehicle.ArchivedAt,
+            NextDue = vehicle.ArchivedAt is null ? nextDue : null,
+            SpendThisYear = spendThisYear,
             Matches = [.. vehicle.Matches.Select(match => new VehicleMatchDto { Field = match.Field, Text = match.Text })],
         };
 
-    public static PagedResultDto<VehicleSummaryDto> ToPageDto(PagedResult<VehicleSummaryRecord> page) =>
+    public static PagedResultDto<VehicleSummaryDto> ToPageDto(
+        PagedResult<VehicleSummaryRecord> page,
+        IReadOnlyDictionary<Guid, VehicleNextDueDto>? nextDue = null,
+        IReadOnlyDictionary<Guid, decimal>? spend = null) =>
         new()
         {
-            Items = page.Items.Select(ToSummaryDto).ToList(),
+            Items = page.Items.Select(item => ToSummaryDto(
+                item,
+                nextDue is not null && nextDue.TryGetValue(item.Id, out var due) ? due : null,
+                spend is not null && spend.TryGetValue(item.Id, out var amount) ? amount : null)).ToList(),
             Page = page.Page,
             PageSize = page.PageSize,
             TotalCount = page.TotalCount,

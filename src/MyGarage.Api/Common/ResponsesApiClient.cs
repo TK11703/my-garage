@@ -63,6 +63,11 @@ public sealed class ResponsesApiClient(HttpClient httpClient, IOptions<Extractio
         {
             return new ResponsesOutcome(null, "timeout", null);
         }
+        catch (Exception ex) when (ex is Azure.Identity.CredentialUnavailableException or Azure.Identity.AuthenticationFailedException)
+        {
+            // No signed-in account could get a token for the service; the reason tells an operator to check the sign-in, not the network.
+            return new ResponsesOutcome(null, "credential_error", null);
+        }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // Network, credential, and service failures all become a failed outcome; the caller's retry policy decides what happens next.

@@ -1,4 +1,4 @@
-<section class="card border-0 shadow-sm" aria-labelledby="tags-heading">
+<section id="group-features" class="card border-0 shadow-sm" aria-labelledby="tags-heading">
     <h2 id="tags-heading" class="card-header h6 mb-0">Features</h2>
     <div class="card-body">
         @if (Tags.Count == 0)
@@ -9,12 +9,12 @@
         {
             <div class="row justify-content-center mb-4">
                 <div class="col-md-8 col-lg-6">
-                    <form method="get" action="/vehicles/@VehicleId" role="search" aria-label="Search features" data-testid="feature-search">
-                        <input type="hidden" name="tab" value="description" />
+                    <form method="get" action="/vehicles/@VehicleId#group-features" role="search" aria-label="Search features" data-testid="feature-search">
+                        <input type="hidden" name="tab" value="details" />
                         <label for="feature-query" class="visually-hidden">Search features</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-body border-end-0 text-body-secondary"><Icon Name="IconName.Search" /></span>
-                            <input id="feature-query" name="featureQuery" type="search" class="form-control border-start-0" value="@search"
+                        <div class="mg-search-field">
+                            <span class="mg-search-field-icon" aria-hidden="true"><Icon Name="IconName.Search" /></span>
+                            <input id="feature-query" name="featureQuery" type="search" class="form-control" value="@search"
                                    maxlength="@FeatureGroups.MaxQueryLength" autocomplete="off" placeholder="Type keywords to find features" />
                         </div>
                         <button type="submit" class="visually-hidden">Search</button>
@@ -26,7 +26,7 @@
             {
                 <p class="text-body-secondary" role="status" data-testid="feature-search-summary">
                     @MatchSummary
-                    <a href="/vehicles/@VehicleId?tab=description">Clear search</a>
+                    <a href="/vehicles/@VehicleId?tab=details#group-features">Clear search</a>
                 </p>
             }
 

@@ -34,6 +34,12 @@ public sealed class VehicleSummaryDto
     // When the owner archived the vehicle; null for an active vehicle.
     public DateTimeOffset? ArchivedAt { get; init; }
 
+    // The most urgent active reminder; null when the vehicle has none, all are paused, or it is archived.
+    public VehicleNextDueDto? NextDue { get; init; }
+
+    // Service, fuel and charging, and inspection costs dated in the current calendar year; null when nothing was spent.
+    public decimal? SpendThisYear { get; init; }
+
     // Where else the search text was found (trim, color, VIN, engine, features); empty without a search.
     public IReadOnlyList<VehicleMatchDto> Matches { get; init; } = [];
 }

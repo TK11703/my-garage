@@ -98,7 +98,7 @@ public class VehicleLatestOdometerWebTests : VehicleTestContext
     }
 
     [Fact]
-    public void TheDetailPage_ShowsNotSetWithoutAReading()
+    public void TheDetailPage_OffersToAddWithoutAReading()
     {
         RegisterApi(_ => Json(WithLatest(vehicleId, null)));
 
@@ -109,7 +109,7 @@ public class VehicleLatestOdometerWebTests : VehicleTestContext
             var basic = cut.Find("#group-basic");
             var labels = basic.QuerySelectorAll("dt").Select(dt => dt.TextContent.Trim()).ToList();
             var values = basic.QuerySelectorAll("dd").Select(dd => dd.TextContent.Trim()).ToList();
-            Assert.Equal("Not set", values[labels.IndexOf("Latest odometer reading")]);
+            Assert.Equal("Add", values[labels.IndexOf("Latest odometer reading")]);
             Assert.Equal(labels.IndexOf("Latest odometer reading"), labels.FindIndex(label => label.StartsWith("Mileage", StringComparison.Ordinal)) + 1);
         });
     }

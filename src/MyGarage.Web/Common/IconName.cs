@@ -37,4 +37,5 @@ public enum IconName
     ArrowRight,
     Archive,
     ArrowCounterclockwise,
+    CalendarCheck,
 }

@@ -45,6 +45,18 @@ public sealed class ReminderFormModel
             LastDoneMileage = currentMileage,
         };
 
+    // A suggested reminder's values; what the query did not carry falls back to today and the vehicle's current mileage.
+    public static ReminderFormModel ForSuggestion(string name, int? miles, int? months, DateOnly? doneOn, int? mileage, DateOnly today, int? currentMileage) =>
+        new()
+        {
+            Name = name.Trim() is { Length: > 100 } tooLong ? tooLong[..100] : name.Trim(),
+            IntervalMiles = miles,
+            TimeValue = months,
+            TimeUnit = ReminderTimeUnit.Months,
+            LastDoneOn = doneOn ?? today,
+            LastDoneMileage = mileage ?? currentMileage,
+        };
+
     public static ReminderFormModel From(ReminderDto reminder) =>
         new()
         {
