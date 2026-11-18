@@ -64,7 +64,7 @@ public class AppRailTests : BunitContext
 
         var logo = cut.Find("a.mg-rail-logo");
         Assert.NotNull(logo.QuerySelector("svg.mg-logo"));
-        Assert.Equal(string.Empty, logo.TextContent.Trim());
+        Assert.Equal("My Garage", logo.QuerySelector(".mg-rail-brand[aria-hidden='true']")!.TextContent.Trim());
         Assert.Equal("My Garage home", logo.GetAttribute("aria-label"));
         Assert.Equal("/", logo.GetAttribute("href"));
     }
@@ -87,7 +87,7 @@ public class AppRailTests : BunitContext
         var links = cut.FindAll("a.mg-rail-link");
         Assert.Equal(
             ["Garage", "Add vehicle", "Reminders", "Drafts", "Search", "Dashboard"],
-            links.Select(link => link.QuerySelector(".visually-hidden")!.TextContent.Trim()));
+            links.Select(link => link.QuerySelector(".mg-rail-label")!.TextContent.Trim()));
         Assert.All(links, link =>
         {
             var icon = link.QuerySelector(".mg-rail-icon[aria-hidden='true'] svg.bi");
@@ -117,7 +117,7 @@ public class AppRailTests : BunitContext
         var cut = RenderRail(path);
 
         var active = Assert.Single(cut.FindAll("a.mg-rail-link.active"));
-        Assert.Equal(expected, active.QuerySelector(".visually-hidden")!.TextContent.Trim());
+        Assert.Equal(expected, active.QuerySelector(".mg-rail-label")!.TextContent.Trim());
         Assert.Equal("page", active.GetAttribute("aria-current"));
         Assert.Single(cut.FindAll("a[aria-current]"));
     }

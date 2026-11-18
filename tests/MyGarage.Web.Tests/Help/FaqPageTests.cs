@@ -79,7 +79,10 @@ public class FaqPageTests : IClassFixture<WebAppFactory>
         var (_, html) = await GetAsync();
         var document = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
 
-        Assert.Contains("How can we help you?", document.QuerySelector("h2")!.TextContent);
+        Assert.Single(document.QuerySelectorAll("h1"));
+        Assert.Null(document.QuerySelector(".mg-faq-hero"));
+        Assert.NotNull(document.QuerySelector(".mg-faq-side input[data-faq-search]"));
+        Assert.NotNull(document.QuerySelector(".mg-faq-side nav[aria-label='Topics']"));
         var search = document.QuerySelector("input[data-faq-search]")!;
         Assert.Equal("search", search.GetAttribute("type"));
         Assert.False(string.IsNullOrWhiteSpace(search.GetAttribute("aria-label")));

@@ -3,28 +3,31 @@
 
 <PageHeader Title="Frequently Asked Questions" Trail="@(new[] { new Crumb("FAQ") })" />
 
-<section class="mg-faq-hero" aria-labelledby="faq-help-heading">
-    <p class="mg-eyebrow">Help</p>
-    <h2 id="faq-help-heading">How can we help you?</h2>
-    <p class="mg-faq-lead">Find the answers to common questions here, or type a keyword below to get started.</p>
-    <div class="mg-faq-search mg-search-field">
-        <span class="mg-search-field-icon" aria-hidden="true"><Icon Name="IconName.Search" /></span>
-        <input type="search" class="form-control" placeholder="Type keywords to find answers..." aria-label="Search the questions"
-               autocomplete="off" data-faq-search data-testid="faq-search" />
-    </div>
-    <p class="text-body-secondary mt-3 mb-0" data-faq-empty hidden role="status">No questions match those words. Try a different keyword.</p>
-</section>
+<p class="mg-faq-lead">
+    Answers to the questions people ask most about My Garage: adding vehicles and pictures, keeping service records and
+    fuel and charging entries, turning emailed invoices and uploaded files into drafts, setting reminders, choosing
+    your preferences, and how your data is kept private. Choose a topic on the left to jump straight to it, or type a
+    word or two in the search box and the questions narrow down as you type.
+</p>
 
 <div class="mg-topics-layout" data-faq-grid>
-    <nav class="mg-topics" aria-label="Topics" data-testid="faq-topics">
-        <a href="/faq#faq-list" data-faq-topic="all">All topics <em>@Categories.Sum(category => category.Items.Length)</em></a>
-        @foreach (var category in Categories)
-        {
-            <a href="/faq#faq-@category.Id" data-faq-topic="@category.Id">@category.Title <em>@category.Items.Length</em></a>
-        }
-    </nav>
+    <div class="mg-faq-side">
+        <div class="mg-faq-search mg-search-field">
+            <span class="mg-search-field-icon" aria-hidden="true"><Icon Name="IconName.Search" /></span>
+            <input type="search" class="form-control" placeholder="Search topics" aria-label="Search the questions"
+                   autocomplete="off" data-faq-search data-testid="faq-search" />
+        </div>
+        <nav class="mg-topics" aria-label="Topics" data-testid="faq-topics">
+            <a href="/faq#faq-list" data-faq-topic="all">All topics <em>@Categories.Sum(category => category.Items.Length)</em></a>
+            @foreach (var category in Categories)
+            {
+                <a href="/faq#faq-@category.Id" data-faq-topic="@category.Id">@category.Title <em>@category.Items.Length</em></a>
+            }
+        </nav>
+    </div>
 
     <div class="mg-faq-body" id="faq-list">
+        <p class="text-body-secondary mb-3" data-faq-empty hidden role="status">No questions match those words. Try a different keyword.</p>
         @foreach (var category in Categories)
         {
             <section class="mg-faq-cat" aria-labelledby="faq-@category.Id" data-faq-category="@category.Id" data-testid="faq-category">
