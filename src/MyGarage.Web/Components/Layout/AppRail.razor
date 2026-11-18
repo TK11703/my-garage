@@ -1,7 +1,8 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 
-@* Phone: a slim strip with the menu button; the rail below opens over the page as a drawer. *@
+@* Phone: a slim strip with the menu button; the rail below opens over the page as a drawer. Wide screens show the
+   rail with a label beside each icon; mid-size screens keep icons only. *@
 <header class="mg-mobilebar">
     <button type="button" class="mg-nav-btn" aria-label="Open menu" aria-controls="mg-rail" aria-expanded="false" data-mg-rail-toggle>
         <Icon Name="IconName.List" Size="24" />
@@ -12,7 +13,10 @@
 <div class="mg-rail-backdrop" data-mg-rail-close></div>
 
 <aside id="mg-rail" class="mg-rail" aria-label="Site menu">
-    <a class="mg-rail-logo" href="/" aria-label="My Garage home" title="My Garage"><Logo Size="24" /></a>
+    <a class="mg-rail-logo" href="/" aria-label="My Garage home" title="My Garage">
+        <span class="mg-rail-mark"><Logo Size="24" /></span>
+        <span class="mg-rail-brand" aria-hidden="true">My Garage</span>
+    </a>
 
     <nav aria-label="Primary">
         <ul class="mg-rail-list">
@@ -23,7 +27,7 @@
                     <a class="mg-rail-link @(active ? "active" : null)" href="@item.Href" title="@item.Label"
                        aria-current="@(active ? "page" : null)">
                         <span class="mg-rail-icon" aria-hidden="true"><Icon Name="item.Icon" Size="22" /></span>
-                        <span class="visually-hidden">@item.Label</span>
+                        <span class="mg-rail-label">@item.Label</span>
                         @if (item == NavMenu.Drafts && draftsAwaitingReview > 0)
                         {
                             <span class="mg-rail-count" data-testid="nav-drafts-count" aria-hidden="true">@draftsAwaitingReview</span>

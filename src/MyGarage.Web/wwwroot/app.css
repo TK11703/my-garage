@@ -331,17 +331,45 @@ html {
 }
 
 .mg-rail-logo {
+    display: flex;
+    align-items: center;
+    gap: var(--mg-space-3);
+    margin-bottom: var(--mg-space-4);
+    color: var(--mg-rail-active);
+    text-decoration: none;
+}
+
+.mg-rail-mark {
     display: grid;
+    flex: none;
     place-items: center;
     width: 2.375rem;
     height: 2.375rem;
-    margin-bottom: var(--mg-space-4);
     border: 2px solid var(--mg-rail-active);
     border-radius: 10px;
-    color: var(--mg-rail-active);
     font: 700 var(--mg-fs-sm)/1 var(--mg-font-mono);
-    text-decoration: none;
     box-shadow: 0 0 14px rgba(255, 176, 0, 0.28);
+}
+
+.mg-rail-brand {
+    display: none;
+    color: #fff;
+    font: 700 var(--mg-fs-md)/1 var(--mg-font-display);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+/* Labels are read aloud always and shown only when the rail is wide. */
+.mg-rail-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 .mg-rail-list {
@@ -417,6 +445,64 @@ html {
 
 .mg-rail .dropdown {
     display: flex;
+}
+
+/* Wide screens, and the phone drawer: a label beside each icon. In between, the rail stays icons only. */
+@media (min-width: 1200px) {
+    :root {
+        --mg-rail-width: var(--mg-rail-width-expanded);
+    }
+}
+
+@media (min-width: 1200px), (max-width: 767.98px) {
+    .mg-rail {
+        width: var(--mg-rail-width-expanded);
+        align-items: stretch;
+        padding-inline: var(--mg-space-3);
+    }
+
+    .mg-rail-logo {
+        padding-inline: 0.125rem;
+    }
+
+    .mg-rail-brand {
+        display: inline;
+    }
+
+    .mg-rail-list {
+        align-items: stretch;
+    }
+
+    .mg-rail-link {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: var(--mg-space-3);
+        width: 100%;
+        padding-inline: 0.75rem;
+    }
+
+    .mg-rail-label {
+        position: static;
+        width: auto;
+        height: auto;
+        margin: 0;
+        overflow: visible;
+        clip: auto;
+        font: 600 var(--mg-fs-base)/1.2 var(--mg-font-body);
+        letter-spacing: 0;
+    }
+
+    .mg-rail-count {
+        position: static;
+        margin-left: auto;
+    }
+
+    .mg-rail-list.mt-auto {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
 }
 
 .mg-profile-menu {

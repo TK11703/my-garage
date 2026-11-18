@@ -156,6 +156,7 @@
 
   /* Layout */
   --mg-rail-width: 4.25rem;     /* 68px */
+  --mg-rail-width-expanded: 15rem; /* 240px, with a label beside each icon */
   --mg-content-max: 77.5rem;    /* 1240px */
   --mg-page-pad-x: 2rem;
   --mg-page-pad-y: 1.5rem;
